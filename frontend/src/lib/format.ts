@@ -239,6 +239,14 @@ export function formatRelativeDay(isoDate: string): string {
 	return date.toLocaleDateString('ko-KR');
 }
 
+/** 초 → '7h 18m' / '45m'(분 반올림, M-21·M-22 — 웰니스와 같은 표기). */
+export function formatHm(sec: number): string {
+	const total = Math.round(Math.abs(sec) / 60);
+	const h = Math.floor(total / 60);
+	const m = total % 60;
+	return `${sec < 0 && total > 0 ? MINUS : ''}${h > 0 ? `${h}h ${m}m` : `${m}m`}`;
+}
+
 export interface MetricFormatMeta {
 	format?: string;
 	unit?: string;
@@ -252,6 +260,8 @@ export function formatMetric(meta: MetricFormatMeta, value: number | null | unde
 		case 'race_time':
 		case 'duration':
 			return formatDuration(value);
+		case 'duration_hm':
+			return formatHm(value);
 		case 'pace':
 			return formatPace(value);
 		case 'signed':
@@ -263,7 +273,8 @@ export function formatMetric(meta: MetricFormatMeta, value: number | null | unde
 		default: {
 			const dp = meta.decimal_places;
 			if (dp == null) return formatUnitValue(value, meta.unit ?? '').display;
-			return dp === 0 ? String(Math.round(value)) : value.toFixed(dp);
+			// M-10: 1000 이상 정수는 천 단위 구분(걸음 12,345)
+			return dp === 0 ? (Math.abs(value) >= 1000 ? Math.round(value).toLocaleString('en-US') : String(Math.round(value))) : value.toFixed(dp);
 		}
 	}
 }

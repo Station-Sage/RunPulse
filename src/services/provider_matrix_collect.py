@@ -180,9 +180,17 @@ def summarize_pairs(pairs: list[tuple[float, float]], a: str, b: str, compare: s
                 "explain_text": f"{la}은 같은 러닝을 {lb}보다 보통 {med:.1f}배로 계산해요. 척도가 달라 차이로 보지 않아요."}
     differs = abs(med) > threshold_pct
     return {**base, "status": "differs" if differs else "similar",
-            "status_label": f"{med:+.0f}%" if differs else f"비슷함 ±{abs(med):.0f}%",
-            "explain_text": (f"{la}이 {lb}보다 중앙값 기준 {med:+.0f}% 달라요." if differs
-                             else f"두 소스 값이 거의 같아요(중앙 차이 {med:+.1f}%).")}
+            "status_label": signed_pct(med) if differs else f"비슷함 ±{abs(med):.0f}%",
+            "explain_text": (f"{la}이 {lb}보다 중앙값 기준 {signed_pct(med)} 달라요." if differs
+                             else f"두 소스 값이 거의 같아요(중앙 차이 {signed_pct(med, 1)}).")}
+
+
+def signed_pct(v: float, dp: int = 0) -> str:
+    """부호 있는 % — 반올림해 0이 되면 부호 없이 '0%'('-0%'·'+0.0%' 방지, M-19)."""
+    r = round(v, dp)
+    if r == 0:
+        return f"{0:.{dp}f}%"
+    return f"{r:+.{dp}f}%"
 
 
 def severity_key(d: dict) -> float:

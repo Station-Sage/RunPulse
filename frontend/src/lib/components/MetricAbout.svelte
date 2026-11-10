@@ -1,6 +1,8 @@
 <script lang="ts">
 	// 메트릭 상세 "이 지표는" 블록 — 의미 한 줄 + 해석 구간 + 좋은 방향. 데스크톱은 우측 열, 모바일은 접힘.
 	import { getMetricExplain } from '$lib/api/metrics';
+	import { formatMetric } from '$lib/format';
+	import { bandRangeText } from '$lib/metricDetail';
 	import type { MetricTrendData } from '$lib/types';
 
 	let {
@@ -37,7 +39,9 @@
 		trend.higher_is_better === true ? '높을수록 좋아요' : trend.higher_is_better === false ? '낮을수록 좋아요' : null
 	);
 	const bands = $derived(trend.bands ?? []);
-	const hasContent = $derived(!!what || !!direction || bands.length > 0);
+	// M-08: 분해(explain)를 지원하지 않는 지표는 한 줄 설명으로 '이 지표는'을 채운다.
+	const text = $derived(what ?? (explainSupported ? null : (trend.description_short ?? null)));
+	const hasContent = $derived(!!text || !!direction || bands.length > 0);
 </script>
 
 {#if hasContent}
@@ -52,14 +56,14 @@
 			<span class="text-fg-muted lg:hidden" aria-hidden="true">{open ? '−' : '+'}</span>
 		</button>
 		<div class="{open ? 'flex' : 'hidden'} flex-col gap-2 px-4 pb-3 text-sm text-fg-secondary lg:flex">
-			{#if what}<p>{what}</p>{/if}
+			{#if text}<p>{text}</p>{/if}
 			{#if direction}<p class="text-xs text-fg-muted">{direction}</p>{/if}
 			{#if bands.length > 0}
 				<ul class="flex flex-col gap-1 text-xs">
 					{#each bands as b, i (i)}
 						<li class="flex justify-between">
 							<span>{b.label}</span>
-							<span class="font-mono text-fg-muted">{b.from ?? ''}–{b.to ?? ''}</span>
+							<span class="font-mono text-fg-muted">{bandRangeText(b, (v) => formatMetric(trend, v))}</span>
 						</li>
 					{/each}
 				</ul>

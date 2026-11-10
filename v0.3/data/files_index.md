@@ -257,7 +257,7 @@
 
 - functions: classify, baseline_z, salience_key
 
-### `metric_display.py` (66줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
+### `metric_display.py` (87줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
 
 - functions: display_name, action_hint, min_span, display_meta
 
@@ -281,7 +281,7 @@
 
 - functions: confidence_label, get_metrics_browser
 
-### `metrics_changelog_events.py` (113줄) — 알고리즘 변경 이력(algo_changelog) → 추세 차트 ◆ 이벤트·재계산 캡션. 상위 지표 변경 전파와 불연속 감지 이벤트 병합 포함.
+### `metrics_changelog_events.py` (123줄) — 알고리즘 변경 이력(algo_changelog) → 추세 차트 ◆ 이벤트·재계산 캡션. 상위 지표 변경 전파와 불연속 감지 이벤트 병합 포함.
 
 - functions: changelog_events, version_events, recompute_caption
 
@@ -297,7 +297,7 @@
 
 - functions: explain_utrs, explain_cirs, explain_rri
 
-### `metrics_explain_conclusion.py` (32줄) — 분해 v2 결론 한 줄(`conclusion{top_loss,text}`, 21 §7.2(c)) — UTRS·CIRS·RRI만.
+### `metrics_explain_conclusion.py` (34줄) — 분해 v2 결론 한 줄(`conclusion{top_loss,text}`, 21 §7.2(c)) — UTRS·CIRS·RRI만.
 
 - functions: build_conclusion
 
@@ -317,7 +317,7 @@
 
 - functions: get_metric_breakdown, get_daily_series, get_daily_metric_as_of
 
-### `metrics_trend_service.py` (148줄) — 메트릭 추세 서비스 — 3-F (daily-scope 단일 메트릭의 기간별 시계열 + 신선도/행동 힌트).
+### `metrics_trend_service.py` (152줄) — 메트릭 추세 서비스 — 3-F (daily-scope 단일 메트릭의 기간별 시계열 + 신선도/행동 힌트).
 
 - functions: get_metric_trend
 
@@ -425,13 +425,13 @@
 
 - functions: normalize, diff, legacy_discrepancy
 
-### `provider_matrix_collect.py` (202줄) — Provider 매트릭스 수집·통계 헬퍼 (S6, ADR-021).
+### `provider_matrix_collect.py` (210줄) — Provider 매트릭스 수집·통계 헬퍼 (S6, ADR-021).
 
-- functions: plabel, quantile, median, iqr_bounds, running_groups, collect_activity_values, collect_daily_values, cell_summary, pair_points, summarize_pairs, severity_key, provider_pair_order
+- functions: plabel, quantile, median, iqr_bounds, running_groups, collect_activity_values, collect_daily_values, cell_summary, pair_points, summarize_pairs, signed_pct, severity_key, provider_pair_order
 
-### `provider_matrix_service.py` (97줄) — 소스 비교 매트릭스 서비스 (S6, ADR-021) — 같은 러닝을 소스별로 어떻게 계산하는지 한눈에.
+### `provider_matrix_service.py` (108줄) — 소스 비교 매트릭스 서비스 (S6, ADR-021) — 같은 러닝을 소스별로 어떻게 계산하는지 한눈에.
 
-- functions: window, diffs_for, representative, get_matrix
+- functions: window, diffs_for, representative, mark_lagging, get_matrix
 
 ### `provider_pairs_service.py` (43줄) — 소스 비교 쌍 목록 서비스 (S6, ADR-021) — 한 행의 같은 러닝(또는 같은 날) 값 쌍과 이상치.
 
@@ -500,15 +500,19 @@
 
 - functions: effective_retire_km, status_of, status_message, race_prep_note, shoe_state, sort_key, headline
 
+### `story_compare.py` (28줄) — Story 직전 기간 비교 기준 — 진행 중인 기간은 이전 기간을 같은 일수로 자른다(M-14).
+
+- functions: compare_basis
+
 ### `story_period.py` (112줄) — Story 기간 파싱 — 월/주/블록 문자열 → 날짜 범위 (story_service 하위 모듈).
 
 - (public API 없음)
 
-### `story_service.py` (216줄) — Phase 7 Story 서비스 — 월/주/블록 단위 훈련 내러티브 조회.
+### `story_service.py` (224줄) — Phase 7 Story 서비스 — 월/주/블록 단위 훈련 내러티브 조회.
 
 - functions: get_story
 
-### `story_stats.py` (210줄) — Story 기간 통계 조회 — 거리·CTL·강도 분포·위험 피크·핵심 세션 (story_service 하위 모듈).
+### `story_stats.py` (215줄) — Story 기간 통계 조회 — 거리·CTL·강도 분포·위험 피크·핵심 세션 (story_service 하위 모듈).
 
 - (public API 없음)
 
@@ -580,7 +584,7 @@
 
 - functions: load_input, adapt_plan
 
-### `wellness_day.py` (203줄) — 웰니스 /:date 일 상세 — 헤드라인·근거·준비도·수면·Body Battery·기준선·7일 점·이전/다음 날짜.
+### `wellness_day.py` (209줄) — 웰니스 /:date 일 상세 — 헤드라인·근거·준비도·수면·Body Battery·기준선·7일 점·이전/다음 날짜.
 
 - functions: percentile_band, build_day
 
@@ -1556,6 +1560,10 @@
 
 - functions: fmt_distance, fmt_pace, fmt_duration, fmt_gap, fmt_signed, fmt_int, workout_ko, grade_ko, sanitize
 
+### `korean_josa.py` (29줄) — 한국어 조사 선택 — 받침 유무로 '이/가'·'은/는'을 고른다('이(가)' 템플릿 노출 방지, M-31).
+
+- functions: has_final, josa
+
 ### `log_config.py` (39줄) — 로깅 중앙 설정 — 모든 진입점에서 setup_logging() 한 번 호출.
 
 - functions: setup_logging
@@ -1584,7 +1592,11 @@
 
 - (public API 없음)
 
-### `metric_labels.py` (127줄) — 메트릭 표시 이름 SSOT — 레지스트리 canonical name → (name_ko, abbr). ADR-018.
+### `metric_label_texts_c.py` (37줄) — 지표 한 줄 설명 2차분(M-07) — 상세 화면에 설명이 비던 지표. 문구는 임시(TXT-1, 사용자 확정 전).
+
+- (public API 없음)
+
+### `metric_labels.py` (132줄) — 메트릭 표시 이름 SSOT — 레지스트리 canonical name → (name_ko, abbr). ADR-018.
 
 - class **MetricLabel**: 없음
 - functions: label_for
@@ -2123,6 +2135,10 @@
 ### `test_archive_service.py` (89줄) — tests/test_archive_service.py — 러닝 아카이브 집계.
 
 - functions: test_months_back_crosses_year, test_empty_db, test_totals_monthly_heatmap_longest, test_personal_bests_pick_min_and_skip_missing, test_personal_bests_merge_race_results_with_source_labels
+
+### `test_audit_bundle_c.py` (115줄) — V2-AUDIT-INDIV 묶음 C(지표·웰니스·이야기·소스 비교) 서버 측 수정 테스트.
+
+- functions: test_display_meta_formats_m10_m21, test_josa_m31, test_merge_reasons_groups_same_input_m31, test_explain_avg7d_uses_seven_days_m11, test_compare_basis_partial_month_m14, test_story_future_month_has_no_next_and_no_compare_m16, test_risk_peak_carries_grade_m15, test_headline_adds_cirs_caveat_m17, test_signed_pct_and_lagging_m19, test_second_batch_descriptions_m07, test_trend_reports_source_m08
 
 ### `test_auth_cf.py` (241줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
@@ -3817,7 +3833,7 @@
 - functions: run
 
 ---
-총 819개 파일
+총 823개 파일
 
 ## docstring 누락
 

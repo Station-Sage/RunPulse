@@ -6,7 +6,7 @@
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import type { StoryData } from '$lib/api/story';
-	import { isoWeekId, storyScope } from '$lib/storyPeriod';
+	import { deltaPctText, isoWeekId, riskPeakText, storyScope, thisMonthId } from '$lib/storyPeriod';
 
 	let { data }: { data: { story: StoryData } } = $props();
 	const s = $derived(data.story);
@@ -34,7 +34,7 @@
 				]
 			: []
 	);
-	const sign = (n: number) => (n > 0 ? '+' : '');
+	const risk = $derived(s.risk_peak ? riskPeakText(s.risk_peak) : null);
 </script>
 
 <PageHead title={`${s.period.label} 훈련 이야기`} headingHidden />
@@ -47,7 +47,7 @@
 				<div class="text-lg font-semibold text-fg-primary">{s.period.label}</div>
 				<div class="text-xs text-fg-muted">{s.period.start} ~ {s.period.end}</div>
 			</div>
-			<IconButton label="다음 {unitLabel}" onclick={() => open(s.period.next)}>›</IconButton>
+			<IconButton label="다음 {unitLabel}" disabled={!s.period.next} onclick={() => s.period.next && open(s.period.next)} class="disabled:opacity-30">›</IconButton>
 		</div>
 		<ToggleGroup
 			label="단위"
@@ -58,7 +58,14 @@
 		/>
 	</header>
 
+	{#if s.is_future}
+		<div class="rounded border border-border-subtle p-4 text-sm text-fg-secondary" data-testid="story-future">
+			<p>아직 오지 않은 기간이에요.</p>
+			<a class="mt-2 inline-block text-semantic-teal underline" href="{base}/library/story/{thisMonthId()}">이번 달 이야기 보기</a>
+		</div>
+	{:else}
 	<p class="rounded bg-surface-2 p-4 leading-relaxed text-fg-primary">{s.paragraph}</p>
+	{/if}
 
 	{#if s.chips.length}
 		<div class="flex flex-wrap gap-2">
@@ -71,13 +78,14 @@
 	{#if s.compare.length}
 		<section>
 			<h3 class="mb-2 text-sm font-semibold text-fg-secondary">이전 {unitLabel}과 비교</h3>
+			{#if s.compare_basis}<p class="mb-2 text-xs text-fg-muted" data-testid="story-compare-basis">{s.compare_basis}</p>{/if}
 			<ul class="flex flex-col gap-2">
 				{#each s.compare as c (c.key)}
 					<li class="flex items-center justify-between rounded bg-surface-2 p-2 text-sm">
 						<span>{c.label}</span>
 						<span class="text-right">
 							<span class="font-semibold">{c.value}</span>
-							<span class="block text-xs text-fg-muted">{sign(c.delta_pct)}{c.delta_pct}% (이전 {c.prev})</span>
+							<span class="block text-xs text-fg-muted">{deltaPctText(c.delta_pct)} (이전 {c.prev})</span>
 						</span>
 					</li>
 				{/each}
@@ -120,10 +128,10 @@
 		</section>
 	{/if}
 
-	{#if s.risk_peak}
-		<p class="rounded border border-border-subtle p-3 text-sm">
-			<span class="font-semibold">위험 최고</span>
-			{s.risk_peak.slug.toUpperCase()} {s.risk_peak.value} ({s.risk_peak.date})
+	{#if risk}
+		<p class="rounded border border-border-subtle p-3 text-sm" data-testid="story-risk">
+			<span class="font-semibold">{risk.title}</span>
+			{risk.body}
 		</p>
 	{/if}
 

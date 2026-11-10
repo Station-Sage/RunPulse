@@ -991,7 +991,7 @@ export interface MetricTrendPoint {
 }
 
 export interface MetricTrendData {
-	slug: string;
+	slug: string; source?: string | null; // source: 최신 값 provider, 웰니스 표 값이면 'wellness'(M-08)
 	compare_group?: { key: string; label: string; provider: string } | null;
 	name_ko?: string;
 	abbr?: string | null;
@@ -1534,7 +1534,7 @@ export interface ProviderCell {
 	median: number | null;
 	latest: number;
 	last_date: string;
-	stale: boolean;
+	stale: boolean; lagging?: boolean; // lagging: 같은 행 최신 소스보다 7일 넘게 뒤처짐(M-19)
 	estimated: boolean;
 	n: number;
 }

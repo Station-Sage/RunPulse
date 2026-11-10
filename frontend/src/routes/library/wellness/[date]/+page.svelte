@@ -5,7 +5,7 @@
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { statusColorVar } from '$lib/statusColor';
-	import { dateLabel } from '$lib/wellnessDay';
+	import { dateLabel, movedNotice } from '$lib/wellnessDay';
 	import WellnessDateBar from '$lib/components/WellnessDateBar.svelte';
 	import WellnessSleep from '$lib/components/WellnessSleep.svelte';
 	import WellnessCores from '$lib/components/WellnessCores.svelte';
@@ -31,6 +31,7 @@
 		go(dx > 0 ? d.nav.prev : d.nav.next);
 	}
 	const nearest = $derived(d.nav.prev ?? d.nav.next);
+	const moved = $derived(movedNotice(data.movedFrom, d.date));
 	const vitals = $derived(
 		[
 			['체중', d.core.weight_kg != null ? `${d.core.weight_kg.toFixed(1)}kg` : null],
@@ -43,6 +44,7 @@
 
 <div ontouchstart={onTouchStart} ontouchend={onTouchEnd} role="presentation">
 	<WellnessDateBar detail={d} />
+	{#if moved}<p class="mx-4 mt-2 rounded-lg bg-surface-3 px-3 py-2 text-xs text-fg-secondary" data-testid="wellness-moved">{moved}</p>{/if}
 
 	{#if !d.has_record}
 		<section class="flex flex-col items-center gap-3 px-4 py-16 text-center">

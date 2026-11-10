@@ -23,6 +23,27 @@ export function parseDays(raw: string | null): number {
 	return PERIOD_DAYS.some((p) => p.days === n) ? n : 28;
 }
 
+/** M-20: ?days= 가 있는데 쓸 수 없는 값이면 true(4주로 보고 안내·주소 정리). */
+export function daysInvalid(raw: string | null): boolean {
+	return raw != null && parseDays(raw) !== Number(raw);
+}
+
+/** 쓸 수 없는 기간 안내 한 줄(임시 문구, TXT-1). */
+export const DAYS_NOTICE = '주소의 기간 값을 쓸 수 없어 4주로 보여 드려요.';
+
+/** 부호 있는 % — 반올림해 0이면 '0%'('-0%' 방지), 음수는 U+2212(M-19). */
+export function signedPct(v: number, dp = 0): string {
+	const r = Number(v.toFixed(dp));
+	if (r === 0) return `${(0).toFixed(dp)}%`;
+	return `${r > 0 ? '+' : '−'}${Math.abs(r).toFixed(dp)}%`;
+}
+
+/** 차이 칸 보조 줄: 활동 쌍은 '러닝 17건 중 9건 비교', 일별 쌍은 '9일 비교'(M-19). */
+export function pairCountText(kind: string, n: number, sampleN: number, label: string): string {
+	const count = kind === 'pair_activity' ? `러닝 ${sampleN}건 중 ${n}건 비교` : `${n}일 비교`;
+	return `${label} · ${count}`;
+}
+
 /** 행에서 값이 있는 소스 열만(매트릭스 전체 열 순서 유지). */
 export function visibleProviders(all: string[], rows: ProviderMatrixRow[]): string[] {
 	return all.filter((p) => rows.some((r) => p in r.cells));
@@ -40,7 +61,7 @@ export function cellText(row: Pick<ProviderMatrixRow, 'format' | 'unit'>, cell: 
 	if (cell.median == null) {
 		return { main: formatMetric(meta, cell.latest), note: `${mmdd(cell.last_date)} 이후 없음` };
 	}
-	return { main: formatMetric(meta, cell.median), note: cell.stale ? `${mmdd(cell.last_date)} 이후 없음` : null };
+	return { main: formatMetric(meta, cell.median), note: cell.stale || cell.lagging ? `${mmdd(cell.last_date)} 이후 없음` : null };
 }
 
 function decimals(format: string): number | undefined {

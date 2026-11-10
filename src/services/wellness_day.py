@@ -145,7 +145,13 @@ def _headline(readiness: dict, reasons: list[dict]) -> dict:
         text = f"회복 {label} — " + ". ".join(r["chip"] for r in reasons) + "."
     else:
         text = f"회복 {label} — 평소와 비슷해요."
-    return {"status": status, "status_label": label, "text": text, "reasons": reasons}
+    # M-17: 회복(UTRS)이 좋아도 부상 위험(CIRS)이 높으면 같은 줄에서 알린다(두 카드가 모순처럼 보이지 않게).
+    c = readiness.get("cirs")
+    caveat = None
+    if c and c["status"] in ("caution", "poor"):
+        caveat = f"다만 부하로 본 부상 위험(CIRS)은 '{c['status_label']}'이에요."
+        text = f"{text} {caveat}"
+    return {"status": status, "status_label": label, "text": text, "reasons": reasons, "caveat": caveat}
 
 
 def _as_of(updated_at: str | None) -> str | None:

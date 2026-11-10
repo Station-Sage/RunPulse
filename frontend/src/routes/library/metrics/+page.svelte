@@ -10,13 +10,13 @@
 	import { freshnessBadgeText } from '$lib/freshness';
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
-	import { formatUnitValue } from '$lib/format';
+	import { cardUnit, cardValue, matchesProvider, providerKeys, WELLNESS_PROVIDER } from '$lib/metricListView';
 	import { loadPins, savePins, togglePin } from '$lib/pinnedMetrics';
 	import { saveMetricsSearch } from '$lib/libraryNav';
 	import { matchesMetric } from '$lib/metricSearch';
-	import { afterNavigate, replaceState } from '$app/navigation';
+	import { afterNavigate, pushState, replaceState } from '$app/navigation';
 	import { page as pageState } from '$app/state';
-	import { limitCards } from '$lib/metricGroups';
+	import { limitCards, normalizeCategory } from '$lib/metricGroups';
 	import { displayLabel, isFlat, STATUS_TEXT_CLASS, STATUS_DOT_COLOR, sparkCaption, cardSubline } from '$lib/metricMeaning';
 
 	let { data }: { data: MetricsBrowserPageData } = $props();
@@ -31,24 +31,32 @@
 	let searchEl = $state<HTMLInputElement | null>(null);
 	const searching = $derived(query.trim().length > 0);
 
-	function syncQuery() {
+	// 검색어 입력은 히스토리를 쌓지 않고(replace), 칩 전환은 쌓는다(push) — 뒤로가기가 이전 칩으로 돌아간다(M-30).
+	function syncQuery(push = false) {
 		const u = new URL(pageState.url);
 		const set = (k: string, v: string, empty: string) => (v && v !== empty ? u.searchParams.set(k, v) : u.searchParams.delete(k));
 		set('q', query.trim(), '');
 		set('category', selectedCategory, 'all');
 		set('provider', selectedProvider, 'all');
-		replaceState(u, pageState.state);
+		if (push && u.search !== pageState.url.search) pushState(u, pageState.state);
+		else replaceState(u, pageState.state);
 		saveMetricsSearch(u.search);
 	}
 	saveMetricsSearch(pageState.url.search);
 	function pickCategory(c: string) {
 		selectedCategory = c;
-		syncQuery();
+		syncQuery(true);
 		if (c !== 'all') window.scrollTo({ top: 0 });
 	}
 	function pickProvider(p: string) {
 		selectedProvider = p;
-		syncQuery();
+		syncQuery(true);
+	}
+	// 뒤로/앞으로 가기로 주소가 바뀌면 칩 선택을 주소에 맞춘다(shallow history 라 popstate 에서 직접 읽는다).
+	function onPop() {
+		const sp = new URL(location.href).searchParams;
+		selectedCategory = normalizeCategory(sp.get('category'));
+		selectedProvider = sp.get('provider') ?? 'all';
 	}
 	function onKey(e: KeyboardEvent) {
 		const t = e.target as HTMLElement | null;
@@ -65,16 +73,8 @@
 		if (raw && raw !== selectedCategory) syncQuery();
 	});
 
-	// 데이터에 등장하는 고유 Provider 목록 (base 키 기준, 빈 문자열 제외)
-	const availableProviders = $derived(
-		[
-			...new Set(
-				categories
-					.flatMap((cat) => cat.metrics.map((m) => (m.provider ?? '').split(':')[0]))
-					.filter((k) => k.length > 0)
-			)
-		].sort()
-	);
+	// 데이터에 등장하는 Provider 필터 키 — provider 가 없는 웰니스 기록 지표도 칩 하나로 고를 수 있게(M-13)
+	const availableProviders = $derived(providerKeys(categories));
 
 	// 핵심 지표 — 전체 보기에서 맨 위에 크게. 나머지는 카테고리별, 보조 카테고리(수면·심박 세부·환경)는 접어 둔다.
 	let pins = $state<string[]>(loadPins());
@@ -90,11 +90,13 @@
 		pins = togglePin(pins, toast.name);
 		savePins(pins);
 	}
-	const showCore = $derived(selectedCategory === 'all' && selectedProvider === 'all' && !searching);
+	// '내 지표'는 Provider 필터 중에도 그 Provider 지표만 남겨 보인다(M-13).
+	const showCore = $derived(selectedCategory === 'all' && !searching);
+	const compact = $derived(showCore && selectedProvider === 'all');
 	const coreMetrics = $derived(
 		showCore
 			? CORE.map((n) => categories.flatMap((c) => c.metrics).find((m) => m.name === n)).filter(
-					(m): m is MetricBrowserEntry => m != null
+					(m): m is MetricBrowserEntry => m != null && matchesProvider(m, selectedProvider)
 				)
 			: []
 	);
@@ -106,26 +108,13 @@
 		)
 			.map((cat) => ({
 				...cat,
-				metrics: (
-					selectedProvider === 'all'
-						? cat.metrics
-						: cat.metrics.filter(
-								(m) => (m.provider ?? '').split(':')[0] === selectedProvider
-							)
-				).filter((m) => !(showCore && CORE.includes(m.name)) && matchesMetric(m, query))
+				metrics: cat.metrics.filter(
+					(m) => matchesProvider(m, selectedProvider) && !(showCore && CORE.includes(m.name)) && matchesMetric(m, query)
+				)
 			}))
 			.filter((cat) => cat.metrics.length > 0)
 	);
 
-	function formatValue(m: MetricBrowserEntry): string {
-		if (m.value == null) return '—';
-		if (typeof m.value === 'string') return m.value;
-		return formatUnitValue(Number(m.value), m.unit).display;
-	}
-	function valueUnit(m: MetricBrowserEntry): string {
-		if (m.value == null || typeof m.value === 'string') return m.unit;
-		return formatUnitValue(Number(m.value), m.unit).unit;
-	}
 </script>
 
 {#snippet card(m: MetricBrowserEntry, big: boolean)}
@@ -137,8 +126,8 @@
 		<span class="text-xs leading-snug text-fg-muted">{displayLabel({ name_ko: m.name_ko ?? m.label, abbr: m.abbr })}</span>
 		<div class="flex items-baseline justify-between gap-1">
 			<span class="font-mono {big ? 'text-2xl' : 'text-lg'} font-semibold leading-none">
-				{formatValue(m)}{#if valueUnit(m)}<span class="ml-0.5 text-xs font-normal text-fg-muted"
-						>{valueUnit(m)}</span
+				{cardValue(m)}{#if cardUnit(m)}<span class="ml-0.5 text-xs font-normal text-fg-muted"
+						>{cardUnit(m)}</span
 					>{/if}
 			</span>
 			{#if m.provider && availableProviders.length > 1}
@@ -179,7 +168,7 @@
 	{/if}
 </div>
 
-<svelte:window onkeydown={onKey} />
+<svelte:window onkeydown={onKey} onpopstate={onPop} />
 
 {#if data.errorMessage}
 	<div class="px-4 py-8 text-center">
@@ -195,7 +184,7 @@
 			bind:this={searchEl}
 			type="search"
 			bind:value={query}
-			oninput={syncQuery}
+			oninput={() => syncQuery()}
 			placeholder="지표 검색 ( / )"
 			aria-label="지표 검색"
 			class="w-full min-h-11 rounded-lg border border-border-subtle bg-surface-2 px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted"
@@ -238,7 +227,7 @@
 					class="min-h-11 shrink-0 rounded-full px-3 text-xs {selectedProvider === key
 						? 'bg-fg-primary text-surface-1'
 						: 'bg-surface-2 text-fg-secondary'}"
-					onclick={() => pickProvider(key)}>{providerLabel(key as ProviderKey)}</button
+					onclick={() => pickProvider(key)}>{key === WELLNESS_PROVIDER ? '웰니스 기록' : providerLabel(key as ProviderKey)}</button
 				>
 			{/each}
 		</div>
@@ -252,7 +241,7 @@
 				<button type="button" class="rounded-full bg-surface-2 px-3 py-1 text-xs text-fg-secondary" onclick={() => (query = '')}>검색 지우기</button>
 			</div>
 		{/if}
-		{#if showCore}<TrainingBalanceCard />{/if}
+		{#if compact}<TrainingBalanceCard />{/if}
 		{#if coreMetrics.length}
 			<section>
 				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">내 지표</h2>
@@ -264,10 +253,10 @@
 			</section>
 		{/if}
 		{#each visibleCategories as cat}
-			{@const lim = limitCards(cat.metrics, cat.category, !showCore)}
+			{@const lim = limitCards(cat.metrics, cat.category, !compact)}
 			<section aria-label={cat.label}>
 				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">
-					{cat.label}{#if showCore && cat.total} <span class="font-normal">({cat.total})</span>{/if}
+					{cat.label}{#if compact && cat.total} <span class="font-normal">({cat.total})</span>{/if}
 				</h2>
 				{#if cat.headline}<p class="mb-2 text-sm text-fg-secondary" data-testid="load-headline">{cat.headline}</p>{/if}
 				<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">

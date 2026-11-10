@@ -10,7 +10,7 @@ describe('wellnessDay', () => {
 		assert.equal(isValidDate('abc'), false);
 	});
 	it('dateLabel formats Korean with weekday', () => {
-		assert.equal(dateLabel('2026-10-04'), '10월 4일 (일)');
+		assert.equal(dateLabel('2026-10-04', '2026-11-10'), '10월 4일 (일)');
 	});
 	it('shiftDate crosses month boundary', () => {
 		assert.equal(shiftDate('2026-10-01', -1), '2026-09-30');

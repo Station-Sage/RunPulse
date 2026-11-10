@@ -1,7 +1,7 @@
 <script lang="ts">
 	// 소스 비교 매트릭스(S6) — 섹션별 행 × 소스 열. 판정(status)·문구는 서버가 만든 값을 그대로 표시.
 	import type { ProviderMatrixData } from '$lib/types';
-	import { cellText, providerName, rowHref, visibleProviders } from '$lib/providerMatrix';
+	import { cellText, pairCountText, providerName, rowHref, visibleProviders } from '$lib/providerMatrix';
 	import { base } from '$app/paths';
 
 	let { data }: { data: ProviderMatrixData } = $props();
@@ -53,7 +53,7 @@
 									{:else}
 										<span class={TONE[row.diff.status]}>{row.diff.status_label}</span>
 									{/if}
-									<span class="block text-fg-muted">{row.diff.label} · {row.diff.n}건</span>
+									<span class="block text-fg-muted">{pairCountText(row.kind, row.diff.n, data.sample_n, row.diff.label)}</span>
 								{:else}
 									<span class="text-fg-muted">비교 안 함</span>
 								{/if}

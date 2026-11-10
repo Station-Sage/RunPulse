@@ -1,7 +1,7 @@
 <script lang="ts">
 	// 수면 카드 — 점수·시간(30일 평균 대비)·단계 막대. 단계가 없으면 "단계 데이터 없음".
 	import { base } from '$app/paths';
-	import { fmtDur, stageSegments } from '$lib/wellnessDay';
+	import { durDelta, fmtDur, stageSegments } from '$lib/wellnessDay';
 	import type { WellnessDetailData } from '$lib/types';
 
 	let { sleep, date }: { sleep: NonNullable<WellnessDetailData['sleep']>; date: string } = $props();
@@ -13,7 +13,7 @@
 		awake: 'var(--color-semantic-amber)'
 	};
 	const delta = $derived(
-		sleep.duration_sec != null && sleep.mean30_sec != null ? sleep.duration_sec - sleep.mean30_sec : null
+		sleep.duration_sec != null && sleep.mean30_sec != null ? durDelta(sleep.duration_sec, sleep.mean30_sec) : null
 	);
 </script>
 
@@ -24,7 +24,7 @@
 	</div>
 	<p class="mt-2 font-mono text-lg">{fmtDur(sleep.duration_sec)}</p>
 	{#if delta != null}
-		<p class="text-xs text-fg-muted">30일 평균 {fmtDur(sleep.mean30_sec)} 대비 {delta >= 0 ? '+' : '−'}{fmtDur(Math.abs(delta))}</p>
+		<p class="text-xs text-fg-muted">30일 평균 {fmtDur(sleep.mean30_sec)} 대비 {delta}</p>
 	{/if}
 	{#if segs.length > 0}
 		<div class="mt-3 flex h-3 overflow-hidden rounded-full" role="img" aria-label="수면 단계 비율">

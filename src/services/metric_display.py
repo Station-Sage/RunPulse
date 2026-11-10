@@ -12,6 +12,10 @@ _NAME_FORMAT = {
     "race_pred_marathon_sec": "race_time",
 }
 _INT_UNITS = {"bpm", "ms", "W", "count", "kcal", "score", "brpm", "min/wk", "%"}
+# M-10: 단위 없는 0~100 점수는 정수, 부하비 계열은 소수 2자리(목록·상세·차트 공통)
+_SCORE_NAMES = frozenset({"utrs", "cirs", "crs", "rri", "sleep_score", "body_battery_high", "body_battery_low",
+                          "avg_stress", "training_readiness_score", "sleep_body_battery_change"})
+_RATIO_NAMES = frozenset({"acwr", "lsi", "monotony", "ramp_rate"})
 _UNIT_MIN_SPAN = {"bpm": 5.0, "sec/km": 10.0, "score": 10.0, "ratio": 0.2}
 _RACE_TIME_MIN_SPAN_PCT = 0.02  # 예측 기록은 값의 2%
 HIGHER_IS_BETTER: dict[str, bool | None] = {
@@ -51,16 +55,33 @@ def min_span(fmt: str, unit: str, value: float | None) -> float | None:
     return _UNIT_MIN_SPAN.get(unit)
 
 
+def _format_of(name: str, unit: str) -> str:
+    """registry 단위·이름 → 표시 형식. 수면·스트레스 시간은 '7h 18m'(duration_hm, M-21 웰니스 화면과 같음)."""
+    if name in _NAME_FORMAT:
+        return _NAME_FORMAT[name]
+    if unit == "sec" and name.startswith(("sleep_", "stress_")):
+        return "duration_hm"
+    if not unit and name in _SCORE_NAMES:
+        return "score"
+    return _UNIT_FORMAT.get(unit, "number")
+
+
+def _decimals(name: str, fmt: str, unit: str) -> int:
+    if fmt in ("race_time", "duration", "duration_hm", "pace", "signed", "score") or unit in _INT_UNITS:
+        return 0
+    return 2 if name in _RATIO_NAMES else 1
+
+
 def display_meta(name: str, unit: str, description: str = "", value: float | None = None) -> dict:
     """name_ko·abbr + format·decimal_places·higher_is_better·min_span(스파크라인 최소 y 폭)."""
     name_ko, abbr = display_name(name, description or name)
-    fmt = _NAME_FORMAT.get(name) or _UNIT_FORMAT.get(unit, "number")
+    fmt = _format_of(name, unit)
     return {
         "name_ko": name_ko,
         "abbr": abbr,
         "description_short": label_for(name).description_short,
         "format": fmt,
-        "decimal_places": 0 if fmt in ("race_time", "duration", "pace", "signed") or unit in _INT_UNITS else 1,
+        "decimal_places": _decimals(name, fmt, unit),
         "higher_is_better": HIGHER_IS_BETTER.get(name),
         "min_span": min_span(fmt, unit, value),
     }

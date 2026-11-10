@@ -16,6 +16,7 @@ from src.services.provider_matrix_collect import (
 from src.utils.provider_matrix_rows import KIND_SECTION, ROWS, SECTIONS, MatrixRow
 
 VALID_DAYS = (28, 56, 84)
+LAG_DAYS = 7  # M-19: 같은 행의 다른 소스보다 마지막 값이 이만큼 뒤처지면 '끊김'으로 알린다(stale 30일과 별개)
 
 
 def window(days: int, today: str) -> tuple[str, str]:
@@ -60,7 +61,17 @@ def _cells(conn, row: MatrixRow, groups: list[dict], start: str, end: str) -> di
     else:
         for p, series in collect_daily_values(conn, lookback, end, row).items():
             cells[p] = cell_summary(list(series.items()), start, end)
-    return {p: c for p, c in cells.items() if c}
+    return mark_lagging({p: c for p, c in cells.items() if c})
+
+
+def mark_lagging(cells: dict) -> dict:
+    """셀마다 lagging(가장 최근 소스보다 LAG_DAYS 넘게 뒤처짐) 표시. 소스가 하나면 모두 False."""
+    if not cells:
+        return cells
+    newest = max(date.fromisoformat(c["last_date"]) for c in cells.values())
+    for c in cells.values():
+        c["lagging"] = len(cells) > 1 and (newest - date.fromisoformat(c["last_date"])).days > LAG_DAYS
+    return cells
 
 
 def get_matrix(conn: sqlite3.Connection, days: int, today: str) -> dict:

@@ -1,9 +1,10 @@
 <script lang="ts">
 	import PageHead from '$lib/components/ui/PageHead.svelte';
+	import ParamNotice from '$lib/components/ui/ParamNotice.svelte';
 	import type { ProviderGroupPageData } from './+page';
 	import ProviderPairChart from '$lib/components/ProviderPairChart.svelte';
 	import ProviderPairList from '$lib/components/ProviderPairList.svelte';
-	import { providerName } from '$lib/providerMatrix';
+	import { DAYS_NOTICE, providerName } from '$lib/providerMatrix';
 	import { base } from '$app/paths';
 
 	let { data }: { data: ProviderGroupPageData } = $props();
@@ -23,6 +24,8 @@
 		<h1 class="truncate text-sm font-semibold text-fg-primary">{label}</h1>
 	</nav>
 </div>
+
+<ParamNotice text={data.daysDropped ? DAYS_NOTICE : ''} dropKeys={['days']} />
 
 {#if data.errorMessage || !data.pairs}
 	<div class="px-4 py-8 text-center">

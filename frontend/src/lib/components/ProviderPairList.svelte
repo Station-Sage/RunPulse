@@ -2,7 +2,7 @@
 	// 쌍 목록(S6) — 날짜·활동·소스별 값·차이. 활동 쌍이면 활동 상세로 링크.
 	import type { ProviderPairsData } from '$lib/types';
 	import { formatMetric, formatDistance } from '$lib/format';
-	import { providerName } from '$lib/providerMatrix';
+	import { providerName, signedPct } from '$lib/providerMatrix';
 	import { base } from '$app/paths';
 
 	let { data }: { data: ProviderPairsData } = $props();
@@ -13,7 +13,7 @@
 		decimal_places: data.row.format === 'int' ? 0 : Number(/\d/.exec(data.row.format)?.[0] ?? 1)
 	});
 	const diffText = (p: ProviderPairsData['pairs'][number]) =>
-		p.ratio != null ? `×${p.ratio.toFixed(2)}` : p.diff_pct != null ? `${p.diff_pct > 0 ? '+' : ''}${p.diff_pct.toFixed(0)}%` : '';
+		p.ratio != null ? `×${p.ratio.toFixed(2)}` : p.diff_pct != null ? signedPct(p.diff_pct) : '';
 </script>
 
 <ul class="divide-y divide-border-subtle">

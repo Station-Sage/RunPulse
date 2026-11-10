@@ -13,6 +13,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from src.services.story_period import _get_block_dates, _month_date_range, _parse_period, _week_date_range
+from src.services.story_compare import compare_basis
 from src.services.story_stats import (
     _get_ctl_range, _get_intensity_distribution, _get_key_sessions,
     _get_period_activity_stats, _get_risk_peak,
@@ -158,6 +159,11 @@ def get_story(
         prev_date = date.fromisoformat(start_date) - timedelta(weeks=1)
         prev_start, prev_end = _week_date_range(prev_date.year, prev_date.isocalendar()[1])
 
+    # 진행 중인 기간은 이전 기간도 같은 일수까지만 비교한다(M-14: 10월 1~11일 vs 9월 전체 방지).
+    today = date.today().isoformat()
+    is_future = start_date > today
+    basis = compare_basis(scope, start_date, end_date, prev_start, prev_end, today)
+    prev_end = basis["prev_end"]
     prev_stats = _get_period_activity_stats(conn, prev_start, prev_end)
     compare = [
         {
@@ -185,7 +191,7 @@ def get_story(
         next_month = month + 1 if month < 12 else 1
         next_year = year if month < 12 else year + 1
         prev_period = f"{prev_year}-{prev_month:02d}"
-        next_period = f"{next_year}-{next_month:02d}"
+        next_period = f"{next_year}-{next_month:02d}" if f"{next_year}-{next_month:02d}-01" <= today else None
     else:  # week
         next_date = date.fromisoformat(end_date) + timedelta(days=1)
         prev_period = f"{prev_year}-W{prev_date.isocalendar()[1]:02d}"
@@ -208,7 +214,9 @@ def get_story(
         },
         "paragraph": paragraph,
         "chips": chips,
-        "compare": compare,
+        "compare": [] if is_future else compare,
+        "compare_basis": basis["label"],
+        "is_future": is_future,
         "intensity": intensity,
         "key_sessions": key_sessions,
         "risk_peak": risk_peak,

@@ -3,6 +3,7 @@ import { getToday } from '$lib/api/today';
 import type { UnlockMap } from '$lib/unlock';
 import { classifyFailure, type Failure } from '$lib/loadFailure';
 import type { MetricTrendData } from '$lib/types';
+import { parseDetailParams } from '$lib/metricDetail';
 
 export interface MetricTrendPageData {
 	slug: string;
@@ -12,6 +13,8 @@ export interface MetricTrendPageData {
 	errorMessage: string | null;
 	failure: Failure | null;
 	unlock: UnlockMap | null;
+	/** M-25: 쓸 수 없어 뺀 주소 값 키(period·date). */
+	dropped: string[];
 }
 
 export async function load({
@@ -24,15 +27,13 @@ export async function load({
 	depends: (k: string) => void;
 }): Promise<MetricTrendPageData> {
 	depends(`app:metric:${params.slug}`);
-	const period = url.searchParams.get('period') ?? '3m';
-	const rawDate = url.searchParams.get('date');
-	const date = rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
+	const { period, date, dropped } = parseDetailParams(url.searchParams);
 	const unlock = await getToday().then((t) => t.unlock ?? null).catch(() => null);
 	try {
 		const trend = await getMetricTrend(params.slug, period);
-		return { slug: params.slug, trend, period, date, errorMessage: null, failure: null, unlock };
+		return { slug: params.slug, trend, period, date, errorMessage: null, failure: null, unlock, dropped };
 	} catch (e) {
 		const failure = classifyFailure(e);
-		return { slug: params.slug, trend: null, period, date, errorMessage: failure.detail, failure, unlock };
+		return { slug: params.slug, trend: null, period, date, errorMessage: failure.detail, failure, unlock, dropped };
 	}
 }

@@ -2,6 +2,7 @@
 	// 30일 small multiples — 스파크라인 + 평소 범위(p25–p75) 밴드 값. 트렌드는 비동기로 도착한다.
 	import Sparkline from '$lib/components/Sparkline.svelte';
 	import Skeleton from '$lib/components/Skeleton.svelte';
+	import { sparkAriaLabel } from '$lib/trendChart';
 	import type { WellnessTrendData } from '$lib/types';
 
 	let { trend }: { trend: Promise<WellnessTrendData | null> } = $props();
@@ -30,7 +31,7 @@
 					{#if data.some((v) => v != null)}
 						<div class="rounded-xl bg-surface-2 p-3">
 							<span class="text-xs text-fg-muted">{label}</span>
-							<Sparkline {data} height={32} {color} {invert} dates={t.dates} interactive minSpan={1} />
+							<Sparkline {data} height={32} {color} {invert} dates={t.dates} interactive minSpan={1} ariaLabel={sparkAriaLabel(label, '30일', t.dates, data)} />
 							{#if t.band?.[key]}<p class="mt-1 text-xs text-fg-muted">평소 {t.band[key].p25}–{t.band[key].p75}</p>{/if}
 						</div>
 					{/if}

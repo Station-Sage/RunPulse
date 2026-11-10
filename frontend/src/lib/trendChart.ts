@@ -47,6 +47,16 @@ export function snapRange(r: { min: number; max: number }, step: number, minSpan
 	return { min: lo, max: hi };
 }
 
+/** M-32: 범위를 4칸 남짓으로 나누는 정형 간격(1·2·5 × 10^k). span ≤ 0 이면 1. */
+export function niceStep(span: number): number {
+	if (!(span > 0)) return 1;
+	const raw = span / 4;
+	const mag = 10 ** Math.floor(Math.log10(raw));
+	const f = raw / mag;
+	const nice = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+	return nice * mag;
+}
+
 /** 날짜(YYYY-MM-DD)의 [t0, t1] 구간 내 위치 0~1 — 시리즈마다 날짜가 달라도 같은 x축에 놓기 위함. 구간 길이가 0이면 0. */
 export function xFraction(date: string, t0: string, t1: string): number {
 	const a = Date.parse(t0);
@@ -138,6 +148,18 @@ export function trendAriaLabel(
 	const md = (d: string) => `${Number(d.slice(5, 7))}월 ${Number(d.slice(8, 10))}일`;
 	const last = points[points.length - 1];
 	return `${name} ${periodLabel}: 현재 ${fmt(last.value)}, 최고 ${fmt(hi.value)}(${md(hi.date)}), 최저 ${fmt(lo.value)}(${md(lo.date)})`;
+}
+
+/** M-26: 날짜·값 배열(스파크라인) → trendAriaLabel 요약. null 은 건너뛴다. */
+export function sparkAriaLabel(
+	name: string,
+	periodLabel: string,
+	dates: string[],
+	data: (number | null)[],
+	fmt?: (v: number) => string
+): string {
+	const points = dates.flatMap((date, i) => (data[i] == null ? [] : [{ date, value: data[i] as number }]));
+	return trendAriaLabel(name, periodLabel, points, fmt);
 }
 
 /** [t0, t1] 안의 월요일 날짜 목록(YYYY-MM-DD) — 4주 보기의 주 경계 x 눈금용. */

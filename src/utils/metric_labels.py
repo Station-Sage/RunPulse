@@ -112,6 +112,11 @@ def _merge_texts() -> None:
 
     for key, (short, hints) in TEXTS.items():
         METRIC_LABELS[key] = METRIC_LABELS[key]._replace(description_short=short, action_hint=hints or None)
+    from src.utils.metric_label_texts_c import TEXTS_C
+
+    for key, short in TEXTS_C.items():
+        if not METRIC_LABELS[key].description_short:
+            METRIC_LABELS[key] = METRIC_LABELS[key]._replace(description_short=short)
 
 
 _merge_texts()

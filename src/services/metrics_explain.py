@@ -93,18 +93,18 @@ def _bands_v2(metric_name: str) -> list[dict]:
 
 
 def _baseline(conn: sqlite3.Connection, scope_type: str, scope_id: str, metric_name: str) -> dict:
-    """최근 7일 평균·전일 대비 변화(일별 scope 전제)."""
+    """최근 7일(d-6..d) 평균·전일 대비 변화(일별 scope 전제). M-11: 7일 창은 7일, 평균은 소수 1자리."""
     rows = conn.execute(
         "SELECT scope_id, numeric_value FROM metric_store "
         "WHERE scope_type=? AND metric_name=? AND is_primary=1 "
-        "AND scope_id<=? AND scope_id>date(?, '-8 days') ORDER BY scope_id",
+        "AND scope_id<=? AND scope_id>date(?, '-7 days') ORDER BY scope_id",
         (scope_type, metric_name, scope_id, scope_id),
     ).fetchall()
     vals = [r[1] for r in rows if r[1] is not None]
     if not vals:
         return {"avg_7d": None, "delta_1d": None}
     delta = round(vals[-1] - vals[-2], 2) if len(vals) >= 2 else None
-    return {"avg_7d": round(sum(vals) / len(vals), 2), "delta_1d": delta, "avg_90d": _avg_90d(conn, scope_type, scope_id, metric_name)}
+    return {"avg_7d": round(sum(vals) / len(vals), 1), "delta_1d": delta, "avg_90d": _avg_90d(conn, scope_type, scope_id, metric_name)}
 
 
 def _avg_90d(conn: sqlite3.Connection, scope_type: str, scope_id: str, metric_name: str) -> float | None:
@@ -115,7 +115,7 @@ def _avg_90d(conn: sqlite3.Connection, scope_type: str, scope_id: str, metric_na
         "AND scope_id<=? AND scope_id>date(?, '-90 days')",
         (scope_type, metric_name, scope_id, scope_id),
     ).fetchone()
-    return round(row[0], 2) if row and row[1] >= 14 else None
+    return round(row[0], 1) if row and row[1] >= 14 else None
 
 
 def _fmt_by_unit(v: float, unit: str | None) -> str:

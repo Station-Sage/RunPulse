@@ -39,7 +39,8 @@ def get_metric_trend(
 ) -> dict[str, Any] | None:
     """slug 메트릭의 기간별 일별 시계열 반환. 데이터 없으면 None."""
     days = _PERIOD_DAYS.get(period, _PERIOD_DAYS["3m"])
-    date_from = str(_today() - timedelta(days=days))
+    # 오늘 포함 days일(3m=90일) — 분해의 '90일 평균'(d-89..d) 창과 같게 맞춘다(M-11).
+    date_from = str(_today() - timedelta(days=days - 1))
 
     mdef0 = METRIC_REGISTRY.get(slug)
     if mdef0 is not None and mdef0.storage == "wellness" and slug not in _WELLNESS_TEXT:
@@ -49,9 +50,11 @@ def get_metric_trend(
             (date_from,),
         ).fetchall()
         points = [{"date": r["date"], "value": r["v"]} for r in wrows]
+        source = "wellness"
     else:
         history = get_metric_history(conn, slug, scope_type="daily", date_from=date_from)
         points = [{"date": r["scope_id"], "value": r["numeric_value"]} for r in history]
+        source = history[-1].get("provider") if history else None
     if not points:
         return None
 
@@ -96,6 +99,7 @@ def get_metric_trend(
         "unit": unit,
         "action_hint": hint,
         "current_date": current_date,
+        "source": source,  # 최신 값의 provider, 웰니스 표 값이면 'wellness'(M-08 출처 표시)
         "freshness": freshness,
         "current": current,
         "peak": peak,

@@ -9,7 +9,10 @@
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
 	import LoadFailure from '$lib/components/LoadFailure.svelte';
 	import { changeLabel, periodChange } from '$lib/trendChart';
-	import { displayUnit, formatMetric } from '$lib/format';
+	import { formatMetric } from '$lib/format';
+	import { DETAIL_PERIODS as PERIODS, droppedNotice, mdLabel, metricUnitText, sourceText, tileBasis } from '$lib/metricDetail';
+	import { displayLabel } from '$lib/metricMeaning';
+	import ParamNotice from '$lib/components/ui/ParamNotice.svelte';
 	import { freshnessBadgeText, freshnessReasonTexts, missingInputsText } from '$lib/freshness';
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
@@ -24,12 +27,11 @@
 	// 분해 v2(explain=1, §C3) 지원 슬러그는 DrillPanel(URL 스택), 그 외는 기존 MetricBreakdown 바텀시트.
 	const explainSupported = $derived(EXPLAIN_SUPPORTED_SLUGS.has(data.slug));
 
-	const PERIODS = [
-		{ key: '4w', label: '4주' },
-		{ key: '3m', label: '3개월' },
-		{ key: '6m', label: '6개월' },
-		{ key: '1y', label: '1년' }
-	];
+	// M-09: 목록과 같은 표시 이름(한글명 (약어)). M-06: 형식이 단위를 품으면 단위 숨김.
+	const title = $derived(data.trend ? displayLabel({ name_ko: data.trend.name_ko ?? data.trend.label, abbr: data.trend.abbr }) : data.slug);
+	const unitText = $derived(data.trend ? metricUnitText(data.trend, data.slug) : '');
+	// M-25: 쓸 수 없는 ?period=·?date= 는 빼고 보여 주고 주소도 정리한다.
+	const notice = $derived(droppedNotice(data.dropped));
 
 	const lockedNotice = $derived(lockedMetricNotice(data.slug, data.unlock));
 	const points = $derived(data.trend?.points ?? []);
@@ -69,30 +71,27 @@
 		goto(`${base}/library/metrics/${slug}?period=${data.period}${panelDate ? `&date=${panelDate}` : ''}`);
 	}
 
-	const change = $derived(periodChange(points));
+	// M-05: 차트에서 고른 날(pin)이 있으면 '현재'·'변화' 타일도 그날 기준으로 보인다(피크는 기간 전체).
+	const tile = $derived(tileBasis(points, pinned));
+	const change = $derived(periodChange(tile.upto));
 	const changeMain = $derived(
-		change ? (change.pct != null ? `${change.delta >= 0 ? '+' : '−'}${Math.abs(change.pct).toFixed(1)}%` : changeLabel(points)) : '—'
+		change ? (change.pct != null ? `${change.delta >= 0 ? '+' : '−'}${Math.abs(change.pct).toFixed(1)}%` : changeLabel(tile.upto)) : '—'
 	);
 	const changeSub = $derived.by(() => {
 		if (!change || !data.trend) return '';
 		const signed = data.trend.format === 'signed';
 		const v = formatMetric(data.trend, signed ? change.delta : Math.abs(change.delta));
-		return `${signed ? '' : change.delta >= 0 ? '+' : '−'}${v} ${displayUnit(data.trend.unit)}`.trim();
+		return `${signed ? '' : change.delta >= 0 ? '+' : '−'}${v} ${unitText}`.trim();
 	});
 	const changeTone = $derived.by(() => {
 		const hib = data.trend?.higher_is_better;
 		if (!change || hib == null || change.delta === 0) return '';
 		return change.delta > 0 === hib ? 'text-delta-better' : 'text-delta-worse';
 	});
-	const peakDate = $derived.by(() => {
-		const d = data.trend?.peak?.date;
-		if (!d) return '';
-		const [, m, day] = d.split('-');
-		return `${Number(m)}월 ${Number(day)}일`;
-	});
+	const peakDate = $derived(data.trend?.peak?.date ? mdLabel(data.trend.peak.date) : '');
 </script>
 
-<PageHead title={`${data.trend?.label ?? data.slug}`} heading={null} />
+<PageHead {title} heading={null} />
 
 <DrillPanel scopeType="daily" scopeId={latestDate}>
 
@@ -104,11 +103,11 @@
 		<span aria-hidden="true">›</span>
 		<a href="{metricsBackHref(base)}" class="hover:text-fg-secondary">메트릭</a>
 		<span aria-hidden="true">›</span>
-		<h1 class="truncate text-sm font-semibold text-fg-primary">{data.trend?.label ?? data.slug}</h1>
-		{#if data.trend?.description_short}<MetricTerm slug={data.slug} label={data.trend.label} fallback={data.trend.description_short} date={panelDate} />{/if}
+		<h1 class="truncate text-sm font-semibold text-fg-primary">{title}</h1>
+		{#if data.trend?.description_short}<MetricTerm slug={data.slug} label={title} fallback={data.trend.description_short} date={panelDate} />{/if}
 	</nav>
-	{#if displayUnit(data.trend?.unit)}
-		<span class="shrink-0 text-xs text-fg-muted">({displayUnit(data.trend?.unit)})</span>
+	{#if unitText}
+		<span class="shrink-0 text-xs text-fg-muted">({unitText})</span>
 	{/if}
 	{#if data.trend?.compare_group}
 		<a href="{base}/library/providers/{data.trend.compare_group.key}" class="ml-auto shrink-0 rounded-full border border-border-subtle px-2.5 py-1 text-xs text-fg-secondary">소스 비교</a>
@@ -127,6 +126,7 @@
 			<p class="mt-0.5 text-xs text-fg-muted">{lockedNotice.formula}</p>
 		</div>
 	{/if}
+	<ParamNotice text={notice} dropKeys={data.dropped} />
 	<!-- 기간 선택 버튼 -->
 	<div class="flex gap-2 border-b border-border-subtle px-4 py-2">
 		{#each PERIODS as p}
@@ -153,12 +153,12 @@
 		<!-- 현재값·변화율·피크 요약 -->
 		<div class="grid grid-cols-3 gap-2">
 			<div class="flex min-w-0 flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
-				<span class="text-xs text-fg-secondary">현재</span>
-				<span class="font-mono text-xl font-bold tabular-nums">{formatMetric(data.trend, data.trend.current)}</span>
-				<span class="text-xs text-fg-muted">{displayUnit(data.trend.unit) || '\u00a0'}</span>
+				<span class="text-xs text-fg-secondary" data-testid="tile-current-label">{tile.pinned && tile.point ? `선택한 날 · ${mdLabel(tile.point.date)}` : '현재'}</span>
+				<span class="font-mono text-xl font-bold tabular-nums">{formatMetric(data.trend, tile.pinned ? tile.point?.value : data.trend.current)}</span>
+				<span class="text-xs text-fg-muted">{unitText || '\u00a0'}</span>
 			</div>
 			<div class="flex min-w-0 flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
-				<span class="text-xs text-fg-secondary">선택 기간 변화</span>
+				<span class="text-xs text-fg-secondary">{tile.pinned ? '기간 시작 → 선택한 날' : '선택 기간 변화'}</span>
 				<span class="font-mono text-xl font-bold tabular-nums {changeTone}">{changeMain}</span>
 				<span class="text-xs text-fg-muted">{changeSub || '\u00a0'}</span>
 			</div>
@@ -169,18 +169,19 @@
 			</div>
 		</div>
 
+		{#if !explainSupported && sourceText(data.trend.source)}<p class="text-xs text-fg-muted" data-testid="metric-source">{sourceText(data.trend.source)}</p>{/if}
 		<!-- 추세 차트 (y축·날짜 눈금·스크럽 포함) -->
 		{#if points.length > 1}
 			<div class="rounded-xl bg-surface-2 p-3">
 				<TrendChart
-					series={[{ key: data.slug, label: data.trend.label, color: 'var(--color-series-1)', points }]}
-					unit={displayUnit(data.trend.unit)}
+					series={[{ key: data.slug, label: title, color: 'var(--color-series-1)', points }]}
+					unit={unitText}
 					formatValue={(v) => formatMetric(data.trend!, v)}
 					events={data.trend.events ?? []}
 					bands={data.trend.bands ?? []}
 					baseline={data.trend.baseline ?? null}
 					smooth={data.period === '3m' || data.period === '6m' || data.period === '1y'}
-					name={data.trend.name_ko ?? data.trend.label}
+					name={title}
 					periodLabel={PERIODS.find((x) => x.key === data.period)?.label ?? ''}
 					selectedDate={pinned}
 					onSelect={setPinned}

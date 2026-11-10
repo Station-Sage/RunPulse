@@ -34,6 +34,17 @@ def _label(metric: str) -> str:
     return display_name(metric, metric)[0]
 
 
+def _merge_reasons(day_hits: list[tuple[AlgoChange, str | None]]) -> str:
+    """같은 날 사유를 한 문장으로 — 같은 입력 지표 머리말('입력 지표(폼) 변경 · ')은 한 번만(M-31)."""
+    direct = list(dict.fromkeys(c.reason for c, via in day_hits if via is None))
+    by_via: dict[str, list[str]] = {}
+    for c, via in day_hits:
+        if via is not None and c.reason not in by_via.setdefault(via, []):
+            by_via[via].append(c.reason)
+    parts = direct + [f"입력 지표({_label(via)}) 변경 · {', '.join(rs)}" for via, rs in by_via.items()]
+    return "; ".join(parts)
+
+
 def changelog_events(conn: sqlite3.Connection, slug: str, d0: str, d1: str) -> list[dict[str, Any]]:
     """기간 안 changelog 변경(◆). 대표 시계열이 변경일 이후 RunPulse 값일 때만, 같은 날짜는 1건으로 합친다."""
     related = _upstream(slug, _calcs())
@@ -53,9 +64,8 @@ def changelog_events(conn: sqlite3.Connection, slug: str, d0: str, d1: str) -> l
             continue
         day_hits = [(c, via) for c, via in hits if c.date == day]
         direct = [c for c, via in day_hits if via is None]
-        parts = [c.reason if via is None else f"입력 지표({_label(via)}) 변경 · {c.reason}" for c, via in day_hits]
         ev: dict[str, Any] = {"date": day, "kind": "version_change", "source": "changelog", "recomputed": True,
-                              "reason": "; ".join(dict.fromkeys(parts))}
+                              "reason": _merge_reasons(day_hits)}
         if len(direct) == 1 and len(day_hits) == 1:
             ev.update({"from": direct[0].prev, "to": direct[0].version,
                        "label": f"계산 방식 변경: {_ver(direct[0].prev)}→{_ver(direct[0].version)}"})

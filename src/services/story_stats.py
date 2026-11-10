@@ -131,10 +131,15 @@ def _get_risk_peak(
     acwr_value = float(row[0])
     acwr_date = row[1]
 
+    # M-15: 최고값이라도 안전 구간일 수 있어 등급을 함께 내려 준다(화면은 '위험'이라 단정하지 않음).
+    from src.metrics.bands import grade
+    g = grade("acwr", acwr_value) or {}
     return {
         "slug": "acwr",
         "value": round(acwr_value, 2),
         "date": acwr_date,
+        "status": g.get("status"),
+        "status_label": g.get("label"),
     }
 
 

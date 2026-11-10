@@ -1,10 +1,11 @@
 <script lang="ts">
 	import PageHead from '$lib/components/ui/PageHead.svelte';
+	import ParamNotice from '$lib/components/ui/ParamNotice.svelte';
 	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	// S6 소스 비교 — 같은 러닝을 소스마다 어떻게 계산하는지.
 	import type { ProvidersMatrixPageData } from './+page';
 	import ProviderMatrix from '$lib/components/ProviderMatrix.svelte';
-	import { PERIOD_DAYS, periodHref } from '$lib/providerMatrix';
+	import { DAYS_NOTICE, PERIOD_DAYS, periodHref } from '$lib/providerMatrix';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
@@ -35,6 +36,8 @@
 		onchange={(v) => v && selectPeriod(Number(v))}
 	/>
 </div>
+
+<ParamNotice text={data.daysDropped ? DAYS_NOTICE : ''} dropKeys={['days']} />
 
 {#if data.errorMessage && !data.matrix}
 	<div class="px-4 py-8 text-center"><p class="text-sm text-fg-secondary">{data.errorMessage}</p></div>

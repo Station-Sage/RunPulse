@@ -5,6 +5,8 @@ terms에서 점수를 가장 크게 깎은(UTRS: loss, CIRS: contribution=위험
 """
 from __future__ import annotations
 
+from src.utils.korean_josa import josa
+
 
 def build_conclusion(slug: str, terms: list[dict]) -> dict | None:
     if not terms:
@@ -14,13 +16,13 @@ def build_conclusion(slug: str, terms: list[dict]) -> dict | None:
         loss = top.get("loss") or 0
         if loss <= 0:
             return None
-        return {"top_loss": top["slug"], "text": f"{top['label']}이(가) 가장 크게 깎았어요 (−{loss:.0f}점)"}
+        return {"top_loss": top["slug"], "text": f"{josa(top['label'], '이', '가')} 가장 크게 깎았어요 (−{loss:.0f}점)"}
     if slug == "cirs":
         top = max(terms, key=lambda t: t.get("contribution") or 0)
         contrib = top.get("contribution") or 0
         if contrib <= 0:
             return None
-        return {"top_loss": top["slug"], "text": f"{top['label']}이(가) 위험을 가장 많이 올렸어요 (+{contrib:.0f}점)"}
+        return {"top_loss": top["slug"], "text": f"{josa(top['label'], '이', '가')} 위험을 가장 많이 올렸어요 (+{contrib:.0f}점)"}
     if slug == "rri":
         factors = [t for t in terms if t.get("role") == "factor" and t.get("ratio") is not None]
         if not factors:
@@ -28,5 +30,5 @@ def build_conclusion(slug: str, terms: list[dict]) -> dict | None:
         top = min(factors, key=lambda t: t["ratio"])
         if top["ratio"] >= 1.0:
             return None
-        return {"top_loss": top["slug"], "text": f"{top['label']}이(가) {top['ratio'] * 100:.0f}%로 가장 낮아요"}
+        return {"top_loss": top["slug"], "text": f"{josa(top['label'], '이', '가')} {top['ratio'] * 100:.0f}%로 가장 낮아요"}
     return None

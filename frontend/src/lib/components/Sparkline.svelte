@@ -17,7 +17,8 @@
 		minSpan = 0,
 		endColor,
 		dates,
-		formatValue = (v: number) => String(Math.round(v * 10) / 10)
+		formatValue = (v: number) => String(Math.round(v * 10) / 10),
+		ariaLabel
 	}: {
 		data: (number | null)[];
 		width?: number;
@@ -35,6 +36,8 @@
 		dates?: string[];
 		/** 툴팁에 값을 표시할 때 쓸 포맷터. */
 		formatValue?: (v: number) => string;
+		/** 스크린리더용 요약(M-26). 주면 interactive 일 때 스크럽 이름, 아니면 sr-only 문장으로 둔다. */
+		ariaLabel?: string;
 	} = $props();
 
 	const validData = $derived(data.filter((v): v is number => v != null));
@@ -122,7 +125,7 @@
 	{/snippet}
 
 	{#if interactive}
-		<ChartScrub pointCount={n} {valueText}>
+		<ChartScrub pointCount={n} {valueText} ariaLabel={ariaLabel ?? '차트 스크럽'}>
 			{#snippet children(index, pinned)}
 				{@const v = scrubbedValue(index)}
 				<div class="relative">
@@ -145,5 +148,6 @@
 		</ChartScrub>
 	{:else}
 		{@render chart()}
+		{#if ariaLabel}<span class="sr-only">{ariaLabel}</span>{/if}
 	{/if}
 {/if}

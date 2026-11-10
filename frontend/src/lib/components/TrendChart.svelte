@@ -1,7 +1,7 @@
 <script lang="ts">
 	// 다계열 추세 차트 — 공통 y 범위, y 최대·최소·x 시작·끝 눈금, 포인터 스크럽 판독. 순수 계산: $lib/trendChart.
 	import type { TrendSeries } from '$lib/trendChart';
-	import { commonRange, snapRange, dateAtOffset, eventSymbol, markerEvents, movingAverage, nearestPoint, splitOnGaps, monthTicks, trendAriaLabel, weekTicks, xFraction } from '$lib/trendChart';
+	import { commonRange, niceStep, snapRange, dateAtOffset, eventSymbol, markerEvents, movingAverage, nearestPoint, splitOnGaps, monthTicks, trendAriaLabel, weekTicks, xFraction } from '$lib/trendChart';
 	import { axisDateLabel } from '$lib/chart/scrub';
 	import ChartScrub from '$lib/components/ChartScrub.svelte';
 
@@ -56,7 +56,9 @@
 	const W = 600;
 	const range = $derived.by(() => {
 		const r = commonRange(series);
-		return r && yStep ? snapRange(r, yStep, yMinSpan) : r;
+		if (!r) return r;
+		// yStep 이 없으면 정형 간격으로 맞춰 위·가운데·아래 눈금이 둥근 값이 되게 한다(M-32).
+		return yStep ? snapRange(r, yStep, yMinSpan) : snapRange(r, niceStep(r.max - r.min));
 	});
 	const dates = $derived(series.flatMap((s) => s.points.map((p) => p.date)).sort());
 	const t0 = $derived(dates[0] ?? '');
@@ -264,6 +266,7 @@
 			</ChartScrub>
 		{:else}
 			{@render chartBody(null)}
+			<span class="sr-only">{ariaLabel}</span>
 		{/if}
 
 			</div>
