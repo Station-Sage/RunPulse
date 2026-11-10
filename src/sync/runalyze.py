@@ -255,6 +255,8 @@ def check_runalyze_connection(config: dict) -> dict:
                 "status": "엔드포인트 불일치",
                 "detail": "API 엔드포인트를 찾을 수 없습니다 (404).",
             }
+        if not e.status_code:  # D-05: 응답 없이 실패(DNS·네트워크) — 키 문제와 구분
+            return {"ok": False, "status": "서버 연결 실패", "detail": str(e), "reason": "network"}
         return {"ok": False, "status": "연결 실패", "detail": str(e)}
     except Exception as e:
         return {"ok": False, "status": "연결 오류", "detail": str(e)}

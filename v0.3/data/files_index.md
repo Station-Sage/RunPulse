@@ -118,9 +118,9 @@
 
 - functions: kind_of, triggered, intensity, primary, classify
 
-### `ai_settings_service.py` (134줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
+### `ai_settings_service.py` (153줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
 
-- functions: mask_key, key_state, usage_7d, build_view, validate_patch, apply_patch, test_connection
+- functions: mask_key, key_state, usage_7d, build_view, key_format_error, validate_patch, apply_patch, test_connection
 
 ### `archive_service.py` (121줄) — 러닝 아카이브 — 누적 통계·월별 거리·365일 히트맵·개인 최고 기록(읽기 전용).
 
@@ -179,15 +179,15 @@
 
 - functions: get_dashboard_data, get_pmc_chart_data, get_daily_metric_chart
 
-### `data_connect_service.py` (93줄) — 소스 연결·테스트·해제 쓰기 — 키 방식(Intervals·Runalyze)·Strava OAuth 시작·Garmin 위임. 설계: 40 design §2.4·§3.1·§7.3.
+### `data_connect_service.py` (112줄) — 소스 연결·테스트·해제 쓰기 — 키 방식(Intervals·Runalyze)·Strava OAuth 시작·Garmin 위임. 설계: 40 design §2.4·§3.1·§7.3.
 
-- functions: safe_return_to, test_connection, connect, disconnect
+- functions: safe_return_to, strava_app_ready, failure_message, test_connection, connect, disconnect
 
 ### `data_health_service.py` (32줄) — 데이터 건강 — 부하(TRIMP) 커버리지 등, 지표를 믿어도 되는지 알려주는 읽기 전용 진단.
 
 - functions: get_load_coverage
 
-### `data_service.py` (114줄) — Data 영역(`/v2/data/*`) 읽기 서비스 — 소스 카드·소스 상세·개요 요약·동기화 기록.
+### `data_service.py` (119줄) — Data 영역(`/v2/data/*`) 읽기 서비스 — 소스 카드·소스 상세·개요 요약·동기화 기록.
 
 - functions: run_dict, runs, sources, source_detail, summary
 
@@ -195,7 +195,7 @@
 
 - functions: set_source_enabled, auto_settings, validate_auto_patch, patch_auto
 
-### `export_archive.py` (198줄) — 내보내기 아카이브 zip 작성 — 그룹별 테이블 CSV/JSON·원본 jsonl·manifest·README (data-export §2.2).
+### `export_archive.py` (207줄) — 내보내기 아카이브 zip 작성 — 그룹별 테이블 CSV/JSON·원본 jsonl·manifest·README (data-export §2.2).
 
 - class **ExportError**: 없음
 - functions: check_free_space, build_archive
@@ -210,7 +210,7 @@
 
 - functions: purge_all, start
 
-### `export_service.py` (257줄) — 데이터 내보내기 — 빠른 CSV 3종(활동·웰니스·부하)과 전체 아카이브 zip 작업. 작업 원장은 sync_jobs(service='export').
+### `export_service.py` (267줄) — 데이터 내보내기 — 빠른 CSV 3종(활동·웰니스·부하)과 전체 아카이브 zip 작업. 작업 원장은 sync_jobs(service='export').
 
 - functions: hms, pace_str, parse_params, activities_csv, wellness_csv, load_csv, csv_text, quick_filename, quick_export, exports_dir, start_archive, record_download, purge_expired, job_view, history
 
@@ -241,9 +241,13 @@
 
 - functions: record, current_action, has_consent, needs_first_prompt, redact_illness_for_ai
 
-### `import_service.py` (228줄) — 데이터 가져오기 — 업로드 저장, 사본 DB 미리보기(dry-run), 실행 작업. 작업 원장은 sync_jobs(service='import').
+### `import_detect.py` (87줄) — 가져오기 업로드 판별 — CSV 머리글·ZIP 경로·소스 일치 검사 (V2-AUDIT D-11~D-14).
 
-- functions: imports_dir, detect_kind, save_upload, upload_paths, apply_import, run_on, preview, start, job_view, history
+- functions: is_media, unsafe_member, extension_hint, detect_kind
+
+### `import_service.py` (213줄) — 데이터 가져오기 — 업로드 저장, 사본 DB 미리보기(dry-run), 실행 작업. 작업 원장은 sync_jobs(service='import').
+
+- functions: imports_dir, detect_kind, discard_upload, save_upload, upload_paths, apply_import, run_on, preview, start, job_view, history
 
 ### `input_limits.py` (60줄) — 쓰기 API 입력의 범위·열거값 상수 — 요청 경계 검증의 SSOT (SRV D4, ADR-048).
 
@@ -409,9 +413,9 @@
 
 - functions: record_snapshots, evaluate_race, summary
 
-### `profile_service.py` (156줄) — 러너 기준값(HRmax·LTHR·역치 페이스·안정심박·주간 목표) — 자체 추정/기기/직접 입력 병합과 사용값 결정.
+### `profile_service.py` (186줄) — 러너 기준값(HRmax·LTHR·역치 페이스·안정심박·주간 목표) — 자체 추정/기기/직접 입력 병합과 사용값 결정.
 
-- functions: profile_rows, effective_value, validate_changes, apply_changes
+- functions: profile_rows, effective_value, validate_changes, check_changes, apply_changes
 
 ### `progression_service.py` (66줄) — 품질 세션 사다리 단계 저장·갱신 서비스(U16l) — progression.py 순수 함수와 plan_progression 테이블을 잇는다.
 
@@ -520,15 +524,15 @@
 
 - functions: parse_range, estimate, trigger_range
 
-### `sync_state_service.py` (179줄) — 동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
+### `sync_state_service.py` (187줄) — 동기화 상태 계약(SyncState) — 40-v2-unimplemented design §7.3 `GET /api/v1/data/sync-state`.
 
-- functions: classify_error, get_sync_state
+- functions: is_connected, classify_error, get_sync_state
 
-### `sync_trigger_service.py` (150줄) — 수동 증분 동기화 트리거 — 소스별 판정(plan)과 bg_sync 시작(trigger). v1/v2 공용.
+### `sync_trigger_service.py` (159줄) — 수동 증분 동기화 트리거 — 소스별 판정(plan)과 bg_sync 시작(trigger). v1/v2 공용.
 
 - class **SkipReason**: to_dict
 - class **TriggerResult**: 없음
-- functions: days_since_last_sync, plan_incremental, trigger_incremental
+- functions: connection_skip, days_since_last_sync, plan_incremental, trigger_incremental
 
 ### `today_hero.py` (205줄) — Today 히어로·주간 스트립 데이터 — briefing.state 판정, 세션·조정·결손 caveat, week_compliance.
 
@@ -929,7 +933,7 @@
 
 - functions: sync_athlete_profile, sync_athlete_stats_snapshot
 
-### `intervals_auth.py` (58줄) — Intervals.icu API 인증 및 연결 상태 확인.
+### `intervals_auth.py` (60줄) — Intervals.icu API 인증 및 연결 상태 확인.
 
 - functions: base_url, auth, check_intervals_connection
 
@@ -970,7 +974,7 @@
 
 - functions: reprocess_all
 
-### `runalyze.py` (260줄) — Runalyze 데이터 동기화 (API Token).
+### `runalyze.py` (262줄) — Runalyze 데이터 동기화 (API Token).
 
 - functions: sync_activities, check_runalyze_connection
 
@@ -1017,10 +1021,10 @@
 
 - functions: summary_total_sec, save_stream_meta, store_streams
 
-### `sync_errors.py` (71줄) — 동기화 오류 분류 — 예외/결과를 error_code로 정규화하고 한국어 안내 문구를 제공한다.
+### `sync_errors.py` (105줄) — 동기화 오류 분류 — 예외/결과를 error_code로 정규화하고 한국어 안내 문구를 제공한다.
 
 - class **SyncSourceError**: 없음
-- functions: classify_exception, from_result
+- functions: classify_exception, from_result, classify_text, public_message, check_failure_reason
 
 ### `sync_result.py` (72줄) — Sync 작업 결과 데이터 구조.
 
@@ -1639,7 +1643,7 @@
 - class **Gate**: remaining_sec
 - functions: gate, wait_sec, bump_backoff, block, clear
 
-### `sync_jobs.py` (255줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
+### `sync_jobs.py` (262줄) — 백그라운드 동기화 작업 관리 — DB 기반 상태 추적 (sync_jobs 테이블).
 
 - class **SyncJob**: progress_pct, current_to, rate_limit
 - functions: windows, insert_job, create_job, get_job, get_active_job, get_latest_job, update_job, list_recent_jobs
@@ -1786,19 +1790,19 @@
 
 - functions: is_extension, parse_reports, csp_report
 
-### `routes_data.py` (305줄) — `/api/v1/data/*` — 데이터 관리(동기화 상태 등). 40-v2-unimplemented design §7.3.
+### `routes_data.py` (270줄) — `/api/v1/data/*` — 데이터 관리(동기화 상태 등). 40-v2-unimplemented design §7.3.
 
-- functions: get_sync_state, post_data_sync, get_sync_estimate, cancel_sync_run, get_data_summary, get_data_sources, get_data_source, get_data_runs, patch_data_source, get_sync_auto, patch_sync_auto, get_data_profile, preview_data_profile, patch_data_profile, post_data_recompute, get_data_job, connect_data_source, test_data_source, disconnect_data_source
+- functions: get_sync_state, post_data_sync, get_sync_estimate, cancel_sync_run, get_data_summary, get_data_sources, get_data_source, get_data_runs, patch_data_source, get_sync_auto, patch_sync_auto, post_data_recompute, get_data_job, connect_data_source, test_data_source, disconnect_data_source
 
-### `routes_data_ai.py` (54줄) — AI 설정 라우트 — GET/PATCH /data/settings/ai, POST /data/settings/ai/test (F-DATA-12).
+### `routes_data_ai.py` (59줄) — AI 설정 라우트 — GET/PATCH /data/settings/ai, POST /data/settings/ai/test (F-DATA-12).
 
 - functions: get_ai_settings, patch_ai_settings, test_ai_connection
 
-### `routes_data_calendar.py` (54줄) — `/api/v1/data/calendar-feed` — 캘린더 구독 주소 조회/발급·재발급/해제. design ICS-SUBSCRIBE §6.
+### `routes_data_calendar.py` (56줄) — `/api/v1/data/calendar-feed` — 캘린더 구독 주소 조회/발급·재발급/해제. design ICS-SUBSCRIBE §6.
 
 - functions: get_data_calendar_feed, post_data_calendar_feed, delete_data_calendar_feed
 
-### `routes_data_export.py` (72줄) — `/api/v1/data/export*` — 빠른 CSV 스트림, 아카이브 작업, 내보내기 이력/다운로드. design §2.4·§7.2, data-export §2.3.
+### `routes_data_export.py` (74줄) — `/api/v1/data/export*` — 빠른 CSV 스트림, 아카이브 작업, 내보내기 이력/다운로드. design §2.4·§7.2, data-export §2.3.
 
 - functions: post_data_export, get_data_exports, download_data_export
 
@@ -1806,9 +1810,13 @@
 
 - functions: garmin_connect, garmin_mfa, garmin_mfa_cancel, garmin_token, garmin_local_kit_script, local_env_text, garmin_local_kit_env
 
-### `routes_data_import.py` (70줄) — `/api/v1/data/import*` — 업로드+미리보기, 실행 작업, 가져오기 이력. design §2.4 가져오기.
+### `routes_data_import.py` (95줄) — `/api/v1/data/import*` — 업로드+미리보기, 실행 작업, 가져오기 이력. design §2.4 가져오기.
 
 - functions: post_data_import_preview, post_data_import, get_data_imports, get_data_import
+
+### `routes_data_profile.py` (77줄) — `/api/v1/data/profile*` — 러너 기준값 조회·미리보기·저장 (routes_data 에서 분리, D-07·D-08 상태 검사).
+
+- functions: get_data_profile, preview_data_profile, patch_data_profile
 
 ### `routes_dev.py` (41줄) — 개발용 사용자 전환 API — GET /api/v1/dev/users, POST /api/v1/dev/switch-user (V1-8, SRV 2.5).
 
@@ -1838,7 +1846,7 @@
 
 - functions: get_library_activity_streams, bad_library_activity_path
 
-### `routes_mcp_tokens.py` (64줄) — `/api/v1/settings/mcp-tokens` — 원격 MCP 토큰 목록/발급/폐기(세션 사용자 한정). design MCP-REMOTE R8.
+### `routes_mcp_tokens.py` (84줄) — `/api/v1/settings/mcp-tokens` — 원격 MCP 토큰 목록/발급/폐기(세션 사용자 한정). design MCP-REMOTE R8.
 
 - functions: get_mcp_tokens, post_mcp_token, delete_mcp_token
 
@@ -1890,11 +1898,11 @@
 
 - functions: table, scan_history_dir
 
-### `validation.py` (238줄) — 라우트 경계 요청 검증 — 선언형 Field + `parse_body`/`parse_args` (SRV 2.2, ADR-048).
+### `validation.py` (252줄) — 라우트 경계 요청 검증 — 선언형 Field + `parse_body`/`parse_args` (SRV 2.2, ADR-048).
 
 - class **FieldError**: 없음
 - class **Field**: 없음
-- functions: int_field, float_field, enum_field, date_field, bool_field, str_field, int_list_field, dict_field, parse_body, parse_args
+- functions: int_field, float_field, enum_field, date_field, bool_field, str_field, int_list_field, dict_field, parse_body, parse_args, json_object
 
 ## `tests/`
 
@@ -2432,6 +2440,14 @@
 
 - functions: conn, test_get_dashboard_data_full, test_get_dashboard_data_wellness, test_get_dashboard_data_readiness_values, test_get_dashboard_data_training_status, test_get_dashboard_training_phase_maintaining, test_get_dashboard_data_race_predictions, test_get_dashboard_data_weekly_summary, test_get_dashboard_data_no_wellness, test_get_dashboard_data_no_metrics, test_get_dashboard_data_default_date, test_get_pmc_chart_data, test_get_pmc_chart_data_structure, test_get_pmc_chart_data_empty, test_get_daily_metric_chart, test_get_daily_metric_chart_empty, test_get_daily_metric_chart_nonexistent_metric
 
+### `test_data_audit_d_io.py` (219줄) — V2-AUDIT 묶음 D(데이터·설정) — 가져오기 판별·크기 제한, 내보내기 기간·행 수·진행률, 토큰·AI 키·본문 검증.
+
+- functions: test_detect_unknown_csv_and_source_mismatch, test_detect_broken_csv_field, test_detect_zip_traversal, test_extension_hint_follows_source, import_client, test_import_rejections_leave_no_upload_dir, test_import_too_large_before_write, econn, test_export_params_messages_and_future, test_quick_filename_includes_period, test_wellness_csv_skips_empty_rows, test_export_route_content_type_and_rows, test_build_archive_reports_progress, token_client, test_mcp_token_body_validation, test_mcp_token_days_integer_ok, test_json_object_rejects_array_on_calendar_feed, test_ai_key_format_rejected, test_ai_key_ok_and_blank_feedback
+
+### `test_data_audit_d_sync.py` (195줄) — V2-AUDIT 묶음 D(데이터·설정) — 오류 문구 정리·연결 실패 구분·동기화 상태·소스 토글·기준값 검사.
+
+- functions: test_classify_text_and_public_message, test_check_failure_reason, test_sync_state_error_has_no_raw_detail, test_sync_state_finds_success_beyond_recent_window, test_list_recent_jobs_filters_services_and_status, test_runs_hide_raw_error_and_non_sync_jobs, test_connect_failure_message_distinguishes_network, test_connection_skip_codes, test_strava_app_ready, rd_client, test_trigger_unreachable_is_503, test_patch_unconnected_source_is_409, test_is_connected, pconn, test_check_changes_lthr_must_be_below_hrmax, test_check_changes_source_without_value, test_profile_patch_status_codes
+
 ### `test_data_connect.py` (88줄) — POST /data/sources/<p>/connect|test|disconnect — 키 연결·테스트·해제·return_to 검사.
 
 - functions: env, test_safe_return_to, test_connect_intervals_saves_and_reports, test_connect_failure_rolls_back, test_connect_validation, test_connect_strava_redirect_validates_return_to, test_test_endpoint, test_disconnect_clears_credentials_only_keep_data
@@ -2455,7 +2471,7 @@
 
 - functions: conn, test_sources_cards_have_two_axes_and_counts, test_source_detail_counts_and_coverage, test_source_detail_unknown_is_none, test_runs_parse_counts_and_filter_errors, test_summary_tiles, test_summary_empty_db_does_not_raise, client, test_endpoints
 
-### `test_data_settings.py` (75줄) — PATCH /data/sources/<p>, /data/sync/auto — 소스 on/off·자동 동기화 설정.
+### `test_data_settings.py` (78줄) — PATCH /data/sources/<p>, /data/sync/auto — 소스 on/off·자동 동기화 설정.
 
 - functions: env, test_disable_source_stops_pending, test_enable_source_does_not_stop, test_source_validation, test_auto_patch_saves_and_restarts, test_auto_patch_rejects, test_auto_settings_next_run
 
@@ -2573,7 +2589,7 @@
 
 - functions: real_conn, test_every_real_table_is_grouped_or_excluded, test_no_secret_columns_in_exported_tables, test_secret_column_rejected, test_secret_value_detected, test_defaults_and_sensitive
 
-### `test_export_service.py` (159줄) — export_service — 빠른 CSV, 아카이브 zip, 이력/만료, API 라우트.
+### `test_export_service.py` (160줄) — export_service — 빠른 CSV, 아카이브 zip, 이력/만료, API 라우트.
 
 - functions: conn, test_formatters, test_parse_params, test_activities_groups_and_prefers_garmin, test_wellness_and_load, test_quick_export_bom_and_parseable, test_build_archive, test_archive_excludes_calendar_feed_and_tokens, test_job_view_expiry, test_routes
 
@@ -3833,7 +3849,7 @@
 - functions: run
 
 ---
-총 823개 파일
+총 827개 파일
 
 ## docstring 누락
 

@@ -30,15 +30,35 @@ def safe_return_to(value: str | None) -> str | None:
     return None
 
 
+def strava_app_ready(sc: dict) -> bool:
+    """D-24: Strava 앱 정보가 형식상 갖춰졌는지(Client ID 는 숫자, Secret 은 공백 없는 값). 실제 유효성은 OAuth 화면에서 확인된다."""
+    cid, secret = str(sc.get("client_id") or "").strip(), str(sc.get("client_secret") or "").strip()
+    return cid.isdigit() and bool(secret) and not any(ch.isspace() for ch in secret)
+
+
 def _result(ok: bool, message_ko: str, **extra) -> dict:
     return {"ok": ok, "message_ko": message_ko, **extra}
+
+
+_NAMES = {"intervals": "Intervals", "runalyze": "Runalyze", "garmin": "Garmin", "strava": "Strava"}
+
+
+def failure_message(provider: str, res: dict) -> tuple[str, str]:
+    """점검 실패 → (reason, 문구). D-05: 서버에 닿지 못한 것과 키·설정 문제를 다른 문구로."""
+    from src.sync.sync_errors import check_failure_reason
+
+    reason = check_failure_reason(res)
+    if reason == "network":
+        return reason, f"{_NAMES.get(provider, provider)} 서버에 연결하지 못했어요. 네트워크 상태를 확인하고 다시 시도해 주세요"
+    return reason, f"연결하지 못했어요 · {res.get('status', '확인 실패')}"
 
 
 def _verdict(provider: str, config: dict) -> dict:
     res = _CHECKS[provider](config)
     if res.get("ok"):
         return _result(True, "연결됐어요")
-    return _result(False, f"연결하지 못했어요 ({res.get('status', '확인 실패')})")
+    reason, msg = failure_message(provider, res)
+    return _result(False, msg, reason=reason)
 
 
 def test_connection(provider: str, config: dict) -> dict:
@@ -60,8 +80,7 @@ def connect(provider: str, user_id: str, body: dict) -> tuple[dict | None, str |
         return (data, None) if fail is None else ({"message_ko": fail.message}, fail.code)
     config = load_config(user_id=user_id)
     if provider == "strava":
-        sc = config.get("strava", {})
-        if not (sc.get("client_id") and sc.get("client_secret")):
+        if not strava_app_ready(config.get("strava", {})):
             return {"message_ko": "Strava 앱 정보(Client ID/Secret)를 먼저 저장해 주세요"}, "NEEDS_APP"
         ret = safe_return_to(body.get("return_to")) or "/v2/data/sources/strava?connected=1"
         return {"redirect_url": "/connect/strava/oauth-start?" + urllib.parse.urlencode({"return_to": ret})}, None

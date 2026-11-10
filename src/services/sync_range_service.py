@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from src.services.sync_trigger_service import SkipReason, TriggerResult, _checkers
+from src.services.sync_trigger_service import SkipReason, TriggerResult, _checkers, connection_skip
 
 
 def parse_range(frm: str | None, to: str | None, today: date | None = None) -> tuple[str, str, str | None]:
@@ -73,7 +73,7 @@ def trigger_range(config: dict, user_id: str, sources: list[str], frm: str, to: 
     for src in sources:
         st = checkers[src](config)
         if not st["ok"]:
-            skipped.append(SkipReason(src, "not_connected", f"미연결 ({st['status']})"))
+            skipped.append(connection_skip(src, st))
         elif src not in on:
             skipped.append(SkipReason(src, "disabled", "동기화 대상에서 꺼져 있어요"))
         elif is_busy(src, user_id):

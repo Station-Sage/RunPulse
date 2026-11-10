@@ -15,12 +15,31 @@ def _source() -> str | None:
     return s if s in import_service.SOURCES else None
 
 
+_FORM_SLACK = 1024 * 1024  # multipart 경계·필드 여유분
+
+
+def _too_large():
+    return api_error("TOO_LARGE", "파일이 너무 커요(최대 500MB)", 413)
+
+
 @api_bp.post("/data/import/preview")
 def post_data_import_preview():
+    import csv
+
+    from werkzeug.exceptions import RequestEntityTooLarge
+
     source = _source()
     if source is None:
         return api_error("INVALID_PARAM", "source는 garmin 또는 strava예요")
-    files = [(f.filename, f) for f in request.files.getlist("files") if f.filename]
+    # D-10: 본문을 디스크에 받기 전에 크기로 거른다(Content-Length 없는 청크 전송도 파싱 중 413)
+    limit = import_service.MAX_BYTES + _FORM_SLACK
+    if (request.content_length or 0) > limit:
+        return _too_large()
+    request.max_content_length = limit
+    try:
+        files = [(f.filename, f) for f in request.files.getlist("files") if f.filename]
+    except RequestEntityTooLarge:
+        return _too_large()
     if not files:
         return api_error("INVALID_PARAM", "파일을 선택해 주세요")
     if not db_path().exists():
@@ -28,13 +47,19 @@ def post_data_import_preview():
     uid = get_current_user_id()
     upload_id, paths = import_service.save_upload(uid, files)
     if sum(p.stat().st_size for p in paths) > import_service.MAX_BYTES:
-        return api_error("TOO_LARGE", "파일이 너무 커요(최대 500MB)", 413)
-    kind, err = import_service.detect_kind(paths)
+        import_service.discard_upload(uid, upload_id)
+        return _too_large()
+    kind, err = import_service.detect_kind(paths, source)
     if err:
+        import_service.discard_upload(uid, upload_id)
         return api_error("INVALID_UPLOAD", err)
     try:
         data = import_service.preview(uid, kind, paths, source)
+    except (csv.Error, ValueError, UnicodeDecodeError) as e:  # D-11·D-12: 파일 문제는 400
+        import_service.discard_upload(uid, upload_id)
+        return api_error("INVALID_UPLOAD", f"파일을 읽지 못했어요: {str(e)[:120]}")
     except Exception as e:  # noqa: BLE001
+        import_service.discard_upload(uid, upload_id)
         return api_error("PREVIEW_FAILED", f"미리보기에 실패했어요: {str(e)[:120]}", 500)
     return api_ok({"upload_id": upload_id, **data})
 

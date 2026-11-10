@@ -4,7 +4,6 @@
 """
 from __future__ import annotations
 
-import csv
 import json
 import shutil
 import sqlite3
@@ -15,10 +14,11 @@ import zipfile
 from pathlib import Path
 
 from src.db_setup import get_db_path
+from src.services import import_detect
 from src.utils import sync_jobs
 
 SERVICE = "import"
-FILE_EXTS = (".fit", ".gpx", ".tcx")
+FILE_EXTS = import_detect.FILE_EXTS
 SOURCES = ("garmin", "strava")
 MAX_BYTES = 500 * 1024 * 1024
 
@@ -27,30 +27,15 @@ def imports_dir(user_id: str) -> Path:
     return get_db_path(user_id).parent / "imports"
 
 
-def _is_media(name: str) -> bool:
-    n = name.lower().removesuffix(".gz")
-    return n.endswith(FILE_EXTS)
+def detect_kind(paths: list[Path], source: str | None = None) -> tuple[str | None, str | None]:
+    """업로드 판별 — 실제 규칙은 import_detect(D-11~D-14)."""
+    return import_detect.detect_kind(paths, source)
 
 
-def detect_kind(paths: list[Path]) -> tuple[str | None, str | None]:
-    """업로드 파일들 → (kind, 오류). kind: strava_archive | strava_csv | garmin_csv | files."""
-    if not paths:
-        return None, "파일을 선택해 주세요"
-    if len(paths) == 1 and paths[0].suffix.lower() == ".zip":
-        try:
-            with zipfile.ZipFile(paths[0]) as z:
-                if any(n.endswith("activities.csv") for n in z.namelist()):
-                    return "strava_archive", None
-        except zipfile.BadZipFile:
-            return None, "유효한 ZIP 파일이 아니에요"
-        return None, "activities.csv가 없어요. Strava 아카이브 ZIP이 맞는지 확인해 주세요"
-    if len(paths) == 1 and paths[0].suffix.lower() == ".csv":
-        with open(paths[0], encoding="utf-8-sig", errors="replace") as f:
-            head = next(csv.reader(f), [])
-        return ("strava_csv" if "Activity Date" in head else "garmin_csv"), None
-    if all(_is_media(p.name) for p in paths):
-        return "files", None
-    return None, "Strava ZIP·CSV 한 개, 또는 FIT/GPX/TCX(.gz) 파일만 올릴 수 있어요"
+def discard_upload(user_id: str, upload_id: str) -> None:
+    """거부한 업로드의 디렉터리를 지운다(D-10: 빈 디렉터리·거부 파일이 남지 않게)."""
+    if upload_id.isalnum():
+        shutil.rmtree(imports_dir(user_id) / upload_id, ignore_errors=True)
 
 
 def save_upload(user_id: str, uploads: list[tuple[str, object]]) -> tuple[str, list[Path]]:
@@ -80,7 +65,7 @@ def _safe_extract(zip_path: Path, dest: Path) -> Path | None:
     with zipfile.ZipFile(zip_path) as z:
         root = dest.resolve()
         for n in z.namelist():
-            if not (dest / n).resolve().is_relative_to(root):
+            if import_detect.unsafe_member(n) or not (dest / n).resolve().is_relative_to(root):
                 raise ValueError("ZIP 안에 허용되지 않는 경로가 있어요")
         z.extractall(dest)
     if (dest / "activities.csv").exists():
@@ -205,7 +190,7 @@ def start(user_id: str, upload_id: str, source: str = "garmin") -> tuple[dict, s
     paths = upload_paths(user_id, upload_id)
     if not paths:
         return {}, "UPLOAD_NOT_FOUND"
-    kind, err = detect_kind(paths)
+    kind, err = detect_kind(paths, source)
     if err:
         return {}, "INVALID_UPLOAD"
     from datetime import date

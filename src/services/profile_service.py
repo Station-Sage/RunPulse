@@ -142,7 +142,7 @@ def validate_changes(body: dict) -> tuple[dict, str | None]:
     return out, None
 
 
-def apply_changes(config: dict, user_id: str, changes: dict) -> dict:
+def _merge(config: dict, changes: dict) -> dict:
     prof = config.setdefault("profile", {})
     ov, ch = _stored(config)
     for k, v in changes["overrides"].items():
@@ -152,5 +152,35 @@ def apply_changes(config: dict, user_id: str, changes: dict) -> dict:
             ov[k] = v
     ch.update(changes["source_choice"])
     prof["overrides"], prof["source_choice"] = ov, ch
+    return config
+
+
+_LABEL = {"hrmax": "최대심박", "lthr": "젖산역치 심박", "threshold_pace": "역치 페이스",
+          "resting_hr": "안정시 심박", "weekly_km": "주간 목표 거리"}
+_SOURCE_LABEL = {"self": "자체 추정", "device": "기기 값", "manual": "직접 입력"}
+
+
+def check_changes(conn: sqlite3.Connection, config: dict, changes: dict) -> tuple[str, str] | None:
+    """변경을 적용했을 때의 상태 검사 → (오류코드, 문구) 또는 None. 저장하지 않는다.
+
+    - D-08: 고른 출처(source_choice)에 값이 없으면 SOURCE_UNAVAILABLE(422).
+    - D-07: 이번 변경이 HRmax·LTHR 를 건드렸고 사용값이 LTHR ≥ HRmax 이면 INVALID_PARAM(400).
+    """
+    import copy
+
+    rows = {r["key"]: r for r in profile_rows(conn, _merge(copy.deepcopy(config), changes))}
+    for key, src in changes["source_choice"].items():
+        if rows[key].get(src) is None:
+            return "SOURCE_UNAVAILABLE", f"{_LABEL[key]}: {_SOURCE_LABEL[src]}이 없어 고를 수 없어요"
+    touched = set(changes["overrides"]) | set(changes["source_choice"])
+    used = {k: rows[k][rows[k]["using"]]["value"] for k in ("hrmax", "lthr") if rows[k]["using"] != "none"}
+    if touched & {"hrmax", "lthr"} and len(used) == 2 and used["lthr"] >= used["hrmax"]:
+        return "INVALID_PARAM", (f"젖산역치 심박({used['lthr']:g}bpm)은 최대심박({used['hrmax']:g}bpm)보다 "
+                                 "낮아야 해요")
+    return None
+
+
+def apply_changes(config: dict, user_id: str, changes: dict) -> dict:
+    _merge(config, changes)
     save_config(config, user_id=user_id)
     return config

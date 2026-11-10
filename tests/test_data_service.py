@@ -35,7 +35,7 @@ def conn(monkeypatch):
             _job(2, "garmin", "completed", counts='{"activities": 2}'), _job(1, "strava", "completed")]
     for mod in (svc, sync_state_service):
         monkeypatch.setattr(mod, "list_recent_jobs",
-                            lambda p=None, limit=10, _j=jobs: [j for j in _j if p in (None, j.service)][:limit])
+                            lambda p=None, limit=10, _j=jobs, **_kw: [j for j in _j if p in (None, j.service)][:limit])
     yield c
     c.close()
 

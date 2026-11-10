@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { say } from '$lib/a11y/say';
 	import { patchAutoSync, type AutoSyncSettings } from '$lib/api/data';
+	import { localDateString } from '$lib/asOf';
+	import { scheduleTime } from '$lib/dataArea';
 
 	let { settings }: { settings: AutoSyncSettings } = $props();
 	let override = $state<AutoSyncSettings | null>(null);
@@ -10,7 +12,7 @@
 	const INTERVALS = [1, 2, 4, 6, 12, 24];
 	const WINDOWS = [2, 7, 14, 30];
 
-	const hm = (iso: string | null) => (iso ? iso.slice(11, 16) : null);
+	const hm = (iso: string | null) => scheduleTime(iso, localDateString());
 
 	async function change(body: Parameters<typeof patchAutoSync>[0]) {
 		if (busy) return;

@@ -19,7 +19,7 @@ ALL_SOURCES = ("garmin", "strava", "intervals", "runalyze")
 @dataclass(frozen=True)
 class SkipReason:
     provider: str
-    code: str  # not_connected|disabled|running|cooldown|rate_limited|start_failed
+    code: str  # not_connected|unreachable|disabled|running|cooldown|rate_limited|start_failed
     message_ko: str
     retry_after_sec: int | None = None
     job_id: str | None = None
@@ -31,6 +31,15 @@ class SkipReason:
         if self.job_id:
             d["job_id"] = self.job_id
         return d
+
+
+def connection_skip(src: str, res: dict) -> SkipReason:
+    """연결 점검 실패 → SkipReason. D-05: 서버에 닿지 못함(unreachable)을 미연결(not_connected)과 구분한다."""
+    from src.sync.sync_errors import check_failure_reason
+
+    if check_failure_reason(res) == "network":
+        return SkipReason(src, "unreachable", "서버에 연결하지 못했어요. 네트워크를 확인해 주세요")
+    return SkipReason(src, "not_connected", f"미연결 ({res.get('status', '확인 실패')})")
 
 
 @dataclass(frozen=True)
@@ -99,7 +108,7 @@ def plan_incremental(
     for src in targets:
         conn_status = checkers[src](config)
         if not conn_status["ok"]:
-            skipped.append(SkipReason(src, "not_connected", f"미연결 ({conn_status['status']})"))
+            skipped.append(connection_skip(src, conn_status))
             continue
         if src not in on:
             skipped.append(SkipReason(src, "disabled", "동기화 대상에서 꺼져 있어요"))

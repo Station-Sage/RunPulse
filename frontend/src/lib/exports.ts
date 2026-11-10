@@ -28,3 +28,18 @@ export function errorText(item: ExportItem): string {
 	const base = (item.error_code && ERROR_TEXT[item.error_code]) || '실패';
 	return item.error && !item.error_code ? `${base} — ${item.error}` : base;
 }
+
+/** D-02: 훈련 계획 ICS 는 v2 밖(Flask 루트) 라우트라 `{base}` 를 붙이지 않는다. 이번 주(월~일) 계획만 담긴다. */
+export const PLAN_ICS_URL = '/training/export.ics';
+export const PLAN_ICS_NAME = 'runpulse-training.ics';
+
+/** D-16: 받은 CSV 의 데이터 행 수(X-Export-Rows)가 0 이면 안내 문구. 헤더가 없으면(null) 말하지 않는다. */
+export function quickResultText(rows: number | null): string {
+	return rows === 0 ? '이 기간에는 기록이 없어 머리글만 담았어요' : '';
+}
+
+/** D-18: 아카이브 진행 문구 — 테이블 단위 완료/전체. */
+export function progressText(item: ExportItem): string {
+	const p = item.progress;
+	return p && p.total > 0 ? `만드는 중… ${Math.min(p.done, p.total)}/${p.total}` : '만드는 중…';
+}

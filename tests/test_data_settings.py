@@ -13,7 +13,8 @@ from src.services import data_settings_service as svc
 @pytest.fixture
 def env(monkeypatch):
     import src.api.routes_data as rd
-    cfg = {"sync_sources": ["garmin", "strava"]}
+    cfg = {"sync_sources": ["garmin", "strava"], "garmin": {"email": "e"}, "strava": {"refresh_token": "t"},
+           "runalyze": {"token": "k"}}
     saved, stopped, restarted = [], [], []
     monkeypatch.setattr(rd, "get_current_user_id", lambda: "u")
     monkeypatch.setattr(rd, "load_config", lambda user_id=None: cfg)
@@ -47,7 +48,9 @@ def test_enable_source_does_not_stop(env):
 
 
 def test_source_validation(env):
-    c = env[0]
+    c, cfg = env[0], env[1]
+    cfg["intervals"] = {}
+    assert c.patch("/api/v1/data/sources/intervals", json={"sync_enabled": False}).status_code == 409  # D-09
     assert c.patch("/api/v1/data/sources/nope", json={"sync_enabled": True}).status_code == 404
     assert c.patch("/api/v1/data/sources/garmin", json={"sync_enabled": "x"}).status_code == 400
 

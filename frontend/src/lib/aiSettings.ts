@@ -32,3 +32,12 @@ export function usageText(u: AiSettings['usage_7d']): string {
 	if (u.rule) parts.push(`규칙 답변 ${u.rule}회`);
 	return `최근 7일 답변 ${u.messages}건 · ${parts.join(' · ')}${u.tool_calls ? ` · 데이터 조회 ${u.tool_calls}회` : ''}`;
 }
+
+/** D-23: API 키 형식 점검(서버 key_format_error 와 같은 규칙) — 문제 있으면 안내 문구, 없으면 null. 앞뒤 공백은 서버가 지운다. */
+export function keyFormatError(raw: string): string | null {
+	const k = raw.trim();
+	if (!k) return null;
+	if (k.length > 256) return 'API 키는 256자 이하예요';
+	if (!/^[\x21-\x7e]+$/.test(k) || /[<>"'`]/.test(k)) return 'API 키에 공백·줄바꿈이나 쓸 수 없는 문자가 있어요. 복사한 키를 다시 확인해 주세요';
+	return null;
+}

@@ -183,6 +183,8 @@ export function outcomeFromError(status: number, details: unknown): TriggerOutco
 		return { ...base, notice: null, skipped: asSkips(d.skipped), cooldownSec: sec };
 	}
 	if (status === 422) return { ...base, notice: '연결된 소스가 없어요. 설정에서 연결해 주세요' };
+	// D-05: 키 문제가 아니라 서버에 닿지 못한 경우
+	if (status === 503) return { ...base, notice: '소스 서버에 연결하지 못했어요. 네트워크를 확인하고 다시 눌러 주세요', skipped: asSkips(d.skipped) };
 	return { ...base, notice: '요청하지 못했어요. 다시 눌러 주세요' };
 }
 

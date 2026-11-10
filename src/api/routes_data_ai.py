@@ -3,14 +3,13 @@ from __future__ import annotations
 
 import sqlite3
 
-from flask import request
-
 from src.ai.provider_common import LLM_PROVIDERS
 from src.services import ai_settings_service as svc
 from src.utils.config import load_config
 from src.utils.user_context import db_path, get_current_user_id
 
 from . import api_bp, api_error, api_ok
+from .validation import json_object
 
 
 def _open():
@@ -31,7 +30,10 @@ def get_ai_settings():
 
 @api_bp.patch("/data/settings/ai")
 def patch_ai_settings():
-    changes, err = svc.validate_patch(request.get_json(silent=True) or {})
+    body, bad = json_object(empty_ok=False)  # D-21
+    if bad:
+        return bad
+    changes, err = svc.validate_patch(body)
     if err:
         return api_error("INVALID_PARAM", err, 400)
     conn = _open()
@@ -48,7 +50,10 @@ def patch_ai_settings():
 
 @api_bp.post("/data/settings/ai/test")
 def test_ai_connection():
-    provider = (request.get_json(silent=True) or {}).get("provider")
+    body, bad = json_object()
+    if bad:
+        return bad
+    provider = body.get("provider")
     if provider not in LLM_PROVIDERS:
         return api_error("INVALID_PARAM", f"provider는 {', '.join(LLM_PROVIDERS)} 중 하나예요", 400)
     return api_ok(svc.test_connection(provider, load_config(user_id=get_current_user_id())))

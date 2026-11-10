@@ -31,12 +31,14 @@ def post_data_export():
         return api_ok(data, 202)
     conn = sqlite3.connect(str(dpath))
     try:
-        text = export_service.quick_export(conn, params["kind"], params["from"], params["to"])
+        text, rows = export_service.quick_export(conn, params["kind"], params["from"], params["to"])
     finally:
         conn.close()
-    name = export_service.quick_filename(params["kind"])
-    return Response(text, mimetype="text/csv; charset=utf-8",
-                    headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store"})
+    name = export_service.quick_filename(params["kind"], params["from"], params["to"])
+    # D-16: content_type 으로 넘겨 charset 이 두 번 붙지 않게, 행 수는 헤더로(0 이면 화면이 알린다)
+    return Response(text, content_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"', "Cache-Control": "no-store",
+                             "X-Export-Rows": str(rows)})
 
 
 @api_bp.get("/data/exports")

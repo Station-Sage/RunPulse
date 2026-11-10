@@ -241,13 +241,20 @@ def update_job(job_id: str, **kwargs) -> None:
             )
 
 
-def list_recent_jobs(service: str | None = None, limit: int = 10) -> list[SyncJob]:
-    """최근 작업 목록 (최신순)."""
-    q = f"SELECT {_COLS} FROM sync_jobs"
+def list_recent_jobs(service: str | None = None, limit: int = 10, *,
+                     services: tuple[str, ...] | None = None, status: str | None = None) -> list[SyncJob]:
+    """최근 작업 목록 (최신순). `services` 는 여러 서비스 중 하나, `status` 는 상태 필터(D-06)."""
+    q = f"SELECT {_COLS} FROM sync_jobs WHERE 1=1"
     params: list = []
     if service:
-        q += " WHERE service = ?"
+        q += " AND service = ?"
         params.append(service)
+    if services:
+        q += f" AND service IN ({','.join('?' * len(services))})"
+        params.extend(services)
+    if status:
+        q += " AND status = ?"
+        params.append(status)
     q += " ORDER BY created_at DESC LIMIT ?"
     params.append(limit)
     with _conn() as conn:

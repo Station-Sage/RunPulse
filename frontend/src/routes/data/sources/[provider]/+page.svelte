@@ -53,8 +53,8 @@
 	{:else}
 		<header>
 			<h1 class="text-lg font-semibold text-fg-primary">{syncProviderName(d.provider)}</h1>
-			<p class="text-sm text-fg-secondary"><span aria-hidden="true">{line.glyph}</span> {line.text}</p>
-			{#if d.last_error}<p class="mt-1 text-xs text-semantic-red">{d.last_error.message_ko}</p>{/if}
+			<p class="break-words text-sm text-fg-secondary"><span aria-hidden="true">{line.glyph}</span> {line.text}</p>
+			{#if d.last_error && d.last_error.message_ko !== line.text}<p class="mt-1 break-words text-xs text-semantic-red">{d.last_error.message_ko}</p>{/if}
 		</header>
 
 		{#if d.connection === 'connected'}

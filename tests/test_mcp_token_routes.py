@@ -52,7 +52,7 @@ def test_issue_shows_plaintext_once_and_list_hides_it(client):
 def test_label_required_and_bad_days(client):
     assert client.post(URL, json={"label": "  "}).status_code == 400
     assert client.post(URL, json={"label": "x", "days": "abc"}).status_code == 400
-    assert client.post(URL, json={"label": "x", "days": 9999}).status_code == 409
+    assert client.post(URL, json={"label": "x", "days": 9999}).status_code == 400  # D-19: 범위 밖은 400
 
 
 def test_cap_returns_409(client):

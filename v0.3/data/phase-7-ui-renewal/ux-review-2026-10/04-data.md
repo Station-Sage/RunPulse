@@ -63,3 +63,32 @@
 - 캘린더 피드 URL 1회 표시 확인: 샌드박스에서 URL 이 응답에 없어 확인 못함. MCP 토큰 "폐기" 확인 대화상자 여부도 UI 에서 직접 확인 못함.
 - 300자 파일명 업로드, Strava last_new_data_at 간극, 375px 스크린샷의 시각 품질(/tmp/pwtest/set375.png 열람 안 함), /training/export.ics 실제 다운로드 여부.
 - 교차 참조: 01/02/03 문서의 T/A/M ID 와의 중복 여부는 대조하지 않음.
+
+## 처리 기록 (2026-11-10, V2-AUDIT-INDIV 묶음 D)
+- D-02 처리: 훈련 계획 ICS 는 v2 밖(Flask 루트) 라우트라 `{base}` 를 붙이지 않는 것이 맞음 — 링크에 `download="runpulse-training.ics"` 를 달아 다운로드임을 명시하고, 실제 범위(이번 주 월~일)를 제목·설명에 적음(`exports.PLAN_ICS_URL`). 문구는 TXT-1 잠정. 실제 파일 저장은 브라우저 스모크에서 속성만 확인(다운로드 이벤트는 미확인).
+- D-04 처리: 원시 예외 문자열을 응답에서 뺌 — 동기화 기록(`data_service.run_dict.last_error`)은 실패 행만 한국어 문구(`sync_errors.public_message`), 소스 상태(`sync_state_service.classify_error`)는 `detail`(원문 200자)을 없애고 오류 문구에서 네트워크·시간 초과·5xx 를 분류(`classify_text`). 기록 줄·소스 상세 문구는 잘리지 않고 줄바꿈(`break-words`).
+- D-05 처리: 연결 점검이 응답 없이 실패(DNS·네트워크)하면 `reason: network`(intervals_auth·runalyze) → 연결 시도 문구 "Intervals 서버에 연결하지 못했어요. 네트워크 상태를 확인하고…", 키 문제는 "연결하지 못했어요 · 잘못된 API 키". 동기화 사전점검은 `unreachable` 코드로 미연결과 구분(`connection_skip`), 전부 그 이유면 `503 SOURCE_UNREACHABLE`(프런트 안내 문구 별도). 문구 TXT-1 잠정.
+- D-06 부분: 원인 후보 두 가지를 고침 — (1) 전체 기록(`/data/runs`)에 가져오기·내보내기·재계산 작업의 '완료'가 섞이던 것(동기화 소스 작업만, `list_recent_jobs(services=)`), (2) 소스별 마지막 성공을 최근 20건에서만 찾던 것(창이 실패로 가득하면 원장에서 마지막 완료 1건을 더 찾음). 시도는 있으나 성공이 없으면 "동기화 기록 없음" 대신 "성공한 동기화 없음". 점검 당시 상태(어느 소스가 켜져 있었는지)를 재현하지 못해 실제 원인이 이 둘인지는 미확인.
+- D-07 처리(추천안 확정): 저장 전 상태 검사 `profile_service.check_changes` — 이번 변경이 HRmax·LTHR 를 건드렸고 사용값이 LTHR ≥ HRmax 이면 400("젖산역치 심박(178bpm)은 최대심박(125bpm)보다 낮아야 해요"). 심박을 건드리지 않는 변경은 기존 상태로 막지 않음.
+- D-08 처리(추천안 확정): 고른 출처에 값이 없으면 422 SOURCE_UNAVAILABLE("역치 페이스: 기기 값이 없어 고를 수 없어요").
+- D-09 처리(추천안 확정): 미연결 소스 PATCH 는 409 NOT_CONNECTED(`sync_state_service.is_connected`, 카드의 연결 축과 같은 기준).
+- D-10 처리: Content-Length 가 한도(500MB+1MB)를 넘으면 본문을 받기 전에 413, 길이 없는 전송은 `request.max_content_length` 로 파싱 중 413. 크기·형식·미리보기 실패로 거부한 업로드는 디렉터리째 지움(`import_service.discard_upload`).
+- D-11 처리: CSV 전체를 미리 훑어 `csv.Error`(128KB 초과 칸 등)를 400 INVALID_UPLOAD "CSV를 읽지 못했어요…"로(`import_detect`). 미리보기 중 `csv.Error`·`ValueError`·`UnicodeDecodeError` 도 400.
+- D-12 처리: ZIP 은 풀기 전에 `../`·절대 경로 항목을 400 으로 거부(`import_detect.unsafe_member`, 추출 단계에도 같은 검사 유지).
+- D-13 처리: CSV 는 머리글로 판별 — Strava(`Activity Date`), Garmin(`날짜`+`활동 종류|활동 유형`), 그 밖은 "알 수 없는 CSV 형식이에요". 고른 소스와 파일 종류가 다르면 "Strava 파일로 보여요. 가져올 소스를 Strava(으)로 바꿔 주세요"(미리보기·실행 모두). 영문 머리글 Garmin CSV 는 기존 임포터가 한국어 열만 읽으므로 계속 거부됨.
+- D-14 처리: 확장자 안내가 고른 소스를 따름(`extension_hint`: Garmin 이면 "Garmin 활동 CSV 한 개, 또는 FIT/GPX/TCX(.gz)…").
+- D-15 처리: "시작일이 종료일보다 늦어요", "시작일은 YYYY-MM-DD 형식이에요".
+- D-16 처리: 시작일이 오늘 이후면 400 "시작일이 오늘 이후라 내보낼 기록이 없어요". 기간을 고르면 파일명에 기간(`runpulse_wellness_2026-01-01_2026-01-31.csv`), Content-Type 중복 제거(`content_type=`), 데이터 행 수 헤더 `X-Export-Rows` — 0 이면 화면에 "이 기간에는 기록이 없어 머리글만 담았어요". 문구 TXT-1 잠정.
+- D-17 처리: 웰니스 CSV 에서 날짜 외 값이 모두 빈 행 제외.
+- D-18 부분: 진행률을 테이블 단위(완료/전체)로 원장에 기록하고 이력에 "만드는 중… 3/12" 표시. 기간 필터는 이미 tables·raw_payloads 에 적용돼 있음(`export_archive._where`·`_write_raw`, 재확인). 소요 시간(약 32초)·용량·요약 CSV 의 메모리 적재는 손대지 않음(스트림 그룹 크기 조정·요약 CSV 스트리밍은 설계 필요).
+- D-19 처리: `days` 는 1~365 정수만(0·음수·99999999·1.9 → 400 BAD_DAYS). 없으면 기본 90일.
+- D-20 처리: `label` 이 문자열이 아니면 400 LABEL_INVALID, 40자 초과는 400 LABEL_TOO_LONG(조용히 자르지 않음).
+- D-21 부분: 공용 `validation.json_object()` — 객체가 아닌 JSON(`[1]`)·깨진 JSON 은 400 INVALID_PARAM. 데이터 영역(MCP 토큰·캘린더 피드·AI 설정 PATCH/테스트)에 적용. 같은 `get_json(silent=True) or {}` 패턴이 plan·coach·shoes·today·race_calendar 등 10여 곳에 남아 있음(봉투 핸들러 덕에 HTML 500 은 아니고 JSON 500) — 묶음 밖이라 그대로.
+- D-23 처리: 키 형식 검사(`ai_settings_service.key_format_error`, 프런트 `aiSettings.keyFormatError` 같은 규칙) — 공백·줄바꿈·제어문자·`<>"'\``·비ASCII·256자 초과 거부, 입력 중 안내 + 저장 버튼 비활성. 빈 값만 보내면 "API 키를 입력해 주세요". 길이 상한 256 은 임의 값(제공자별 실제 키 길이 확인 안 함).
+- D-24 부분: Strava 앱 정보 형식 검사(`strava_app_ready`: Client ID 숫자, Secret 공백 없음) — 형식이 틀리면 NEEDS_APP. 값이 실제로 맞는지는 Strava OAuth 화면에서만 알 수 있어 연결 시작 시점에는 검증하지 않음(연결 흐름 자체는 설계대로 redirect).
+- D-29 처리: 기간 동기화 기본 종료일을 기기 날짜로(`localDateString`).
+- D-30 처리: 페이스 입력은 정확히 `m:ss`(초 00~59)만 — "5:30:99" 거부.
+- D-31 처리: 자동 동기화 시각에 "오늘/어제/내일" 또는 "11월 1일"을 붙임(`dataArea.scheduleTime`, 서버 로컬 벽시계 기준).
+- D-32 부분: 소스 상세에서 상태 줄과 같은 오류 문구를 두 번 보이지 않게, 375px 줄바꿈. 설정의 "소스 연결·자동 동기화" 카드는 실제 화면(소스 / 동기화 탭)에 맞춰 "소스 연결"·"자동 동기화" 두 카드로 나눔(문구 TXT-1 잠정). **보류**: 소스 이름 표기("Intervals" vs 환영 화면 "Intervals.icu") 통일은 제품 표기 결정이라 사용자 결정 필요.
+- D-33·D-34: 종결(지시대로 처리 대상 아님).
+- 확인 방법: pytest 신규 `tests/test_data_audit_d_sync.py`(15)·`tests/test_data_audit_d_io.py`(26), 프런트 `frontend/tests/dataAuditD.test.mjs`(5). 합성 DB 서버(사본) 375/1280 브라우저 스모크: 설정 카드·ICS download 속성·빈 기간 CSV 안내·기간 역전 문구·자동 동기화 "오늘 13:37"·AI 키 오류/저장 비활성·페이스 "5:30:99" 거부·가로 넘침 없음·pageerror 0. 프로필 교차 검사(400)·출처 없음(422)·미연결 PATCH(409)·알 수 없는 CSV(400)는 같은 서버에 curl 로 확인(합성 DB 에 LTHR 값이 없어 화면 경로로는 400 문구를 띄우지 못함).

@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { say } from '$lib/a11y/say';
+	import { localDateString } from '$lib/asOf';
 	import { estimateSync, type SyncEstimate } from '$lib/api/data';
 	import { estimateView, validateRange } from '$lib/rangeSync';
 	import { syncProviderName } from '$lib/syncState';
 	import { runRangeTrigger, syncStore } from '$lib/syncStore.svelte';
 
 	let { providers }: { providers: string[] } = $props();
-	const today = new Date().toISOString().slice(0, 10);
+	const today = localDateString(); // D-29: UTC 날짜가 아니라 기기 날짜(KST 새벽에 하루 어긋나지 않게)
 	let provider = $state('');
 	let from = $state('');
 	let to = $state(today);

@@ -199,7 +199,7 @@ export interface ExportItem {
 	finished_at: string | null;
 	result: { filename: string; size_bytes: number; expires_at: string; row_counts: Record<string, number> } | null;
 	error: string | null;
-	error_code?: string | null;
+	error_code?: string | null; progress?: { done: number; total: number } | null; // D-18 테이블 단위 진행
 }
 
 export const getExportsFull = () =>
@@ -209,8 +209,8 @@ export const startArchive = (body: ReturnType<typeof archiveBody>) =>
 	apiFetch<{ job_id: string }>('/data/export', { method: 'POST', body: JSON.stringify({ kind: 'archive', ...body }) });
 export const exportDownloadUrl = (id: string) => `/api/v1/data/exports/${encodeURIComponent(id)}/download`;
 
-/** 빠른 CSV를 받아 브라우저 다운로드로 넘긴다. */
-export async function downloadQuick(kind: Exclude<ExportKind, 'archive'>, range: { from?: string; to?: string }) {
+/** 빠른 CSV를 받아 브라우저 다운로드로 넘긴다. 반환: 데이터 행 수(X-Export-Rows, 없으면 null). */
+export async function downloadQuick(kind: Exclude<ExportKind, 'archive'>, range: { from?: string; to?: string }): Promise<number | null> {
 	const res = await fetch('/api/v1/data/export', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
@@ -222,8 +222,8 @@ export async function downloadQuick(kind: Exclude<ExportKind, 'archive'>, range:
 	const a = document.createElement('a');
 	a.href = url;
 	a.download = name;
-	a.click();
-	URL.revokeObjectURL(url);
+	a.click(); URL.revokeObjectURL(url);
+	return res.headers.has('X-Export-Rows') ? Number(res.headers.get('X-Export-Rows')) : null;
 }
 
 export type KeyState = 'set' | 'missing' | 'invalid';

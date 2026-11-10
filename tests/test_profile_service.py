@@ -78,7 +78,7 @@ def test_apply_changes_sets_and_clears(monkeypatch):
 def test_profile_api_roundtrip(monkeypatch, tmp_path, conn):
     from flask import Flask
 
-    import src.api.routes_data as rd
+    import src.api.routes_data_profile as rd
     from src.api import api_bp
 
     cfg: dict = {}

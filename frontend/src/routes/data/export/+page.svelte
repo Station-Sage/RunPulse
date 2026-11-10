@@ -6,7 +6,9 @@
 	import {
 		downloadQuick, exportDownloadUrl, getExports, startArchive, type ExportItem, type ExportKind
 	} from '$lib/api/data';
-	import { expiryText, formatBytes, rangeBody, errorText } from '$lib/exports';
+	import {
+		expiryText, formatBytes, rangeBody, errorText, PLAN_ICS_NAME, PLAN_ICS_URL, progressText, quickResultText
+	} from '$lib/exports';
 	import { archiveBody, defaultSelection, needsConfirm } from '$lib/exportScope';
 	import ExportScopeForm from '$lib/components/ExportScopeForm.svelte';
 	import ExportConfirmDialog from '$lib/components/ExportConfirmDialog.svelte';
@@ -48,7 +50,7 @@
 		busy = kind;
 		message = '';
 		try {
-			await downloadQuick(kind, rangeBody(from, to));
+			message = quickResultText(await downloadQuick(kind, rangeBody(from, to)));
 		} catch (e) {
 			message = e instanceof Error ? e.message : '내보내기에 실패했어요';
 		} finally {
@@ -134,7 +136,7 @@
 						{#if h.state === 'done' && h.result} · {formatBytes(h.result.size_bytes)} · {expiryText(h)}
 						{:else if h.state === 'expired'} · {expiryText(h)}
 						{:else if h.state === 'failed'} · <span class="text-semantic-red">{errorText(h)}</span>
-						{:else} · 만드는 중…{/if}
+						{:else} · {progressText(h)}{/if}
 					</span>
 					{#if h.state === 'failed'}
 						<button type="button" class="tap text-fg-primary underline" disabled={busy !== null || active} onclick={requestArchive}>다시 만들기</button>
@@ -158,12 +160,13 @@
 	<CalendarFeedCard initial={data.feed} />
 
 	<a
-		href="/training/export.ics"
+		href={PLAN_ICS_URL}
+		download={PLAN_ICS_NAME}
 		data-sveltekit-reload
 		class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3 hover:bg-surface-3"
 	>
-		<span class="text-sm text-fg-primary">훈련 계획 캘린더 파일 (.ics)</span>
-		<span class="text-xs text-fg-secondary">한 번만 가져오고 싶을 때 파일로 받아요.</span>
+		<span class="text-sm text-fg-primary">이번 주 훈련 계획 캘린더 파일 (.ics)</span>
+		<span class="text-xs text-fg-secondary">이번 주(월~일) 계획을 파일로 받아 캘린더 앱에서 한 번 가져와요. 계속 맞추려면 위 구독 주소를 쓰세요.</span>
 	</a>
 
 	<p class="text-xs text-fg-muted">

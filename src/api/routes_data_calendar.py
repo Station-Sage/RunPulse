@@ -1,13 +1,12 @@
 """`/api/v1/data/calendar-feed` — 캘린더 구독 주소 조회/발급·재발급/해제. design ICS-SUBSCRIBE §6."""
 from __future__ import annotations
 
-from flask import request
-
 from src.services import calendar_feed_index as feeds
 from src.utils.public_url import public_base_url
 from src.utils.user_context import get_current_user_id
 
 from . import api_bp, api_error, api_ok
+from .validation import json_object
 
 CONTENTS = ["날짜·종류·거리", "목표 페이스·심박 존", "인터벌 구성"]
 EXCLUDED = ["메모·AI 설명", "심박 수치·웰니스", "완료 여부", "대회명·장소"]
@@ -40,7 +39,10 @@ def get_data_calendar_feed():
 @api_bp.post("/data/calendar-feed")
 def post_data_calendar_feed():
     uid = get_current_user_id()
-    rotate = bool((request.get_json(silent=True) or {}).get("rotate"))
+    body, err = json_object()  # D-21
+    if err:
+        return _no_store(err)
+    rotate = body.get("rotate") is True
     if feeds.get_status(uid) is not None and not rotate:
         return _no_store(api_error("FEED_EXISTS", "이미 구독 주소가 있어요", 409))
     feeds.issue(uid)

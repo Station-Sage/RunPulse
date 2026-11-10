@@ -11,6 +11,7 @@ from datetime import datetime
 
 from src.services import provider_status_service, sync_state_service
 from src.services.activity_counts import activity_counts
+from src.sync.sync_errors import public_message
 from src.utils.sync_jobs import SyncJob, list_recent_jobs
 
 SOURCES = sync_state_service.SOURCES
@@ -47,14 +48,18 @@ def run_dict(job: SyncJob) -> dict:
         "trigger": job.trigger or job.source_path,
         "started_at": job.started_at or job.created_at, "finished_at": job.finished_at,
         "synced_count": job.synced_count, "counts": counts,
-        "error_code": job.error_code, "last_error": job.last_error,
+        "error_code": job.error_code,
+        # D-04: 원시 예외 문자열 대신 사용자 문구(실패한 행만)
+        "last_error": public_message(job.error_code, job.last_error) if job.status in _FAILED else None,
     }
 
 
 def runs(provider: str | None = None, errors_only: bool = False, limit: int = 20) -> list[dict]:
     """최근 동기화 기록(최신순). errors_only면 실패·한도·인증 필요만."""
     limit = max(1, min(limit, 100))
-    jobs = list_recent_jobs(provider, limit=limit * 4 if errors_only else limit)
+    # D-06: 전체 기록은 동기화 소스 작업만(가져오기·내보내기·재계산 작업이 '완료'로 섞이지 않게)
+    jobs = list_recent_jobs(provider, limit=limit * 4 if errors_only else limit,
+                            services=None if provider else SOURCES)
     if errors_only:
         jobs = [j for j in jobs if j.status in _FAILED][:limit]
     return [run_dict(j) for j in jobs]

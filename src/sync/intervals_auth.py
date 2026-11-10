@@ -53,6 +53,8 @@ def check_intervals_connection(config: dict) -> dict:
             return {"ok": False, "status": "잘못된 API 키", "detail": "인증 실패 (401). API 키를 확인하세요."}
         if e.status_code == 404:
             return {"ok": False, "status": "잘못된 athlete_id", "detail": f"athlete_id '{athlete_id}'를 찾을 수 없습니다 (404)."}
+        if not e.status_code:  # D-05: 응답 없이 실패(DNS·네트워크) — 키 문제와 구분
+            return {"ok": False, "status": "서버 연결 실패", "detail": str(e), "reason": "network"}
         return {"ok": False, "status": "연결 실패", "detail": str(e)}
     except Exception as e:
         return {"ok": False, "status": "연결 오류", "detail": str(e)}

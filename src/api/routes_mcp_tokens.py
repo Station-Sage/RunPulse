@@ -7,6 +7,7 @@ from src.mcp_remote import audit, token_index as ti
 from src.utils.user_context import get_current_user_id
 
 from . import api_bp, api_error, api_ok
+from .validation import FieldError, int_field, json_object
 
 MAX_LABEL = 40
 
@@ -36,17 +37,36 @@ def get_mcp_tokens():
                              "tokens": ti.list_tokens(uid)}))
 
 
+def _parse_issue() -> tuple[tuple[str, int] | None, object]:
+    """발급 본문 → ((label, days), err). D-19·D-20·D-21: 조용히 보정하지 않고 400."""
+    body, err = json_object()
+    if err:
+        return None, err
+    raw = body.get("label")
+    if raw is not None and not isinstance(raw, str):
+        return None, api_error("LABEL_INVALID", "이름은 글자로 입력해 주세요", 400)
+    label = (raw or "").strip()
+    if not label:
+        return None, api_error("LABEL_REQUIRED", "이름을 입력해 주세요", 400)
+    if len(label) > MAX_LABEL:
+        return None, api_error("LABEL_TOO_LONG", f"이름은 {MAX_LABEL}자 이하로 입력해 주세요", 400)
+    days = body.get("days")
+    if days is None:
+        return (label, ti.DEFAULT_DAYS), None
+    try:
+        days = int_field(1, 365).parse(days)
+    except FieldError:
+        return None, api_error("BAD_DAYS", "유효 기간은 1~365일 사이 정수예요", 400)
+    return (label, days), None
+
+
 @api_bp.post("/settings/mcp-tokens")
 def post_mcp_token():
     uid = get_current_user_id()
-    body = request.get_json(silent=True) or {}
-    label = str(body.get("label") or "").strip()[:MAX_LABEL]
-    if not label:
-        return _no_store(api_error("LABEL_REQUIRED", "이름을 입력해 주세요", 400))
-    try:
-        days = int(body.get("days") or ti.DEFAULT_DAYS)
-    except (TypeError, ValueError):
-        return _no_store(api_error("BAD_DAYS", "유효 기간이 올바르지 않아요", 400))
+    parsed, err = _parse_issue()
+    if err:
+        return _no_store(err)
+    label, days = parsed
     try:
         token, meta = ti.issue(uid, label, days)
     except ti.TokenError as e:

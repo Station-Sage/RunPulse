@@ -5,7 +5,7 @@ import sqlite3
 
 from flask import request
 
-from src.services import data_service, data_settings_service, profile_service, sync_state_service
+from src.services import data_service, data_settings_service, sync_state_service
 from src.utils.config import load_config
 from src.utils.user_context import db_path, get_current_user_id
 
@@ -33,6 +33,9 @@ def _trigger_response(res):
     if res.runs:
         return api_ok({"runs": res.runs, "skipped": skipped}, 202)
     codes = {s.code for s in res.skipped}
+    if "unreachable" in codes and codes <= {"not_connected", "disabled", "unreachable"}:  # D-05
+        return api_error("SOURCE_UNREACHABLE", "소스 서버에 연결하지 못했어요. 네트워크를 확인해 주세요", 503,
+                         {"skipped": skipped})
     if codes <= {"not_connected", "disabled"}:
         return api_error("NO_SOURCES", "동기화할 수 있는 소스가 없어요", 422, {"skipped": skipped})
     if codes == {"running"}:
@@ -166,6 +169,8 @@ def patch_data_source(provider: str):
         return api_error("INVALID_PARAM", "sync_enabled(true/false)가 필요해요")
     user_id = get_current_user_id()
     config = load_config(user_id=user_id)
+    if not sync_state_service.is_connected(config, provider):  # D-09
+        return api_error("NOT_CONNECTED", "연결되지 않은 소스예요. 먼저 연결해 주세요", 409)
     return api_ok(data_settings_service.set_source_enabled(config, user_id, provider, body["sync_enabled"]))
 
 
@@ -191,24 +196,6 @@ def patch_sync_auto():
     return api_ok(data_settings_service.patch_auto(config, user_id, changes))
 
 
-@api_bp.get("/data/profile")
-def get_data_profile():
-    return _with_conn(lambda c, cfg: api_ok({"rows": profile_service.profile_rows(c, cfg)}))
-
-
-@api_bp.post("/data/profile/preview")
-def preview_data_profile():
-    from src.services import recompute_service
-
-    body = request.get_json(silent=True)
-    if not isinstance(body, dict):
-        return api_error("INVALID_PARAM", "JSON 본문이 필요해요")
-    changes, err = profile_service.validate_changes(body.get("changes") if isinstance(body.get("changes"), dict) else body)
-    if err:
-        return api_error("INVALID_PARAM", err)
-    return _with_conn(lambda c, cfg: api_ok(recompute_service.preview_profile(c, cfg, changes)))
-
-
 def _start_recompute(user_id: str, scope: str, frm, reason: str):
     from src.services import recompute_service
 
@@ -216,28 +203,6 @@ def _start_recompute(user_id: str, scope: str, frm, reason: str):
     if code:
         return api_error(code, "이미 재계산 중이에요", 409, data)
     return api_ok(data, 202)
-
-
-@api_bp.patch("/data/profile")
-def patch_data_profile():
-    body = request.get_json(silent=True)
-    if not isinstance(body, dict):
-        return api_error("INVALID_PARAM", "JSON 본문이 필요해요")
-    mode = body.get("recompute", "none")
-    if mode not in ("none", "90d"):
-        return api_error("INVALID_PARAM", "recompute는 none 또는 90d예요")
-    changes, err = profile_service.validate_changes(body)
-    if err:
-        return api_error("INVALID_PARAM", err)
-    user_id = get_current_user_id()
-    config = profile_service.apply_changes(load_config(user_id=user_id), user_id, changes)
-    job_id = None
-    if mode == "90d":
-        from src.services import recompute_service
-
-        data, code = recompute_service.start(user_id, "90d", None, "profile")
-        job_id = (data or {}).get("job_id")
-    return _with_conn(lambda c, _cfg: api_ok({"rows": profile_service.profile_rows(c, config), "job_id": job_id}))
 
 
 @api_bp.post("/data/recompute")

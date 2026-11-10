@@ -3,7 +3,7 @@
 	import { say } from '$lib/a11y/say';
 	import { base } from '$app/paths';
 	import { patchAiSettings, testAiConnection, type AiPatch, type AiSettings } from '$lib/api/data';
-	import { engineSummary, keyStateText, providerName, usageText, usageTodayText } from '$lib/aiSettings';
+	import { engineSummary, keyFormatError, keyStateText, providerName, usageText, usageTodayText } from '$lib/aiSettings';
 	import type { AiPageData } from './+page';
 
 	let { data }: { data: AiPageData } = $props();
@@ -80,11 +80,12 @@
 						<input type="password" autocomplete="off" placeholder="새 API 키" aria-label="{p.provider} API 키" bind:value={drafts[p.provider]}
 							class="min-h-11 min-w-0 flex-1 rounded border border-border-subtle bg-surface-1 px-2 text-sm" />
 						<button class="min-h-11 rounded border border-border-subtle px-3 text-sm disabled:opacity-40"
-							disabled={busy || !drafts[p.provider]?.trim()}
+							disabled={busy || !drafts[p.provider]?.trim() || !!keyFormatError(drafts[p.provider] ?? '')}
 							onclick={() => save({ keys: { [p.provider]: drafts[p.provider] } })}>저장</button>
 						<button class="min-h-11 rounded border border-border-subtle px-3 text-sm disabled:opacity-40"
 							disabled={p.key_state === 'missing'} onclick={() => test(p.provider)}>연결 테스트</button>
 					</div>
+					{#if keyFormatError(drafts[p.provider] ?? '')}<p class="mt-1 text-xs text-semantic-red">{keyFormatError(drafts[p.provider] ?? '')}</p>{/if}
 					{#if results[p.provider]}<p class="mt-1 text-xs text-fg-secondary">{results[p.provider]}</p>{/if}
 				</div>
 			{/each}

@@ -46,15 +46,17 @@ def parse_params(body: dict) -> tuple[dict, str | None]:
     if kind not in KINDS:
         return {}, f"kind는 {', '.join(KINDS)} 중 하나예요"
     out: dict = {"kind": kind, "from": None, "to": None}
-    for k in ("from", "to"):
+    for k, label in (("from", "시작일"), ("to", "종료일")):  # D-15: 화면 용어로 안내
         if body.get(k) in (None, ""):
             continue
         try:
             out[k] = date.fromisoformat(str(body[k])).isoformat()
         except ValueError:
-            return {}, f"{k}는 YYYY-MM-DD 형식이에요"
+            return {}, f"{label}은 YYYY-MM-DD 형식이에요"
     if out["from"] and out["to"] and out["from"] > out["to"]:
-        return {}, "from이 to보다 늦어요"
+        return {}, "시작일이 종료일보다 늦어요"
+    if out["from"] and out["from"] > date.today().isoformat():  # D-16
+        return {}, "시작일이 오늘 이후라 내보낼 기록이 없어요"
     if kind == "archive":
         err = _parse_groups(body, out)
         if err:
@@ -130,7 +132,8 @@ def wellness_csv(conn: sqlite3.Connection, frm=None, to=None):
     cols = ["date", "sleep_score", "sleep_duration_sec", "hrv_weekly_avg", "hrv_last_night", "resting_hr",
             "body_battery_high", "body_battery_low", "avg_stress", "steps", "active_calories", "weight_kg"]
     yield cols[:3] + ["sleep_hms"] + cols[3:]
-    for r in conn.execute(f"SELECT {','.join(cols)} FROM daily_wellness WHERE 1=1{cond} ORDER BY date", args):
+    filled = f" AND COALESCE({','.join(cols[1:])}) IS NOT NULL"  # D-17: 값이 하나도 없는 채움 행 제외
+    for r in conn.execute(f"SELECT {','.join(cols)} FROM daily_wellness WHERE 1=1{cond}{filled} ORDER BY date", args):
         yield list(r[:3]) + [hms(r[2])] + list(r[3:])
 
 
@@ -158,12 +161,16 @@ def csv_text(rows) -> str:
     return "﻿" + buf.getvalue()  # Excel 한글 호환 BOM
 
 
-def quick_filename(kind: str) -> str:
-    return f"runpulse_{kind.removeprefix('quick_')}_{date.today().isoformat()}.csv"
+def quick_filename(kind: str, frm: str | None = None, to: str | None = None) -> str:
+    """기간을 고르면 파일명에 기간을 넣는다(D-16) — 비우면 만든 날짜."""
+    span = f"{frm or 'start'}_{to or date.today().isoformat()}" if (frm or to) else date.today().isoformat()
+    return f"runpulse_{kind.removeprefix('quick_')}_{span}.csv"
 
 
-def quick_export(conn: sqlite3.Connection, kind: str, frm=None, to=None) -> str:
-    return csv_text(_QUICK[kind](conn, frm, to))
+def quick_export(conn: sqlite3.Connection, kind: str, frm=None, to=None) -> tuple[str, int]:
+    """(CSV 본문, 데이터 행 수). 행 수는 머리글을 뺀 수 — 0 이면 화면이 '기록 없음'을 알린다(D-16)."""
+    rows = list(_QUICK[kind](conn, frm, to))
+    return csv_text(rows), len(rows) - 1
 
 
 def exports_dir(user_id: str) -> Path:
@@ -183,7 +190,9 @@ def _run(job_id: str, user_id: str, frm, to, groups, include_dismissed) -> None:
         path = out_dir / f"{job_id}.zip"
         conn = sqlite3.connect(f"file:{get_db_path(user_id)}?mode=ro", uri=True, timeout=60)
         try:
-            info = export_archive.build_archive(conn, path, groups, frm, to, include_dismissed)
+            info = export_archive.build_archive(  # D-18: 테이블마다 진행률(완료/전체)을 원장에 남긴다
+                conn, path, groups, frm, to, include_dismissed,
+                progress=lambda done, total: sync_jobs.update_job(job_id, completed_days=done, total_days=total))
         finally:
             conn.close()
         now = datetime.now().astimezone()
@@ -250,6 +259,7 @@ def job_view(job: sync_jobs.SyncJob, now: datetime | None = None) -> dict:
         state = "expired"
     return {"id": job.id, "state": state, "created_at": job.created_at, "finished_at": job.finished_at,
             "result": result, "error": job.last_error if state == "failed" else None,
+            "progress": {"done": job.completed_days, "total": job.total_days} if state == "running" else None,
             "error_code": getattr(job, "error_code", None) if state == "failed" else None}
 
 

@@ -14,7 +14,7 @@
 			{#if showProvider}{syncProviderName(run.provider)} · {/if}{runRange(run.from_date, run.to_date)}
 		</div>
 		{#if runIsBad(run.status) && run.last_error}
-			<div class="truncate text-xs text-semantic-red">{run.last_error}</div>
+			<div class="break-words text-xs text-semantic-red">{run.last_error}</div>
 		{/if}
 	</div>
 	<div class="shrink-0 text-right text-xs">

@@ -12,7 +12,7 @@ import sqlite3
 from datetime import date, datetime
 
 from src.services.activity_counts import activity_counts
-from src.sync.sync_errors import MESSAGES_KO
+from src.sync.sync_errors import MESSAGES_KO, classify_text
 from src.utils.config import enabled_sources
 from src.utils.sync_jobs import SyncJob, list_recent_jobs
 from src.utils.sync_ledger_query import STALE_SEC
@@ -20,6 +20,7 @@ from src.utils.timefmt import to_iso_instant
 
 SOURCES = ("garmin", "strava", "intervals", "runalyze")
 STALE_HOURS = 12
+_RECENT = 20
 
 _CREDENTIAL_KEYS = {"garmin": "email", "strava": "refresh_token", "intervals": "api_key", "runalyze": "token"}
 
@@ -34,13 +35,17 @@ _ERROR_RULES = [
 _STATE_GROUP = {"auth_expired": "auth", "subscription_required": "access"}
 
 
-def _error_dict(code: str, job: SyncJob, detail: str | None = None) -> dict:
+def is_connected(config: dict, provider: str) -> bool:
+    """자격 증명이 저장돼 있으면 연결로 본다(카드의 연결 축과 같은 기준)."""
+    key = _CREDENTIAL_KEYS.get(provider)
+    return bool(key and config.get(provider, {}).get(key))
+
+
+def _error_dict(code: str, job: SyncJob) -> dict:
+    # D-04: 원시 예외 문자열(호스트·URL·athlete id)은 응답에 싣지 않는다 — 코드와 한국어 문구만
     msg, action = MESSAGES_KO.get(code, MESSAGES_KO["unknown"])
-    out = {"code": code, "message_ko": msg, "action": action, "http_status": job.http_status,
-           "source_path": job.source_path, "at": _local_iso(job.updated_at)}
-    if detail:
-        out["detail"] = detail
-    return out
+    return {"code": code, "message_ko": msg, "action": action, "http_status": job.http_status,
+            "source_path": job.source_path, "at": _local_iso(job.updated_at)}
 
 
 def _local_iso(naive_local: str | None) -> str | None:
@@ -68,7 +73,7 @@ def classify_error(job: SyncJob | None) -> dict | None:
     for status, needle, code in _ERROR_RULES:
         if (status and job.status == status) or (needle and needle in text):
             return _error_dict(code, job)
-    return _error_dict("unknown", job, text[:200])
+    return _error_dict(classify_text(text), job)
 
 
 def _fresh(job: SyncJob, now: datetime) -> bool:
@@ -83,9 +88,11 @@ def _fresh(job: SyncJob, now: datetime) -> bool:
 
 def _source_state(provider: str, config: dict, on: set[str], jobs: list[SyncJob],
                   last_new_data_at: str | None, now: datetime) -> dict:
-    connected = bool(config.get(provider, {}).get(_CREDENTIAL_KEYS[provider]))
+    connected = is_connected(config, provider)
     latest = jobs[0] if jobs else None
     success = next((j for j in jobs if j.status == "completed"), None)
+    if success is None and len(jobs) >= _RECENT:  # D-06: 최근 창이 실패로 가득해도 마지막 성공은 찾는다
+        success = next(iter(list_recent_jobs(provider, limit=1, status="completed")), None)
     running = next((j for j in jobs if j.status in ("running", "pending") and _fresh(j, now)), None)
     error = classify_error(latest)
 
@@ -117,9 +124,9 @@ def _source_state(provider: str, config: dict, on: set[str], jobs: list[SyncJob]
     }
 
 
-def _relative_ko(iso: str | None, now: datetime) -> str:
-    if not iso:
-        return "동기화 기록 없음"
+def _relative_ko(iso: str | None, now: datetime, attempted: bool = False) -> str:
+    if not iso:  # D-06: 시도는 있었는데 성공이 없으면 '기록 없음'이 아니라 '성공 없음'
+        return "성공한 동기화 없음" if attempted else "동기화 기록 없음"
     mins = int((now - datetime.fromisoformat(iso)).total_seconds() // 60)
     if mins < 1:
         return "방금 동기화"
@@ -141,7 +148,7 @@ def get_sync_state(conn: sqlite3.Connection, config: dict, now: datetime | None 
         " UNION ALL SELECT MAX(date) FROM daily_wellness)").fetchone()[0]
 
     sources = [
-        _source_state(p, config, on, list_recent_jobs(p, limit=20),
+        _source_state(p, config, on, list_recent_jobs(p, limit=_RECENT),
                       to_iso_instant(fetched.get(p)), now)
         for p in SOURCES
     ]
@@ -169,7 +176,8 @@ def get_sync_state(conn: sqlite3.Connection, config: dict, now: datetime | None 
     return {
         "as_of": now.isoformat(timespec="seconds"),
         "latest_data_date": latest_data_date,
-        "overall": {"level": level, "label_ko": _relative_ko(last_success, now), "last_success_at": last_success},
+        "overall": {"level": level, "label_ko": _relative_ko(
+            last_success, now, any(s["last_attempt_at"] for s in active)), "last_success_at": last_success},
         "connected_count": sum(1 for s in sources if s["connection"] == "connected"),
         "activity_count": activity_counts(conn)["canonical_running"],
         "first_sync_running": any(s["state"] == "running" for s in active) and not last_success,

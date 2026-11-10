@@ -86,7 +86,8 @@ def test_wellness_and_load(conn):
 
 
 def test_quick_export_bom_and_parseable(conn):
-    text = es.quick_export(conn, "quick_load")
+    text, rows = es.quick_export(conn, "quick_load")
+    assert rows == 1
     assert text.startswith("﻿")
     assert list(csv.reader(io.StringIO(text.lstrip("﻿"))))[1][1] == "40.5"
 

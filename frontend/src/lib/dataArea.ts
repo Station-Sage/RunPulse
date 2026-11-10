@@ -37,6 +37,16 @@ export function formatBytes(n: number): string {
 	return `${(n / 1024 ** 3).toFixed(2)} GB`;
 }
 
+/** D-31: 자동 동기화 시각 — 오늘/어제/내일이면 그 말을, 아니면 날짜를 붙인다(iso 는 서버 로컬 벽시계). */
+export function scheduleTime(iso: string | null, todayLocal: string): string | null {
+	if (!iso || iso.length < 16) return null;
+	const day = iso.slice(0, 10);
+	const hm = iso.slice(11, 16);
+	const diff = Math.round((Date.parse(`${day}T00:00:00Z`) - Date.parse(`${todayLocal}T00:00:00Z`)) / 86400000);
+	const word = diff === 0 ? '오늘' : diff === -1 ? '어제' : diff === 1 ? '내일' : `${Number(day.slice(5, 7))}월 ${Number(day.slice(8, 10))}일`;
+	return `${word} ${hm}`;
+}
+
 export function runRange(from: string | null, to: string | null): string {
 	if (!from || !to) return '';
 	const md = (d: string) => d.slice(5).replace('-', '/');

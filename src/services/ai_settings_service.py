@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import re
 import sqlite3
 
 from src.ai.provider_common import LLM_PROVIDERS, ProviderError, api_key_for, model_for
@@ -70,6 +71,19 @@ def build_view(conn: sqlite3.Connection, config: dict, user_id: str | None = Non
     }
 
 
+_KEY_MAX = 256
+_KEY_RE = re.compile(r"^[\x21-\x7e]+$")
+
+
+def key_format_error(key: str) -> str | None:
+    """D-23: API 키 형식 — 공백·줄바꿈·제어문자·`<>`·따옴표 없이 인쇄 가능한 ASCII, 256자 이하."""
+    if len(key) > _KEY_MAX:
+        return f"API 키는 {_KEY_MAX}자 이하예요"
+    if not _KEY_RE.match(key) or any(c in key for c in "<>\"'`"):
+        return "API 키에 공백·줄바꿈이나 쓸 수 없는 문자가 있어요. 복사한 키를 다시 확인해 주세요"
+    return None
+
+
 def validate_patch(body: dict) -> tuple[dict, str | None]:
     out: dict = {}
     if "provider" in body:
@@ -85,8 +99,13 @@ def validate_patch(body: dict) -> tuple[dict, str | None]:
             if not isinstance(v, str):
                 return {}, "keys는 provider별 문자열이에요"
             if v.strip():
+                if (bad := key_format_error(v.strip())):
+                    return {}, bad
                 clean[p] = v.strip()
-        out["keys"] = clean
+        if clean:  # D-23: 빈 키만 보냈으면 '바꿀 항목 없음'으로 알린다
+            out["keys"] = clean
+        elif not out and not (set(body) & {"exclude_notes", "fallback_enabled"}):
+            return {}, "API 키를 입력해 주세요"
     for k in ("exclude_notes", "fallback_enabled"):
         if k in body:
             if not isinstance(body[k], bool):

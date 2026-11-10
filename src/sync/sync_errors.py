@@ -69,3 +69,37 @@ def from_result(result) -> SyncSourceError | None:
         getattr(result, "last_error", None) or "",
         getattr(result, "http_status", None),
     )
+
+
+# D-04: error_code 없이 원시 예외 문자열만 남은 원장 행 → code (호스트·URL 이 화면에 새지 않도록 문구로만 낸다)
+_TEXT_RULES = (
+    (("NameResolution", "Name or service not known", "Failed to establish", "Max retries",
+      "ConnectionError", "ConnectError", "연결 실패", "Connection refused", "Network is unreachable"), "network"),
+    (("timed out", "Timeout", "ReadTimeout"), "timeout"),
+    ((" 401", "(401)", "401 "), "auth_expired"),
+    ((" 403", "(403)", "403 "), "subscription_required"),
+    ((" 429", "(429)", "429 "), "rate_limited"),
+    ((" 500", " 502", " 503", " 504"), "upstream_5xx"),
+)
+
+
+def classify_text(text: str | None) -> str:
+    """오류 문구(예외 문자열) → error_code. 단서가 없으면 'unknown'."""
+    t = text or ""
+    for needles, code in _TEXT_RULES:
+        if any(n in t for n in needles):
+            return code
+    return "unknown"
+
+
+def public_message(error_code: str | None, text: str | None = None) -> str:
+    """사용자에게 보일 한국어 문구 — 원시 예외 문자열은 싣지 않는다."""
+    code = error_code if error_code in MESSAGES_KO else classify_text(text)
+    return MESSAGES_KO.get(code, MESSAGES_KO["unknown"])[0]
+
+
+def check_failure_reason(res: dict) -> str:
+    """연결 점검(check_*_connection) 실패 → 'network'(서버에 닿지 못함) | 'credentials'(키·설정 문제)."""
+    if res.get("reason") == "network":
+        return "network"
+    return "network" if classify_text(res.get("detail")) in ("network", "timeout") else "credentials"

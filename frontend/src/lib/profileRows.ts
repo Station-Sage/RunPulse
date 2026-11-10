@@ -31,8 +31,9 @@ export function parseProfileInput(key: ProfileKey, raw: string): number | null |
 	const s = raw.trim();
 	if (!s) return null;
 	if (key === 'threshold_pace' && s.includes(':')) {
-		const [m, sec] = s.split(':').map(Number);
-		return Number.isFinite(m) && Number.isFinite(sec) && sec >= 0 && sec < 60 ? m * 60 + sec : undefined;
+		// D-30: 정확히 m:ss 만(초과 구간 "5:30:99"·소수·음수 거부)
+		const m = /^(\d{1,2}):([0-5]\d)$/.exec(s);
+		return m ? Number(m[1]) * 60 + Number(m[2]) : undefined;
 	}
 	const n = Number(s);
 	return Number.isFinite(n) ? n : undefined;

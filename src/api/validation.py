@@ -236,3 +236,17 @@ def parse_args(schema: dict[str, Field]) -> tuple[dict, Any]:
     """GET 쿼리스트링을 스키마로 검증한다(값은 항상 문자열로 오므로 숫자는 문자열 규칙을 따른다)."""
     clean, details = _apply(schema, request.args)
     return (clean, _invalid(details)) if details else (clean, None)
+
+
+def json_object(*, empty_ok: bool = True) -> tuple[dict, Any]:
+    """본문을 JSON 객체로 읽는다(V2-AUDIT D-21). 반환 `(body, err)`.
+
+    본문이 비면 `{}`(empty_ok) — 선택 필드만 받는 라우트용. 배열·숫자 같은 객체가 아닌 JSON 이나
+    깨진 JSON 은 `400 INVALID_PARAM`(예전에는 `[1]` 이 `.get` 에서 터져 500 이 났다).
+    """
+    if not request.get_data(cache=True):
+        return ({}, None) if empty_ok else ({}, _invalid({"body": "JSON 객체가 필요합니다"}))
+    body = request.get_json(silent=True, force=True)
+    if not isinstance(body, dict):
+        return {}, _invalid({"body": "JSON 객체여야 합니다"})
+    return body, None

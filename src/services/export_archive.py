@@ -151,12 +151,18 @@ def _loads(text):
 
 
 def build_archive(conn: sqlite3.Connection, path: Path, groups=eg.LEGACY_GROUPS, frm=None, to=None,
-                  include_dismissed: bool = False, min_free: int | None = None) -> dict:
-    """zip 을 쓰고 manifest 요약을 돌려준다. 실패 시 부분 파일을 지우고 ExportError 를 올린다."""
+                  include_dismissed: bool = False, min_free: int | None = None, progress=None) -> dict:
+    """zip 을 쓰고 manifest 요약을 돌려준다. 실패 시 부분 파일을 지우고 ExportError 를 올린다.
+
+    `progress(done, total)` 는 테이블 하나를 쓸 때마다 불린다(요약 CSV 묶음이 마지막 1단계).
+    """
     from src.services import export_service as es
 
     keys = [k for k in eg.GROUP_KEYS if k in set(groups)]
     manifest_groups, counts = [], {}
+    total, done = sum(len(eg.get_group(k).tables) for k in keys) + 1, 0
+    step = progress or (lambda _d, _t: None)
+    step(0, total)
     try:
         check_free_space(path.parent, min_free)
         with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
@@ -176,11 +182,14 @@ def build_archive(conn: sqlite3.Connection, path: Path, groups=eg.LEGACY_GROUPS,
                         n = _write_table(z, conn, tdef, frm, to, include_dismissed, key != "streams")
                     entry["tables"].append(tdef.name)
                     entry["row_counts"][tdef.name] = counts[tdef.name] = n
+                    done += 1
+                    step(done, total)
                 manifest_groups.append(entry)
             for kind, fn in es._QUICK.items():
                 if (kind == "quick_activities" and "activities" in keys) or (
                         kind != "quick_activities" and "metrics" in keys):
                     z.writestr(f"csv/{es.quick_filename(kind)}", es.csv_text(fn(conn, frm, to)))
+            step(total, total)
             manifest = {
                 "format_version": FORMAT_VERSION, "schema_version": SCHEMA_VERSION,
                 "created_at": datetime.now().astimezone().isoformat(timespec="seconds"),
