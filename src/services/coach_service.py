@@ -8,7 +8,7 @@ AI 응답은 src/ai/chat_engine.chat_result()(엔진 상태 포함)로 생성한
 체인(선택 provider → gemini → groq → rule)이되, coach_consent 동의가 없으면 외부 호출 0회.
 여기서 추가한 건 스레드 개념(chat_threads + chat_messages.thread_id, D3)과 엔진 상태 저장뿐이다.
 
-스레드 제목은 규칙 기반(첫 메시지 앞부분 절단)이다 — AI 자동 요약 제목은 범위 밖.
+스레드 목록·제목(규칙 기반)은 coach_threads 모듈(재수출).
 
 설계 문서: v0.3/data/phase-7-ui-renewal/06-data-layer-extensions.md (D5), 03e-coach.md
 """
@@ -19,36 +19,14 @@ import logging
 import sqlite3
 from datetime import date
 
+from src.services.coach_threads import derive_title, list_threads, list_threads_page  # noqa: F401
+
 log = logging.getLogger(__name__)
 
-_TITLE_MAX_LEN = 30
 PENDING_STATUSES = ("pending", "working")
 
-
-def _derive_title(message: str) -> str:
-    """규칙 기반 스레드 제목 — 첫 메시지 앞부분 절단."""
-    text = message.strip().replace("\n", " ")
-    if len(text) <= _TITLE_MAX_LEN:
-        return text
-    return text[:_TITLE_MAX_LEN].rstrip() + "…"
-
-
-def list_threads(conn: sqlite3.Connection) -> list[dict]:
-    """스레드 목록 — 각 스레드의 마지막 메시지 미리보기 포함, 최근 활동순."""
-    conn.row_factory = sqlite3.Row
-    rows = conn.execute(
-        """
-        SELECT
-            t.id, t.title, t.created_at, t.updated_at,
-            (SELECT content FROM chat_messages m
-             WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_message,
-            (SELECT created_at FROM chat_messages m
-             WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_message_at
-        FROM chat_threads t
-        ORDER BY t.updated_at DESC
-        """
-    ).fetchall()
-    return [dict(r) for r in rows]
+# 목록·제목은 coach_threads 로 분리(C-05·C-11·C-16) — 기존 호출부 호환을 위해 재수출
+_derive_title = derive_title
 
 
 def _asked_chips(conn: sqlite3.Connection, thread_id: int) -> set[str]:

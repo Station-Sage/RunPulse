@@ -103,6 +103,23 @@ def _next_session(conn: sqlite3.Connection, goal_id: int | None = None) -> dict 
     return None
 
 
+CTL_SCALE_DAYS = 365
+
+
+def ctl_scale(conn: sqlite3.Connection, current: float | None, today: date | None = None) -> dict | None:
+    """P-10: CTL 막대의 기준 — 고정 100 대신 최근 1년 최고 CTL(현재값 포함). 값이 없으면 None."""
+    today = today or date.today()
+    row = conn.execute(
+        "SELECT MAX(numeric_value) FROM metric_store WHERE scope_type='daily' AND metric_name='ctl'"
+        " AND is_primary=1 AND numeric_value IS NOT NULL AND scope_id BETWEEN ? AND ?",
+        ((today - timedelta(days=CTL_SCALE_DAYS)).isoformat(), today.isoformat()),
+    ).fetchone()
+    peak = max([v for v in (row[0] if row else None, current) if v is not None], default=None)
+    if not peak or peak <= 0:
+        return None
+    return {"max": round(float(peak), 1), "label": "최근 1년 최고"}
+
+
 CUMULATIVE_BASIS = {"scope": "cumulative", "label": "누적(플랜 시작~어제)",
                     "tooltip": "플랜 시작일부터 어제까지 지난 계획 전체를 합산한 수치입니다. 이번 주만의 수치는 아래 주간 목록을 보세요."}
 WEEK_BASIS = {"scope": "week", "label": "이번 주"}
@@ -138,6 +155,7 @@ def get_active_plan(conn: sqlite3.Connection, goal_id: int | None = None) -> dic
         "week_index": week_index,
         "workouts": workouts,
         "ctl_current": ctl_current,
+        "ctl_scale": ctl_scale(conn, ctl_current),
         "compliance_pct": compliance_pct,
         "compliance": _plan_compliance(conn, goal),
         "compliance_basis": CUMULATIVE_BASIS,
@@ -223,7 +241,12 @@ def get_session_note(conn: sqlite3.Connection, session_date: str) -> str | None:
 
 
 def save_session_note(conn: sqlite3.Connection, session_date: str, note: str) -> None:
-    """세션 메모 저장 (UPSERT)."""
+    """세션 메모 저장 (UPSERT). 공백뿐인 메모는 삭제로 처리한다(P-16 — 빈 저장 = 지우기)."""
+    if not note.strip():
+        conn.execute("DELETE FROM user_inputs WHERE input_date = ? AND input_type = 'session_note'",
+                     (session_date,))
+        conn.commit()
+        return
     conn.execute(
         """INSERT INTO user_inputs (input_date, input_type, note)
            VALUES (?, 'session_note', ?)

@@ -13,7 +13,7 @@
 	import ChatComposer from '$lib/components/coach/ChatComposer.svelte';
 	import { needsConsent } from '$lib/coachEngine';
 	import { evidenceChips } from '$lib/activityEvidence';
-	import { metricContextRef } from '$lib/coachMetricPrefill';
+	import { metricContextRef, metricPrefillError } from '$lib/coachMetricPrefill';
 
 	let { data }: { data: CoachNewPageData } = $props();
 
@@ -77,8 +77,13 @@
 
 	{#if !hasContext}
 		<div class="flex flex-col items-center gap-2 px-4 py-10 text-center" data-testid="activity-missing">
-			<p class="text-fg-secondary">활동 정보를 불러올 수 없습니다</p>
-			<a href="{base}/coach" class="text-sm text-fg-secondary underline">← Coach로</a>
+			{#if data.metricError}
+				<p class="text-fg-secondary" data-testid="metric-prefill-error">{metricPrefillError(data.metricError)}</p>
+				<a href="{base}/library/metrics" class="inline-flex min-h-11 items-center text-sm text-fg-secondary underline">지표 목록으로</a>
+			{:else}
+				<p class="text-fg-secondary">{data.activityId != null ? '활동 정보를 불러올 수 없어요' : '무엇에 대해 물어볼지 정해지지 않았어요'}</p>
+			{/if}
+			<a href="{base}/coach" class="inline-flex min-h-11 items-center text-sm text-fg-secondary underline">← Coach로</a>
 		</div>
 	{:else}
 		<div class="flex flex-1 flex-col gap-4 px-4 py-4">

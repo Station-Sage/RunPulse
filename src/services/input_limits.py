@@ -24,6 +24,7 @@ CONTEXT_REF_MAX = 100
 DISTANCE_KM_MAX = 250.0  # 0 초과 ~ 250 이하
 WEEKS_RANGE = (1, 52)
 TARGET_TIME_SEC_MAX = 172_800  # 0 초과 ~ 48시간 이하
+TARGET_PACE_MIN_SEC_PER_KM = 120  # P-12: km당 2분보다 빠른 목표는 거부(1km 이상 세계 기록보다 빠름)
 RACE_DATE_WINDOW_YEARS = 5  # 오늘(포함) ~ 오늘 + 5년
 PLAN_NAME_MAX = 100
 CONTEXT_EPISODE_SEVERITY = (1, 2)  # 질병 강도 2단계 (NEW-7)
@@ -58,3 +59,12 @@ def check_plan_request(distance_km: float, weeks: int | None = None) -> None:
         raise ValueError(f"distance_km 는 0 초과 {DISTANCE_KM_MAX:g} 이하: {distance_km!r}")
     if weeks is not None and not WEEKS_RANGE[0] <= weeks <= WEEKS_RANGE[1]:
         raise ValueError(f"weeks 는 {WEEKS_RANGE[0]}~{WEEKS_RANGE[1]}: {weeks!r}")
+
+
+def target_pace_error(distance_km: float | None, target_time_sec: int | None) -> str | None:
+    """P-12: 목표 기록이 사람이 낼 수 없는 페이스면 안내 문구, 아니면 None(목표 없음 포함)."""
+    if not distance_km or not target_time_sec:
+        return None
+    if target_time_sec / distance_km < TARGET_PACE_MIN_SEC_PER_KM:
+        return "목표 기록이 너무 빨라요. km당 2분보다 빠른 기록은 목표로 정할 수 없어요"
+    return None

@@ -1,6 +1,7 @@
 <script lang="ts">
 	// 시작점 카드 — 첫 주 거리 근거와 목표 기록 바꾸기 (DESIGN-PLAN-A6-REPLAN-UI §11).
 	import { fmtTarget, startCardText, type RawInputs } from '$lib/replanView';
+	import { targetLine } from '$lib/planDetailView';
 	import type { ReplanPreview } from '$lib/types';
 
 	let {
@@ -12,6 +13,7 @@
 
 	let editing = $state(false);
 	const goal = $derived(preview.goal_target_time_sec);
+	const line = $derived(targetLine(goal ? fmtTarget(goal) : null));
 </script>
 
 <section class="space-y-2 rounded-lg bg-surface-2 p-3 text-sm">
@@ -19,8 +21,8 @@
 	<p>{startCardText(preview)}</p>
 	<div class="text-xs text-fg-secondary">
 		{#if !editing}
-			<span>목표 기록 {goal ? fmtTarget(goal) : '없음'}</span>
-			<button class="ml-2 min-h-11 underline" onclick={() => (editing = true)}>바꾸기</button>
+			<span>{line.text}</span>
+			<button class="ml-2 min-h-11 underline" onclick={() => (editing = true)}>{line.action}</button>
 		{:else}
 			<label class="block">
 				<span class="mb-1 block">목표 기록</span>

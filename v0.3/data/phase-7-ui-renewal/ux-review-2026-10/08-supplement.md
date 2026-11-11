@@ -55,3 +55,9 @@
 
 ## 처리 기록 (2026-11-10, V2-AUDIT-INDIV 묶음 B1)
 - S-16 처리: 랩·스트림 빈 상태에 원인 + 다음 행동(동기화 상태 보기), 탭 바에 데이터 없는 탭은 "없음" 표시(눌러서 이유 확인 가능, `activityDetailView.emptyTabs`).
+
+## 처리 기록 (2026-11-11, V2-AUDIT-INDIV 묶음 E)
+- S-19 처리: 4단계 기준값 칸마다 서버와 같은 범위(`profileRows.PROFILE_RANGE`, 최대심박 120~230bpm·역치 페이스 2:30~10:00/km)·형식 검사(`checkProfileInput`) — 틀린 칸 아래 이유("최대심박: 120~230bpm 사이로 적어 주세요", "페이스는 5:30 처럼 분:초로…"), 틀리거나 비어 있으면 저장 비활성. 역치 페이스는 분:초 입력(초 숫자도 허용), 서버 400 이면 서버 문구 표시. 문구 TXT-1 잠정.
+- S-20 처리: E-25 와 같이 `?step=` 이력 — 합성 빈 DB 에서 1→2단계 후 뒤로가기 = `?step=1` 확인.
+- S-22 처리: 루트 레이아웃 마운트 시 `/library`·`/coach` 경로면 같은 판정(`redirectToWelcomeIfNew`, 데모 제외)으로 `/welcome` 이동(`onboarding.welcomeGuardApplies`). `/data` 는 소스를 연결하는 곳이라 제외(빈 DB 에서 `/data` 그대로 확인). config 소스 연결 시 `connected_count` 가 3 이 되는 판정 기준 자체는 그대로.
+- 확인 방법: 프런트 `coachAuditE.test.mjs`(stepHref·welcomeGuardApplies·checkProfileInput), 합성 빈 DB 사본 375/1280 브라우저: `/library`·`/coach` → `/welcome?step=…`, `/data` 유지, 999·abc 오류·저장 비활성, 185·5:10 저장 "저장했어요". 이 저장은 서버 `profile_service.apply_changes` 가 작업 디렉터리의 git 무시 `config.json` 에 `profile.overrides`(hrmax 185·threshold_pace 310)를 써 둠 — 운영 DB·저장소 파일 아님.

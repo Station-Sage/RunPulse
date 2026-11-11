@@ -15,8 +15,9 @@ import type {
 } from '$lib/types';
 import { messageBody, type CoachInput } from '$lib/coachSuggestions';
 
-export function getThreads(): Promise<ThreadsListResponse> {
-	return apiFetch<ThreadsListResponse>('/coach/threads');
+/** C-05: 서버가 30개씩 보낸다 — offset 으로 '더 보기'. */
+export function getThreads(offset = 0): Promise<ThreadsListResponse> {
+	return apiFetch<ThreadsListResponse>(offset > 0 ? `/coach/threads?offset=${offset}` : '/coach/threads');
 }
 
 export function getSuggestions(): Promise<SuggestionsResponse> {

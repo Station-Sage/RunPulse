@@ -61,15 +61,15 @@
 				data-testid="fallback-banner"
 			>
 				{fallbackText(engine?.reason)}
-				<div class="mt-1 flex gap-3">
-					<button type="button" class="underline disabled:opacity-40" disabled={regenerating}
+				<div class="mt-1 flex flex-wrap gap-3">
+					<button type="button" class="min-h-11 underline disabled:opacity-40" disabled={regenerating}
 						data-testid="regenerate" onclick={() => onRegenerate(msg.id)}
 					>{regenerating ? '다시 생성 중…' : 'AI로 다시 생성'}</button>
-					<button type="button" class="underline" onclick={() => onShowReason(msg)}>원인 보기 ›</button>
+					<button type="button" class="min-h-11 underline" onclick={() => onShowReason(msg)}>원인 보기 ›</button>
 				</div>
 			</div>
 		{:else if banner === 'rule_only'}
-			<a href="{base}/data/settings" class="mt-1 inline-block text-[11px] underline text-fg-secondary">AI 설정 ›</a>
+			<a href="{base}/data/settings" class="mt-1 inline-flex min-h-11 items-center text-[11px] underline text-fg-secondary">AI 설정 ›</a>
 		{:else if banner === 'error'}
 			<p class="mt-1 text-[11px] text-semantic-red">
 				답변을 만들지 못했어요 ({reasonText(engine?.reason)}) ·

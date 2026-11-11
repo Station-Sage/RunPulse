@@ -5,12 +5,27 @@
 	import ErrorState from '$lib/components/ErrorState.svelte';
 	import { formatRelativeTime } from '$lib/format';
 	import { stripMarkdown } from '$lib/markdownLite';
-	import { staleLabel } from '$lib/threadAge';
+	import { lastTalkLabel, staleLabel } from '$lib/threadAge';
 	import type { Failure } from '$lib/loadFailure';
 	import type { ChatThread } from '$lib/types';
 
-	let { threads, titles, failure }: { threads: ChatThread[]; titles: Map<number, string>; failure: Failure | null } =
-		$props();
+	let {
+		threads,
+		titles,
+		failure,
+		hasMore = false,
+		loadingMore = false,
+		moreError = null,
+		onMore
+	}: {
+		threads: ChatThread[];
+		titles: Map<number, string>;
+		failure: Failure | null;
+		hasMore?: boolean;
+		loadingMore?: boolean;
+		moreError?: string | null;
+		onMore?: () => void;
+	} = $props();
 </script>
 
 {#if failure && threads.length === 0}
@@ -40,11 +55,18 @@
 						{/if}
 					</div>
 					{#if t.last_message_at}
-						<span class="shrink-0 text-xs text-fg-muted">{formatRelativeTime(t.last_message_at)}</span>
+						<span class="shrink-0 text-xs text-fg-muted">{lastTalkLabel(formatRelativeTime(t.last_message_at))}</span>
 					{/if}
 					<span class="text-fg-muted">›</span>
 				</a>
 			</li>
 		{/each}
 	</ul>
+	{#if hasMore}
+		<div class="flex flex-col items-center gap-1 px-4 py-3">
+			<button type="button" class="min-h-11 rounded-lg border border-border-subtle px-4 text-sm text-fg-secondary disabled:opacity-40"
+				disabled={loadingMore} onclick={() => onMore?.()} data-testid="threads-more">{loadingMore ? '불러오는 중…' : '이전 대화 더 보기'}</button>
+			{#if moreError}<p class="text-xs text-semantic-red">{moreError}</p>{/if}
+		</div>
+	{/if}
 {/if}

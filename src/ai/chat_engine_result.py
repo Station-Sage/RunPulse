@@ -110,7 +110,7 @@ def run_chain(conn: sqlite3.Connection, prompt: str, config: dict | None, chain:
             attempt.reason, attempt.http_status = exc.reason, exc.http_status
             log.warning("provider '%s' 실패(%s)", prov, exc.reason)
         except Exception:
-            attempt.reason = "network"
+            attempt.reason = "unexpected"   # C-14: 전송 오류가 아닌 예외를 '네트워크 오류'로 뭉뚱그리지 않는다
             log.warning("provider '%s' 예기치 못한 실패", prov, exc_info=True)
         attempt.latency_ms = int((time.monotonic() - started) * 1000)
         attempt.tool_calls = stats.get("tool_calls", 0)

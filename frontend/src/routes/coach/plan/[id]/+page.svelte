@@ -16,6 +16,7 @@
 	import type { PlannedWorkout } from '$lib/types';
 	import { undoReplan } from '$lib/api/plan';
 	import { anchorLabel, undoUntilLabel } from '$lib/replanView';
+	import { acwrRangeText, ctlBar } from '$lib/planDetailView';
 
 	let undoBusy = $state(false);
 	let confirmUndo = $state<number | null>(null);
@@ -86,7 +87,6 @@
 		const d = dayByDate.get(w.date);
 		return !!d?.effective && d.effective.id !== w.id;
 	}
-
 </script>
 
 <PageHead title="플랜 상세" heading={null} />
@@ -108,7 +108,8 @@
 		<div class="border-b border-border-subtle px-4 py-4">
 			<div class="mb-1 flex items-center gap-2">
 				<a href="{base}/coach" class="text-xs text-fg-muted hover:underline">← 코치</a>
-				<a href="{base}/coach/plan?past=1" class="ml-auto text-xs text-fg-muted hover:underline">지난 플랜</a>
+				<a href="{base}/coach/plan/new" class="ml-auto text-xs text-fg-muted hover:underline" data-testid="plan-new-link">새 플랜</a>
+				<a href="{base}/coach/plan?past=1" class="text-xs text-fg-muted hover:underline">지난 플랜</a>
 			</div>
 			<h1 class="text-base font-semibold">{data.plan.goal.name}</h1>
 			<p class="text-sm text-fg-secondary">
@@ -137,19 +138,17 @@
 				<a href="{base}/coach/plan/replan" class="mt-2 inline-flex min-h-11 items-center text-xs text-semantic-amber hover:underline">남은 일정 다시 맞추기 →</a>
 			{/if}
 
-			<!-- CTL 현황 -->
+			<!-- CTL 현황 — 막대 기준은 최근 1년 최고(P-10) -->
 			{#if data.plan.ctl_current != null}
+				{@const bar = ctlBar(data.plan.ctl_current, data.plan.ctl_scale)}
 				<div class="mt-3">
 					<div class="mb-1 flex items-center justify-between text-xs text-fg-muted">
-						<span>현재 CTL</span>
+						<span>현재 CTL{#if bar} <span class="text-[11px]">· {bar.caption}</span>{/if}</span>
 						<span class="font-medium text-fg-secondary">{Math.round(data.plan.ctl_current)}</span>
 					</div>
-					<div class="h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
-						<div
-							class="h-full rounded-full bg-semantic-teal"
-							style="width: {Math.min(100, (data.plan.ctl_current / 100) * 100)}%"
-						></div>
-					</div>
+					{#if bar}<div class="h-1.5 w-full overflow-hidden rounded-full bg-surface-3" data-testid="ctl-bar">
+						<div class="h-full rounded-full bg-semantic-teal" style="width: {bar.pct}%"></div>
+					</div>{/if}
 				</div>
 			{/if}
 
@@ -250,7 +249,7 @@
 								<span class="w-24 shrink-0 text-fg-secondary">ACWR</span>
 								<span class="font-mono font-medium">{a.value.toFixed(2)}</span>
 								<span class="text-xs {zoneClass(a.zone)}">● {a.zone}</span>
-								<span class="ml-auto text-xs text-fg-muted">적정 0.8~1.3 ›</span>
+								<span class="ml-auto text-xs text-fg-muted">{acwrRangeText(a.optimal_range) ?? ''} ›</span>
 							</button>
 						</li>
 					{/if}

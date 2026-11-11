@@ -413,9 +413,7 @@ export interface RegenerateResponse {
 	message: ChatMessage;
 }
 
-export interface ThreadsListResponse {
-	threads: ChatThread[];
-}
+export interface ThreadsListResponse { threads: ChatThread[]; has_more?: boolean; next_offset?: number } // C-05 '더 보기'
 
 export interface ThreadDetail {
 	id: number;
@@ -1188,6 +1186,7 @@ export interface ActivePlan {
 	workouts: PlannedWorkout[];
 	next_session?: PlannedWorkout | null; // 오늘 이후 첫 미완료 세션(다음 주 포함)
 	ctl_current: number | null;
+	ctl_scale?: { max: number; label: string } | null; // P-10 CTL 막대 기준(최근 1년 최고)
 	compliance_pct: number | null;
 	compliance?: PlanCompliance | null;
 	compliance_basis?: PlanBasis;
@@ -1359,7 +1358,7 @@ export interface SessionDetail {
 // ── PlanAdaptation (5-F — /api/v1/coach/plan/adaptation) ─────────────────────
 export interface PlanAdaptation {
 	date: string;
-	acwr: { value: number; zone: string; date: string } | null;
+	acwr: { value: number; zone: string; date: string; optimal_range?: [number, number] } | null;
 	hrv: { value: number; baseline: number | null; delta_pct: number | null; zone: string | null } | null;
 	fatigue_avg: { value: number; n: number } | null;
 }

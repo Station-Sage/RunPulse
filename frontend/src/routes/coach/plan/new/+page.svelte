@@ -14,6 +14,8 @@
 		reportedLoadEntries,
 		WEEKDAY_LABELS
 	} from '$lib/planPrefill';
+	import { planStepText } from '$lib/planDetailView';
+	import { ApiError } from '$lib/api/client';
 
 	const DISTANCES: { label: string; km: number }[] = [
 		{ label: '5km', km: 5 },
@@ -67,8 +69,9 @@
 			if (tts != null) params.set('target_time_sec', String(tts));
 			for (const [k, v] of reportedLoadEntries(String(recentWeekly ?? ''), String(recentLong ?? ''))) params.set(k, v);
 			await goto(`${base}/coach/plan/compare?${params}`);
-		} catch {
-			error = '템플릿을 불러올 수 없습니다. 다시 시도해주세요.';
+		} catch (e) {
+			// P-12: 입력 문제(400)는 서버 문구 그대로(예: 너무 빠른 목표 기록), 그 밖은 일반 안내
+			error = e instanceof ApiError && e.status === 400 ? e.message : '템플릿을 불러올 수 없습니다. 다시 시도해주세요.';
 		} finally {
 			loading = false;
 		}
@@ -83,7 +86,7 @@
 			<a href="{base}/coach" class="text-xs text-fg-muted hover:underline">← 코치</a>
 		</div>
 		<h1 class="text-base font-semibold">새 프로그램</h1>
-		<p class="text-xs text-fg-muted">단계 1/3</p>
+		<p class="text-xs text-fg-muted">{planStepText(1)} — 목표와 운동 요일을 정해요</p>
 	</div>
 
 	<div class="flex flex-col gap-5 px-4 py-5">

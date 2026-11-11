@@ -86,7 +86,7 @@
 
 - functions: pace_cv, build_workout_class, build_environment, build_hr_zones, build_source_diffs, build_verdict
 
-### `adaptation_service.py` (70줄) — 플랜 적응 상태 서비스 — 03e-coach.md 5-F "적응 상태"(ACWR·HRV·주간 피로도). 읽기 전용.
+### `adaptation_service.py` (77줄) — 플랜 적응 상태 서비스 — 03e-coach.md 5-F "적응 상태"(ACWR·HRV·주간 피로도). 읽기 전용.
 
 - functions: get_adaptation_status
 
@@ -155,9 +155,13 @@
 
 - functions: is_drifted, with_current, build_answer_evidence, view_evidence
 
-### `coach_service.py` (300줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
+### `coach_service.py` (278줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
 
-- functions: list_threads, get_thread, create_thread, add_message, generate_reply, get_message, regenerate
+- functions: get_thread, create_thread, add_message, generate_reply, get_message, regenerate
+
+### `coach_threads.py` (68줄) — Coach 스레드 목록·제목 — coach_service 에서 분리(C-05 페이지 단위·C-11 제목 정리·C-16 정렬 보조 키).
+
+- functions: plain_title_text, derive_title, list_threads, list_threads_page
 
 ### `context_autodetect.py` (114줄) — 여행·고지대 자동 감지 (NEW-2·8) — 최근 활동에서 후보(origin='auto', status='candidate')만 만든다.
 
@@ -249,9 +253,9 @@
 
 - functions: imports_dir, detect_kind, discard_upload, save_upload, upload_paths, apply_import, run_on, preview, start, job_view, history
 
-### `input_limits.py` (60줄) — 쓰기 API 입력의 범위·열거값 상수 — 요청 경계 검증의 SSOT (SRV D4, ADR-048).
+### `input_limits.py` (70줄) — 쓰기 API 입력의 범위·열거값 상수 — 요청 경계 검증의 SSOT (SRV D4, ADR-048).
 
-- functions: race_date_window, check_checkin, check_plan_request
+- functions: race_date_window, check_checkin, check_plan_request, target_pace_error
 
 ### `manual_sync_service.py` (90줄) — 수동 동기화 1소스 실행 — 원장 선점(claim_run) → sync.py subprocess → 원장 판독으로 결과 dict 생성.
 
@@ -396,14 +400,14 @@
 - class **RestoreError**: 없음
 - functions: list_restorable, restore_plan
 
-### `plan_service.py` (233줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
+### `plan_service.py` (256줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
-- functions: get_active_plan, todays_adjustment_with_hold, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
+- functions: ctl_scale, get_active_plan, todays_adjustment_with_hold, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
-### `plan_template_service.py` (256줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
+### `plan_template_service.py` (268줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
 
 - class **PlanConflict**: 없음
-- functions: check_active_expectation, get_static_plan_templates, create_plan_from_template
+- functions: check_active_expectation, finish_goal_summary, get_static_plan_templates, create_plan_from_template
 
 ### `prediction_compare_service.py` (89줄) — 레이스 예측 3경로 비교(P7-PRED-71) — (a) Garmin 예측, (b) RunPulse·기기 심박 기준, (c) RunPulse·자체 추정(기본, r3)
 
@@ -1210,7 +1214,7 @@
 
 - functions: get_prompt, get_all_prompts, get_tab_prompt
 
-### `provider_common.py` (95줄) — AI provider 공통 — 구조화 오류(ProviderError), 모델 ID 해석, 타임아웃(30-coach-chat design §4.3·§6.2).
+### `provider_common.py` (98줄) — AI provider 공통 — 구조화 오류(ProviderError), 모델 ID 해석, 타임아웃(30-coach-chat design §4.3·§6.2).
 
 - class **ProviderError**: 없음
 - class **RateLimitError**: 없음
@@ -1778,7 +1782,7 @@
 
 - functions: client_family, calendar_feed
 
-### `routes_coach.py` (285줄) — /api/v1/coach — threads(+:id, +:id/messages) · messages(:id, /stream, /cancel, /regenerate) · suggestions · activity-context · engine · consent.
+### `routes_coach.py` (288줄) — /api/v1/coach — threads(+:id, +:id/messages) · messages(:id, /stream, /cancel, /regenerate) · suggestions · activity-context · engine · consent.
 
 - functions: get_coach_suggestions, get_coach_activity_context, get_coach_threads, post_coach_threads, get_coach_thread_detail, post_coach_thread_messages, get_coach_message, get_coach_message_stream, post_coach_cancel, post_coach_regenerate, get_coach_engine, put_coach_consent
 
@@ -1854,7 +1858,7 @@
 
 - functions: get_preferences, patch_preferences
 
-### `routes_plan.py` (254줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
+### `routes_plan.py` (262줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
 
 - functions: get_active_plan_route, get_restorable_plans_route, get_plan_weeks_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan, restore_plan_route
 
@@ -2108,9 +2112,9 @@
 
 - functions: client, test_schema_keys_fixed, test_default_date_uses_reference_today, test_invalid_params_400, test_compare_zero_skips, test_no_db_503, test_static_route_wins_over_slug
 
-### `test_api_plan.py` (347줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
+### `test_api_plan.py` (348줄) — tests/test_api_plan.py — GET /api/v1/coach/plan/* 라우트 테스트.
 
-- functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, test_post_plan_with_race_id_links_race, test_post_plan_race_id_not_linkable, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_400_empty_note, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
+- functions: mini_app, app_with_goal, test_get_active_plan_404_no_goal, test_get_active_plan_200, test_get_plan_by_id_200, test_get_plan_by_id_404, test_get_adjustment_200_no_plan, test_get_adjustment_200_with_plan, test_get_templates_400_no_distance, test_get_templates_200, test_post_plan_400_missing_fields, test_post_plan_201_creates_goal, test_post_plan_with_race_id_links_race, test_post_plan_race_id_not_linkable, app_with_session, test_get_session_detail_200, test_get_session_detail_404_missing_date, test_get_session_detail_404_invalid_goal, test_post_session_note_200, test_post_session_note_empty_deletes, test_post_session_note_400_missing_note, test_get_plan_adaptation_empty, test_get_plan_adaptation_with_acwr
 
 ### `test_api_plan_adjustments.py` (168줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
 
@@ -2147,6 +2151,10 @@
 ### `test_audit_bundle_c.py` (115줄) — V2-AUDIT-INDIV 묶음 C(지표·웰니스·이야기·소스 비교) 서버 측 수정 테스트.
 
 - functions: test_display_meta_formats_m10_m21, test_josa_m31, test_merge_reasons_groups_same_input_m31, test_explain_avg7d_uses_seven_days_m11, test_compare_basis_partial_month_m14, test_story_future_month_has_no_next_and_no_compare_m16, test_risk_peak_carries_grade_m15, test_headline_adds_cirs_caveat_m17, test_signed_pct_and_lagging_m19, test_second_batch_descriptions_m07, test_trend_reports_source_m08
+
+### `test_audit_e_plan_coach.py` (175줄) — V2-AUDIT-INDIV 묶음 E — 훈련 계획·코치 서버 쪽(P-10·P-12·P-16, C-05·C-11·C-14·C-16).
+
+- functions: test_acwr_range_comes_from_metric_definition, test_ctl_scale_uses_one_year_peak, test_finish_goal_templates_skip_achievability, test_finish_goal_summary_mentions_short_period, test_target_pace_error, app, test_templates_and_create_reject_impossible_target, test_save_empty_session_note_deletes, test_derive_title_strips_markdown_and_spaces, test_coach_service_reexports_title, test_list_threads_tie_breaks_by_id, test_list_threads_page_has_more, test_threads_route_paging_and_validation, test_unexpected_exception_is_not_network, test_run_chain_marks_unexpected
 
 ### `test_auth_cf.py` (241줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
@@ -3849,7 +3857,7 @@
 - functions: run
 
 ---
-총 827개 파일
+총 829개 파일
 
 ## docstring 누락
 

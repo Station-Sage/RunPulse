@@ -83,6 +83,14 @@ def _get_current_vdot(conn: sqlite3.Connection) -> float | None:
     return row[0] if row else None
 
 
+def finish_goal_summary(weeks: int, rec: dict) -> str:
+    """완주 목표(목표 기록 없음) 비교 카드 해설 — 달성 가능성 대신 기간만 안내한다(문구 TXT-1 잠정)."""
+    text = "완주 목표라 달성 가능성은 계산하지 않아요. 예상 기록은 지금 기록과 훈련 기간으로 낸 값이에요."
+    if weeks < rec["optimal_min"]:
+        text += f" 훈련 기간이 권장({rec['optimal_min']}~{rec['optimal_max']}주)보다 짧아요."
+    return text
+
+
 def get_static_plan_templates(
     conn: sqlite3.Connection,
     distance_km: float,
@@ -154,6 +162,10 @@ def get_static_plan_templates(
             weekly_km_target = None
 
         ach = analysis.get("achievability_pct")
+        summary = analysis.get("status_summary", "")
+        if target_time_sec is None:
+            # P-12: 완주 목표는 '현재 VDOT 기록'을 목표로 삼아 계산하면 '이미 도달'과 달성 가능성이 함께 떠 모순 — 계산하지 않는다
+            ach, summary = None, finish_goal_summary(weeks, rec)
         if ach is None:
             risk_level: str | None = None
         elif ach >= 70:
@@ -170,7 +182,7 @@ def get_static_plan_templates(
             "achievability_pct": ach,
             "projected_time_end": analysis.get("projected_time_end"),
             "risk_level": risk_level,
-            "status_summary": analysis.get("status_summary", ""),
+            "status_summary": summary,
         })
 
     return templates

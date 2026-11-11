@@ -5,8 +5,8 @@ import { staleLabel } from '../src/lib/threadAge.ts';
 const nowMs = Date.parse('2026-09-25T00:00:00Z');
 
 describe('staleLabel', () => {
-	it('14일 전 → 당시 기준 레이블', () => {
-		assert.equal(staleLabel('2026-09-10 10:00:00', nowMs), '14일 전 대화 · 당시 기준');
+	it('14일 전 → 당시 기준 레이블(경과 시간은 행 오른쪽에만, C-15)', () => {
+		assert.equal(staleLabel('2026-09-10 10:00:00', nowMs), '당시 기준 답변 · 지금 상태와 다를 수 있어요');
 	});
 
 	it('1일 전 → null', () => {

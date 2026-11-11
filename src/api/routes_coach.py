@@ -10,15 +10,16 @@ from flask import Response, request, stream_with_context
 
 from src.ai.coach_rule_types import CHIP_TEXT
 from src.services import input_limits
-from src.services import coach_async, coach_consent, coach_engine_health, coach_service
+from src.services import coach_async, coach_consent, coach_engine_health, coach_service, coach_threads
 from src.utils.config import load_config
 from src.utils.user_context import db_path, get_current_user_id
 
 from . import api_bp, api_error, api_ok
-from .validation import dict_field, enum_field, parse_body, str_field
+from .validation import dict_field, enum_field, int_field, parse_args, parse_body, str_field
 
 
 _CLIENT_MSG_ID = str_field(input_limits.CLIENT_MSG_ID_MAX)
+_THREADS_ARGS = {"limit": int_field(1, coach_threads.THREADS_PAGE_MAX), "offset": int_field(0, 10**6)}
 
 
 def _message_schema(text_key: str, *, with_context: bool = False) -> dict:
@@ -93,13 +94,15 @@ def get_coach_threads():
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
+    args, err = parse_args(_THREADS_ARGS)
+    if err:
+        return err
     conn = sqlite3.connect(str(dpath))
-    try:
-        threads = coach_service.list_threads(conn)
+    try:   # C-05: 30개씩 + has_more('더 보기')
+        page = coach_service.list_threads_page(conn, args["limit"] or coach_threads.THREADS_PAGE, args["offset"] or 0)
     finally:
         conn.close()
-
-    return api_ok({"threads": threads})
+    return api_ok(page)
 
 
 @api_bp.post("/coach/threads")

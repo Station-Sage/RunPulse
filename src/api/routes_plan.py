@@ -124,6 +124,9 @@ def get_plan_templates():
     args, err = parse_args(_TEMPLATES_SCHEMA)
     if err:
         return err
+    pace_err = input_limits.target_pace_error(args["distance_km"], args["target_time_sec"])
+    if pace_err:
+        return api_error("INVALID_PARAM", pace_err, 400, {"target_time_sec": pace_err})
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
@@ -155,9 +158,11 @@ def get_session_detail_route(goal_id: int, session_date: str):
 @api_bp.post("/coach/plan/session/<session_date>/note")
 def save_session_note_route(session_date: str):
     body = request.get_json(silent=True) or {}
-    note = body.get("note", "")
-    if not isinstance(note, str) or not note.strip():
-        return api_error("BAD_REQUEST", "note는 빈 문자열일 수 없습니다", 400)
+    note = body.get("note")
+    if not isinstance(note, str):
+        return api_error("BAD_REQUEST", "note는 문자열이어야 합니다", 400)
+    if not note.strip():
+        note = ""   # P-16: 빈 메모(공백뿐 포함)는 삭제
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
@@ -202,6 +207,9 @@ def create_plan():
     body, err = parse_body(_CREATE_PLAN_SCHEMA)
     if err:
         return err
+    pace_err = input_limits.target_pace_error(body["distance_km"], body["target_time_sec"])
+    if pace_err:
+        return api_error("INVALID_PARAM", pace_err, 400, {"target_time_sec": pace_err})
     weeks = body["weeks"]
     weekly_km, long_km = body["recent_weekly_km"], body["recent_long_km"]
     weekly_km = round(weekly_km, 1) if weekly_km is not None else None

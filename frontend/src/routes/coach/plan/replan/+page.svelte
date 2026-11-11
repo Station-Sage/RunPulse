@@ -4,6 +4,7 @@
 	// 남은 일정 다시 맞추기 — 미리보기 → 적용 → 되돌리기 (DESIGN-PLAN-A6-REPLAN-UI).
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
+	import { inlineConfirm } from '$lib/overlay';
 	import { applyReplan, getReplanLast, previewReplan, undoReplan } from '$lib/api/plan';
 	import GarminCleanup from '$lib/components/plan/GarminCleanup.svelte';
 	import ReplanStartCard from '$lib/components/plan/ReplanStartCard.svelte';
@@ -24,6 +25,7 @@
 	let err = $state<{ text: string; action: ErrorAction; phase: Phase } | null>(null);
 	let applied = $state<ReplanPreview | null>(null);
 	let pendingId = $state<number | null>(null);
+	let confirmUndo = $state(false);   // P-20/PLN-8: 되돌리기 전 확인
 
 	const parsed = $derived(parseReplanInputs(values));
 	const hasError = $derived(Object.keys(parsed.errors).length > 0);
@@ -71,6 +73,7 @@
 
 	async function undo() {
 		const id = applied?.replan_id ?? pendingId;
+		confirmUndo = false;
 		if (!id) return;
 		busy = true;
 		err = null;
@@ -108,6 +111,14 @@
 	onMount(load);
 </script>
 
+{#snippet undoConfirm()}
+	<span role="group" aria-label="되돌리기 확인" class="flex flex-wrap items-center gap-2 text-fg-primary" data-testid="replan-undo-confirm" use:inlineConfirm={{ onCancel: () => (confirmUndo = false) }}>
+		<span>다시 맞추기 이전 일정으로 되돌려요. 계속할까요?</span>
+		<button class="min-h-11 font-medium underline" disabled={busy} onclick={undo}>되돌리기 진행</button>
+		<button class="min-h-11 underline" data-autofocus onclick={() => (confirmUndo = false)}>취소</button>
+	</span>
+{/snippet}
+
 <div class="mx-auto max-w-xl space-y-4 p-4 pb-48 lg:pb-32">
 	<a href={href.plan} class="inline-flex min-h-11 items-center text-xs text-fg-secondary">← 계획</a>
 	<PageHead title="남은 일정 다시 맞추기" class="text-lg font-semibold" />
@@ -117,8 +128,9 @@
 			<p>{anchorLabel(applied.anchor_monday)}부터 새 일정을 적용했어요. 이 화면에서 {undoUntilLabel(applied.anchor_monday)}까지 되돌릴 수 있어요.</p>
 			<div class="flex gap-2">
 				<a href={href.plan} class="inline-flex min-h-11 items-center rounded-lg bg-surface-1 px-4">계획 보기</a>
-				<button class="min-h-11 rounded-lg px-4 underline" disabled={busy} onclick={undo}>되돌리기</button>
+				<button class="min-h-11 rounded-lg px-4 underline" disabled={busy} onclick={() => (confirmUndo = true)}>되돌리기</button>
 			</div>
+			{#if confirmUndo}{@render undoConfirm()}{/if}
 		</div>
 		{#if applied.replan_id && applied.external.length}
 			<GarminCleanup replanId={applied.replan_id} dates={applied.external.map((x) => x.date)} />
@@ -167,7 +179,8 @@
 				{:else if err.action === 'newGoal'}
 					<a class="inline-flex min-h-11 items-center underline" href={href.newGoal}>{actionLabel.newGoal}</a>
 				{:else if err.action === 'undo'}
-					<button class="min-h-11 underline" disabled={busy || pendingId == null} onclick={undo}>되돌리기</button>
+					<button class="min-h-11 underline" disabled={busy || pendingId == null} onclick={() => (confirmUndo = true)}>되돌리기</button>
+					{#if confirmUndo}{@render undoConfirm()}{/if}
 				{:else}
 					<button class="min-h-11 underline" onclick={onAction}>{actionLabel[err.action]}</button>
 				{/if}

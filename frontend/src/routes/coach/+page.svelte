@@ -2,7 +2,7 @@
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03e-coach.md 5-A — Coach 홈: 최근 대화 목록 + 새 대화 시작 + 플랜 섹션 + QuickInput.
 	import type { CoachPageData } from './+page';
-	import { createThread, newClientMsgId, putConsent, type ConsentInput } from '$lib/api/coach';
+	import { createThread, getThreads, newClientMsgId, putConsent, type ConsentInput } from '$lib/api/coach';
 	import { ApiError } from '$lib/api/client';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -22,6 +22,26 @@
 	let { data }: { data: CoachPageData } = $props();
 
 	let threads = $state<ChatThread[]>(data.result?.threads ?? []);
+	// C-05: 30개씩 + '이전 대화 더 보기'
+	let hasMore = $state(data.result?.has_more ?? false);
+	let nextOffset = $state(data.result?.next_offset ?? threads.length);
+	let loadingMore = $state(false);
+	let moreError = $state<string | null>(null);
+	async function loadMore() {
+		loadingMore = true;
+		moreError = null;
+		try {
+			const res = await getThreads(nextOffset);
+			const known = new Set(threads.map((t) => t.id));
+			threads = [...threads, ...res.threads.filter((t) => !known.has(t.id))];
+			hasMore = res.has_more ?? false;
+			nextOffset = res.next_offset ?? threads.length;
+		} catch {
+			moreError = '이전 대화를 불러오지 못했어요. 다시 눌러 주세요.';
+		} finally {
+			loadingMore = false;
+		}
+	}
 	const titles = $derived(threadTitles(threads));
 	let errorMessage = $state<string | null>(null);
 
@@ -82,12 +102,7 @@
 
 <div class="flex flex-col">
 	<DegradedBanner {engine} />
-	<div class="border-b border-border-subtle px-4 py-3">
-		<h2 class="text-xs uppercase tracking-wide text-fg-muted">최근 대화</h2>
-	</div>
-
-	<ThreadList {threads} {titles} failure={data.threadsFailure} />
-
+	<!-- C-05: 새 대화 시작·바로 물어보기를 목록 위로(대화가 많아도 스크롤 없이) -->
 	{#if isCreating}
 		<NewThreadForm
 			{engine}
@@ -108,6 +123,14 @@
 			</button>
 		</div>
 		<CoachStartChips {todos} {chips} {limitNotice} {sending} {errorMessage} onStart={start} />
+	{/if}
+
+	<div class="border-b border-border-subtle px-4 py-3">
+		<h2 class="text-xs uppercase tracking-wide text-fg-muted">최근 대화</h2>
+	</div>
+	<ThreadList {threads} {titles} failure={data.threadsFailure} {hasMore} {loadingMore} {moreError} onMore={loadMore} />
+
+	{#if !isCreating}
 		<CoachPlanCard activePlan={data.activePlan} />
 		<CoachCheckin initial={data.checkin} />
 	{/if}

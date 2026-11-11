@@ -1,4 +1,5 @@
 import { getThread, getEngine } from '$lib/api/coach';
+import { parseThreadId } from '$lib/threadAge';
 import { ApiError } from '$lib/api/client';
 import type { ThreadDetailResponse, CoachEngine } from '$lib/types';
 
@@ -13,8 +14,9 @@ export async function load({
 }: {
 	params: { threadId: string };
 }): Promise<ThreadPageData> {
-	const id = parseInt(params.threadId, 10);
-	if (isNaN(id)) {
+	// C-09: "12abc" 같은 값은 parseInt 로 12가 되던 것 — 숫자만으로 된 경로만 받는다
+	const id = parseThreadId(params.threadId);
+	if (id == null) {
 		return { detail: null, errorMessage: '잘못된 스레드 ID입니다.', engine: null };
 	}
 	try {

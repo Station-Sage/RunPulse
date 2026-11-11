@@ -4,14 +4,20 @@ from __future__ import annotations
 import sqlite3
 from datetime import date as _date
 
+from src.metrics.acwr import ACWRCalculator
+
+# P-10: 구간 경계는 메트릭 정의(ACWRCalculator.ranges)에서 받는다 — 화면 문구와 판정이 같은 값을 쓴다.
+_RANGES = ACWRCalculator.ranges
+ACWR_OPTIMAL = tuple(_RANGES["optimal"])
+
 
 def _acwr_zone(v: float) -> str:
-    """Gabbett 구간 — 5-F 목업의 '적정 범위 (0.8~1.3)'."""
-    if v < 0.8:
+    """Gabbett 구간 — 경계 포함 규칙: low 미만 저부하, optimal 상한까지 적정, caution 상한까지 주의."""
+    if v < _RANGES["optimal"][0]:
         return "저부하"
-    if v <= 1.3:
+    if v <= _RANGES["optimal"][1]:
         return "적정"
-    if v <= 1.5:
+    if v <= _RANGES["caution"][1]:
         return "주의"
     return "위험"
 
@@ -27,7 +33,7 @@ def _hrv_zone(delta_pct: float) -> str:
 
 def get_adaptation_status(conn: sqlite3.Connection, date: str | None = None) -> dict:
     """date 기준 적응 상태. 없는 항목은 None(에러 아님).
-    반환: {"date", "acwr": {"value","zone","date"}|None,
+    반환: {"date", "acwr": {"value","zone","date","optimal_range"}|None,
            "hrv": {"value","baseline","delta_pct","zone"}|None,
            "fatigue_avg": {"value","n"}|None}
     """
@@ -42,7 +48,8 @@ def get_adaptation_status(conn: sqlite3.Connection, date: str | None = None) -> 
         (date,),
     ).fetchone()
     if row:
-        acwr = {"value": round(float(row[1]), 2), "zone": _acwr_zone(float(row[1])), "date": row[0]}
+        acwr = {"value": round(float(row[1]), 2), "zone": _acwr_zone(float(row[1])), "date": row[0],
+                "optimal_range": list(ACWR_OPTIMAL)}
     hrv = None
     row = conn.execute(
         "SELECT hrv_last_night, hrv_weekly_avg FROM daily_wellness"

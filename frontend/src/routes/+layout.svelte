@@ -20,6 +20,8 @@
 	import UpdateNotice from '$lib/components/UpdateNotice.svelte';
 	import { demoActive, isDemoActive } from '$lib/demoMode';
 	import SyncStatusPill from '$lib/components/shell/SyncStatusPill.svelte';
+	import { welcomeGuardApplies } from '$lib/onboarding';
+	import { redirectToWelcomeIfNew } from '$lib/welcomeRedirect';
 
 	let { children } = $props();
 	let menuOpen = $state(false);
@@ -35,7 +37,11 @@
 	const hideSyncPill = $derived(isOnboarding || isErrorPage);
 
 	// S-05: 첫 화면이 그려지면 app.html 정적 로딩 화면 제거. S-06/E-16: 이동 중 본문 aria-busy.
-	onMount(() => removeBootSplash(document));
+	onMount(() => {
+		removeBootSplash(document);
+		// S-22: /library·/coach 로 바로 들어와도 신규 계정(소스 0·활동 0·온보딩 대기)은 /welcome 으로
+		if (!isDemoActive() && welcomeGuardApplies(page.url.pathname, base)) void redirectToWelcomeIfNew();
+	});
 	const busy = $derived(!!navigating.to);
 </script>
 

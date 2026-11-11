@@ -9,6 +9,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import RowActionButton from '$lib/components/plan/RowActionButton.svelte';
 	import AdjustmentCard from '$lib/components/plan/AdjustmentCard.svelte';
+	import { noteAction } from '$lib/planDetailView';
 
 	let { data }: { data: SessionDetailPageData } = $props();
 
@@ -20,18 +21,23 @@
 	}
 
 	let noteText = $state(data.session?.note ?? '');
+	let savedNote = $state(data.session?.note ?? '');
 	let noteSaving = $state(false);
-	let noteSaved = $state(false);
+	let noteSaved = $state<string | null>(null);
 	let noteError = $state<string | null>(null);
+	// P-16: 바뀐 게 있을 때만 저장, 비우고 저장하면 지우기
+	const action = $derived(noteAction(noteText, savedNote));
 
 	async function handleNoteSave() {
-		if (!noteText.trim()) return;
+		const act = action;
+		if (!act) return;
 		noteSaving = true;
 		noteError = null;
 		try {
-			await saveSessionNote(data.date, noteText);
-			noteSaved = true;
-			setTimeout(() => { noteSaved = false; }, 2000);
+			await saveSessionNote(data.date, act === 'clear' ? '' : noteText);
+			savedNote = act === 'clear' ? '' : noteText;
+			noteSaved = act === 'clear' ? '지웠어요 ✓' : '저장됨 ✓';
+			setTimeout(() => { noteSaved = null; }, 2000);
 		} catch {
 			noteError = '저장 실패. 다시 시도해 주세요.';
 		} finally {
@@ -135,11 +141,11 @@
 			{/if}
 			<div class="mt-2 flex items-center gap-2">
 				<button
-					class="rounded-md bg-semantic-teal px-4 py-1.5 text-sm font-medium text-fg-on-accent disabled:opacity-50"
+					class="min-h-11 rounded-md bg-semantic-teal px-4 py-1.5 text-sm font-medium text-fg-on-accent disabled:opacity-50"
 					onclick={handleNoteSave}
-					disabled={noteSaving || !noteText.trim()}
+					disabled={noteSaving || !action}
 				>
-					{#if noteSaving}저장 중...{:else if noteSaved}저장됨 ✓{:else}저장{/if}
+					{#if noteSaving}저장 중...{:else if noteSaved}{noteSaved}{:else if action === 'clear'}메모 지우기{:else}저장{/if}
 				</button>
 			</div>
 		</div>

@@ -10,6 +10,6 @@
 {#if engine}
 	<div class="flex items-center justify-between gap-2 text-[11px] text-fg-muted" data-testid="engine-line">
 		<span class="min-w-0 truncate">{text}</span>
-		<button type="button" onclick={onOpenScope} class="shrink-0 underline">전송 범위 ›</button>
+		<button type="button" onclick={onOpenScope} class="inline-flex min-h-11 shrink-0 items-center underline">전송 범위 ›</button>
 	</div>
 {/if}

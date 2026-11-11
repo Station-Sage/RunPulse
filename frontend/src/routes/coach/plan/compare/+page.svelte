@@ -10,6 +10,7 @@
 	import type { ActivePlanConflict } from '$lib/types';
 	import ScenarioCompareTable from '$lib/components/plan/ScenarioCompareTable.svelte';
 	import type { ComparePlanData } from './+page';
+	import { planStepText } from '$lib/planDetailView';
 
 	let { data }: { data: ComparePlanData } = $props();
 
@@ -68,7 +69,7 @@
 			<a href="{base}/coach/plan/new" class="text-xs text-fg-muted hover:underline">← 새 프로그램</a>
 		</div>
 		<h1 class="text-base font-semibold">프로그램 비교</h1>
-		<p class="text-xs text-fg-muted">단계 3/3 — 원하는 프로그램을 선택하세요</p>
+		<p class="text-xs text-fg-muted">{planStepText(2)} — 원하는 프로그램을 선택하세요</p>
 	</div>
 
 	<div class="flex flex-col gap-4 px-4 py-5">
@@ -92,7 +93,7 @@
 			<div class="rounded-xl border border-semantic-amber bg-surface-2 p-4" role="group" aria-label="프로그램 교체 확인" data-testid="plan-replace-confirm" use:inlineConfirm={{ onCancel: () => (conflict = null) }}>
 				<p class="mb-2 text-sm font-semibold text-fg-primary">진행 중인 프로그램이 있어요</p>
 				<p class="mb-3 text-xs text-fg-secondary">
-					'{conflict.current.name}'을(를) 취소하고 새 프로그램으로 바꿀까요? 취소한 프로그램은 나중에 복원할 수 있어요.
+					진행 중인 '{conflict.current.name}' 프로그램을 취소하고 새 프로그램으로 바꿀까요? 취소한 프로그램은 나중에 복원할 수 있어요.
 				</p>
 				<div class="flex gap-2">
 					<button class="min-h-11 rounded-lg bg-fg-primary px-4 text-sm font-medium text-surface-1" onclick={() => conflict && handleSelect(conflict.weeks, conflict.current.goal_id)}>교체하기</button>

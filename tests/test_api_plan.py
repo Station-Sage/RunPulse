@@ -293,14 +293,15 @@ def test_post_session_note_200(app_with_session):
     assert body["data"]["note"] == "훈련 잘 됐다"
 
 
-def test_post_session_note_400_empty_note(app_with_session):
+def test_post_session_note_empty_deletes(app_with_session):
+    """P-16: 빈 메모 저장 = 기존 메모 삭제(200, note "")."""
     client, _, session_date = app_with_session
-    res = client.post(
-        f"/api/v1/coach/plan/session/{session_date}/note",
-        json={"note": "  "}
-    )
-    assert res.status_code == 400
-    assert res.get_json()["error"]["code"] == "BAD_REQUEST"
+    url = f"/api/v1/coach/plan/session/{session_date}/note"
+    h = {"Origin": "http://localhost"}
+    assert client.post(url, json={"note": "지울 메모"}, headers=h).status_code == 200
+    res = client.post(url, json={"note": "  "}, headers=h)
+    assert res.status_code == 200
+    assert res.get_json()["data"]["note"] == ""
 
 
 def test_post_session_note_400_missing_note(app_with_session):

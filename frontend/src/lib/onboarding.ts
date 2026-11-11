@@ -48,3 +48,14 @@ export function etaLabel(label: string, requests: number | null | undefined): st
 export function startStep(query: string | null, saved: number): number {
 	return query === null ? clampStep(saved) : clampStep(query);
 }
+
+/** E-25/S-20: 단계 → 주소. 단계마다 기록을 남겨 뒤로가기가 이전 단계로 간다. */
+export function stepHref(base: string, step: number): string {
+	return `${base}/welcome?step=${clampStep(step)}`;
+}
+
+/** S-22/E-26: 직접 진입해도 신규 계정을 /welcome 으로 보낼 경로 — Today 는 자체 판정, 데이터 영역(연결 설정)·welcome·랜딩·인증은 제외. */
+export function welcomeGuardApplies(pathname: string, base: string): boolean {
+	const p = pathname.startsWith(base) ? pathname.slice(base.length) || '/' : pathname;
+	return /^\/(library|coach)(\/|$)/.test(p);
+}

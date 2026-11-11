@@ -59,6 +59,7 @@
 	});
 	onMount(() => {
 		for (const m of messages) if (m.role === 'assistant' && isPendingStatus(m.status)) live.watch(m.id);
+		requestAnimationFrame(scrollToBottom);   // C-04: 긴 대화는 최신 메시지부터 보인다
 	});
 	onDestroy(() => live.stopAll());
 
@@ -121,7 +122,6 @@
 	}
 
 	const closeDrill = () => (drillStack = []);
-
 	function handleDrillInput(slug: string) {
 		const top = drillStack.length > 0 ? drillStack[drillStack.length - 1] : null;
 		drillStack = [
@@ -208,7 +208,7 @@
 	</div>
 
 	<!-- 메시지 목록 -->
-	<div class="flex min-h-[calc(100dvh-15.5rem)] lg:min-h-[calc(100dvh-11rem)] flex-col gap-3 px-4 py-4">
+	<div class="flex min-h-[calc(100dvh-15.5rem)] lg:min-h-[calc(100dvh-11rem)] flex-col gap-3 px-4 py-4" role="log" aria-relevant="additions" aria-label="대화 내용">
 		{#if messages.length === 0}
 			<p class="text-center text-sm text-fg-muted">대화를 시작해 보세요.</p>
 		{/if}

@@ -12,6 +12,7 @@ const REASON_TEXT: Record<string, string> = {
 	user_skip: '사용자 선택',
 	no_consent: '동의 필요',
 	network: '네트워크 오류',
+	unexpected: '예기치 못한 오류',
 	quota_user: '오늘 AI 사용 한도',
 	quota_global: 'AI 사용량 일시 제한',
 	busy: 'AI 요청 혼잡'
