@@ -9,6 +9,9 @@
 		needsInjuryNotice,
 		parsePrefill,
 		parseReportedLoad,
+		LONG_RUN_AUTO,
+		longRunOptions,
+		parseLongRunWeekday,
 		parseRunWeekdays,
 		REPORTED_MAX_KM,
 		reportedLoadEntries,
@@ -35,7 +38,11 @@
 	const reported = parseReportedLoad(page.url.searchParams);
 	let recentWeekly = $state(reported.weeklyKm != null ? String(reported.weeklyKm) : '');
 	let recentLong = $state(reported.longKm != null ? String(reported.longKm) : '');
-	let runDays = $state<number[]>(parseRunWeekdays(page.url.searchParams.get('run_weekdays')));
+	const initialRunDays = parseRunWeekdays(page.url.searchParams.get('run_weekdays'));
+	let runDays = $state<number[]>(initialRunDays);
+	let longRunDay = $state<number | null>(parseLongRunWeekday(page.url.searchParams.get('long_run'), initialRunDays));
+	// 운동 요일에서 빠진 요일이 롱런으로 남지 않게(자동으로 되돌림)
+	const longRunEffective = $derived(longRunDay != null && runDays.includes(longRunDay) ? longRunDay : null);
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 
@@ -65,6 +72,7 @@
 			await getPlanTemplates(selectedKm, tts);
 			const params = new URLSearchParams({ distance_km: String(selectedKm) });
 			params.set('run_weekdays', runDays.join(','));
+			if (longRunEffective != null) params.set('long_run', String(longRunEffective));
 			if (raceDate) params.set('race_date', raceDate);
 			if (tts != null) params.set('target_time_sec', String(tts));
 			for (const [k, v] of reportedLoadEntries(String(recentWeekly ?? ''), String(recentLong ?? ''))) params.set(k, v);
@@ -126,6 +134,20 @@
 				</p>
 			{/if}
 		</div>
+
+		<!-- 롱런 요일(선택, P-14) -->
+		{#if runDays.length > 0}
+			<div>
+				<p class="mb-1 text-sm font-medium text-fg-primary">롱런 요일 (선택)</p>
+				<p class="mb-2 text-xs text-fg-muted">가장 길게 달릴 요일이에요. 그 주에 달릴 수 없는 날이면 자동으로 다른 요일에 배치해요.</p>
+				<ToggleGroup
+					label="롱런 요일"
+					items={longRunOptions(runDays)}
+					selected={longRunEffective == null ? LONG_RUN_AUTO : String(longRunEffective)}
+					onchange={(v) => (longRunDay = v == null || v === LONG_RUN_AUTO ? null : Number(v))}
+				/>
+			</div>
+		{/if}
 
 		<!-- 날짜 입력 -->
 		<div>

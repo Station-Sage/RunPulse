@@ -102,7 +102,7 @@ export function streamRange(vals: (number | null)[]): string {
 	return `${Math.round(Math.min(...nums))} – ${Math.round(Math.max(...nums))}`;
 }
 
-const SOURCE_NAMES: Record<string, string> = { garmin: 'Garmin', strava: 'Strava', intervals: 'Intervals', runalyze: 'Runalyze', runpulse: 'RunPulse' };
+const SOURCE_NAMES: Record<string, string> = { garmin: 'Garmin', strava: 'Strava', intervals: 'Intervals.icu', runalyze: 'Runalyze', runpulse: 'RunPulse' };
 
 /**
  * 스트림 머리 한 줄 — "Garmin · 기록점 1,675개(약 2초마다)". 소스명은 표준 표기(A-38),

@@ -82,3 +82,17 @@ export function toggleWeekday(days: number[], d: number): number[] {
 export function needsInjuryNotice(days: number[]): boolean {
 	return new Set(days).size >= INJURY_NOTICE_MIN_DAYS;
 }
+
+// P-14: 롱런 요일(선택) — 쿼리 "long_run=6". 운동 요일 밖이면 자동(null). 'auto' 는 화면 선택지 값.
+export const LONG_RUN_AUTO = 'auto';
+
+export function parseLongRunWeekday(raw: string | null | undefined, runDays: number[]): number | null {
+	if (raw == null || raw.trim() === '' || !/^\d$/.test(raw.trim())) return null;
+	const n = Number(raw);
+	return runDays.includes(n) ? n : null;
+}
+
+/** 롱런 요일 선택지 — "자동(주말 우선)" + 고른 운동 요일만(TXT-1 잠정). */
+export function longRunOptions(runDays: number[]): { value: string; label: string }[] {
+	return [{ value: LONG_RUN_AUTO, label: '자동(주말 우선)' }, ...runDays.map((d) => ({ value: String(d), label: WEEKDAY_LABELS[d] }))];
+}

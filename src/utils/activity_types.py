@@ -19,6 +19,8 @@ _CYCLING_TYPES = {
 _SWIMMING_TYPES = {
     "swimming", "pool_swimming", "open_water_swimming", "swim",
     "lap_swimming",
+    # A-14 후속: Intervals.icu `OpenWaterSwim` 이 소문자로 저장된 레거시 행(읽기 시 수영으로 묶음)
+    "openwaterswim", "open_water",
 }
 
 _WALKING_TYPES = {
@@ -59,6 +61,7 @@ _INTERVALS_MAP = {
     "Run": "running",
     "Ride": "cycling",
     "Swim": "swimming",
+    "OpenWaterSwim": "swimming",
     "Walk": "walking",
     "WeightTraining": "strength",
     "VirtualRun": "running",

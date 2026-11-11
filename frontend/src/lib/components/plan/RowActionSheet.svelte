@@ -9,7 +9,7 @@
 	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	import { workoutLabel } from '$lib/format';
 	import {
-		MAX_PAIN_SITES, MAX_REDUCE_PCT, PAIN_LEVELS, PAIN_SITES, REASONS, loadDeltaView, moveCandidates, opAvailability, painOps, painReady, reduceInput, reducePreview, weekPreview, type LoadDelta, type RowActionMode, type RowOp
+		MAX_PAIN_SITES, MAX_REDUCE_PCT, PAIN_LEVELS, PAIN_SITES, REASONS, loadDeltaView, lockedText, moveCandidates, opAvailability, painOps, painReady, reduceInput, reducePreview, weekPreview, type LoadDelta, type RowActionMode, type RowOp
 	} from '$lib/rowActionView';
 	import type { PlannedWorkout } from '$lib/types';
 
@@ -115,7 +115,7 @@
 	</h2>
 
 	{#if mode === 'locked'}
-		<p class="mt-2 text-sm text-fg-secondary">오늘 세션만 바꿀 수 있어요. 미래 세션은 당일에 조정하거나 코치와 상의해 보세요.</p>
+		<p class="mt-2 text-sm text-fg-secondary">{lockedText(workout)}</p>
 		<div class="mt-3 flex gap-2">
 			<a href="{base}/coach/new?ctx=plan_session:{workout.id}" class="flex h-11 flex-1 items-center justify-center rounded-lg bg-fg-primary text-sm font-medium text-surface-1">Coach에게 묻기</a>
 			<button type="button" class="h-11 rounded-lg border border-border-subtle px-4 text-sm" onclick={onClose}>닫기</button>

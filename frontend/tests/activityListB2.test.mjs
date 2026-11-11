@@ -113,5 +113,5 @@ test('streamRange: 정수 범위, 값 없으면 —(A-37)', () => {
 
 test('pointsCaption: 소스 표준 표기 + 평균 간격(A-38)', () => {
 	assert.equal(pointsCaption(['garmin', 'garmin'], 1675, 3348), 'Garmin · 기록점 1,675개(약 2초마다)');
-	assert.equal(pointsCaption(['garmin', 'intervals'], 10, null), 'Garmin / Intervals · 기록점 10개');
+	assert.equal(pointsCaption(['garmin', 'intervals'], 10, null), 'Garmin / Intervals.icu · 기록점 10개');
 });

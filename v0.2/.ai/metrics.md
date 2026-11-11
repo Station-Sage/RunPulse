@@ -237,6 +237,11 @@ CP = coeffs[0]; W_prime = coeffs[1]
   sleep_consistency  = clamp(100 - std(sleep_start_7days_min) / 60 * 20, 0, 100)
   ```
 - **등급**: 0-40(휴식), 41-60(경량 훈련), 61-80(보통), 81-100(최적)
+- **현재 구현 기준 (2026-11-11, S4-85 · UX 리뷰 M-12)**: 화면·저장값의 기준은 코드(`src/metrics/utrs.py`)다. 가중치는
+  body_battery×0.30 + TSB×0.25 + sleep×0.20 + HRV×0.15 + stress×0.10(가용 항목만 재정규화), 등급 경계는
+  `ranges` 5단계(poor 0–30 · low 30–50 · moderate 50–70 · good 70–85 · excellent 85–100). 위 PDF 식은 미채택 참고안이다.
+  Calculator 를 PDF 식으로 바꾸려면 version 증가·재계산·`algo_changelog.py` 항목(ADR-042)이 필요하다.
+  (`version = "pdf_weights_v1"` 이라는 이름은 역사적 표기이며 PDF 식을 뜻하지 않는다 — 이름만 바꾸면 재계산이 일어나 그대로 둔다.)
 
 ---
 

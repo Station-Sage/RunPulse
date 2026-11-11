@@ -11,7 +11,7 @@
 	import type { MetricBrowserEntry, ProviderKey } from '$lib/types';
 	import { providerLabel, providerLabelCompact, providerBadgeClass } from '$lib/provider';
 	import { cardUnit, cardValue, matchesProvider, providerKeys, WELLNESS_PROVIDER } from '$lib/metricListView';
-	import { loadPins, savePins, togglePin } from '$lib/pinnedMetrics';
+	import { loadPins, PINS_DEVICE_NOTE, savePins, togglePin } from '$lib/pinnedMetrics';
 	import { saveMetricsSearch } from '$lib/libraryNav';
 	import { matchesMetric } from '$lib/metricSearch';
 	import { afterNavigate, pushState, replaceState } from '$app/navigation';
@@ -244,7 +244,9 @@
 		{#if compact}<TrainingBalanceCard />{/if}
 		{#if coreMetrics.length}
 			<section>
-				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">내 지표</h2>
+				<h2 class="mb-2 text-xs font-medium uppercase tracking-wide text-fg-muted">
+					내 지표 <span class="normal-case tracking-normal" data-testid="pins-device-note">· {PINS_DEVICE_NOTE}</span>
+				</h2>
 				<div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
 					{#each coreMetrics as m}
 						{@render card(m, true)}

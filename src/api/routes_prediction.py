@@ -10,6 +10,7 @@ from src.services import prediction_compare_service, race_result_service
 from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
+from .validation import json_object
 
 _BUCKETS = ("5k", "10k", "half", "marathon")
 
@@ -58,7 +59,9 @@ def get_race_candidates():
 
 @api_bp.put("/races/<int:activity_id>/confirm")
 def put_race_confirm(activity_id: int):
-    body = request.get_json(silent=True) or {}
+    body, err = json_object()  # D-21: 객체 아닌 JSON 은 400
+    if err:
+        return err
     conn = _conn()
     if conn is None:
         return api_error("NOT_FOUND", "running.db 없음", 503)

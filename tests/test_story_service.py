@@ -108,3 +108,26 @@ def test_route(conn, monkeypatch, tmp_path):
         assert ok.status_code == 200 and ok.get_json()["data"]["period"]["id"] == "2026-09"
         bad = c.get("/api/v1/library/story/zzz")
         assert bad.status_code == 400 and bad.get_json()["error"]["code"] == "INVALID_PERIOD"
+
+
+def test_week_story_does_not_raise(conn):
+    """M-01 회귀: 주 모드가 월 분기 변수(prev_year)를 참조해 500 나던 문제."""
+    r = ss.get_story(conn, "2026-W37")
+    assert r["period"]["prev"] == "2026-W36"
+    assert r["period"]["next"] == "2026-W38"
+    assert r["compare"][0]["key"] == "distance"
+
+
+def test_week_neighbors_cross_iso_year():
+    """연말 경계: ISO 연도로 넘긴다(2026 은 53주, 2025 는 52주)."""
+    assert sp.week_neighbors(2026, 1) == ("2025-W52", "2026-W02")
+    assert sp.week_neighbors(2026, 53) == ("2026-W52", "2027-W01")
+    assert sp.iso_weeks_in_year(2025) == 52
+    with pytest.raises(ValueError):
+        sp._parse_period("2025-W53")
+
+
+def test_week_story_year_boundary_and_future_next(conn):
+    r = ss.get_story(conn, "2027-W01")
+    assert r["period"]["prev"] == "2026-W53"
+    assert r["period"]["next"] is None  # 아직 오지 않은 주는 링크 없음

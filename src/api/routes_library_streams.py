@@ -6,6 +6,7 @@ import sqlite3
 from flask import request
 
 from src.services import activity_service
+from src.services.stream_downsample import downsample_streams, parse_max_points
 from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok_cacheable
@@ -13,6 +14,10 @@ from . import api_bp, api_error, api_ok_cacheable
 
 @api_bp.get("/library/activities/<int:activity_id>/streams")
 def get_library_activity_streams(activity_id: int):
+    try:  # A-36 후속: 요청할 때만 줄인다(기본 전체 해상도 — 화면의 시간축 추정이 전체 점 수에 기대고 있음)
+        max_points = parse_max_points(request.args.get("max_points"))
+    except ValueError as e:
+        return api_error("INVALID_PARAM", str(e), 400)
     dpath = db_path()
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
@@ -29,7 +34,10 @@ def get_library_activity_streams(activity_id: int):
     finally:
         conn.close()
 
-    # 전체 해상도 스트림(가장 무거운 페이로드) — ETag로 조건부 GET.
+    streams, info = downsample_streams(streams, max_points)
+    if info:
+        meta["downsampled"] = info
+    # 스트림(가장 무거운 페이로드) — ETag로 조건부 GET.
     return api_ok_cacheable({"streams": streams, **meta})
 
 

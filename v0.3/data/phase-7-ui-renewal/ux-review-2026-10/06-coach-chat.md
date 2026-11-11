@@ -62,3 +62,9 @@
 - C-16 처리: 정렬 `updated_at DESC, id DESC`.
 - C-17 보류(사용자 결정): 폴백 opt-in 기본값·동의창 문구·메모 기본 제외는 구현하지 않음. 참고 추천: opt-in 기본 off, 동의창에 두 제공자 명시, 메모 기본 제외.
 - 확인 방법: pytest `tests/test_audit_e_plan_coach.py`(C-05 페이지·라우트·C-11·C-14·C-16), 기존 `test_coach_service`·`test_api_coach` 통과, 프런트 `coachAuditE.test.mjs`·`threadAge.test.mjs`(문구 갱신). 합성 DB 사본(스레드 37개) 375/1280: 처음 30행("스레드 N" 27 + 다른 제목 3)·더 보기 후 "스레드 N" 35행·버튼 사라짐, 새 대화 버튼 y=85, `/coach/12abc` 오류, `?metric=TSB` 카드·질문, 미래·없는 지표 문구, 전송 범위 버튼 높이 44, role=log 1, 가로 넘침 0, pageerror 0.
+
+## 처리 기록 (2026-11-11, V2-AUDIT-INDIV 묶음 G — 보류 항목 추천안, S4-85)
+- C-13 처리(용어 하나로): 답변 엔진은 "규칙 답변 (사유)" 한 형식 — "기본 규칙 답변" → "규칙 답변 (AI 연결 실패)", "규칙 답변(이전 방식)" → "규칙 답변 (이전 방식)"(`coach_engine_health.engine_label`), 화면 배너·스트림 상태의 "기본 답변/기본 규칙으로" → "규칙 답변으로 대신"(`coachEngine.fallbackText`, `StreamStatus`). TSB 는 "폼(TSB)"(AI 도구 설명·레거시 컨텍스트의 "TSB(신선도)" 교체, 차트 계열 이름처럼 체력·피로와 나란한 짧은 자리는 "폼"). 설정 진입은 "AI 설정"으로 통일하고 링크를 `/data/settings/ai` 로 바로(MessageBlock·DegradedBanner·EngineSheet), 키 안내 "☰ 설정 → AI 코치" → "AI 설정". 문구 모두 TXT-1 잠정. 저장된 과거 답변 본문은 그대로.
+- C-14 보류 유지: 규칙 답변이 질문과 무관하게 같은 문장·칩을 내는 문제는 규칙 엔진 의도 분류(질문 → chip_id) 설계가 필요해 작은 수정으로 안 됨.
+- C-17 처리(추천안 채택, ADR-055): 새 동의의 기본값은 "실패 시 다른 AI로 재시도" 끔(opt-in)·"메모·주관 입력 제외" 켬(`coach_consent.DEFAULT_*`, PUT /coach/consent 와 AI 설정 PATCH 의 기본값). 동의창 문구가 기본 제공자와 재시도 대상 제공자를 이름으로 같이 밝힘("…Gemini 서버로 전송돼요. '실패 시 다른 AI로 재시도'를 켜면 … Groq 서버로도 전송돼요(기본은 꺼짐)", TXT-1 잠정, `coachEngine.consentText`). 재시도 대상은 GET /coach/engine `fallback_providers`(키가 있는 다른 제공자, 동의 전에도 내려옴). 호출 순서·예산·`build_chain` 은 그대로(저장된 `fallback_enabled` 만 따름). 이미 저장된 동의 행은 바꾸지 않음(기존 사용자는 다시 묻지 않음 — 바꾸려면 사용자 결정).
+- 확인 방법: pytest `tests/test_audit_g_held.py`(동의 기본값·라우트 기본값·fallback_providers·라벨 형식), `test_coach_engine_health.py`(라벨 갱신), 프런트 `auditG.test.mjs`·`coachEngine.test.mjs`. 동의창 자체는 합성 서버가 규칙 모드(AI 키 없음)라 브라우저로 못 봄(단위 테스트만).

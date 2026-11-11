@@ -94,7 +94,7 @@ def test_runs_hide_raw_error_and_non_sync_jobs():
 
 def test_connect_failure_message_distinguishes_network():
     reason, msg = dcs.failure_message("intervals", {"ok": False, "status": "연결 실패", "detail": RAW})
-    assert reason == "network" and "Intervals 서버에 연결하지 못했어요" in msg
+    assert reason == "network" and "Intervals.icu 서버에 연결하지 못했어요" in msg
     reason, msg = dcs.failure_message("intervals", {"ok": False, "status": "잘못된 API 키"})
     assert reason == "credentials" and msg == "연결하지 못했어요 · 잘못된 API 키"
 

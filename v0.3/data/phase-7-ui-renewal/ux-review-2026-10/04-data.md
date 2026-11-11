@@ -92,3 +92,7 @@
 - D-32 부분: 소스 상세에서 상태 줄과 같은 오류 문구를 두 번 보이지 않게, 375px 줄바꿈. 설정의 "소스 연결·자동 동기화" 카드는 실제 화면(소스 / 동기화 탭)에 맞춰 "소스 연결"·"자동 동기화" 두 카드로 나눔(문구 TXT-1 잠정). **보류**: 소스 이름 표기("Intervals" vs 환영 화면 "Intervals.icu") 통일은 제품 표기 결정이라 사용자 결정 필요.
 - D-33·D-34: 종결(지시대로 처리 대상 아님).
 - 확인 방법: pytest 신규 `tests/test_data_audit_d_sync.py`(15)·`tests/test_data_audit_d_io.py`(26), 프런트 `frontend/tests/dataAuditD.test.mjs`(5). 합성 DB 서버(사본) 375/1280 브라우저 스모크: 설정 카드·ICS download 속성·빈 기간 CSV 안내·기간 역전 문구·자동 동기화 "오늘 13:37"·AI 키 오류/저장 비활성·페이스 "5:30:99" 거부·가로 넘침 없음·pageerror 0. 프로필 교차 검사(400)·출처 없음(422)·미연결 PATCH(409)·알 수 없는 CSV(400)는 같은 서버에 curl 로 확인(합성 DB 에 LTHR 값이 없어 화면 경로로는 400 문구를 띄우지 못함).
+
+## 처리 기록 (2026-11-11, V2-AUDIT-INDIV 묶음 G — 보류 항목 추천안, S4-85)
+- D-32 처리(보류 해제): 소스 표시 이름을 "Intervals.icu" 로 통일 — 프런트 이름표(provider·syncState·providerMatrix·streamAxis·shoeView·랜딩 문구)와 서버 이름표(`data_connect_service._NAMES`, `metrics_version_events._PROV`, `provider_matrix_collect.PROVIDER_LABELS`, 소스 비교 정의 문구, 지표 이름 `Intervals.icu FTP`·`W'`·`체감 (Intervals.icu Feel)`). 내부 키(`intervals`)·로그·CLI 문구는 그대로. 합성 DB `/data/sources/intervals` 에서 "Intervals.icu" 확인.
+- D-21 확장: `validation.json_object()` 를 `get_json(silent=True) or {}` 로 읽던 쓰기 라우트에 적용 — 세션 메모·플랜 복원·조정 수락/되돌리기·행 액션·다시 맞추기·답변 다시 생성·동의·대회 확정·초대 코드. 배열·깨진 JSON 은 400 INVALID_PARAM. `parse_body` 로 이미 검증하는 라우트(플랜 생성·신발·체크인·대회 캘린더)는 그대로, 기기 간 동기화 `routes_v1_sync`(기계 대 기계, 파일 418줄)는 손대지 않음.

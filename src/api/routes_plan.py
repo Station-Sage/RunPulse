@@ -15,7 +15,7 @@ from src.training.planner_store import WeekdaysRequired
 from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
-from .validation import date_field, float_field, int_field, int_list_field, parse_args, parse_body, str_field
+from .validation import date_field, float_field, int_field, int_list_field, json_object, parse_args, parse_body, str_field
 
 
 @api_bp.get("/coach/plan/active")
@@ -157,7 +157,9 @@ def get_session_detail_route(goal_id: int, session_date: str):
 
 @api_bp.post("/coach/plan/session/<session_date>/note")
 def save_session_note_route(session_date: str):
-    body = request.get_json(silent=True) or {}
+    body, err = json_object()  # D-21
+    if err:
+        return err
     note = body.get("note")
     if not isinstance(note, str):
         return api_error("BAD_REQUEST", "note는 문자열이어야 합니다", 400)
@@ -190,12 +192,18 @@ _CREATE_PLAN_SCHEMA = {
     "recent_long_km": _reported_km_field("recent_long_km"),
     "expect_active_goal_id": int_field(1, 2**31 - 1),
     "race_id": int_field(1, 2**31 - 1),
+    "long_run_weekday": int_field(0, 6),
 }
 
 
 def _expect(body_in: dict, parsed: dict):
     """요청에 expect_active_goal_id 키가 있을 때만 검사 대상(없으면 기존 동작 — 클라이언트 구버전 호환)."""
     return parsed["expect_active_goal_id"] if "expect_active_goal_id" in body_in else plan_template_service._UNSET
+
+
+def _long_run_kw(body_in: dict, parsed: dict) -> dict:
+    """P-14: 키가 있을 때만 롱런 요일을 넘긴다(null = 자동). 없으면 저장된 선호 유지."""
+    return {"long_run_weekday": parsed["long_run_weekday"]} if "long_run_weekday" in body_in else {}
 
 
 def _conflict(exc: plan_template_service.PlanConflict):
@@ -210,6 +218,10 @@ def create_plan():
     pace_err = input_limits.target_pace_error(body["distance_km"], body["target_time_sec"])
     if pace_err:
         return api_error("INVALID_PARAM", pace_err, 400, {"target_time_sec": pace_err})
+    lr = body["long_run_weekday"]
+    if lr is not None and lr not in body["run_weekdays"]:
+        msg = "롱런 요일은 운동 요일 중 하나여야 합니다"
+        return api_error("INVALID_PARAM", msg, 400, {"long_run_weekday": msg})
     weeks = body["weeks"]
     weekly_km, long_km = body["recent_weekly_km"], body["recent_long_km"]
     weekly_km = round(weekly_km, 1) if weekly_km is not None else None
@@ -223,6 +235,7 @@ def create_plan():
             conn, body["distance_km"], body["race_date"], weeks, body["target_time_sec"], body["name"],
             recent_weekly_km=weekly_km, recent_long_km=long_km, run_weekdays=body["run_weekdays"],
             expect_active_goal_id=_expect(request.get_json(silent=True) or {}, body), race_id=body["race_id"],
+            **_long_run_kw(request.get_json(silent=True) or {}, body),
         )
         plan_weeks = conn.execute("SELECT plan_weeks FROM goals WHERE id=?", (goal_id,)).fetchone()[0]
         warnings = plan_readiness.plan_warnings(conn, goal_id)
@@ -244,7 +257,9 @@ def create_plan():
 @api_bp.post("/coach/plan/<int:goal_id>/restore")
 def restore_plan_route(goal_id: int):
     """취소된 과거 플랜을 복원(PLN-43). 활성 플랜이 있으면 expect_active_goal_id 확인 후 교체, 불일치 시 409."""
-    raw = request.get_json(silent=True) or {}
+    raw, err = json_object()  # D-21
+    if err:
+        return err
     expect = raw.get("expect_active_goal_id", plan_template_service._UNSET)
     if expect is not plan_template_service._UNSET and expect is not None and not isinstance(expect, int):
         return api_error("BAD_REQUEST", "expect_active_goal_id 는 정수여야 합니다", 400)

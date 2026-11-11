@@ -46,14 +46,14 @@ ROWS: tuple[MatrixRow, ...] = (
         (("training_load", "garmin", "activity"), ("training_load", "intervals", "activity"),
          ("hrss", "runpulse", "activity")),
         compare="scale",
-        definitions={"garmin": "EPOC 기반", "intervals": "심박 기반 부하(Intervals 정의)", "runpulse": "HRSS (LTHR 기준)"},
+        definitions={"garmin": "EPOC 기반", "intervals": "심박 기반 부하(Intervals.icu 정의)", "runpulse": "HRSS (LTHR 기준)"},
         metric_slugs=("hrss", "training_load"),
     ),
     MatrixRow(
         "normalized_power", "정규화 파워", "W", "int", "pair_activity",
         (("normalized_power", "garmin", "activity"), ("normalized_power", "intervals", "activity"),
          ("normalized_power", "strava", "activity")),
-        definitions={"garmin": "Garmin 계산", "intervals": "Intervals 계산", "strava": "Strava 계산"},
+        definitions={"garmin": "Garmin 계산", "intervals": "Intervals.icu 계산", "strava": "Strava 계산"},
         metric_slugs=("normalized_power",),
     ),
     MatrixRow(
@@ -72,14 +72,14 @@ ROWS: tuple[MatrixRow, ...] = (
         "threshold_power", "역치 파워", "W", "int", "profile",
         (("icu_ftp", "intervals", "activity"), ("garmin_ftp", "garmin", "daily"),
          ("critical_power", "runpulse", "daily")),
-        definitions={"intervals": "Intervals FTP 설정값", "garmin": "Garmin FTP", "runpulse": "Critical Power 추정"},
+        definitions={"intervals": "Intervals.icu FTP 설정값", "garmin": "Garmin FTP", "runpulse": "Critical Power 추정"},
         metric_slugs=("critical_power",),
     ),
     MatrixRow(
         "ctl", "CTL (체력 지수)", None, "float1", "pair_daily",
         (("ctl", "runpulse", "daily"), ("ctl", "intervals", "daily")),
         compare="scale",
-        definitions={"runpulse": "RunPulse 부하 기준 42일 평균", "intervals": "Intervals 부하 기준 42일 평균"},
+        definitions={"runpulse": "RunPulse 부하 기준 42일 평균", "intervals": "Intervals.icu 부하 기준 42일 평균"},
         metric_slugs=("ctl",),
     ),
     MatrixRow(

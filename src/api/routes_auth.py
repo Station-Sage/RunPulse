@@ -4,6 +4,7 @@ from __future__ import annotations
 from flask import g, request, session
 
 from . import api_bp, api_ok
+from .validation import json_object
 
 
 @api_bp.get("/auth/session")
@@ -34,7 +35,10 @@ def post_auth_invite():
     ip = request.headers.get("CF-Connecting-IP") or request.remote_addr or "?"
     if not (rate_window.hit(f"invite:ip:{ip}", 10, 600) and rate_window.hit(f"invite:uid:{uid}", 5, 600)):
         return api_error("RATE_LIMITED", "시도가 너무 많습니다. 잠시 후 다시 시도하세요.", 429)
-    code = (request.get_json(silent=True) or {}).get("code")
+    body, err = json_object()  # D-21
+    if err:
+        return err
+    code = body.get("code")
     conn = registry.connect()
     try:
         signup.activate_pending(conn, uid, code if isinstance(code, str) else None)

@@ -22,7 +22,7 @@
 <div class="mt-1 space-y-1 text-xs text-fg-secondary" data-testid="stream-status">
 	{#if stream.fallbackReason}
 		<p class="rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-2 py-1" data-testid="stream-fallback">
-			AI 연결에 실패해 기본 규칙으로 답하는 중이에요
+			AI 연결에 실패해 규칙 답변으로 대신하는 중이에요
 		</p>
 	{/if}
 	<div class="flex items-center gap-2">
@@ -39,7 +39,7 @@
 		<p data-testid="slow-hint">
 			평소보다 오래 걸려요 ·
 			<button type="button" class="underline" onclick={onKeepWaiting}>계속 기다리기</button> ·
-			<button type="button" class="underline" data-testid="rule-answer" onclick={onRuleAnswer}>기본 답변 받기</button>
+			<button type="button" class="underline" data-testid="rule-answer" onclick={onRuleAnswer}>규칙 답변 받기</button>
 		</p>
 	{/if}
 </div>

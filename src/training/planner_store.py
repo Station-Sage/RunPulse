@@ -103,3 +103,15 @@ def set_workout_weekdays(conn: sqlite3.Connection, days, commit: bool = True) ->
     if commit:
         conn.commit()
     return mask
+
+
+def set_long_run_weekday(conn: sqlite3.Connection, day: int | None, commit: bool = True) -> int:
+    """롱런 선호 요일(0=월..6=일, P-14) 저장. None 이면 0(자동 — 주말 우선). 저장한 마스크를 돌려준다."""
+    if day is not None and not 0 <= int(day) <= 6:
+        raise ValueError("롱런 요일은 월~일 중 하나여야 합니다")
+    mask = 0 if day is None else 1 << int(day)
+    ensure_user_training_prefs(conn, commit=False)
+    conn.execute("UPDATE user_training_prefs SET long_run_weekday_mask=?, updated_at=datetime('now') WHERE id=1", (mask,))
+    if commit:
+        conn.commit()
+    return mask

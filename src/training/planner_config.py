@@ -113,6 +113,13 @@ def resolve_run_weekdays(prefs: dict) -> list[int]:
     return days
 
 
+def resolve_long_run_weekday(prefs: dict) -> int | None:
+    """롱런 선호 요일(0=월~6=일, P-14). 마스크 0·NULL 이면 None(자동 — 주말 우선). 여러 비트면 가장 늦은 요일."""
+    mask = prefs.get("long_run_weekday_mask") or 0
+    days = [i for i in range(7) if mask & (1 << i)]
+    return days[-1] if days else None
+
+
 def weekdays_to_mask(days) -> int:
     """요일 인덱스(0=월~6=일) 집합 → 비트마스크."""
     return sum(1 << int(d) for d in set(days))

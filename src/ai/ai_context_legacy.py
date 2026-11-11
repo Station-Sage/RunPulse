@@ -170,7 +170,7 @@ def format_context_text(ctx: dict) -> str:
         lines += ["\n### 피트니스 지표"]
         lines.append(f"- CTL(만성부하): {ctl:.1f}" if ctl is not None else "- CTL: -")
         lines.append(f"- ATL(급성부하): {atl:.1f}" if atl is not None else "- ATL: -")
-        lines.append(f"- TSB(신선도): {tsb:+.1f}" if tsb is not None else "- TSB: -")
+        lines.append(f"- 폼(TSB): {tsb:+.1f}" if tsb is not None else "- TSB: -")
         if vo2:
             lines.append(f"- VO2Max: {vo2:.1f}")
 

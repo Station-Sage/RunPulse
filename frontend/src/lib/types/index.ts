@@ -364,9 +364,7 @@ export interface CoachChip {
 	text: string;
 }
 
-export interface SuggestionsResponse {
-	suggestions: CoachChip[];
-}
+export interface SuggestionsResponse { suggestions: CoachChip[] }
 
 export type EngineStatus =
 	| 'ok' | 'fallback' | 'rule_only' | 'rule_by_choice' | 'error' | 'cancelled' | 'legacy_rule';
@@ -404,14 +402,13 @@ export interface CoachEngine {
 	mode: 'llm' | 'rule_only' | 'rule_by_choice';
 	selected: { provider: string; model: string | null };
 	chain: { provider: string; model: string }[];
+	fallback_providers?: { provider: string; label: string }[]; // C-17 재시도 대상(동의 전에도 내려옴)
 	health: EngineHealth;
 	consent: CoachConsent | null;
 	scope: ScopeItem[];
 }
 
-export interface RegenerateResponse {
-	message: ChatMessage;
-}
+export interface RegenerateResponse { message: ChatMessage }
 
 export interface ThreadsListResponse { threads: ChatThread[]; has_more?: boolean; next_offset?: number } // C-05 '더 보기'
 
@@ -1246,6 +1243,7 @@ export interface CreatePlanPayload {
 	recent_weekly_km?: number;
 	recent_long_km?: number;
 	run_weekdays: number[];
+	long_run_weekday?: number | null; // P-14 롱런 요일(0=월..6=일), null = 자동(주말 우선)
 	expect_active_goal_id?: number | null;
 }
 

@@ -209,10 +209,10 @@ def _call_claude_with_tools(conn, prompt, url, key, model, tool_declarations, ex
 # ── 단순 호출 (기존 호출자 호환: 실패는 문자열, 429만 RateLimitError) ──────
 
 _KEY_HELP = {
-    "claude": "Claude API 키가 설정되지 않았습니다. ☰ 설정 → AI 코치에서 키를 입력하세요.",
+    "claude": "Claude API 키가 설정되지 않았습니다. AI 설정에서 키를 입력하세요.",
     "openai": "OpenAI API 키가 설정되지 않았습니다.",
-    "gemini": "Gemini API 키가 설정되지 않았습니다. ☰ 설정 → AI 코치에서 키를 입력하세요.\n발급: https://aistudio.google.com/apikey",
-    "groq": "Groq API 키가 설정되지 않았습니다. ☰ 설정 → AI 코치에서 키를 입력하세요.\n발급: https://console.groq.com/keys",
+    "gemini": "Gemini API 키가 설정되지 않았습니다. AI 설정에서 키를 입력하세요.\n발급: https://aistudio.google.com/apikey",
+    "groq": "Groq API 키가 설정되지 않았습니다. AI 설정에서 키를 입력하세요.\n발급: https://console.groq.com/keys",
 }
 _LABEL = {"claude": "Claude", "openai": "OpenAI", "gemini": "Gemini", "groq": "Groq"}
 
@@ -265,7 +265,7 @@ def call_genspark_selenium(prompt: str, config: dict | None) -> str:
         return send_and_receive(prompt)
     except ImportError:
         return ("Genspark 자동 모드에는 proot + Selenium 설정이 필요합니다.\n"
-                "설정 → AI에서 'genspark' (수동 모드)로 변경하세요.")
+                "AI 설정에서 'genspark' (수동 모드)로 변경하세요.")
     except Exception as exc:
         log.warning("Genspark Selenium 오류: %s", exc)
         return f"Genspark 자동 모드 오류: {exc}"

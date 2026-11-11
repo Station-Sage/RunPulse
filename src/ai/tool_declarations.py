@@ -97,7 +97,7 @@ TOOL_DECLARATIONS = [
     },
     {
         "name": "get_fitness",
-        "description": "CTL(만성훈련부하), ATL(급성훈련부하), TSB(신선도), VO2Max 추세를 조회한다.",
+        "description": "CTL(만성훈련부하), ATL(급성훈련부하), TSB(폼), VO2Max 추세를 조회한다.",
         "parameters": {
             "type": "object",
             "properties": {

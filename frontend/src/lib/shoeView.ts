@@ -32,7 +32,7 @@ const SOURCE_LABEL: Record<string, string> = {
 	garmin: 'Garmin',
 	strava: 'Strava',
 	strava_export: 'Strava 파일',
-	intervals: 'Intervals',
+	intervals: 'Intervals.icu',
 	runalyze: 'Runalyze'
 };
 

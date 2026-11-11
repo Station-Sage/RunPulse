@@ -11,6 +11,7 @@ from src.training.planner import WeekdaysRequired
 from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
+from .validation import json_object
 
 _STATUS = {"NO_GOAL": 404}
 
@@ -71,8 +72,11 @@ def replan_last():
 
 @api_bp.post("/coach/plan/replan")
 def replan_apply():
+    raw, err = json_object()  # D-21
+    if err:
+        return err
     try:
-        p = _params(request.get_json(silent=True) or {})
+        p = _params(raw)
     except ValueError as e:
         return api_error("BAD_REQUEST", str(e), 400)
     if not p["expect_anchor"]:

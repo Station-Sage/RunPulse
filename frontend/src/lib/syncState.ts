@@ -45,7 +45,7 @@ export interface PillView {
 const PROVIDER_KO: Record<string, string> = {
 	garmin: 'Garmin',
 	strava: 'Strava',
-	intervals: 'Intervals',
+	intervals: 'Intervals.icu',
 	runalyze: 'Runalyze'
 };
 

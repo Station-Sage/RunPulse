@@ -6,7 +6,7 @@ from typing import Any
 
 from src.utils.db_helpers import get_metric_history
 
-_PROV = {"intervals": "Intervals", "garmin": "Garmin", "strava": "Strava"}
+_PROV = {"intervals": "Intervals.icu", "garmin": "Garmin", "strava": "Strava"}
 
 
 def _prov_label(p: str | None) -> str:

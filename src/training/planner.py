@@ -31,6 +31,7 @@ from .planner_config import (
     MAX_Q_DAYS_BY_LABEL,
     WeekdaysRequired,  # noqa: F401 (re-export)
     get_available_days,
+    resolve_long_run_weekday,
     resolve_run_weekdays,
     get_eftp,
     get_latest_fitness,
@@ -141,12 +142,18 @@ def generate_weekly_plan(
     if n_avail <= 3:
         n_q = min(1, n_q)
 
+    # Long run 여부 — 선호 요일(P-14)이 이번 주 가용일이면 그날을 먼저 롱런으로 잡고 Q-day 후보에서 뺀다.
+    has_long = dlabel not in ("1.5k", "3k") and (long_km > 0 if target else phase != "taper")
+    pref_long = resolve_long_run_weekday(prefs) if has_long else None
+    if pref_long not in available:
+        pref_long = None   # 운동 요일 밖·차단 날짜면 자동 배치(주말 우선)로 되돌린다
+
     # Q-day 슬롯 배치 (Hard-Easy 원칙)
-    q_slots = assign_qday_slots(available, n_q, dlabel, phase)
+    q_pool = [d for d in available if d != pref_long]
+    q_slots = assign_qday_slots(q_pool, n_q, dlabel, phase)
 
     # Long run 슬롯
-    has_long = dlabel not in ("1.5k", "3k") and (long_km > 0 if target else phase != "taper")
-    long_slot = assign_long_run_slot(available, q_slots) if has_long else None
+    long_slot = pref_long if pref_long is not None else (assign_long_run_slot(available, q_slots) if has_long else None)
 
     # Q-day 타입: phase 기반 순수 결정 (CRS 게이트 없음 — 일일 추천카드에서 적용)
     # build/peak → interval, base/taper/recovery_week → tempo

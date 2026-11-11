@@ -17,7 +17,7 @@
 	<header class="flex flex-col gap-4">
 		<div class="text-xs uppercase tracking-wide text-fg-muted">RunPulse</div>
 		<h1 class="break-words text-xl font-semibold leading-snug sm:text-2xl text-fg-primary">
-			Garmin·Strava·Intervals·Runalyze를 오가며 맞추던 숫자, 한 화면에서 근거까지.
+			Garmin·Strava·Intervals.icu·Runalyze를 오가며 맞추던 숫자, 한 화면에서 근거까지.
 		</h1>
 		<div class="flex flex-wrap gap-2">
 			<a href={demoHref()} class="inline-flex min-h-11 items-center min-h-11 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-fg-on-accent" data-testid="landing-demo">샘플 러너로 둘러보기</a>

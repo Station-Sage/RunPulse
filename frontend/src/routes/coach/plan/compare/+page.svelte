@@ -35,6 +35,7 @@
 				race_date: data.raceDate,
 				weeks,
 				run_weekdays: data.runWeekdays,
+				long_run_weekday: data.longRunWeekday,
 				...(data.targetTimeSec != null ? { target_time_sec: data.targetTimeSec } : {}),
 				...(data.recentWeeklyKm != null ? { recent_weekly_km: data.recentWeeklyKm } : {}),
 				...(data.recentLongKm != null ? { recent_long_km: data.recentLongKm } : {}),

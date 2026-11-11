@@ -13,6 +13,7 @@ from src.training import week_compliance
 from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
+from .validation import json_object
 
 
 def _open() -> sqlite3.Connection | None:
@@ -47,7 +48,10 @@ def _decide(adj_id: int, action: str):
     conn = _open()
     if conn is None:
         return api_error("NOT_FOUND", "running.db 없음", 503)
-    body = request.get_json(silent=True) or {}
+    body, err = json_object()  # D-21
+    if err:
+        conn.close()
+        return err
     via = body.get("via")
     try:
         cur = svc._get(conn, adj_id)
@@ -83,7 +87,9 @@ def revert_plan_adjustment(adj_id: int):
 
 @api_bp.post("/coach/plan/workouts/<int:workout_id>/action")
 def plan_workout_action(workout_id: int):
-    body = request.get_json(silent=True) or {}
+    body, err = json_object()  # D-21
+    if err:
+        return err
     conn = _open()
     if conn is None:
         return api_error("NOT_FOUND", "running.db 없음", 503)

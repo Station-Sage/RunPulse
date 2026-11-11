@@ -107,3 +107,8 @@
 - A-38 처리: 소스명 표준 표기와 평균 간격 — "Garmin · 기록점 300개(약 10초마다)"(`pointsCaption`). 간격 풀이 문구는 임시(TXT-1).
 - A-39 처리: 탭 이동(replaceState) 뒤 `← 활동`이 history.back 대신 필터 없는 목록으로 가던 원인(탭 이동 때 '앱 안에서 들어옴' 판정이 꺼짐) 수정(`activityBack.nextCameFromApp`). history.back 을 못 쓰는 직접 진입은 같은 탭에서 마지막으로 본 목록 필터를 sessionStorage 로 되살림(`listBackPath`). 새 탭·새 세션은 여전히 필터 없는 목록.
 - A-40 확인: 합성 DB 90건에서 무한 스크롤 + "더 불러오기"로 40 → 90, 끝에 "전체 90건을 모두 불러왔어요". 수정 없음.
+
+## 처리 기록 (2026-11-11, V2-AUDIT-INDIV 묶음 G — 보류 항목 추천안, S4-85)
+- A-14 후속 처리: `openwaterswim`(Intervals.icu `OpenWaterSwim` 소문자 저장)·`open_water` 를 수영 family 에 넣음(`activity_types._SWIMMING_TYPES`, `_INTERVALS_MAP`). 읽기 시 `family_raw_types` 로 묶이므로 기존 행도 재동기화 없이 "수영" 칩·수영 페이스로 감. 저장된 `activity_type` 값은 바꾸지 않음.
+- A-36 후속 부분: 서버 다운샘플 설계 — `GET …/streams?max_points=N`(100~10000, 범위 밖·정수 아님 400) 을 주면 소스별로 점 수 비율대로 나눠 균등 간격으로 추리고 첫·끝 점을 보존, 응답에 `downsampled: {from, to}`(`services/stream_downsample.py`). 기본(파라미터 없음)은 전체 해상도 그대로. **프런트는 아직 요청하지 않음** — 스트림 화면의 시간축 추정(`streamSeconds`, 신뢰 못 하는 time_basis 에서 점 번호로 시간 계산)과 "기록점 N개" 캡션이 전체 점 수에 기대고 있어, 연결하려면 그 두 곳을 `downsampled.from` 기준으로 바꾸는 작업이 먼저 필요. 응답 크기(630KB)는 이번에 줄지 않음.
+- A-21(`910abc`): 묶음 B1 에서 이미 처리(숫자만 허용, `test_api_library` 의 `910abc` 400 케이스) — 추가 작업 없음.

@@ -12,7 +12,9 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Any
 
-from src.services.story_period import _get_block_dates, _month_date_range, _parse_period, _week_date_range
+from src.services.story_period import (
+    _get_block_dates, _month_date_range, _parse_period, _week_date_range, week_neighbors,
+)
 from src.services.story_compare import compare_basis
 from src.services.story_stats import (
     _get_ctl_range, _get_intensity_distribution, _get_key_sessions,
@@ -155,9 +157,15 @@ def get_story(
         prev_month = month - 1 if month > 1 else 12
         prev_year = year if month > 1 else year - 1
         prev_start, prev_end = _month_date_range(prev_year, prev_month)
-    else:  # week
-        prev_date = date.fromisoformat(start_date) - timedelta(weeks=1)
-        prev_start, prev_end = _week_date_range(prev_date.year, prev_date.isocalendar()[1])
+    else:  # week — 달력 연도와 ISO 주차를 섞지 않는다(M-01: 연말 경계)
+        if scope == "week":
+            wy, ww = year, week
+        else:  # block — 시작일이 속한 주(일요일 시작이면 다음 날 월요일) 기준
+            iso = (date.fromisoformat(start_date) + timedelta(days=1)).isocalendar()
+            wy, ww = iso[0], iso[1]
+        prev_week_id, next_week_id = week_neighbors(wy, ww)
+        prev_y, prev_w = (int(x) for x in prev_week_id.split("-W"))
+        prev_start, prev_end = _week_date_range(prev_y, prev_w)
 
     # 진행 중인 기간은 이전 기간도 같은 일수까지만 비교한다(M-14: 10월 1~11일 vs 9월 전체 방지).
     today = date.today().isoformat()
@@ -192,10 +200,10 @@ def get_story(
         next_year = year if month < 12 else year + 1
         prev_period = f"{prev_year}-{prev_month:02d}"
         next_period = f"{next_year}-{next_month:02d}" if f"{next_year}-{next_month:02d}-01" <= today else None
-    else:  # week
-        next_date = date.fromisoformat(end_date) + timedelta(days=1)
-        prev_period = f"{prev_year}-W{prev_date.isocalendar()[1]:02d}"
-        next_period = f"{next_date.year}-W{next_date.isocalendar()[1]:02d}"
+    else:  # week — 아직 시작하지 않은 다음 주는 링크하지 않는다(월 모드와 같은 규칙)
+        next_y, next_w = (int(x) for x in next_week_id.split("-W"))
+        prev_period = prev_week_id
+        next_period = next_week_id if _week_date_range(next_y, next_w)[0] <= today else None
 
     # ── 마일스톤 (조회 중인 기간 내) ─────────────────────────────────────
     from src.services import milestone_service

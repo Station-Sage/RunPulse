@@ -12,7 +12,7 @@ describe('mergedSourceLabel', () => {
 			{ id: 2, provider: 'intervals', is_canonical: false },
 			{ id: 1, provider: 'garmin', is_canonical: true }
 		];
-		assert.equal(mergedSourceLabel('garmin', s), 'Garmin ★ · Intervals');
+		assert.equal(mergedSourceLabel('garmin', s), 'Garmin ★ · Intervals.icu');
 	});
 });
 

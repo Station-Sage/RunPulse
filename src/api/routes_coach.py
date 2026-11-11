@@ -15,7 +15,7 @@ from src.utils.config import load_config
 from src.utils.user_context import db_path, get_current_user_id
 
 from . import api_bp, api_error, api_ok
-from .validation import dict_field, enum_field, int_field, parse_args, parse_body, str_field
+from .validation import dict_field, enum_field, int_field, json_object, parse_args, parse_body, str_field
 
 
 _CLIENT_MSG_ID = str_field(input_limits.CLIENT_MSG_ID_MAX)
@@ -228,7 +228,10 @@ def post_coach_regenerate(message_id: int):
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
-    mode = (request.get_json(silent=True) or {}).get("mode") or "ai"
+    body, err = json_object()  # D-21
+    if err:
+        return err
+    mode = body.get("mode") or "ai"
     if mode not in ("ai", "rule"):
         return api_error("INVALID_PARAM", "mode는 ai 또는 rule이어야 합니다.", 400)
 
@@ -268,7 +271,9 @@ def put_coach_consent():
     if not dpath.exists():
         return api_error("NOT_FOUND", "running.db 없음", 503)
 
-    body = request.get_json(silent=True) or {}
+    body, err = json_object()  # D-21
+    if err:
+        return err
     provider = body.get("provider")
     if not provider:
         return api_error("INVALID_PARAM", "provider가 필요합니다.", 400)
@@ -277,9 +282,9 @@ def put_coach_consent():
     try:
         consent = coach_consent.save_consent(
             conn, provider,
-            exclude_notes=bool(body.get("exclude_notes", False)),
+            exclude_notes=bool(body.get("exclude_notes", coach_consent.DEFAULT_EXCLUDE_NOTES)),
             tools_enabled=bool(body.get("tools_enabled", True)),
-            fallback_enabled=bool(body.get("fallback_enabled", True)),
+            fallback_enabled=bool(body.get("fallback_enabled", coach_consent.DEFAULT_FALLBACK_ENABLED)),
         )
     except ValueError as exc:
         return api_error("INVALID_PARAM", str(exc), 400)

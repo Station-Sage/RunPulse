@@ -19,7 +19,7 @@ from src.training.planner import (
     save_weekly_plan,
     ensure_user_training_prefs,  # noqa: F401
 )
-from src.training.planner_store import WeekdaysRequired, set_workout_weekdays
+from src.training.planner_store import WeekdaysRequired, set_long_run_weekday, set_workout_weekdays
 from src.training.planner_rules import plan_start_monday, plan_weeks_until_race
 from src.training.readiness import (
     analyze_readiness,
@@ -201,6 +201,7 @@ def create_plan_from_template(
     run_weekdays,
     expect_active_goal_id=_UNSET,
     race_id: int | None = None,
+    long_run_weekday=_UNSET,
 ) -> int:
     """템플릿 선택으로 새 플랜 생성. goal_id 반환.
 
@@ -214,6 +215,8 @@ def create_plan_from_template(
         recent_weekly_km / recent_long_km: 사용자가 입력한 최근 주간 km·최장 롱런 km(선택, v2 콜드스타트 출처).
         run_weekdays: 운동 요일(0=월..6=일) 필수. 비면 WeekdaysRequired. 저장 후 계획이 이 요일 안에서만 달린다(PLN-11·12).
         race_id: 기존 대회(race_calendar)에 연결. A·예정 대회만 허용하고 대회일·거리·이름을 그 값으로 맞춘다(RC-c).
+        long_run_weekday: 롱런 선호 요일(0=월..6=일) 또는 None(자동). 주어지면 저장하고 운동 요일 안이어야 한다(P-14).
+            생략(_UNSET)하면 저장된 선호를 그대로 쓴다(구버전 클라이언트 호환).
         expect_active_goal_id: 활성 플랜이 있고 이 값과 다르면 PlanConflict(확인 후 재전송, PLN-43).
 
     Returns:
@@ -228,6 +231,8 @@ def create_plan_from_template(
     input_limits.check_plan_request(distance_km, weeks)
     if not run_weekdays:
         raise WeekdaysRequired("운동 요일을 먼저 지정해야 계획을 만들 수 있습니다")
+    if long_run_weekday is not _UNSET and long_run_weekday is not None and long_run_weekday not in run_weekdays:
+        raise WeekdaysRequired("롱런 요일은 운동 요일 중 하나여야 합니다")
     avail = plan_weeks_until_race(race_date)
     if avail is not None:
         weeks = max(1, min(weeks, avail))    # 대회일 이후로는 계획을 만들지 않는다(대회 주가 마지막 주)
@@ -249,6 +254,8 @@ def create_plan_from_template(
         if recent_weekly_km is not None or recent_long_km is not None:
             set_reported_load(conn, goal_id, recent_weekly_km, recent_long_km)
         set_workout_weekdays(conn, run_weekdays, commit=False)
+        if long_run_weekday is not _UNSET:
+            set_long_run_weekday(conn, long_run_weekday, commit=False)
 
         # 대회가 있으면 대회 주에서 weeks 주 거슬러 시작(남은 기간보다 짧게 고르면 시작이 미래 — 대회 주가 항상 마지막 주)
         ws = (plan_start_monday(race_date, weeks) if race_date and avail is not None else None) \

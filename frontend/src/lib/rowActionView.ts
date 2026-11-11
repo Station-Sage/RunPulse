@@ -56,8 +56,16 @@ export function reasonLabel(key: string | null | undefined): string {
 
 export function rowActionMode(w: PlannedWorkout, today: string): RowActionMode {
 	if (w.completed || w.superseded || w.date < today) return 'hidden';
-	if (w.workout_type === 'rest' && !w.adjusted) return 'hidden';
+	// P-24: 조정 안 된 휴식 행은 바꿀 op 가 없어 오늘은 숨기고, 미래 날짜만 잠금 시트(코치 상담 안내)로 연다.
+	if (w.workout_type === 'rest' && !w.adjusted) return w.date > today ? 'locked' : 'hidden';
 	return w.date > today ? 'locked' : 'active';
+}
+
+/** 잠금 시트 안내 문구(TXT-1 잠정) — 휴식 행은 당일에도 직접 바꿀 수 없어 코치 상담만 안내한다(P-24). */
+export function lockedText(w: Pick<PlannedWorkout, 'workout_type' | 'adjusted'>): string {
+	if (w.workout_type === 'rest' && !w.adjusted)
+		return '휴식일은 직접 바꿀 수 없어요. 이날 달리고 싶다면 코치와 상의해 보세요.';
+	return '오늘 세션만 바꿀 수 있어요. 미래 세션은 당일에 조정하거나 코치와 상의해 보세요.';
 }
 
 export interface OpAvailability {

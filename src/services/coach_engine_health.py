@@ -8,7 +8,7 @@ import json
 import sqlite3
 
 from src.ai.chat_context_scope import scope_catalog
-from src.ai.chat_engine_result import build_chain
+from src.ai.chat_engine_result import FALLBACK_ORDER, build_chain
 from src.ai.provider_common import LLM_PROVIDERS, REASON_LABELS, api_key_for, model_for
 from src.services.coach_consent import get_consent
 
@@ -30,12 +30,13 @@ def reason_label(reason: str | None) -> str:
     return REASON_LABELS.get(reason or "", reason or "알 수 없음")
 
 
+# C-13: 답변 엔진 표기는 "규칙 답변 (사유)" 한 형식으로 통일한다(TXT-1 잠정).
 def engine_label(status: str, provider: str | None, model: str | None, tool_calls: int, reason: str | None) -> str:
     if status == "ok":
         base = model_label(provider or "", model)
         return f"{base} · 조회 {tool_calls}회" if tool_calls else base
     if status == "fallback":
-        return "기본 규칙 답변"
+        return "규칙 답변 (AI 연결 실패)"
     if status == "rule_only":
         return "규칙 답변 (AI 미설정)"
     if status == "rule_by_choice":
@@ -45,7 +46,7 @@ def engine_label(status: str, provider: str | None, model: str | None, tool_call
     if status == "cancelled":
         return "중단됨"
     if status == "legacy_rule":
-        return "규칙 답변(이전 방식)"
+        return "규칙 답변 (이전 방식)"
     return "답변 엔진 정보 없음"
 
 
@@ -121,10 +122,13 @@ def get_engine(conn: sqlite3.Connection, config: dict | None) -> dict:
     else:
         mode = "llm"
     chain, _ = build_chain(selected, config, consent, True)
+    # C-17: 동의창에 "실패 시 재시도" 대상 제공자를 이름으로 밝힌다(호출 순서는 build_chain 그대로).
+    fallback = [p for p in FALLBACK_ORDER if p != selected and api_key_for(p, config)] if selected in LLM_PROVIDERS else []
     return {
         "mode": mode,
         "selected": {"provider": selected, "model": model_for(selected, config) if selected in LLM_PROVIDERS else None},
         "chain": [{"provider": p, "model": model_for(p, config)} for p in chain],
+        "fallback_providers": [{"provider": p, "label": _PROVIDER_NAMES.get(p, p)} for p in fallback],
         "health": health_summary(conn),
         "consent": consent,
         "scope": scope_catalog(),

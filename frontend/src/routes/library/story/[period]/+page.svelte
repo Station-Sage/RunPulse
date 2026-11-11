@@ -77,7 +77,7 @@
 
 	{#if s.compare.length}
 		<section>
-			<h3 class="mb-2 text-sm font-semibold text-fg-secondary">이전 {unitLabel}과 비교</h3>
+			<h3 class="mb-2 text-sm font-semibold text-fg-secondary">이전 {unitLabel}{scope === 'week' ? '와' : '과'} 비교</h3>
 			{#if s.compare_basis}<p class="mb-2 text-xs text-fg-muted" data-testid="story-compare-basis">{s.compare_basis}</p>{/if}
 			<ul class="flex flex-col gap-2">
 				{#each s.compare as c (c.key)}

@@ -29,7 +29,7 @@ def test_mixed_versions_give_one_event():
 def test_provider_switch_gives_one_event():
     c = _conn([("2026-09-24", "intervals", "1.0"), ("2026-09-25", "runpulse:formula_v1", "1.0")])
     ev = version_change_events(c, "ctl", "2026-09-24", "2026-09-25")
-    assert len(ev) == 1 and ev[0]["label"] == "출처 변경: Intervals→RunPulse"
+    assert len(ev) == 1 and ev[0]["label"] == "출처 변경: Intervals.icu→RunPulse"
 
 
 def test_single_version_and_no_data():

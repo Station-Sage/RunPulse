@@ -26,7 +26,8 @@ def _parse_period(period: str) -> dict[str, Any]:
         try:
             year = int(parts[0])
             week = int(parts[1])
-            if not 1 <= week <= 53:
+            # ISO 주차는 52주 해와 53주 해가 있다 — 그 해 마지막 주를 넘으면 오류.
+            if not 1 <= week <= iso_weeks_in_year(year):
                 raise ValueError("week out of range")
             return {"scope": "week", "year": year, "week": week}
         except ValueError:
@@ -70,6 +71,22 @@ def _week_date_range(year: int, week: int) -> tuple[str, str]:
     target_start_sunday = target_start - timedelta(days=(target_start.weekday() + 1) % 7)
     target_end_saturday = target_start_sunday + timedelta(days=6)
     return target_start_sunday.isoformat(), target_end_saturday.isoformat()
+
+
+def iso_weeks_in_year(year: int) -> int:
+    """그 해 ISO 주차 수(52 또는 53). 12월 28일은 항상 마지막 ISO 주에 속한다."""
+    return date(year, 12, 28).isocalendar()[1]
+
+
+def week_neighbors(year: int, week: int) -> tuple[str, str]:
+    """ISO 주차 기준 이전·다음 주 id — 연말 경계는 ISO 연도로 넘긴다(M-01).
+
+    Returns: ('2026-W39', '2026-W41') 형식.
+    """
+    monday = date.fromisocalendar(year, week, 1)
+    prev_iso = (monday - timedelta(weeks=1)).isocalendar()
+    next_iso = (monday + timedelta(weeks=1)).isocalendar()
+    return f"{prev_iso[0]}-W{prev_iso[1]:02d}", f"{next_iso[0]}-W{next_iso[1]:02d}"
 
 
 def _get_block_dates(conn: sqlite3.Connection, plan_id: str, phase: str) -> tuple[str, str]:

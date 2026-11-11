@@ -8,7 +8,7 @@ export function providerLabel(p: ProviderKey | null | undefined): string {
 	const names: Record<string, string> = {
 		garmin: 'Garmin',
 		strava: 'Strava',
-		intervals: 'Intervals',
+		intervals: 'Intervals.icu',
 		runalyze: 'Runalyze',
 		runpulse: 'RunPulse'
 	};
@@ -23,7 +23,7 @@ export function providerLabelCompact(p: ProviderKey | null | undefined): string 
 	const names: Record<string, string> = {
 		garmin: 'Garmin',
 		strava: 'Strava',
-		intervals: 'Intervals',
+		intervals: 'Intervals.icu',
 		runalyze: 'Runalyze',
 		runpulse: 'RunPulse'
 	};

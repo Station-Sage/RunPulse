@@ -10,7 +10,7 @@ export const PERIOD_DAYS = [
 
 export const PROVIDER_NAMES: Record<string, string> = {
 	garmin: 'Garmin',
-	intervals: 'Intervals',
+	intervals: 'Intervals.icu',
 	strava: 'Strava',
 	runalyze: 'Runalyze',
 	runpulse: 'RunPulse'

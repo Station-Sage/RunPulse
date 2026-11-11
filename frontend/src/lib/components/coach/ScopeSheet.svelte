@@ -2,7 +2,7 @@
 	// 첫 LLM 전송 동의 + 전송 범위 3개 토글 (30-coach-chat design §7.3). 동의 전에는 외부 호출이 없다.
 	import type { CoachEngine } from '$lib/types';
 	import type { ConsentInput } from '$lib/api/coach';
-	import { visibleScope } from '$lib/coachEngine';
+	import { consentDefaults, consentText, fallbackNames, visibleScope } from '$lib/coachEngine';
 	import { getConsent, postConsent } from '$lib/api/context';
 	import { onMount } from 'svelte';
 	import { modal } from '$lib/overlay';
@@ -19,10 +19,12 @@
 		onClose: () => void;
 	} = $props();
 
-	const c = engine.consent;
-	let excludeNotes = $state(c?.exclude_notes ?? false);
-	let toolsEnabled = $state(c?.tools_enabled ?? true);
-	let fallbackEnabled = $state(c?.fallback_enabled ?? true);
+	// C-17: 동의 전 기본값은 메모 제외·재시도 끔(저장된 동의가 있으면 그 값)
+	const d0 = consentDefaults(engine.consent);
+	let excludeNotes = $state(d0.excludeNotes);
+	let toolsEnabled = $state(d0.toolsEnabled);
+	let fallbackEnabled = $state(d0.fallbackEnabled);
+	const fbNames = $derived(fallbackNames(engine));
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 
@@ -70,9 +72,7 @@
 	>
 		<h2 id="scope-sheet-h" class="font-medium">{requireConsent ? 'AI로 질문을 보내기 전에' : '전송 범위'}</h2>
 		{#if requireConsent}
-			<p class="text-xs text-fg-secondary">
-				질문과 아래 러닝 데이터가 {engine.selected.provider} 서버로 전송돼요. 동의해야 AI 답변을 쓸 수 있고, 동의 전에는 아무것도 전송하지 않아요.
-			</p>
+			<p class="text-xs text-fg-secondary" data-testid="consent-text">{consentText(engine)}</p>
 		{/if}
 
 		<ul class="flex flex-col gap-1 text-xs text-fg-secondary" data-testid="scope-list">
@@ -89,10 +89,12 @@
 			<span>필요한 데이터를 AI가 직접 조회</span>
 			<input type="checkbox" bind:checked={toolsEnabled} data-testid="toggle-tools" />
 		</label>
-		<label class="flex items-center justify-between gap-3 text-sm">
-			<span>실패 시 다른 AI로 재시도</span>
-			<input type="checkbox" bind:checked={fallbackEnabled} data-testid="toggle-fallback" />
-		</label>
+		{#if fbNames || fallbackEnabled}
+			<label class="flex items-center justify-between gap-3 text-sm">
+				<span>실패 시 다른 AI로 재시도{fbNames ? ` (${fbNames})` : ''}</span>
+				<input type="checkbox" bind:checked={fallbackEnabled} data-testid="toggle-fallback" />
+			</label>
+		{/if}
 
 		<label class="flex items-center justify-between gap-3 text-sm">
 			<span>아팠던 기록을 코치와 공유</span>

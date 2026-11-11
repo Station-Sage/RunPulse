@@ -442,3 +442,9 @@
 - D3: `SYNC_SCHEDULER=legacy|multi`, 기본 legacy(롤백 경로). multi 는 `SYNC_PINNED_UIDS` 로 운영자 우선 후 전환 — 운영 전환은 사용자 확인 시.
 - D4: LLM 예산(`src/ai/llm_budget.py`) — 사용자 일 200회·30만 토큰, 전역 일 4,000회·800만 토큰, 동시 3, 분당 10회 초과는 busy. 한도 거절은 다른 제공자로 폴백하지 않음.
 - 진행: T1~T9 구현·운영 배포 완료(S4-76, 운영 legacy). 미완: DoD 2~5(합성 20명·브라우저 한도 시나리오·운영 24h 관찰·multi 전환).
+
+## ADR-055: 코치 폴백 opt-in·메모 기본 제외, 롱런 선호 요일 (2026-11-11)
+- 배경: UX 리뷰 C-17 — 동의 한 번으로 `fallback_enabled=true` 가 기본이라 두 번째 제공자로도 질문·러닝 데이터가 전송됐고, 동의창은 첫 제공자만 밝혔다. P-14 — `user_training_prefs.long_run_weekday_mask` 컬럼은 있었으나 생성 규칙이 쓰지 않았다. 사용자가 보류 항목을 추천안으로 진행하라고 지시(2026-11-11, S4-85).
+- D1(C-17): 새 동의의 기본값은 재시도 끔·메모 제외(`coach_consent.DEFAULT_FALLBACK_ENABLED=False`, `DEFAULT_EXCLUDE_NOTES=True`). 동의창은 기본 제공자와 재시도 대상(`GET /coach/engine` `fallback_providers`)을 이름으로 같이 밝힌다. 체인 구성·호출 순서·예산(`build_chain`, ADR-054 D4)은 바꾸지 않는다 — 저장된 `fallback_enabled` 만 따른다.
+- D2(C-17): 이미 저장된 동의 행은 마이그레이션하지 않는다(DB 기본값 `fallback_enabled=1` 도 그대로). 기존 사용자를 다시 묻거나 끄는 것은 사용자 결정으로 남긴다.
+- D3(P-14): 롱런 선호 요일은 선택 입력(기본 자동 = 기존 주말 우선 배치). 지정하면 그 주 가용일일 때만 먼저 롱런으로 잡고 Q-day 후보에서 뺀다. 가용일이 아니면(운동 요일 밖·차단 날짜) 자동 배치로 되돌린다. 마스크가 0 이면 생성 결과는 이전과 같다.

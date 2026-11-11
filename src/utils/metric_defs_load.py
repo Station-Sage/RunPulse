@@ -56,9 +56,9 @@ LOAD_DEFS: list[MetricDef] = [
               aliases={"garmin": "powerTimeInZone_3"}),
     MetricDef("power_zone_5_sec", "power", "metric", "sec", "Power Zone 5 체류 시간",
               aliases={"garmin": "powerTimeInZone_4"}),
-    MetricDef("icu_ftp", "power", "metric", "W", "Intervals FTP",
+    MetricDef("icu_ftp", "power", "metric", "W", "Intervals.icu FTP",
               aliases={"intervals": "icu_ftp"}),
-    MetricDef("icu_w_prime", "power", "metric", "kJ", "Intervals W'",
+    MetricDef("icu_w_prime", "power", "metric", "kJ", "Intervals.icu W'",
               aliases={"intervals": "icu_w_prime"}),
 
     # ── pace (구간 페이스) ──
@@ -114,7 +114,7 @@ LOAD_DEFS: list[MetricDef] = [
               aliases={"garmin": "performanceCondition"}),
     MetricDef("relative_effort", "load", "metric", "AU", "Relative Effort (심박존 기반)"),
     MetricDef("wlei", "load", "metric", "AU", "WLEI (날씨 가중 노력 지수)"),
-    MetricDef("icu_feel", "load", "metric", "", "체감 (Intervals Feel)",
+    MetricDef("icu_feel", "load", "metric", "", "체감 (Intervals.icu Feel)",
               aliases={"intervals": "icu_feel"}),
     MetricDef("icu_rpe", "load", "metric", "", "주관적 운동 강도 (RPE)",
               aliases={"intervals": "icu_rpe", "garmin": "averageRPE", "strava": "perceived_exertion"}),

@@ -73,3 +73,10 @@ class TestSportFamily:
         from src.services.activity_list_filters import SPORT_LABELS as A
         from src.utils.activity_types import SPORT_LABELS as B
         assert A is B
+
+    def test_open_water_swim_is_swimming(self):
+        """A-14 후속: Intervals.icu OpenWaterSwim(레거시 소문자 'openwaterswim' 포함)은 수영."""
+        from src.utils.activity_types import family_raw_types, normalize_activity_type, sport_family
+        assert normalize_activity_type("OpenWaterSwim", "intervals") == "swimming"
+        assert sport_family("openwaterswim") == "swimming"
+        assert "openwaterswim" in family_raw_types("swimming")

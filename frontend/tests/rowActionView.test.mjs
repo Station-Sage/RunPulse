@@ -15,6 +15,9 @@ test('mode: hidden/locked/active', () => {
 	assert.equal(rowActionMode(w({ completed: 1 }), T), 'hidden');
 	assert.equal(rowActionMode(w({ superseded: true }), T), 'hidden');
 	assert.equal(rowActionMode(w({ workout_type: 'rest' }), T), 'hidden');
+	// P-24: 미래 휴식 행은 잠금 시트(코치 상담), 지난 휴식은 숨김
+	assert.equal(rowActionMode(w({ workout_type: 'rest', date: '2026-10-10' }), T), 'locked');
+	assert.equal(rowActionMode(w({ workout_type: 'rest', date: '2026-10-08' }), T), 'hidden');
 	assert.equal(rowActionMode(w({ workout_type: 'rest', adjusted: true }), T), 'active');
 });
 
@@ -102,4 +105,10 @@ test('통증: 정도별 허용 op·기본 op, 부위 최대 3곳', async () => {
 
 test('rowSheetParam: 시트 딥링크 값', () => {
 	assert.equal(rowSheetParam(42), 'row-42');
+});
+
+test('P-24 lockedText: 휴식 행은 코치 상담 안내', async () => {
+	const { lockedText } = await import('../src/lib/rowActionView.ts');
+	assert.match(lockedText({ workout_type: 'rest' }), /휴식일은 직접 바꿀 수 없어요/);
+	assert.match(lockedText({ workout_type: 'easy' }), /오늘 세션만/);
 });

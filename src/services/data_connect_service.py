@@ -40,7 +40,7 @@ def _result(ok: bool, message_ko: str, **extra) -> dict:
     return {"ok": ok, "message_ko": message_ko, **extra}
 
 
-_NAMES = {"intervals": "Intervals", "runalyze": "Runalyze", "garmin": "Garmin", "strava": "Strava"}
+_NAMES = {"intervals": "Intervals.icu", "runalyze": "Runalyze", "garmin": "Garmin", "strava": "Strava"}
 
 
 def failure_message(provider: str, res: dict) -> tuple[str, str]:

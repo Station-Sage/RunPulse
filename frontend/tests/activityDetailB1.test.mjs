@@ -23,13 +23,13 @@ const act = (family, source = 'intervals', siblings = []) => ({ core: { source }
 
 test('emptyDataNote: 소스 원인 + 동기화 안내, 근력은 안내만(A-05·S-16)', () => {
 	const n = emptyDataNote('streams', act('running'));
-	assert.match(n.reason, /Intervals에서 이 활동의 초 단위 기록/);
+	assert.match(n.reason, /Intervals\.icu에서 이 활동의 초 단위 기록/);
 	assert.deepEqual(n.action, { label: '동기화 상태 보기', path: '/data/sync' });
 	const s = emptyDataNote('laps', act('strength', 'garmin'));
 	assert.match(s.reason, /근력 운동은 랩을/);
 	assert.equal(s.action, null);
 	const m = emptyDataNote('laps', act('running', 'garmin', [{ provider: 'garmin' }, { provider: 'intervals' }]));
-	assert.match(m.reason, /^Garmin·Intervals에서/);
+	assert.match(m.reason, /^Garmin·Intervals\.icu에서/);
 	assert.equal(emptyDataNote('laps', null).action, null);
 });
 

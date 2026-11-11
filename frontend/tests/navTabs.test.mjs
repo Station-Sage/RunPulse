@@ -19,3 +19,9 @@ test('S-06 tabHighlightPath: 이동 중이면 목적지, 아니면 현재 경로
 	assert.equal(tabHighlightPath('/v2/library', null), '/v2/library');
 	assert.equal(tabHighlightPath('/v2/library', undefined), '/v2/library');
 });
+
+test('E-12 tabAriaLabel: 보이는 영어 라벨 + 한글 뜻', async () => {
+	const { tabAriaLabel } = await import('../src/lib/shell/navTabs.ts');
+	const t = navTabs('/v2');
+	assert.deepEqual(t.map((x) => tabAriaLabel(x)), ['Today (오늘)', 'Library (기록)', 'Coach (코치)']);
+});

@@ -118,7 +118,7 @@
 
 - functions: kind_of, triggered, intensity, primary, classify
 
-### `ai_settings_service.py` (153줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
+### `ai_settings_service.py` (154줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
 
 - functions: mask_key, key_state, usage_7d, build_view, key_format_error, validate_patch, apply_patch, test_connection
 
@@ -143,11 +143,11 @@
 - class **_Run**: emit, finish
 - functions: source_text, replay_events, start, cancel, sse, stream
 
-### `coach_consent.py` (41줄) — Coach LLM 전송 동의 저장소 — coach_consent 단일 행(30-coach-chat design §4.3).
+### `coach_consent.py` (46줄) — Coach LLM 전송 동의 저장소 — coach_consent 단일 행(30-coach-chat design §4.3).
 
 - functions: get_consent, save_consent
 
-### `coach_engine_health.py` (131줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
+### `coach_engine_health.py` (135줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
 
 - functions: model_label, reason_label, engine_label, parse_engine, message_engine_view, health_summary, get_engine
 
@@ -404,7 +404,7 @@
 
 - functions: ctl_scale, get_active_plan, todays_adjustment_with_hold, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
-### `plan_template_service.py` (268줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
+### `plan_template_service.py` (275줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
 
 - class **PlanConflict**: 없음
 - functions: check_active_expectation, finish_goal_summary, get_static_plan_templates, create_plan_from_template
@@ -512,17 +512,21 @@
 
 - functions: compare_basis
 
-### `story_period.py` (112줄) — Story 기간 파싱 — 월/주/블록 문자열 → 날짜 범위 (story_service 하위 모듈).
+### `story_period.py` (129줄) — Story 기간 파싱 — 월/주/블록 문자열 → 날짜 범위 (story_service 하위 모듈).
 
-- (public API 없음)
+- functions: iso_weeks_in_year, week_neighbors
 
-### `story_service.py` (224줄) — Phase 7 Story 서비스 — 월/주/블록 단위 훈련 내러티브 조회.
+### `story_service.py` (232줄) — Phase 7 Story 서비스 — 월/주/블록 단위 훈련 내러티브 조회.
 
 - functions: get_story
 
 ### `story_stats.py` (215줄) — Story 기간 통계 조회 — 거리·CTL·강도 분포·위험 피크·핵심 세션 (story_service 하위 모듈).
 
 - (public API 없음)
+
+### `stream_downsample.py` (43줄) — 스트림 다운샘플(A-36 후속) — 소스별 균등 간격 추리기, 첫·끝 점 보존. 요청 시에만 적용(기본은 전체 해상도).
+
+- functions: parse_max_points, downsample_streams
 
 ### `sync_range_service.py` (96줄) — 기간(range) 동기화 — 요청 추정(estimate)과 시작(trigger). 증분과 달리 cooldown 가드는 쓰지 않고 기간 정책만 본다.
 
@@ -1452,14 +1456,14 @@
 
 - functions: get_planned_workouts
 
-### `planner.py` (218줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
+### `planner.py` (225줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
 
 - functions: generate_weekly_plan
 
-### `planner_config.py` (197줄) — 훈련 계획 — 상수 및 설정/메트릭 조회 헬퍼.
+### `planner_config.py` (204줄) — 훈련 계획 — 상수 및 설정/메트릭 조회 헬퍼.
 
 - class **WeekdaysRequired**: 없음
-- functions: load_prefs, resolve_run_weekdays, weekdays_to_mask, get_available_days, get_latest_fitness, get_vdot_adj, get_eftp, get_marathon_shape_pct, get_week_index
+- functions: load_prefs, resolve_run_weekdays, resolve_long_run_weekday, weekdays_to_mask, get_available_days, get_latest_fitness, get_vdot_adj, get_eftp, get_marathon_shape_pct, get_week_index
 
 ### `planner_rules.py` (325줄) — 훈련 계획 — 훈련 단계·볼륨·Q-day·페이스·볼륨 배분·설명 규칙.
 
@@ -1469,9 +1473,9 @@
 
 - functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, recent_run_days_per_week, week_cap_km, plan_start_source, week_target
 
-### `planner_store.py` (105줄) — planner 행 저장 단일 진입점(PLN-38) — planned_workouts 에 source='planner' 행을 넣는 유일한 경로.
+### `planner_store.py` (117줄) — planner 행 저장 단일 진입점(PLN-38) — planned_workouts 에 source='planner' 행을 넣는 유일한 경로.
 
-- functions: write_planner_rows, save_weekly_plan, ensure_user_training_prefs, upsert_user_training_prefs, set_workout_weekdays
+- functions: write_planner_rows, save_weekly_plan, ensure_user_training_prefs, upsert_user_training_prefs, set_workout_weekdays, set_long_run_weekday
 
 ### `planner_v2.py` (207줄) — 계획 규칙 v2 후처리(DESIGN-U16) — v1 주간 행에 MP 세션·롱런 페이스·주간 구조 규칙을 입힌다.
 
@@ -1523,7 +1527,7 @@
 > 주의: db_helpers의 upsert 함수는 Phase 3 sync에서만 호출.
 >       서비스 레이어는 read 함수만 사용.
 
-### `activity_types.py` (113줄) — 활동 유형 정규화.
+### `activity_types.py` (116줄) — 활동 유형 정규화.
 
 - functions: normalize_activity_type, sport_family, family_raw_types, family_clause
 
@@ -1774,7 +1778,7 @@
 > 
 > 설계 문서: v0.3/data/phase-7-ui-renewal/05-tech-architecture.md §3
 
-### `routes_auth.py` (54줄) — 인증 상태 API — GET /api/v1/auth/session (공개 경로, AUTH_MODE=registry 에서 의미 있음).
+### `routes_auth.py` (58줄) — 인증 상태 API — GET /api/v1/auth/session (공개 경로, AUTH_MODE=registry 에서 의미 있음).
 
 - functions: get_auth_session, post_auth_invite
 
@@ -1782,7 +1786,7 @@
 
 - functions: client_family, calendar_feed
 
-### `routes_coach.py` (288줄) — /api/v1/coach — threads(+:id, +:id/messages) · messages(:id, /stream, /cancel, /regenerate) · suggestions · activity-context · engine · consent.
+### `routes_coach.py` (293줄) — /api/v1/coach — threads(+:id, +:id/messages) · messages(:id, /stream, /cancel, /regenerate) · suggestions · activity-context · engine · consent.
 
 - functions: get_coach_suggestions, get_coach_activity_context, get_coach_threads, post_coach_threads, get_coach_thread_detail, post_coach_thread_messages, get_coach_message, get_coach_message_stream, post_coach_cancel, post_coach_regenerate, get_coach_engine, put_coach_consent
 
@@ -1846,7 +1850,7 @@
 
 - functions: get_activity_feedback, put_activity_feedback, delete_activity_feedback
 
-### `routes_library_streams.py` (49줄) — GET /api/v1/library/activities/:id/streams + 활동 하위 경로의 잘못된 id JSON 봉투 (UX 리뷰 A-20·A-22).
+### `routes_library_streams.py` (57줄) — GET /api/v1/library/activities/:id/streams + 활동 하위 경로의 잘못된 id JSON 봉투 (UX 리뷰 A-20·A-22).
 
 - functions: get_library_activity_streams, bad_library_activity_path
 
@@ -1858,19 +1862,19 @@
 
 - functions: get_preferences, patch_preferences
 
-### `routes_plan.py` (262줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
+### `routes_plan.py` (277줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
 
 - functions: get_active_plan_route, get_restorable_plans_route, get_plan_weeks_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan, restore_plan_route
 
-### `routes_plan_adjust.py` (180줄) — `/api/v1/coach/plan/adjustments*` — 계획 조정 수락·되돌리기·이력 (ADR-035).
+### `routes_plan_adjust.py` (186줄) — `/api/v1/coach/plan/adjustments*` — 계획 조정 수락·되돌리기·이력 (ADR-035).
 
 - functions: accept_plan_adjustment, revert_plan_adjustment, plan_workout_action, plan_workout_action_preview, list_plan_adjustments, plan_advisories
 
-### `routes_plan_replan.py` (117줄) — `/api/v1/coach/plan/replan*` — 안전한 재계획 미리보기·적용·되돌리기 (ADR-035 부록 R).
+### `routes_plan_replan.py` (121줄) — `/api/v1/coach/plan/replan*` — 안전한 재계획 미리보기·적용·되돌리기 (ADR-035 부록 R).
 
 - functions: replan_preview, replan_last, replan_apply, replan_undo, replan_garmin_targets, replan_garmin_cleanup
 
-### `routes_prediction.py` (85줄) — GET /api/v1/prediction/compare, GET /api/v1/prediction/profile, GET /api/v1/races/candidates, PUT·DELETE /api/v1/races/<activity_id>/confirm — P7-PRED-53·71.
+### `routes_prediction.py` (88줄) — GET /api/v1/prediction/compare, GET /api/v1/prediction/profile, GET /api/v1/races/candidates, PUT·DELETE /api/v1/races/<activity_id>/confirm — P7-PRED-53·71.
 
 - functions: get_prediction_compare, get_prediction_profile, get_race_candidates, put_race_confirm, delete_race_confirm
 
@@ -1987,10 +1991,10 @@
 
 - functions: test_pace_cv_needs_three_splits, test_workout_class_and_environment, test_hr_zones_from_detail_and_device, test_source_diffs_threshold, test_verdict_text_and_none, test_verdict_running_unchanged_with_display, test_verdict_swimming_uses_label_and_100m_without_running_chips, test_verdict_strength_hr_only
 
-### `test_activity_types.py` (75줄) — activity_types.py 단위 테스트.
+### `test_activity_types.py` (82줄) — activity_types.py 단위 테스트.
 
 - class **TestNormalizeActivityType**: test_garmin_running, test_garmin_trail, test_strava_run, test_strava_trail_run, test_strava_ride, test_intervals_run, test_unknown_type_passthrough, test_empty_string, test_case_insensitive, test_cycling_variants, test_garmin_indoor_running, test_indoor_running_case_whitespace
-- class **TestSportFamily**: test_boundary_types, test_family_raw_types_running, test_family_clause, test_sport_labels_reexport
+- class **TestSportFamily**: test_boundary_types, test_family_raw_types_running, test_family_clause, test_sport_labels_reexport, test_open_water_swim_is_swimming
 
 ### `test_adaptation_service.py` (121줄) — tests/test_adaptation_service.py — adaptation_service.get_adaptation_status() 단위 테스트.
 
@@ -2155,6 +2159,10 @@
 ### `test_audit_e_plan_coach.py` (175줄) — V2-AUDIT-INDIV 묶음 E — 훈련 계획·코치 서버 쪽(P-10·P-12·P-16, C-05·C-11·C-14·C-16).
 
 - functions: test_acwr_range_comes_from_metric_definition, test_ctl_scale_uses_one_year_peak, test_finish_goal_templates_skip_achievability, test_finish_goal_summary_mentions_short_period, test_target_pace_error, app, test_templates_and_create_reject_impossible_target, test_save_empty_session_note_deletes, test_derive_title_strips_markdown_and_spaces, test_coach_service_reexports_title, test_list_threads_tie_breaks_by_id, test_list_threads_page_has_more, test_threads_route_paging_and_validation, test_unexpected_exception_is_not_network, test_run_chain_marks_unexpected
+
+### `test_audit_g_held.py` (187줄) — V2-AUDIT-INDIV 묶음 G — 보류 항목 추천안 반영(P-14 롱런 요일, D-21 확장, A-36 스트림 다운샘플, D-32 표기).
+
+- functions: test_resolve_and_store_long_run_weekday, test_plan_puts_long_run_on_preferred_weekday, test_plan_without_preference_keeps_weekend_default, test_long_run_weekday_must_be_run_day, client, test_non_object_json_body_is_400, test_create_plan_rejects_long_run_outside_run_days, test_parse_max_points, test_downsample_keeps_ends_and_order_per_source, test_streams_route_max_points, test_intervals_display_name_is_intervals_icu, test_consent_defaults_are_opt_in, test_consent_route_defaults_opt_in, test_engine_lists_fallback_providers_before_consent, test_rule_engine_labels_share_one_format
 
 ### `test_auth_cf.py` (241줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
@@ -3468,9 +3476,9 @@
 
 - functions: test_migrate_alone_fails_on_empty_db, test_create_tables_then_migrate_on_empty_db
 
-### `test_story_service.py` (110줄) — story_service — 기간 파싱, 월/주 Story 조회, 강도 분포 부족 처리, API 라우트.
+### `test_story_service.py` (133줄) — story_service — 기간 파싱, 월/주 Story 조회, 강도 분포 부족 처리, API 라우트.
 
-- functions: conn, test_parse_period, test_date_ranges, test_month_story, test_empty_month_does_not_raise, test_intensity_insufficient_without_zones, test_block_without_active_plan_raises, test_block_dates_follow_phase_weeks, test_route
+- functions: conn, test_parse_period, test_date_ranges, test_month_story, test_empty_month_does_not_raise, test_intensity_insufficient_without_zones, test_block_without_active_plan_raises, test_block_dates_follow_phase_weeks, test_route, test_week_story_does_not_raise, test_week_neighbors_cross_iso_year, test_week_story_year_boundary_and_future_next
 
 ### `test_strava_403_ledger.py` (48줄) — Strava 403(구독 필요)이 원장에 subscription_required로 남는지.
 
@@ -3857,7 +3865,7 @@
 - functions: run
 
 ---
-총 829개 파일
+총 831개 파일
 
 ## docstring 누락
 

@@ -3,7 +3,7 @@
 	import { base } from '$app/paths';
 	import { navigating, page } from '$app/state';
 	import Icon from '$lib/components/Icon.svelte';
-	import { navTabs, isTabActive, tabHighlightPath } from '$lib/shell/navTabs';
+	import { navTabs, isTabActive, tabAriaLabel, tabHighlightPath } from '$lib/shell/navTabs';
 
 	let { variant }: { variant: 'side' | 'bottom' } = $props();
 	const tabs = navTabs(base);
@@ -24,6 +24,8 @@
 			{@const active = isTabActive(highlightPath, base, tab.match)}
 			<a
 				href={tab.href}
+				aria-label={tabAriaLabel(tab)}
+				title={tab.ko}
 				aria-current={isTabActive(page.url.pathname, base, tab.match) ? 'page' : undefined}
 				class={side
 					? `flex items-center gap-3 min-h-11 rounded-lg px-3 py-2.5 text-sm ${active ? 'bg-surface-3 text-fg-primary' : 'text-fg-muted hover:bg-surface-3'}`

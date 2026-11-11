@@ -16,7 +16,7 @@ MIN_PAIRS = 3
 STALE_DAYS = 30
 OUTLIER_IQR_K = 1.5
 LOOKBACK_DAYS = 400
-PROVIDER_LABELS = {"garmin": "Garmin", "intervals": "Intervals", "strava": "Strava",
+PROVIDER_LABELS = {"garmin": "Garmin", "intervals": "Intervals.icu", "strava": "Strava",
                    "runalyze": "Runalyze", "runpulse": "RunPulse"}
 PROVIDER_ORDER = ["garmin", "intervals", "strava", "runalyze", "runpulse"]
 

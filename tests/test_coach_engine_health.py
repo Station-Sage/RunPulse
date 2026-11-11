@@ -19,7 +19,7 @@ def _add(conn, status, reason=None, provider="rule", http=None, tool_calls=0):
 
 def test_labels():
     assert h.engine_label("ok", "gemini", "gemini-2.5-flash", 3, None) == "Gemini 2.5 Flash · 조회 3회"
-    assert h.engine_label("fallback", "rule", None, 0, "http_404") == "기본 규칙 답변"
+    assert h.engine_label("fallback", "rule", None, 0, "http_404") == "규칙 답변 (AI 연결 실패)"
     assert h.engine_label("rule_only", "rule", None, 0, None) == "규칙 답변 (AI 미설정)"
     assert h.engine_label("rule_by_choice", "rule", None, 0, None) == "규칙 답변 (AI 끔)"
     assert "동의 필요" in h.engine_label("error", None, None, 0, "no_consent")
@@ -66,9 +66,9 @@ def test_get_engine_rule_only_when_no_keys(db_conn):
 
 
 def test_legacy_rule_label_single_source():
-    assert h.engine_label("legacy_rule", "rule", None, 0, None) == "규칙 답변(이전 방식)"
+    assert h.engine_label("legacy_rule", "rule", None, 0, None) == "규칙 답변 (이전 방식)"
     assert h.engine_label("???", None, None, 0, None) == "답변 엔진 정보 없음"
-    assert h.message_engine_view(None, None)["label"] == "규칙 답변(이전 방식)"
+    assert h.message_engine_view(None, None)["label"] == "규칙 답변 (이전 방식)"
 
 
 def test_row_status_overrides_engine_json():

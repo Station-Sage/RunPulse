@@ -1,7 +1,7 @@
 // 03e-coach.md 5-E — 프로그램 비교: 쿼리 파라미터로 템플릿 재조회.
 import { error } from '@sveltejs/kit';
 import { getPlanTemplates } from '$lib/api/plan';
-import { parseReportedLoad, parseRunWeekdays } from '$lib/planPrefill';
+import { parseLongRunWeekday, parseReportedLoad, parseRunWeekdays } from '$lib/planPrefill';
 import type { PlanTemplate } from '$lib/types';
 
 export interface ComparePlanData {
@@ -12,6 +12,8 @@ export interface ComparePlanData {
 	recentWeeklyKm: number | null;
 	recentLongKm: number | null;
 	runWeekdays: number[];
+	/** P-14: 롱런 요일(null = 자동). */
+	longRunWeekday: number | null;
 }
 
 export async function load({ url }: { url: URL }): Promise<ComparePlanData> {
@@ -23,6 +25,7 @@ export async function load({ url }: { url: URL }): Promise<ComparePlanData> {
 	const targetTimeParam = url.searchParams.get('target_time_sec');
 	const targetTimeSec = targetTimeParam ? Number(targetTimeParam) : null;
 	const reported = parseReportedLoad(url.searchParams);
+	const runWeekdays = parseRunWeekdays(url.searchParams.get('run_weekdays'));
 
 	const templates = await getPlanTemplates(
 		distanceKm,
@@ -37,6 +40,7 @@ export async function load({ url }: { url: URL }): Promise<ComparePlanData> {
 		targetTimeSec,
 		recentWeeklyKm: reported.weeklyKm,
 		recentLongKm: reported.longKm,
-		runWeekdays: parseRunWeekdays(url.searchParams.get('run_weekdays'))
+		runWeekdays,
+		longRunWeekday: parseLongRunWeekday(url.searchParams.get('long_run'), runWeekdays)
 	};
 }

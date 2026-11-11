@@ -126,9 +126,10 @@ def apply_patch(conn: sqlite3.Connection, config: dict, user_id: str, changes: d
     if provider in LLM_PROVIDERS and ({"provider", "exclude_notes", "fallback_enabled"} & set(changes) or not current):
         coach_consent.save_consent(
             conn, provider,
-            exclude_notes=changes.get("exclude_notes", current.get("exclude_notes", False)),
+            exclude_notes=changes.get("exclude_notes", current.get("exclude_notes", coach_consent.DEFAULT_EXCLUDE_NOTES)),
             tools_enabled=current.get("tools_enabled", True),
-            fallback_enabled=changes.get("fallback_enabled", current.get("fallback_enabled", True)))
+            fallback_enabled=changes.get("fallback_enabled",
+                                         current.get("fallback_enabled", coach_consent.DEFAULT_FALLBACK_ENABLED)))
     elif current and current.get("provider") in LLM_PROVIDERS and {"exclude_notes", "fallback_enabled"} & set(changes):
         coach_consent.save_consent(
             conn, current["provider"],
