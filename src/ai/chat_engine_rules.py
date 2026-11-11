@@ -1,7 +1,7 @@
 """AI 채팅 — 규칙 기반 답변 디스패처 (30-coach-chat design §7.3).
 
 AI가 없을 때 chip_id 핸들러(coach_rule_handlers)로 답한다. 자유 입력이나 알 수 없는 칩은
-키워드로 추측하지 않고 "AI 없이는 답할 수 없다"고 정직하게 안내한다.
+키워드로 답을 추측하지 않고 "AI 없이는 답할 수 없다"고 정직하게 안내한다 — 키워드는 안내할 칩 순서에만 쓴다(C-14).
 """
 from __future__ import annotations
 
@@ -21,4 +21,4 @@ def rule_based_response(
         answer = answer_chip(conn, chip_id)
         if answer is not None:
             return answer
-    return free_text_answer(conn)
+    return free_text_answer(conn, message=user_message)

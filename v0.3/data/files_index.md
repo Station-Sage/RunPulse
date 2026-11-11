@@ -1187,9 +1187,13 @@
 - class **RecoveryGrade**: parse
 - functions: checkin_drop, intensity_step, intensity_label
 
-### `coach_rule_handlers.py` (216줄) — Coach 규칙 답변 핸들러 레지스트리 — chip_id → 핸들러 (30-coach-chat design §7.3).
+### `coach_rule_handlers.py` (223줄) — Coach 규칙 답변 핸들러 레지스트리 — chip_id → 핸들러 (30-coach-chat design §7.3).
 
 - functions: today_advice, explain_metric, injury_check, answer_chip, answerable_chips, suggestion_chips, free_text_answer
+
+### `coach_rule_intent.py` (47줄) — Coach 규칙 답변 — 자유 입력 키워드 → 관련 칩 순서(UX C-14). 답을 추측하지 않고 안내할 칩만 고른다.
+
+- functions: intent_chips, rank_followups
 
 ### `coach_rule_plan_handlers.py` (176줄) — Coach 규칙 답변 — 목표·계획 계열 핸들러 (goal_feasibility · race_build · week_plan · taper_when).
 
@@ -2344,6 +2348,10 @@
 ### `test_coach_rule_handlers.py` (153줄) — Coach 규칙 핸들러 레지스트리 (design 30-coach-chat §7.3, §8).
 
 - functions: conn, test_registry_and_chip_text_match, test_today_advice_first_sentence_is_today_headline, test_today_advice_no_recovery_row, test_today_advice_checkin_fatigue_steps_down, test_unknown_chip_and_free_text_are_honest, test_chips_hide_unanswerable, test_every_answerable_chip_answers_without_raw_numbers, test_no_goal_answers_point_to_registering, test_goal_without_prediction, test_goal_answer_has_goal_prediction_and_gap, test_taper_date, test_week_plan_lists_remaining, test_free_text_answer_without_data
+
+### `test_coach_rule_intent.py` (64줄) — 규칙 답변 자유 입력 키워드 → 칩 순서 (UX C-14). 답을 추측하지 않고 칩 안내만 바꾼다.
+
+- functions: conn, test_intent_chips_keywords_in_priority_order, test_rank_followups_falls_back_to_default_order, test_free_text_answer_varies_by_question, test_rule_based_response_passes_message_and_uses_goal_chips
 
 ### `test_coach_service.py` (370줄) — coach_service 테스트 — Phase 7a D5.
 
@@ -3865,7 +3873,7 @@
 - functions: run
 
 ---
-총 831개 파일
+총 833개 파일
 
 ## docstring 누락
 

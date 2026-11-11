@@ -55,7 +55,8 @@ export function isTrustedBasis(basis?: string | null): boolean {
 export function streamSeconds(
 	elapsed: (number | null)[],
 	totalSec: number,
-	basis?: string | null
+	basis?: string | null,
+	originalCount?: number | null
 ): number[] {
 	const n = elapsed.length;
 	// 서버가 시간축 출처를 확정한 경우(measured/derived/scaled) 저장값을 그대로 쓴다. 휴리스틱은 meta 없는 행 전용.
@@ -77,8 +78,13 @@ export function streamSeconds(
 		return elapsed.map((v) => v ?? 0);
 	}
 
-	// 등간격 재환산: i번째 샘플 → (i / (n-1)) * totalSec
-	return elapsed.map((_, i) => Math.round((i / (n - 1)) * totalSec));
+	// 등간격 재환산: i번째 샘플 → (원본 점 번호 / (N-1)) * totalSec.
+	// 서버 다운샘플(`?max_points=`, A-36)을 받았으면 N = 원본 점 수 — 서버와 같은 균등 간격 규칙으로 원본 번호를 되짚는다.
+	const N = originalCount != null && originalCount > n ? originalCount : n;
+	return elapsed.map((_, i) => {
+		const orig = N === n ? i : Math.round((i * (N - 1)) / (n - 1));
+		return Math.round((orig / (N - 1)) * totalSec);
+	});
 }
 
 /**
@@ -108,11 +114,13 @@ const SOURCE_NAMES: Record<string, string> = { garmin: 'Garmin', strava: 'Strava
  * 스트림 머리 한 줄 — "Garmin · 기록점 1,675개(약 2초마다)". 소스명은 표준 표기(A-38),
  * '기록점'의 뜻은 평균 간격으로 바로 보인다. totalSec 가 없으면 간격은 생략.
  */
-export function pointsCaption(sources: string[], n: number, totalSec: number | null): string {
+export function pointsCaption(sources: string[], n: number, totalSec: number | null, shown?: number | null): string {
 	const names = [...new Set(sources.map((s) => SOURCE_NAMES[s.split(':')[0]] ?? s))].join(' / ');
 	const gap = totalSec != null && totalSec > 0 && n > 1 ? Math.round(totalSec / (n - 1)) : null;
 	const every = gap != null && gap >= 1 ? `(약 ${gap}초마다)` : '';
-	return `${names ? `${names} · ` : ''}기록점 ${n.toLocaleString('ko-KR')}개${every}`;
+	// n = 원본 기록점 수. 서버가 줄여 보냈으면(shown < n) 차트에 그린 점 수를 덧붙인다(A-36, 문구 TXT-1 잠정)
+	const thin = shown != null && shown < n ? ` · 차트는 ${shown.toLocaleString('ko-KR')}개로 줄여 표시` : '';
+	return `${names ? `${names} · ` : ''}기록점 ${n.toLocaleString('ko-KR')}개${every}${thin}`;
 }
 
 /** 거리 기준 x축 눈금 — 포인트 등간격 위치에 해당 포인트의 누적 거리(km) 라벨. */

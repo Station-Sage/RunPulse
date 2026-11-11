@@ -1,4 +1,4 @@
-import { getActivityStreams } from '$lib/api/streams';
+import { getActivityStreams, STREAM_CHART_MAX_POINTS } from '$lib/api/streams';
 import { normalizeActivityIdParam } from '$lib/utils/validation';
 import { BAD_ID_FAILURE } from '$lib/activityDetailView';
 import { classifyFailure, type Failure } from '$lib/loadFailure';
@@ -14,6 +14,8 @@ export interface StreamsPageData {
 	totalSec: number | null;
 	/** 서버가 확정한 시간축 출처. unknown이면 화면 휴리스틱으로 보정한다. */
 	timeBasis: StreamTimeBasis;
+	/** 원본 점 수(서버가 줄여 보냈으면 downsampled.from, 아니면 streams.length) — 시간축 추정·기록점 캡션 기준(A-36). */
+	totalPoints: number;
 	errorMessage: string | null;
 	failure: Failure | null;
 }
@@ -31,18 +33,18 @@ export async function load({
 }): Promise<StreamsPageData> {
 	const parsed = normalizeActivityIdParam(params.id);
 	if (!parsed) {
-		return { activityId: NaN, streams: [], totalSec: null, timeBasis: 'unknown', errorMessage: '잘못된 활동 ID입니다.', failure: { ...BAD_ID_FAILURE } };
+		return { activityId: NaN, streams: [], totalSec: null, timeBasis: 'unknown', totalPoints: 0, errorMessage: '잘못된 활동 ID입니다.', failure: { ...BAD_ID_FAILURE } };
 	}
 	const id = parsed.id;
 	depends(`app:activity-streams:${params.id}`);
 	const parentData = parent();
 	try {
-		const { streams, time_basis } = await getActivityStreams(id);
+		const { streams, time_basis, downsampled } = await getActivityStreams(id, STREAM_CHART_MAX_POINTS);
 		const { activity } = await parentData;
 		const totalSec = activity?.core?.duration_sec ?? null;
-		return { activityId: id, streams, activity, totalSec, timeBasis: time_basis ?? 'unknown', errorMessage: null, failure: null };
+		return { activityId: id, streams, activity, totalSec, timeBasis: time_basis ?? 'unknown', totalPoints: downsampled?.from ?? streams.length, errorMessage: null, failure: null };
 	} catch (e) {
 		const failure = classifyFailure(e);
-		return { activityId: id, streams: [], totalSec: null, timeBasis: 'unknown', errorMessage: failure.detail, failure };
+		return { activityId: id, streams: [], totalSec: null, timeBasis: 'unknown', totalPoints: 0, errorMessage: failure.detail, failure };
 	}
 }

@@ -191,3 +191,27 @@ test('streamSeconds: trusted basis 는 null 을 0 으로 대체', () => {
 	assert.equal(isTrustedBasis('derived'), true);
 	assert.equal(isTrustedBasis('unknown'), false);
 });
+
+// ── A-36: 서버 다운샘플 응답(원본 점 수 기준) ────────────────────────────────
+import { pointsCaption } from '../src/lib/streamAxis.ts';
+
+test('streamSeconds: 다운샘플 응답은 원본 점 수(N) 기준으로 원래 번호를 되짚어 환산한다', () => {
+	// 원본 11점(0..10) 중 서버 _pick 과 같은 규칙으로 6점(0,2,4,6,8,10) — 점 번호만 저장된 옛 데이터
+	const elapsed = [0, 2, 4, 6, 8, 10];
+	const out = streamSeconds(elapsed, 1000, 'unknown', 11);
+	assert.deepEqual(out, [0, 200, 400, 600, 800, 1000]);
+	// 원본 점 수가 응답 길이 이하이면 기존 동작 그대로
+	assert.deepEqual(streamSeconds(elapsed, 1000, 'unknown', 6), streamSeconds(elapsed, 1000, 'unknown'));
+});
+
+test('streamSeconds: 신뢰 가능한 time_basis 면 원본 점 수와 무관하게 저장값 그대로', () => {
+	assert.deepEqual(streamSeconds([0, 500, 1000], 1000, 'measured', 5000), [0, 500, 1000]);
+});
+
+test('pointsCaption: 줄여 보낸 응답은 원본 점 수·간격 + 차트 표시 점 수(A-36)', () => {
+	assert.equal(
+		pointsCaption(['garmin'], 3601, 3600, 2000),
+		'Garmin · 기록점 3,601개(약 1초마다) · 차트는 2,000개로 줄여 표시'
+	);
+	assert.equal(pointsCaption(['garmin'], 300, 3000, 300), 'Garmin · 기록점 300개(약 10초마다)');
+});

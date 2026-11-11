@@ -22,6 +22,8 @@
 	import SyncStatusPill from '$lib/components/shell/SyncStatusPill.svelte';
 	import { welcomeGuardApplies } from '$lib/onboarding';
 	import { redirectToWelcomeIfNew } from '$lib/welcomeRedirect';
+	import { navSkeletonKind } from '$lib/navSkeleton';
+	import PlanDetailSkeleton from '$lib/components/PlanDetailSkeleton.svelte';
 
 	let { children } = $props();
 	let menuOpen = $state(false);
@@ -43,6 +45,20 @@
 		if (!isDemoActive() && welcomeGuardApplies(page.url.pathname, base)) void redirectToWelcomeIfNew();
 	});
 	const busy = $derived(!!navigating.to);
+
+	// P-25: 플랜 상세로 이동 중이면 150ms 뒤(진행바 S-06 과 같은 지연) 스켈레톤. 이전 화면은 언마운트하지 않고 숨기기만 한다
+	// (이동이 취소·실패해도 상태 유지). 로더는 그대로 — 스트리밍으로 바꾸지 않음.
+	const pendingSkeleton = $derived(navSkeletonKind(navigating.from, navigating.to));
+	let skeleton = $state<string | null>(null);
+	$effect(() => {
+		const kind = pendingSkeleton;
+		if (!kind) {
+			skeleton = null;
+			return;
+		}
+		const t = setTimeout(() => (skeleton = kind), 150);
+		return () => clearTimeout(t);
+	});
 </script>
 
 <a
@@ -78,7 +94,8 @@
 		aria-busy={busy}
 		class="mx-auto w-full max-w-3xl flex-1 pb-[calc(var(--shell-bottom)+1.5rem)] outline-none lg:max-w-6xl"
 	>
-		{@render children()}
+		{#if skeleton === 'plan-detail'}<PlanDetailSkeleton />{/if}
+		<div class={skeleton ? 'hidden' : 'contents'}>{@render children()}</div>
 	</main>
 
 	<ShellNav variant="bottom" />

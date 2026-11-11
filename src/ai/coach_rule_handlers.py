@@ -15,6 +15,7 @@ from src.utils.format_ko import fmt_distance, fmt_signed, workout_ko
 from .coach_rule_grade import (
     NO_RECOVERY_DATA, RecoveryGrade, checkin_drop, intensity_label, intensity_step,
 )
+from .coach_rule_intent import rank_followups
 from .coach_rule_plan_handlers import goal_feasibility, race_build, taper_when, week_plan
 from .coach_rule_types import CHIP_TEXT, RuleAnswer, chip_view
 
@@ -203,14 +204,20 @@ def suggestion_chips(conn: sqlite3.Connection, today: date | None = None, limit:
     return [chip_view(c) for c in answerable_chips(conn, today)[:limit]]
 
 
-def free_text_answer(conn: sqlite3.Connection, today: date | None = None) -> RuleAnswer:
-    """AI 없이 자유 질문은 답할 수 없다 — 상태 한 줄 + 답할 수 있는 칩 3개를 안내한다."""
+def free_text_answer(conn: sqlite3.Connection, today: date | None = None, message: str = "") -> RuleAnswer:
+    """AI 없이 자유 질문은 답할 수 없다 — 상태 한 줄 + 답할 수 있는 칩 3개를 안내한다.
+
+    질문 키워드가 답할 수 있는 칩을 가리키면 그 칩을 앞에 두고 한 줄로 짚어 준다(C-14, 답은 추측하지 않음).
+    """
     today = today or date.today()
+    chips, matched = rank_followups(message, answerable_chips(conn, today))
     from src.training.fatigue import readiness_decision
     try:
         state = readiness_decision(conn, date=today.isoformat())["headline"]
     except Exception:
         log.warning("coach rule: 상태 요약 실패", exc_info=True)
         state = None
-    text = FREE_TEXT_HEAD + (f" 참고로 {state}" if state else "")
-    return RuleAnswer(text, followups=answerable_chips(conn, today)[:3])
+    # 문구 TXT-1 잠정
+    hint = f" 대신 '{CHIP_TEXT[chips[0]]}'는 지금 데이터로 답할 수 있어요 — 아래 칩을 눌러 보세요." if matched else ""
+    text = FREE_TEXT_HEAD + hint + (f" 참고로 {state}" if state else "")
+    return RuleAnswer(text, followups=chips)

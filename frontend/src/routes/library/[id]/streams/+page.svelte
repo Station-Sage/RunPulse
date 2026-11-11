@@ -52,12 +52,12 @@
 	);
 
 	// 소스·기록점 수·평균 간격 한 줄(A-38)
-	const caption = $derived(data.streams.length ? pointsCaption(data.streams.map((p) => p.source), data.streams.length, data.totalSec) : '');
+	const caption = $derived(data.streams.length ? pointsCaption(data.streams.map((p) => p.source), data.totalPoints, data.totalSec, data.streams.length) : '');
 
 	// 시간축 보정: totalSec가 있으면 streamSeconds로 보정, 없으면 원본 elapsed_sec 사용
 	const correctedElapsed = $derived(
 		data.totalSec != null
-			? streamSeconds(data.streams.map((p) => p.elapsed_sec), data.totalSec, data.timeBasis)
+			? streamSeconds(data.streams.map((p) => p.elapsed_sec), data.totalSec, data.timeBasis, data.totalPoints)
 			: data.streams.map((p) => p.elapsed_sec)
 	);
 

@@ -68,3 +68,9 @@
 - C-14 보류 유지: 규칙 답변이 질문과 무관하게 같은 문장·칩을 내는 문제는 규칙 엔진 의도 분류(질문 → chip_id) 설계가 필요해 작은 수정으로 안 됨.
 - C-17 처리(추천안 채택, ADR-055): 새 동의의 기본값은 "실패 시 다른 AI로 재시도" 끔(opt-in)·"메모·주관 입력 제외" 켬(`coach_consent.DEFAULT_*`, PUT /coach/consent 와 AI 설정 PATCH 의 기본값). 동의창 문구가 기본 제공자와 재시도 대상 제공자를 이름으로 같이 밝힘("…Gemini 서버로 전송돼요. '실패 시 다른 AI로 재시도'를 켜면 … Groq 서버로도 전송돼요(기본은 꺼짐)", TXT-1 잠정, `coachEngine.consentText`). 재시도 대상은 GET /coach/engine `fallback_providers`(키가 있는 다른 제공자, 동의 전에도 내려옴). 호출 순서·예산·`build_chain` 은 그대로(저장된 `fallback_enabled` 만 따름). 이미 저장된 동의 행은 바꾸지 않음(기존 사용자는 다시 묻지 않음 — 바꾸려면 사용자 결정).
 - 확인 방법: pytest `tests/test_audit_g_held.py`(동의 기본값·라우트 기본값·fallback_providers·라벨 형식), `test_coach_engine_health.py`(라벨 갱신), 프런트 `auditG.test.mjs`·`coachEngine.test.mjs`. 동의창 자체는 합성 서버가 규칙 모드(AI 키 없음)라 브라우저로 못 봄(단위 테스트만).
+
+## 처리 기록 (2026-11-11, 묶음 G 후속 — 부분·미확인 마무리, S4-86)
+- C-14 처리(보류 해제, 최소 범위): 자유 입력은 여전히 답을 추측하지 않고 "AI 없이는 답할 수 없다"로 답하되(설계 §7.3 유지), 질문 키워드(부상·통증 / 테이퍼 / 대회·마라톤 / 이번 주·계획 / 피로·회복 / 페이스·강도·오늘 / CTL·ATL·UTRS·CIRS·RRI)가 가리키는 칩 중 지금 답할 수 있는 것을 앞에 두고 "대신 '…'는 지금 데이터로 답할 수 있어요 — 아래 칩을 눌러 보세요."(TXT-1 잠정)를 붙임(`ai/coach_rule_intent.py`, `free_text_answer(message=)`). 맞는 키워드가 없거나 그 칩이 답할 수 없으면 기존과 같은 문장·칩. LLM 호출 순서·재시도·예산은 손대지 않음.
+- 확인: pytest `tests/test_coach_rule_intent.py`(4개). 브라우저(규칙 모드 합성 서버): "무릎이 아파요" → 안내 한 줄 + 칩 "부상 위험은 없나요?·부상 위험도(CIRS)가 뭔가요?·오늘 훈련 어떻게 할까요?", "동의 테스트" → 기존 문장·기본 칩 3개.
+- C-17 확인(이전엔 단위 테스트만): 합성 서버에 가짜 키(gemini·groq, 임시 설정 파일 — 실제 config.json 은 읽지도 쓰지도 않음)를 주고 375 에서 첫 전송 시 동의창 — 제목 "AI로 질문을 보내기 전에", 문구에 Gemini·Groq 둘 다, "메모·주관 입력 제외" 켬, "실패 시 다른 AI로 재시도 (Groq)" 끔. "동의하고 보내기" 의 `PUT /coach/consent` 본문 `{"provider":"gemini","exclude_notes":true,"tools_enabled":true,"fallback_enabled":false}`. 뒤따르는 스레드 생성 POST 는 가로채 막음(외부 호출 없음).
+- C-15 확인: 15일 전 스레드 행에 "당시 기준 답변 · 지금 상태와 다를 수 있어요" + "마지막 대화 2주 전", 1일 전 스레드는 표시 없음.
