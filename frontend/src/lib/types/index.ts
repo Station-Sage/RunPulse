@@ -374,7 +374,7 @@ export interface EngineView {
 	label: string;
 	provider: string | null;
 	model: string | null;
-	reason: string | null; resets_at?: string | null; // resets_at: quota_* 대체 시 다음 00:00 KST
+	reason: string | null; resets_at?: string | null; attempts?: import('./engineAttempt').EngineAttempt[]; // resets_at: quota_* 대체 시 다음 00:00 KST, attempts: S4-87
 }
 
 export interface ScopeItem {

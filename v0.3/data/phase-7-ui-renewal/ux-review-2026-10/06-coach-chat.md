@@ -74,3 +74,10 @@
 - 확인: pytest `tests/test_coach_rule_intent.py`(4개). 브라우저(규칙 모드 합성 서버): "무릎이 아파요" → 안내 한 줄 + 칩 "부상 위험은 없나요?·부상 위험도(CIRS)가 뭔가요?·오늘 훈련 어떻게 할까요?", "동의 테스트" → 기존 문장·기본 칩 3개.
 - C-17 확인(이전엔 단위 테스트만): 합성 서버에 가짜 키(gemini·groq, 임시 설정 파일 — 실제 config.json 은 읽지도 쓰지도 않음)를 주고 375 에서 첫 전송 시 동의창 — 제목 "AI로 질문을 보내기 전에", 문구에 Gemini·Groq 둘 다, "메모·주관 입력 제외" 켬, "실패 시 다른 AI로 재시도 (Groq)" 끔. "동의하고 보내기" 의 `PUT /coach/consent` 본문 `{"provider":"gemini","exclude_notes":true,"tools_enabled":true,"fallback_enabled":false}`. 뒤따르는 스레드 생성 POST 는 가로채 막음(외부 호출 없음).
 - C-15 확인: 15일 전 스레드 행에 "당시 기준 답변 · 지금 상태와 다를 수 있어요" + "마지막 대화 2주 전", 1일 전 스레드는 표시 없음.
+
+## 처리 기록 (2026-11-11, 실제 LLM 실패 경로 확인, S4-87)
+- C-14 실제 실패 경로 확인(이전엔 단위 테스트만): 로컬 가짜 provider HTTP 서버 + 임시 설정(가짜 키, 실제 config.json·키 미사용, 엔드포인트만 스크립트에서 가짜 서버로 바꿈)으로 합성 서버 375 에서 전송. 500 → "서버 오류(5xx)", 429 → "사용량 한도(429)", 응답 지연(읽기 제한 초과) → "시간 초과", 깨진 JSON → "응답 해석 실패", 형식이 다른 응답(message 가 배열) → "예기치 못한 오류", 연결 끊김 → "네트워크 오류", 정상 → "OpenAI · gpt-4o-mini". 실패는 모두 "규칙 답변 (AI 연결 실패)" + 배너 "AI 연결에 실패해 규칙 답변으로 대신했어요 · (사유)" + AI로 다시 생성·원인 보기. 1분에 10회를 넘기면 "AI 요청이 몰려…"(busy) — 사용자 분당 상한 그대로 동작.
+- 재시도(동의에서 켬) 1280: openai 429 → gemini 정상 답변("Gemini 2.5 Flash"), openai 연결 끊김 → gemini 500 → 규칙 답변 · 네트워크 오류(첫 시도 사유).
+- 발견 수정: "원인 보기" 시트의 "시도" 가 이 답변에서 실제로 시도한 provider 가 아니라 지금 설정된 provider 하나만 보여, 재시도한 gemini 가 빠지고 설정을 바꾸면 옛 답변 시트도 바뀌었다. 서버 메시지 엔진 보기에 `attempts`(provider·model·ok·reason) 추가(`coach_engine_health.attempt_views`), 시트는 시도 순서대로 "openai · gpt-4o-mini — 네트워크 오류 / gemini · gemini-2.5-flash — 서버 오류(5xx)"(`coachEngine.attemptLines`, attempts 없는 옛 응답만 기존 추정 한 줄). 
+- 관찰(미변경, 판단 필요): 재시도로 다른 provider 가 답한 경우 라벨은 답한 provider 만 표시("Gemini 2.5 Flash") — 첫 provider 실패 사실은 보이지 않음. 설계(§7.2)에 표시 규칙이 없어 그대로 둠.
+- 확인 방법: pytest `tests/test_coach_engine_health.py`(attempts 보기), 프런트 `coachEngine.test.mjs`(attemptLines). 문구 TXT-1 잠정.

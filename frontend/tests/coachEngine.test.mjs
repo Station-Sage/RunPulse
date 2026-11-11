@@ -55,3 +55,20 @@ test('fallbackText: 사용량 한도는 한도 안내, 그 외는 실패 문구'
 	assert.equal(fallbackText('http_404'), 'AI 연결에 실패해 규칙 답변으로 대신했어요 · 연결 실패(404)');
 	assert.equal(reasonText('quota_user'), '오늘 AI 사용 한도');
 });
+
+test('attemptLines: 실제 시도 순서·사유, attempts 없으면 추정 한 줄 (S4-87)', async () => {
+	const { attemptLines } = await import('../src/lib/coachEngine.ts');
+	assert.deepEqual(
+		attemptLines(
+			[
+				{ provider: 'openai', model: 'gpt-4o-mini', ok: false, reason: 'network' },
+				{ provider: 'gemini', model: null, ok: false, reason: 'http_5xx' }
+			],
+			{ provider: 'claude', model: 'x' }
+		),
+		['openai · gpt-4o-mini — 네트워크 오류', 'gemini — 서버 오류(5xx)']
+	);
+	assert.deepEqual(attemptLines([{ provider: 'gemini', model: 'g', ok: true, reason: null }], null), ['gemini · g — 성공']);
+	assert.deepEqual(attemptLines(undefined, { provider: 'openai', model: 'm' }), ['openai · m']);
+	assert.deepEqual(attemptLines([], null), []);
+});

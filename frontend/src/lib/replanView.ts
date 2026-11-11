@@ -78,7 +78,9 @@ export function replanSummary(p: ReplanPreview): string {
 	const first = m[0];
 	const d = first.delta ?? 0;
 	let s = `${anchorLabel(p.anchor_monday)}부터 `;
-	if (Math.abs(d) < 1) s += '첫 주는 비슷한 거리로 시작하고';
+	// 전에 없던 주(before 없음)는 '비슷한 거리'로 비교할 수 없다 — 새로 넣는 거리만 말한다(S4-87)
+	if (first.before == null && first.after != null) s += `첫 주는 ${first.after}km로 새로 넣어 시작하고`;
+	else if (Math.abs(d) < 1) s += '첫 주는 비슷한 거리로 시작하고';
 	else s += d < 0 ? `첫 주는 ${first.after}km로 낮춰 시작하고` : `첫 주는 ${first.after}km로 올려 시작하고`;
 	const maxB = Math.max(...p.before.map((w) => w.planned_km));
 	const maxA = Math.max(0, ...p.after.map((w) => w.planned_km));

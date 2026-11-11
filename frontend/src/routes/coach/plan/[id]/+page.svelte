@@ -5,7 +5,6 @@
 	import { formatDuration, formatPaceRange, weekProgressLabel, workoutLabel } from '$lib/format';
 	import { base } from '$app/paths';
 	import { inlineConfirm } from '$lib/overlay';
-	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import AdjustmentCard from '$lib/components/plan/AdjustmentCard.svelte';
 	import { invalidate, invalidateAll } from '$app/navigation';
@@ -13,10 +12,14 @@
 	import PlanWeeksTable from '$lib/components/plan/PlanWeeksTable.svelte';
 	import RowActionButton from '$lib/components/plan/RowActionButton.svelte';
 	import UserAdjustmentLine from '$lib/components/plan/UserAdjustmentLine.svelte';
-	import type { PlannedWorkout } from '$lib/types';
+	import PlanAdaptationSection from '$lib/components/plan/PlanAdaptationSection.svelte';
+	import Skeleton from '$lib/components/Skeleton.svelte';
+	import type { PlannedWorkout, PlanAdaptation, PlanWeeks, ReplanEntry, TodaysAdjustment } from '$lib/types';
+	import type { LoadResult } from '$lib/loadFailure';
 	import { undoReplan } from '$lib/api/plan';
 	import { anchorLabel, undoUntilLabel } from '$lib/replanView';
-	import { acwrRangeText, ctlBar } from '$lib/planDetailView';
+	import { ctlBar } from '$lib/planDetailView';
+	import { createStreamFollower } from '$lib/streamed';
 
 	let undoBusy = $state(false);
 	let confirmUndo = $state<number | null>(null);
@@ -33,19 +36,25 @@
 
 	let { data }: { data: PlanDetailPageData } = $props();
 
-	let drillAcwr = $state(false);
-	const ZONE_CLASS: Record<string, string> = {
-		적정: 'text-semantic-green',
-		정상: 'text-semantic-green',
-		저부하: 'text-semantic-amber',
-		주의: 'text-semantic-amber',
-		경계: 'text-semantic-amber',
-		위험: 'text-semantic-red',
-		저하: 'text-semantic-red'
-	};
-	function zoneClass(z: string): string {
-		return ZONE_CLASS[z] ?? 'text-fg-secondary';
-	}
+	// P-25 — 로더가 기다리지 않은 보조 데이터. 같은 플랜 다시 읽기 중엔 이전 값 유지, 다른 플랜이면 자리 표시로.
+	type Streamed<T> = { ready: boolean; value: T | null | undefined };
+	const blank = <T,>(): Streamed<T> => ({ ready: false, value: undefined });
+	let adj = $state<Streamed<TodaysAdjustment>>(blank());
+	let entry = $state<Streamed<ReplanEntry>>(blank());
+	let weeksR = $state<Streamed<LoadResult<PlanWeeks>>>(blank());
+	let adaptR = $state<Streamed<LoadResult<PlanAdaptation>>>(blank());
+	const followAdj = createStreamFollower<TodaysAdjustment | null>((value, ready) => (adj = { ready, value }));
+	const followEntry = createStreamFollower<ReplanEntry | null>((value, ready) => (entry = { ready, value }));
+	const followWeeks = createStreamFollower<LoadResult<PlanWeeks> | null>((value, ready) => (weeksR = { ready, value }));
+	const followAdapt = createStreamFollower<LoadResult<PlanAdaptation> | null>((value, ready) => (adaptR = { ready, value }));
+	const planKey = $derived(String(data.plan?.goal.id ?? ''));
+	$effect(() => {
+		const k = planKey;
+		followAdj(k, data.adjustment);
+		followEntry(k, data.replanEntry);
+		followWeeks(k, data.weeks);
+		followAdapt(k, data.adaptation);
+	});
 
 	const DAY_KO = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -121,8 +130,8 @@
 					· 목표 {formatDuration(data.plan.goal.target_time_sec)}
 				{/if}
 			</p>
-			{#if data.replanEntry?.last}
-				{@const last = data.replanEntry.last}
+			{#if entry.value?.last}
+				{@const last = entry.value.last}
 				<p class="mt-2 text-xs text-fg-secondary">
 					{anchorLabel(last.anchor_monday)}부터 다시 맞춘 일정이에요. {undoUntilLabel(last.anchor_monday)}까지 되돌릴 수 있어요.
 					<button class="ml-1 min-h-11 underline" disabled={undoBusy} onclick={() => (confirmUndo = last.replan_id)}>되돌리기</button>
@@ -134,7 +143,7 @@
 						</span>
 					{/if}
 				</p>
-			{:else if data.replanEntry?.eligible}
+			{:else if entry.value?.eligible}
 				<a href="{base}/coach/plan/replan" class="mt-2 inline-flex min-h-11 items-center text-xs text-semantic-amber hover:underline">남은 일정 다시 맞추기 →</a>
 			{/if}
 
@@ -167,10 +176,10 @@
 		</div>
 
 		<!-- 오늘 조정 제안·적용 (ADR-035) -->
-		{#if data.adjustment?.adjustment}
+		{#if adj.value?.adjustment}
 			<AdjustmentCard
-				initial={data.adjustment.state}
-				initialAdj={data.adjustment.adjustment}
+				initial={adj.value.state}
+				initialAdj={adj.value.adjustment}
 				via="plan"
 				onChange={() => invalidateAll()}
 			/>
@@ -221,7 +230,7 @@
 								{today}
 								via="plan"
 								{weekKm}
-								crsPending={w.date === today && ['proposed', 'accepted'].includes(data.adjustment?.state ?? '')}
+								crsPending={w.date === today && ['proposed', 'accepted'].includes(adj.value?.state ?? '')}
 								onChange={() => invalidateAll()}
 							/>
 						</li>
@@ -230,51 +239,18 @@
 			{/if}
 		</div>
 
-		{#if data.weeksFailure}
-			<div class="px-4 py-2"><ErrorState compact message="주차별 계획을 불러오지 못했어요" failure={data.weeksFailure} onRetry={() => invalidate('app:plan-active')} /></div>
-		{:else if data.weeks}
-			<PlanWeeksTable weeks={data.weeks.weeks} currentWeek={data.plan.workouts[0]?.date ? mondayOf(data.plan.workouts[0].date) : ''} />
+		{#if !weeksR.ready}
+			<div class="px-4 py-3" aria-busy="true" data-testid="plan-weeks-skeleton">
+				<span class="sr-only">주차별 계획을 불러오는 중</span>
+				<Skeleton kind="chart" />
+			</div>
+		{:else if weeksR.value && !weeksR.value.ok}
+			<div class="px-4 py-2"><ErrorState compact message="주차별 계획을 불러오지 못했어요" failure={weeksR.value.failure} onRetry={() => invalidate('app:plan-active')} /></div>
+		{:else if weeksR.value?.ok}
+			<PlanWeeksTable weeks={weeksR.value.data.weeks} currentWeek={data.plan.workouts[0]?.date ? mondayOf(data.plan.workouts[0].date) : ''} />
 		{/if}
 
-		{#if data.adaptationFailure}
-			<div class="px-4 py-2"><ErrorState compact message="적응 지표를 불러오지 못했어요" failure={data.adaptationFailure} onRetry={() => invalidate('app:plan-active')} /></div>
-		{:else if data.adaptation && (data.adaptation.acwr || data.adaptation.hrv || data.adaptation.fatigue_avg)}
-			<div class="border-b border-border-subtle px-4 py-3">
-				<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">적응 상태</h2>
-				<ul class="flex flex-col gap-2 text-sm">
-					{#if data.adaptation.acwr}
-						{@const a = data.adaptation.acwr}
-						<li>
-							<button type="button" onclick={() => (drillAcwr = true)} class="flex w-full items-center gap-2 text-left hover:bg-surface-2">
-								<span class="w-24 shrink-0 text-fg-secondary">ACWR</span>
-								<span class="font-mono font-medium">{a.value.toFixed(2)}</span>
-								<span class="text-xs {zoneClass(a.zone)}">● {a.zone}</span>
-								<span class="ml-auto text-xs text-fg-muted">{acwrRangeText(a.optimal_range) ?? ''} ›</span>
-							</button>
-						</li>
-					{/if}
-					{#if data.adaptation.hrv}
-						{@const h = data.adaptation.hrv}
-						<li class="flex items-center gap-2">
-							<span class="w-24 shrink-0 text-fg-secondary">HRV</span>
-							<span class="font-mono font-medium">{Math.round(h.value)}ms</span>
-							{#if h.delta_pct != null && h.zone}
-								<span class="text-xs {zoneClass(h.zone)}">● 기준 {h.delta_pct > 0 ? '+' : ''}{h.delta_pct}% ({h.zone})</span>
-							{/if}
-						</li>
-					{/if}
-					{#if data.adaptation.fatigue_avg}
-						{@const f = data.adaptation.fatigue_avg}
-						<li class="flex items-center gap-2">
-							<span class="w-24 shrink-0 text-fg-secondary">피로도 주간 평균</span>
-							<span class="font-mono font-medium">{f.value.toFixed(1)} / 10</span>
-							<span class="text-xs text-fg-muted">({f.n}회 입력)</span>
-						</li>
-					{/if}
-				</ul>
-			</div>
-		{/if}
+		<PlanAdaptationSection ready={adaptR.ready} result={adaptR.value} onRetry={() => invalidate('app:plan-active')} />
 	{/if}
 </div>
 
-{#if drillAcwr && data.adaptation?.acwr}<MetricBreakdown slug="acwr" scopeType="daily" scopeId={data.adaptation.acwr.date} onClose={() => { drillAcwr = false; }} />{/if}

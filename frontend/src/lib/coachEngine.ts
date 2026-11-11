@@ -1,5 +1,6 @@
 // Coach 엔진 표기 순수 함수 (30-coach-chat design §4.1·§7.2) — 화면은 이 결과만 그린다.
 import type { CoachEngine, EngineView, ScopeItem } from '$lib/types';
+import type { EngineAttempt } from '$lib/types/engineAttempt';
 
 const REASON_TEXT: Record<string, string> = {
 	http_404: '연결 실패(404)',
@@ -91,4 +92,17 @@ export function consentText(engine: Pick<CoachEngine, 'selected' | 'fallback_pro
 	const fb = fallbackNames(engine);
 	const tail = fb ? ` '실패 시 다른 AI로 재시도'를 켜면 ${main} 응답이 실패했을 때 같은 내용이 ${fb} 서버로도 전송돼요(기본은 꺼짐).` : '';
 	return `질문과 아래 러닝 데이터가 ${main} 서버로 전송돼요.${tail} 동의해야 AI 답변을 쓸 수 있고, 동의 전에는 아무것도 전송하지 않아요.`;
+}
+
+/**
+ * '원인 보기' 시도 줄(S4-87) — 이 답변에서 실제로 시도한 provider 를 순서대로, 실패면 사유를 붙인다.
+ * 서버가 attempts 를 주지 않는 옛 응답만 지금 설정된 provider(fallbackGuess) 한 줄로 대신한다.
+ */
+export function attemptLines(
+	attempts: EngineAttempt[] | null | undefined,
+	fallbackGuess: { provider: string; model?: string | null } | null
+): string[] {
+	const name = (p: string, m?: string | null) => (m ? `${p} · ${m}` : p);
+	if (attempts && attempts.length) return attempts.map((a) => `${name(a.provider, a.model)} — ${a.ok ? '성공' : reasonText(a.reason)}`);
+	return fallbackGuess ? [name(fallbackGuess.provider, fallbackGuess.model)] : [];
 }

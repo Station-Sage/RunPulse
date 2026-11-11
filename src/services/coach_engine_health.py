@@ -58,6 +58,17 @@ def parse_engine(engine_json: str | None) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
+def attempt_views(data: dict | None) -> list[dict]:
+    """저장된 attempts → [{provider, model, ok, reason}] — '원인 보기'가 이 답변에서 실제로 시도한 provider 를 보여 준다(S4-87).
+    전에는 화면이 '지금 설정된 provider' 하나만 보여 재시도한 다른 provider·나중에 바뀐 설정과 어긋났다."""
+    out = []
+    for a in (data or {}).get("attempts") or []:
+        if isinstance(a, dict) and a.get("provider"):
+            out.append({"provider": a["provider"], "model": a.get("model"), "ok": bool(a.get("ok")),
+                        "reason": a.get("reason")})
+    return out
+
+
 def message_engine_view(engine_json: str | None, ai_model: str | None, row_status: str | None = None) -> dict:
     """저장된 메시지 → {status, label, provider, model, reason}. engine_json이 없는 옛 메시지는 ai_model로 추정.
 
@@ -79,7 +90,7 @@ def message_engine_view(engine_json: str | None, ai_model: str | None, row_statu
     return {
         "status": status, "provider": data.get("provider"), "model": data.get("model"), "reason": reason,
         "label": engine_label(status, data.get("provider"), data.get("model"), data.get("tool_calls", 0), reason),
-        "resets_at": data.get("resets_at"),
+        "resets_at": data.get("resets_at"), "attempts": attempt_views(data),
     }
 
 

@@ -3,14 +3,16 @@
 	import { base } from '$app/paths';
 	import type { EngineView } from '$lib/types';
 	import { modal } from '$lib/overlay';
-	import { reasonText } from '$lib/coachEngine';
+	import { attemptLines, reasonText } from '$lib/coachEngine';
 
 	let { engine, attempted = null, onClose }: {
 		engine: EngineView;
 		attempted?: { provider: string; model?: string | null } | null;
 		onClose: () => void;
 	} = $props();
-	const shown = $derived(engine.status === 'fallback' ? attempted : engine.provider ? engine : null);
+	const shown = $derived(engine.status === 'fallback' ? attempted : engine.provider ? { provider: engine.provider, model: engine.model } : null);
+	// S4-87: 실제 시도 목록(재시도 포함). 서버가 attempts 를 주지 않는 옛 응답만 추정(shown) 한 줄.
+	const lines = $derived(attemptLines(engine.attempts, shown));
 </script>
 
 <div class="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-labelledby="engine-sheet-h" use:modal={{ onClose }}>
@@ -19,8 +21,9 @@
 		<h2 id="engine-sheet-h" class="font-medium">이 답변의 엔진</h2>
 		<dl class="grid grid-cols-[5rem_1fr] gap-y-1 text-sm">
 			<dt class="text-fg-muted">표시</dt><dd>{engine.label}</dd>
-			{#if shown}
-				<dt class="text-fg-muted">시도</dt><dd>{shown.provider}{shown.model ? ` · ${shown.model}` : ''}</dd>
+			{#if lines.length}
+				<dt class="text-fg-muted">시도</dt>
+				<dd>{#each lines as l, i (i)}<span class="block">{l}</span>{/each}</dd>
 			{/if}
 			{#if engine.reason}
 				<dt class="text-fg-muted">원인</dt><dd>{reasonText(engine.reason)}</dd>

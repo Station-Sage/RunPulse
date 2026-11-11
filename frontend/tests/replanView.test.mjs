@@ -160,3 +160,9 @@ test('longRunLine: 전후 비교·동일·없음', () => {
 	assert.equal(v.longRunLine(P([L('2026-10-12', 30, 20)], [L('2026-10-12', 30, 20)])), '가장 긴 롱런 20km (10/12 주)');
 	assert.equal(v.longRunLine(P([], [W('2026-10-12', 30)])), null);
 });
+
+test('replanSummary: 전에 없던 첫 주는 비교하지 않고 새로 넣는 거리로 말한다 (S4-87)', () => {
+	const s = v.replanSummary(P([W('2026-11-23', 34)], [W('2026-11-16', 47.8), W('2026-11-23', 34)]));
+	assert.match(s, /47\.8km로 새로 넣어/);
+	assert.doesNotMatch(s, /비슷한 거리/);
+});

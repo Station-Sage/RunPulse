@@ -310,6 +310,7 @@
 - `plan_replan_service.entry_state` 가 노출 규칙의 단일 출처 `{eligible, reason: NO_GOAL|RACE_NEAR|PENDING, last}`. 배너(`plan_advisory`)·`GET coach/plan/replan/last`(`{last, entry}`)·플랜 상세 헤더 링크가 모두 이를 쓰고 프런트는 규칙을 복제하지 않는다. RACE_NEAR = 다음 월요일부터 대회 주까지 2주 미만.
 - 적용 후 되돌리지 않은 재계획이 있으면 새 재계획은 `REPLAN_PENDING`(409, `error.details.last`). 되돌림 불가 사유는 `_undo_blocker` 한 곳(마지막 아님·시작됨·새 행에 이력)으로 모아 undo·last_undoable·가드가 공유.
 - 프런트: 플랜 상세 헤더에 되돌리기 줄 또는 "남은 일정 다시 맞추기 →", 재계획 화면은 REPLAN_PENDING 에서 되돌리기 후 미리보기 재계산.
+- 후속(2026-11-11, S4-87): 재계획 기준일 = `max(다음 월요일, 계획 시작 월요일)`(`replan_anchor`). 시작 전 플랜에서 다음 월요일을 쓰면 계획 앞 주가 CTL 폴백 거리로 생성·저장되던 버그 수정. preview·apply `expect_anchor`·RACE_NEAR 가 같은 함수를 쓰고, 되돌리기 기한은 계획 시작 전날. 재계획 실행은 `BEGIN IMMEDIATE` 로 쓰기 잠금을 먼저 잡는다(지연 트랜잭션의 읽기→쓰기 승격이 다른 커밋과 부딪혀 'database is locked' 나던 문제). 메모: `phase-7-ui-renewal/design-2026-10/patterns/streaming-loader.md` §2·§3.
 
 ### ADR-036: CalDAV 연동 복구·정상화 (R1, 2026-10-09)
 - 사용자 선택으로 제거(R2) 대신 복구. `caldav>=1.4,<2` 를 requirements 에 고정(이전엔 주석이라 임포트 에러).

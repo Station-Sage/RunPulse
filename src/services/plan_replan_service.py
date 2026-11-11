@@ -58,6 +58,16 @@ def next_monday(today: date) -> date:
     return today + timedelta(days=7 - today.weekday())
 
 
+def replan_anchor(goal: dict | None, today: date) -> date:
+    """재계획 시작 월요일 = max(다음 월요일, 계획 시작 월요일).
+
+    계획이 아직 시작 전(첫 주가 미래)이면 다음 월요일은 계획 범위 밖이라, 그 주는 주기화 일정이 없고
+    CTL 기반 폴백 거리로 '계획 앞 주'가 새로 생긴다(S4-86 발견). 계획 첫 주보다 앞으로는 다시 짜지 않는다."""
+    nm = next_monday(today)
+    start = plan_start_monday(goal.get("race_date"), goal.get("plan_weeks")) if goal else None
+    return max(nm, start) if start else nm
+
+
 def _weekly_km(conn: sqlite3.Connection, start: str, end: str) -> list[dict]:
     """주별 {week_start, planned_km, long_km}. long_km 은 그 주 long·long_mp 세션 중 최대 거리(없으면 0)."""
     rows = conn.execute(
@@ -78,7 +88,7 @@ def _goal_and_anchor(conn: sqlite3.Connection, today: date) -> tuple[dict, date,
     if goal is None or not goal.get("race_date") or plan_start_monday(goal["race_date"], goal.get("plan_weeks")) is None:
         raise ReplanError("NO_GOAL", "대회일이 있는 활성 목표가 없습니다")
     race = date.fromisoformat(goal["race_date"])
-    anchor = next_monday(today)
+    anchor = replan_anchor(goal, today)
     if anchor > race:
         raise ReplanError("RACE_WEEK", "대회 주에는 재계획할 수 없습니다")
     return goal, anchor, race
@@ -117,6 +127,11 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
         user_long = P.start_long_km(basis["long6"], basis["long12"]) or None
     end = (race - timedelta(days=race.weekday()) + timedelta(days=6)).isoformat()
     a_iso = anchor.isoformat()
+    # 쓰기 잠금을 먼저 잡는다: 지연(deferred) 트랜잭션으로 읽은 뒤 INSERT 로 올리면, 그 사이 다른 연결이 커밋했을 때
+    # busy 대기 없이 바로 'database is locked'(SQLITE_BUSY_SNAPSHOT)가 난다(S4-87 합성 서버에서 미리보기 500 관찰).
+    owns_tx = not conn.in_transaction
+    if owns_tx:
+        conn.execute("BEGIN IMMEDIATE")
     conn.execute("SAVEPOINT replan")
     try:
         before, rows_before = _weekly_km(conn, a_iso, end), snapshot(conn, a_iso, end)
@@ -137,9 +152,13 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
         else:
             conn.execute("ROLLBACK TO replan")
         conn.execute("RELEASE replan")
+        if owns_tx and not write:
+            conn.rollback()
     except Exception:
         conn.execute("ROLLBACK TO replan")
         conn.execute("RELEASE replan")
+        if owns_tx:
+            conn.rollback()
         raise
     caldav = None
     if write:
@@ -162,7 +181,7 @@ def preview(conn: sqlite3.Connection, params: dict, today: date | None = None) -
 def apply(conn: sqlite3.Connection, params: dict, today: date | None = None) -> dict:
     """재계획 적용. params['expect_anchor'] 가 오늘 기준 anchor 와 다르면 CONFLICT."""
     today = today or date.today()
-    if params.get("expect_anchor") != next_monday(today).isoformat():
+    if params.get("expect_anchor") != replan_anchor(get_active_goal(conn), today).isoformat():
         raise ReplanError("CONFLICT", "기준일이 바뀌었습니다. 미리보기를 다시 확인하세요")
     return _run(conn, today, params, write=True)
 
@@ -216,7 +235,7 @@ def entry_state(conn: sqlite3.Connection, today: date | None = None) -> dict:
     if goal is None or not goal.get("race_date") or plan_start_monday(goal["race_date"], goal.get("plan_weeks")) is None:
         return {"eligible": False, "reason": "NO_GOAL", "last": last}
     race = date.fromisoformat(goal["race_date"])
-    if (race - timedelta(days=race.weekday()) - next_monday(today)).days < 7 * (MIN_REPLAN_WEEKS - 1):
+    if (race - timedelta(days=race.weekday()) - replan_anchor(goal, today)).days < 7 * (MIN_REPLAN_WEEKS - 1):
         return {"eligible": False, "reason": "RACE_NEAR", "last": last}
     if last:
         return {"eligible": False, "reason": "PENDING", "last": last}

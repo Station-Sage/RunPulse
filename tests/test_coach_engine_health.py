@@ -77,3 +77,17 @@ def test_row_status_overrides_engine_json():
     ok_json = '{"status": "ok", "provider": "gemini", "model": "gemini-2.5-flash"}'
     assert h.message_engine_view(ok_json, "gemini", "cancelled")["label"] == "중단됨"
     assert h.message_engine_view(ok_json, "gemini", "done")["status"] == "ok"
+
+
+def test_message_engine_view_lists_actual_attempts():
+    """S4-87: '원인 보기'는 이 답변에서 실제로 시도한 provider 들을 순서대로(재시도 포함) 보여 준다."""
+    import json
+    eng = {"status": "fallback", "provider": "rule", "fallback_reason": "network", "attempts": [
+        {"provider": "openai", "model": "gpt-4o-mini", "ok": False, "reason": "network", "latency_ms": 3},
+        {"provider": "gemini", "model": "gemini-2.5-flash", "ok": False, "reason": "http_5xx", "http_status": 500},
+        "broken"]}
+    v = h.message_engine_view(json.dumps(eng), None, "done")
+    assert v["attempts"] == [
+        {"provider": "openai", "model": "gpt-4o-mini", "ok": False, "reason": "network"},
+        {"provider": "gemini", "model": "gemini-2.5-flash", "ok": False, "reason": "http_5xx"}]
+    assert h.attempt_views(None) == [] and h.attempt_views({"attempts": None}) == []

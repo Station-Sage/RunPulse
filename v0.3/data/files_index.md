@@ -147,9 +147,9 @@
 
 - functions: get_consent, save_consent
 
-### `coach_engine_health.py` (135줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
+### `coach_engine_health.py` (146줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
 
-- functions: model_label, reason_label, engine_label, parse_engine, message_engine_view, health_summary, get_engine
+- functions: model_label, reason_label, engine_label, parse_engine, attempt_views, message_engine_view, health_summary, get_engine
 
 ### `coach_evidence.py` (250줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
 
@@ -390,10 +390,10 @@
 
 - functions: snapshot, structure_diff
 
-### `plan_replan_service.py` (250줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
+### `plan_replan_service.py` (269줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
 
 - class **ReplanError**: 없음
-- functions: upgrade_enabled, next_monday, preview, apply, last_undoable, entry_state, undo
+- functions: upgrade_enabled, next_monday, replan_anchor, preview, apply, last_undoable, entry_state, undo
 
 ### `plan_restore.py` (68줄) — 과거 플랜 복원(PLN-43) — 취소된 목표의 plan_snapshot_json 행을 되살리고 그 목표를 활성으로 되돌린다.
 
@@ -2334,9 +2334,9 @@
 
 - functions: db_file, test_start_runs_and_streams_events, test_stream_honors_last_event_id, test_stream_restores_from_db_when_log_is_gone, test_duplicate_start_while_running_is_rejected, test_start_unknown_message_returns_false, test_rule_mode_skips_ai, test_worker_exception_emits_error, test_cancel_running_sets_flag, test_cancel_orphan_pending_marks_row, test_orphan_pending_stream_becomes_error, test_source_text_follows_regenerate_chain
 
-### `test_coach_engine_health.py` (79줄) — coach_engine_health / coach_consent — 엔진 라벨, H0 집계, 동의 upsert.
+### `test_coach_engine_health.py` (93줄) — coach_engine_health / coach_consent — 엔진 라벨, H0 집계, 동의 upsert.
 
-- functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys, test_legacy_rule_label_single_source, test_row_status_overrides_engine_json
+- functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys, test_legacy_rule_label_single_source, test_row_status_overrides_engine_json, test_message_engine_view_lists_actual_attempts
 
 ### `test_coach_evidence.py` (150줄) — coach_evidence 테스트 — 답변 근거 v2 (role·스냅샷·drift·legacy).
 
@@ -3162,9 +3162,9 @@
 
 - functions: conn, test_replaces_unprotected_and_keeps_outside_range, test_protected_rows_survive_and_block_same_date, test_proposed_adjustment_removed_with_row_and_external_reported, test_manual_rows_untouched_and_no_commit
 
-### `test_plan_replan_service.py` (93줄) — plan_replan_service — preview 쓰기 없음, apply 보호 행 보존, undo 조건(ADR-035 부록 R).
+### `test_plan_replan_service.py` (166줄) — plan_replan_service — preview 쓰기 없음, apply 보호 행 보존, undo 조건(ADR-035 부록 R).
 
-- functions: c, test_preview_writes_nothing, test_apply_conflict_and_errors, test_apply_protects_history_and_keeps_past, test_undo_restores_and_locks, test_undo_locked_after_start_or_new_history, test_last_undoable
+- functions: c, test_preview_writes_nothing, test_apply_conflict_and_errors, test_apply_protects_history_and_keeps_past, test_undo_restores_and_locks, test_undo_locked_after_start_or_new_history, test_last_undoable, future, test_replan_anchor_is_plan_start_when_plan_not_started, test_preview_future_plan_does_not_add_pre_plan_week, test_apply_future_plan_rejects_next_monday_anchor, test_preview_holds_write_lock_so_concurrent_commit_cannot_break_it
 
 ### `test_plan_replan_start.py` (157줄) — 재계획 시작점 근거 — 상태 A/B/C/D 출처·basis, 롱런 미입력 시 이력값 저장 (DESIGN-PLAN-A6-REPLAN-UI §11).
 
