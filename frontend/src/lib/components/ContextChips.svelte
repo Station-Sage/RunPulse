@@ -19,11 +19,15 @@
 	let consentSheet = $state(false);
 	let hiddenHealth = $state(false);
 
-	async function reload() {
+	async function fetchList() {
 		try { list = await getContext(); } catch { /* 칩은 부가 기능 — 실패해도 체크인은 유지 */ }
+	}
+	// 사용자가 상태를 바꾼 뒤에만 onChange — 첫 조회에서 부르면 오늘 화면 전체를 한 번 더 불러온다(S4-89 CWV).
+	async function reload() {
+		await fetchList();
 		onChange?.();
 	}
-	$effect(() => { if (!initial) void reload(); });
+	$effect(() => { if (!initial) void fetchList(); });
 
 	const prompts = $derived(confirmPrompts(list).filter((p) => !(p.key === 'health' && hiddenHealth)));
 	const openKinds = $derived(new Set((list?.episodes ?? []).filter(isOpen).map((e) => e.kind)));
