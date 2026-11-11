@@ -91,3 +91,37 @@ def test_message_engine_view_lists_actual_attempts():
         {"provider": "openai", "model": "gpt-4o-mini", "ok": False, "reason": "network"},
         {"provider": "gemini", "model": "gemini-2.5-flash", "ok": False, "reason": "http_5xx"}]
     assert h.attempt_views(None) == [] and h.attempt_views({"attempts": None}) == []
+
+
+def test_failure_history_prefix_on_retry_success():
+    """S4-88: 다른 provider 로 재시도해 성공하면 라벨에 실패 이력을 함께 쓴다(TXT-1 잠정)."""
+    import json
+    eng = {"status": "ok", "provider": "groq", "model": "llama-3.3-70b", "fallback_reason": "http_429",
+           "tool_calls": 2, "attempts": [
+               {"provider": "gemini", "model": "gemini-2.5-flash", "ok": False, "reason": "http_429"},
+               {"provider": "groq", "model": "llama-3.3-70b", "ok": True, "reason": None}]}
+    v = h.message_engine_view(json.dumps(eng), None, "done")
+    assert v["label"] == "Gemini 실패(사용량 한도) → Groq · llama-3.3-70b · 조회 2회"
+    assert h.failure_history([{"provider": "x", "ok": False, "reason": "timeout"}]) == "x 실패(시간 초과) → "
+
+
+def test_failure_history_absent_for_plain_and_legacy_messages():
+    import json
+    ok = {"status": "ok", "provider": "gemini", "model": "gemini-2.5-flash",
+          "attempts": [{"provider": "gemini", "model": "gemini-2.5-flash", "ok": True}]}
+    assert h.message_engine_view(json.dumps(ok), None, "done")["label"] == "Gemini 2.5 Flash"
+    # attempts 없는 옛 메시지·ai_model 만 있는 더 옛 메시지는 그대로
+    assert h.message_engine_view('{"status": "ok", "provider": "gemini"}', None)["label"] == "Gemini"
+    assert h.message_engine_view(None, "groq")["label"] == "Groq"
+    # 규칙 대체 라벨은 배너가 사유를 보여 주므로 접두를 붙이지 않는다
+    fb = {"status": "fallback", "provider": "rule", "attempts": [{"provider": "gemini", "ok": False, "reason": "timeout"}]}
+    assert h.message_engine_view(json.dumps(fb), None)["label"] == "규칙 답변 (AI 연결 실패)"
+    assert h.failure_history(None) == "" and h.failure_history(["bad", {"ok": False}]) == ""
+
+
+def test_every_status_reason_has_label():
+    """S4-88: reason_for_status 가 만드는 코드(http_4xx 포함)는 모두 사람이 읽는 라벨이 있다."""
+    from src.ai.provider_common import REASON_LABELS, reason_for_status
+    for st in (400, 401, 403, 404, 413, 429, 500, 503):
+        assert reason_for_status(st) in REASON_LABELS
+    assert h.reason_label("http_4xx") == "요청 거부(4xx)"

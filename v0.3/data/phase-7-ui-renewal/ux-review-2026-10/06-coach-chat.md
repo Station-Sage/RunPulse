@@ -81,3 +81,10 @@
 - 발견 수정: "원인 보기" 시트의 "시도" 가 이 답변에서 실제로 시도한 provider 가 아니라 지금 설정된 provider 하나만 보여, 재시도한 gemini 가 빠지고 설정을 바꾸면 옛 답변 시트도 바뀌었다. 서버 메시지 엔진 보기에 `attempts`(provider·model·ok·reason) 추가(`coach_engine_health.attempt_views`), 시트는 시도 순서대로 "openai · gpt-4o-mini — 네트워크 오류 / gemini · gemini-2.5-flash — 서버 오류(5xx)"(`coachEngine.attemptLines`, attempts 없는 옛 응답만 기존 추정 한 줄). 
 - 관찰(미변경, 판단 필요): 재시도로 다른 provider 가 답한 경우 라벨은 답한 provider 만 표시("Gemini 2.5 Flash") — 첫 provider 실패 사실은 보이지 않음. 설계(§7.2)에 표시 규칙이 없어 그대로 둠.
 - 확인 방법: pytest `tests/test_coach_engine_health.py`(attempts 보기), 프런트 `coachEngine.test.mjs`(attemptLines). 문구 TXT-1 잠정.
+
+## 처리 기록 (2026-11-11, 실패 이력 표시·실계정 응답시간, S4-88)
+- S4-87 관찰 해소(사용자 지시 "실패 이력 함께 보여줘"): 재시도로 다른 provider 가 답하면 메시지 라벨에 실패 이력을 앞에 붙인다 — "Gemini 실패(사용량 한도) → Groq · openai/gpt-oss-120b"(`coach_engine_health.failure_history`, 사유는 REASON_LABELS 에서 괄호 코드만 뗀 짧은 형태, TXT-1 잠정). 이런 답변에는 "시도 기록 ›"(44px)을 달아 같은 시트를 연다(전엔 폴백 배너에만 "원인 보기"). 시트는 시도 줄이 사유를 보여 주므로 성공 답변에선 "원인" 행을 숨긴다. 호출 순서·재시도·예산 변경 없음.
+- 옛 메시지: attempts 없는 엔진 기록·engine_json 없는 기록은 라벨 그대로("규칙 답변 (이전 방식)", "Groq · …"), "시도 기록" 없음 — 실계정 사본 스레드 1·6 에서 확인. 규칙 대체(fallback) 라벨은 배너가 사유를 보여 주므로 접두 없음.
+- 발견 수정: 실계정 기록의 사유 `http_4xx`(400·413 등)가 라벨 사전에 없어 시트에 원시 코드로 보였다 → "요청 거부(4xx)"(백엔드 REASON_LABELS·프런트 REASON_TEXT).
+- 브라우저 확인: 실계정 DB 사본 + 임시 설정(가짜 키) + 로컬 가짜 provider(gemini 429, groq 정상/표식 시 503)로 375·1280 에서 라벨·시트·Esc 닫기 확인, 콘솔 오류 0.
+- Coach 홈 요청 실측(사본, 9회 p50): threads 7ms, plan/active 252ms(첫 호출 ~1.1s — 프로세스 첫 폭염 예보 외부 조회, 3시간 캐시), checkin 8ms, race-hub 8ms, engine 7ms, suggestions 55ms, today 453 → 138ms(아래 인덱스).

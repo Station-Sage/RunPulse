@@ -607,6 +607,9 @@ def _safe_create_indexes(conn: sqlite3.Connection) -> None:
          "CREATE INDEX IF NOT EXISTS idx_sp_activity ON source_payloads(activity_id)")
     _idx(conn, "source_payloads", "entity_date",
          "CREATE INDEX IF NOT EXISTS idx_sp_entity_date ON source_payloads(entity_date)")
+    # S4-88: 소스별 MAX(fetched_at)(동기화 상태) — 큰 payload 행을 읽지 않는 커버링 인덱스(실계정 220ms → 1ms)
+    _idx(conn, "source_payloads", "fetched_at",
+         "CREATE INDEX IF NOT EXISTS idx_sp_source_fetched ON source_payloads(source, fetched_at)")
 
     # activity_summaries
     _idx(conn, "activity_summaries", "activity_type",
@@ -625,6 +628,9 @@ def _safe_create_indexes(conn: sqlite3.Connection) -> None:
          "CREATE INDEX IF NOT EXISTS idx_ms_scope ON metric_store(scope_type, scope_id)")
     _idx(conn, "metric_store", "metric_name",
          "CREATE INDEX IF NOT EXISTS idx_ms_name ON metric_store(metric_name)")
+    # S4-88: 메트릭 이름별 최신 일별 값(프로필 실효값 등) — scope_id 역순 LIMIT 1 을 인덱스로 끝낸다(28ms → 0.1ms/회)
+    _idx(conn, "metric_store", "metric_name",
+         "CREATE INDEX IF NOT EXISTS idx_ms_name_scope ON metric_store(metric_name, scope_type, scope_id)")
     _idx(conn, "metric_store", "provider",
          "CREATE INDEX IF NOT EXISTS idx_ms_provider ON metric_store(provider)")
     _idx(conn, "metric_store", "category",

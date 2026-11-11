@@ -5,7 +5,7 @@
 	import ChatBody from '$lib/components/ChatBody.svelte';
 	import EvidenceRow from './EvidenceRow.svelte';
 	import { driftText } from '$lib/answerEvidence';
-	import { bannerFor, fallbackText, reasonText } from '$lib/coachEngine';
+	import { bannerFor, fallbackText, hasFailedRetry, reasonText } from '$lib/coachEngine';
 	import type { LiveEntry } from '$lib/coachLive.svelte';
 	import StreamStatus from './StreamStatus.svelte';
 
@@ -34,6 +34,7 @@
 	const engine = $derived(msg.engine);
 	const banner = $derived(bannerFor(engine));
 	const label = $derived(engine?.label ?? '');
+	const retried = $derived(hasFailedRetry(engine)); // S4-88: 재시도로 성공한 답변도 실제 시도 목록을 열어 볼 수 있게
 	const drift = $derived(driftText(msg.evidence));
 </script>
 
@@ -53,6 +54,10 @@
 		<ChatBody content={msg.content} />
 		{#if label}
 			<p class="mt-1 text-[11px] font-medium text-fg-secondary" data-testid="engine-label">{label}</p>
+			{#if retried}
+				<button type="button" class="inline-flex min-h-11 items-center text-[11px] underline text-fg-secondary"
+					data-testid="attempts-link" onclick={() => onShowReason(msg)}>시도 기록 ›</button>
+			{/if}
 		{/if}
 
 		{#if banner === 'fallback'}

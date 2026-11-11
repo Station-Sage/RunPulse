@@ -85,3 +85,7 @@
 - 발견 수정(S4-86 (1)): 미래 시작 플랜 다시 맞추기가 계획 앞 주에 주를 붙이던 원인 = 재계획 기준일이 항상 다음 월요일. 그 주는 계획 범위 밖이라 주기화 일정이 없어 CTL 폴백 거리로 한 주가 생성·저장됐다. 기준일을 `max(다음 월요일, 계획 시작 월요일)`(`plan_replan_service.replan_anchor`)로, preview·apply 확인·진입 규칙이 같은 함수를 씀. 프런트 요약은 전에 없던 첫 주를 "비슷한 거리"로 말하던 비교 오류 수정(`replanSummary`). 합성 서버(11/23 시작 하프 12주): 미리보기 첫 행 11/23 34→34km, 11/16 행 없음, "11/23부터 적용" → 플랜 상세 "11/23(월)부터 다시 맞춘 일정이에요. 11/22(일)까지 되돌릴 수 있어요." → 되돌리기, 계획 앞 주 행 0.
 - 발견 수정: 합성 서버 스모크 중 재계획 미리보기 1회 500(`database is locked`) — 지연 트랜잭션에서 읽은 뒤 쓰기로 올리는 사이 다른 연결의 커밋과 충돌. 재계획 실행이 `BEGIN IMMEDIATE` 로 쓰기 잠금을 먼저 잡음(재현 테스트 포함).
 - 확인 방법: pytest `tests/test_plan_replan_service.py`(미래 시작 기준일·계획 앞 주 무변경·CONFLICT·잠금 동시성), 프런트 `planDetailLoad.test.mjs`·`streamed.test.mjs`·`replanView.test.mjs`. 문구 TXT-1 잠정.
+
+## 처리 기록 (2026-11-11, 실계정 응답시간 실측, S4-88)
+- 플랜 상세 5요청(실계정 DB 사본·합성 서버, 9회 p50/max): plan/{id} 61/62ms, adjustment 9/11ms, adaptation 7/7ms, replan/last 6/10ms, {id}/weeks 104/104ms — 모두 300ms 미만, 변경 없음.
+- `/coach/plan/active`(Coach 홈·Today 가 부름)는 조회마다 주간 적응 잡을 돌려 p50 252ms, 프로세스 첫 호출은 폭염 예보 외부 조회로 ~1.1s. 설계(조회 때 적응) 변경이 필요해 그대로 둠 — 적응 입력 쿼리(`planner_schedule.recent_load` 의 `DATE(start_time)` 조건)가 인덱스를 못 타는 것이 남은 몫.

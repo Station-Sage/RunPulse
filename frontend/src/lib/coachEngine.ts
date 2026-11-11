@@ -7,6 +7,7 @@ const REASON_TEXT: Record<string, string> = {
 	http_401: '인증 실패(401)',
 	http_429: '사용량 한도(429)',
 	http_5xx: '서버 오류(5xx)',
+	http_4xx: '요청 거부(4xx)',
 	timeout: '시간 초과',
 	no_key: '키 없음',
 	parse_error: '응답 해석 실패',
@@ -102,7 +103,12 @@ export function attemptLines(
 	attempts: EngineAttempt[] | null | undefined,
 	fallbackGuess: { provider: string; model?: string | null } | null
 ): string[] {
-	const name = (p: string, m?: string | null) => (m ? `${p} · ${m}` : p);
+	const name = (p: string, m?: string | null) => (m ? `${providerName(p)} · ${m}` : providerName(p));
 	if (attempts && attempts.length) return attempts.map((a) => `${name(a.provider, a.model)} — ${a.ok ? '성공' : reasonText(a.reason)}`);
 	return fallbackGuess ? [name(fallbackGuess.provider, fallbackGuess.model)] : [];
+}
+
+/** 성공했지만 앞서 실패한 시도가 있는 답변(S4-88) — 메시지에 '시도 기록 ›'을 달아 원인 보기 시트를 연다. */
+export function hasFailedRetry(engine: Pick<EngineView, 'status' | 'attempts'> | undefined): boolean {
+	return engine?.status === 'ok' && (engine.attempts ?? []).some((a) => !a.ok);
 }

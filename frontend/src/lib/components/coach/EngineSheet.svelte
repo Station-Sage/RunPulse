@@ -25,7 +25,8 @@
 				<dt class="text-fg-muted">시도</dt>
 				<dd>{#each lines as l, i (i)}<span class="block">{l}</span>{/each}</dd>
 			{/if}
-			{#if engine.reason}
+			{#if engine.reason && !(engine.status === 'ok' && lines.length)}
+				<!-- S4-88: 재시도로 성공한 답변은 위 시도 줄이 실패 사유를 이미 보여 준다(중복 행 숨김) -->
 				<dt class="text-fg-muted">원인</dt><dd>{reasonText(engine.reason)}</dd>
 			{/if}
 		</dl>

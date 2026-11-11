@@ -147,9 +147,9 @@
 
 - functions: get_consent, save_consent
 
-### `coach_engine_health.py` (146줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
+### `coach_engine_health.py` (162줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
 
-- functions: model_label, reason_label, engine_label, parse_engine, attempt_views, message_engine_view, health_summary, get_engine
+- functions: model_label, reason_label, failure_history, engine_label, parse_engine, attempt_views, message_engine_view, health_summary, get_engine
 
 ### `coach_evidence.py` (250줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
 
@@ -1222,7 +1222,7 @@
 
 - functions: get_prompt, get_all_prompts, get_tab_prompt
 
-### `provider_common.py` (98줄) — AI provider 공통 — 구조화 오류(ProviderError), 모델 ID 해석, 타임아웃(30-coach-chat design §4.3·§6.2).
+### `provider_common.py` (99줄) — AI provider 공통 — 구조화 오류(ProviderError), 모델 ID 해석, 타임아웃(30-coach-chat design §4.3·§6.2).
 
 - class **ProviderError**: 없음
 - class **RateLimitError**: 없음
@@ -2334,9 +2334,9 @@
 
 - functions: db_file, test_start_runs_and_streams_events, test_stream_honors_last_event_id, test_stream_restores_from_db_when_log_is_gone, test_duplicate_start_while_running_is_rejected, test_start_unknown_message_returns_false, test_rule_mode_skips_ai, test_worker_exception_emits_error, test_cancel_running_sets_flag, test_cancel_orphan_pending_marks_row, test_orphan_pending_stream_becomes_error, test_source_text_follows_regenerate_chain
 
-### `test_coach_engine_health.py` (93줄) — coach_engine_health / coach_consent — 엔진 라벨, H0 집계, 동의 upsert.
+### `test_coach_engine_health.py` (127줄) — coach_engine_health / coach_consent — 엔진 라벨, H0 집계, 동의 upsert.
 
-- functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys, test_legacy_rule_label_single_source, test_row_status_overrides_engine_json, test_message_engine_view_lists_actual_attempts
+- functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys, test_legacy_rule_label_single_source, test_row_status_overrides_engine_json, test_message_engine_view_lists_actual_attempts, test_failure_history_prefix_on_retry_success, test_failure_history_absent_for_plain_and_legacy_messages, test_every_status_reason_has_label
 
 ### `test_coach_evidence.py` (150줄) — coach_evidence 테스트 — 답변 근거 v2 (role·스냅샷·drift·legacy).
 
@@ -3283,6 +3283,10 @@
 
 - functions: test_dry_run_keeps_rows, test_apply_deletes_only_stale, test_no_activities_deletes_nothing
 
+### `test_query_indexes.py` (17줄) — S4-88 — 실계정 응답시간 병목 쿼리가 인덱스를 타는지(동기화 상태·프로필 최신 값).
+
+- functions: test_sync_state_payload_max_uses_covering_index, test_profile_latest_metric_uses_name_scope_index
+
 ### `test_race_calendar_service.py` (205줄) — RC-a: race_calendar 서비스·상태 전이·목표 동기화.
 
 - functions: test_add_defaults_and_duplicate, test_add_second_a_conflicts, test_past_date_allowed, test_lazy_done_and_zones, test_needs_review_zone, test_update_applied_goes_stale_and_editable_whitelist, test_update_not_found, test_cancel_saves_prev_and_blocks_goal_race, test_restore_future_restores_prev_values, test_restore_past_needs_confirm, test_restore_non_cancelled_409, test_restore_a_conflict_demote, test_restore_over_goal_race_requires_goal_link, test_restore_goal_link_wrong_target, test_restore_reapply_unavailable_becomes_stale, test_reopen, test_create_goal_with_race_demotes_old_a_and_syncs_cache, test_add_goal_compat_creates_linked_race, test_add_goal_without_date_has_no_race_then_attach, test_update_goal_delegates_to_race, test_push_cache_rc21_exception_keeps_null_date, test_demote_a_blocked_for_goal_race, test_check_invariants_detects_drift
@@ -3873,7 +3877,7 @@
 - functions: run
 
 ---
-총 833개 파일
+총 834개 파일
 
 ## docstring 누락
 

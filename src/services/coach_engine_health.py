@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 
 from src.ai.chat_context_scope import scope_catalog
@@ -28,6 +29,20 @@ def model_label(provider: str, model: str | None) -> str:
 
 def reason_label(reason: str | None) -> str:
     return REASON_LABELS.get(reason or "", reason or "알 수 없음")
+
+
+def failure_history(attempts: list | None) -> str:
+    """성공 전에 실패한 시도 → "Gemini 실패(사용량 한도) → " 접두(S4-88, TXT-1 잠정). 실패가 없거나 옛 메시지면 ''.
+
+    사유는 REASON_LABELS 에서 괄호 코드("(429)")만 떼어 짧게 쓴다 — 전체 사유는 '원인 보기' 시트가 보여 준다.
+    """
+    parts = []
+    for a in attempts or []:
+        if not isinstance(a, dict) or a.get("ok") or not a.get("provider"):
+            continue
+        short = re.sub(r"\([^()]*\)$", "", reason_label(a.get("reason"))).strip()
+        parts.append(f"{_PROVIDER_NAMES.get(a['provider'], a['provider'])} 실패({short})")
+    return "".join(f"{p} → " for p in parts)
 
 
 # C-13: 답변 엔진 표기는 "규칙 답변 (사유)" 한 형식으로 통일한다(TXT-1 잠정).
@@ -89,7 +104,8 @@ def message_engine_view(engine_json: str | None, ai_model: str | None, row_statu
     reason = data.get("fallback_reason")
     return {
         "status": status, "provider": data.get("provider"), "model": data.get("model"), "reason": reason,
-        "label": engine_label(status, data.get("provider"), data.get("model"), data.get("tool_calls", 0), reason),
+        "label": (failure_history(data.get("attempts")) if status == "ok" else "")
+                 + engine_label(status, data.get("provider"), data.get("model"), data.get("tool_calls", 0), reason),
         "resets_at": data.get("resets_at"), "attempts": attempt_views(data),
     }
 
