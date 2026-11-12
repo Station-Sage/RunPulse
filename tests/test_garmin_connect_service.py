@@ -214,3 +214,28 @@ def test_data_connect_delegates_garmin(monkeypatch):
 
 def test_mask_email():
     assert svc.mask_email("abc@d.com") == "a***@d.com" and svc.mask_email("x") == "***"
+
+
+def test_rate_window_remaining_counts_from_latest_hit():
+    rate_window.hit("k", 5, 900, now=100.0)
+    rate_window.hit("k", 5, 900, now=400.0)
+    assert rate_window.remaining("k", 900, now=500.0) == 800.0
+    assert rate_window.remaining("k", 900, now=1400.0) == 0.0
+    assert rate_window.remaining("none", 900, now=0.0) == 0.0
+
+
+def test_cooldown_retry_after_is_actual_remaining(monkeypatch):
+    clock = {"t": 1000.0}
+    monkeypatch.setattr(rate_window.time, "monotonic", lambda: clock["t"])
+    install(monkeypatch, svc, {"login": TOO_MANY("429")})
+    first = svc.start_login(UID, "a@x.com", PW)[1]
+    assert first.retry_after == 900 and first.details == {"retry_after_sec": 900}
+    assert "15분" in first.message
+    clock["t"] += 600.5  # 10분 경과 → 남은 299.5초 → 올림 300
+    again = svc.start_login(UID, "a@x.com", PW)[1]
+    assert again.code == "GARMIN_RATE_LIMITED"
+    assert again.retry_after == 300 and again.details == {"retry_after_sec": 300}
+    assert "5분" in again.message
+    assert svc.cooldown_remaining(UID) == 300
+    clock["t"] += 300
+    assert svc.cooldown_remaining(UID) == 0 and not svc.in_cooldown(UID)

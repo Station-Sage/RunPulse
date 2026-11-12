@@ -27,6 +27,12 @@ export function attemptsLeft(e: unknown): number | null {
 	return typeof n === 'number' ? n : null;
 }
 
+/** 서버가 준 남은 쿨다운(details.retry_after_sec)을 분으로 올림. 없으면 기본 쿨다운 15분. */
+export function cooldownMinutes(e: ApiError): number {
+	const sec = (e.details as { retry_after_sec?: unknown } | undefined)?.retry_after_sec;
+	return typeof sec === 'number' && sec > 0 ? Math.max(1, Math.ceil(sec / 60)) : 15;
+}
+
 export function garminErrorText(e: unknown, mode: GarminMode): GarminErrorView {
 	if (!(e instanceof ApiError)) return { text: failureMessage(classifyFailure(e).kind) };
 	switch (e.code) {
@@ -52,7 +58,7 @@ export function garminErrorText(e: unknown, mode: GarminMode): GarminErrorView {
 				resetTo: 'credentials'
 			};
 		case 'GARMIN_RATE_LIMITED':
-			return { text: 'Garmin이 잠시 막았어요. 15분 뒤 다시 시도해 주세요' };
+			return { text: `Garmin이 잠시 막았어요. ${cooldownMinutes(e)}분 뒤 다시 시도해 주세요` };
 		case 'RATE_LIMITED':
 			return { text: '시도가 너무 많아요. 잠시 후 다시 시도해 주세요' };
 		case 'GARMIN_UPSTREAM':

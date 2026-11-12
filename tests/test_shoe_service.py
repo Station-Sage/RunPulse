@@ -141,3 +141,24 @@ def test_today_alert_and_race_note(c):
     assert q.get_shoe(c, sid, T)["note"]
     assert q.today_alert(c, "2026-05-30") is None  # 최근 7일 미사용
     assert q.list_shoes(c, T)["headline"] == "Race, 교체를 권해요"
+
+
+def test_gear_label_falls_back_to_source_and_id():
+    assert q.gear_label("strava", "g1", "Peg 40") == "Peg 40"
+    assert q.gear_label("intervals", "34377", None) == "Intervals 신발 #34377"
+    assert q.gear_label("garmin", "9", "  ") == "Garmin 신발 #9"
+    assert q.gear_label("newsrc", "x1", None) == "newsrc 신발 #x1"
+    assert q.gear_label("intervals", None, None) == "이름 없는 신발"
+
+
+def test_nameless_gear_get_distinct_suggestion_and_shoe_names(c):
+    # Intervals 숫자 id 처럼 이름 없는 gear 두 개 — 같은 '이름 없는 신발' 두 켤레가 생기지 않는다
+    c.execute("INSERT INTO gear (source, source_gear_id, name, gear_type) VALUES"
+              " ('intervals','34377',NULL,'shoes'), ('intervals','34378',NULL,'shoes')")
+    names = sorted(s["name"] for s in q.list_shoes(c, T)["suggestions"])
+    assert names == ["Intervals 신발 #34377", "Intervals 신발 #34378"]
+    assert svc.import_gear(c, T)["created"] == 2
+    created = sorted(r[0] for r in c.execute("SELECT name FROM user_shoes"))
+    assert created == names
+    sid = c.execute("SELECT id FROM user_shoes WHERE name=?", (names[0],)).fetchone()[0]
+    assert q.get_shoe(c, sid, T)["sources"][0]["name"] == names[0]

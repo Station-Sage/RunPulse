@@ -56,3 +56,21 @@ test('성공 시 data 반환', async () => {
 		globalThis.fetch = orig;
 	}
 });
+
+test('첫 로드 선요청(__rpBoot)이 있으면 그 응답을 1회 쓰고, 다음 호출은 새 fetch (S4-90)', async () => {
+	const orig = globalThis.fetch;
+	let calls = 0;
+	globalThis.fetch = async () => {
+		calls++;
+		return new Response(JSON.stringify({ data: 'fresh' }), { status: 200 });
+	};
+	globalThis.__rpBoot = { '/boot': { p: Promise.resolve(new Response(JSON.stringify({ data: 'boot' }), { status: 200 })), t: performance.now() } };
+	try {
+		assert.equal(await apiFetch('/boot'), 'boot');
+		assert.equal(await apiFetch('/boot'), 'fresh');
+		assert.equal(calls, 1);
+	} finally {
+		globalThis.fetch = orig;
+		delete globalThis.__rpBoot;
+	}
+});

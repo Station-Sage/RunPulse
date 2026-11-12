@@ -783,9 +783,9 @@ def check_phase3_sync():
 def check_phase4_metrics():
     metrics_dir = ROOT / "src" / "metrics"
 
-    # 핵심 파일 확인
+    # 핵심 파일 확인 — reprocess 는 src/sync/reprocess.py 가 담당(검사 17). src/metrics/reprocess.py 는 호출자 0 이라 삭제(S4-90)
     required = [
-        "base.py", "engine.py", "cli.py", "reprocess.py",
+        "base.py", "engine.py", "cli.py",
         "trimp.py", "hrss.py", "pmc.py", "acwr.py", "cirs.py",
         "utrs.py", "vdot.py", "darp.py", "classifier.py",
     ]

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { ApiError } from '../src/lib/api/client.ts';
 import {
 	attemptsLeft,
+	cooldownMinutes,
 	formatRemaining,
 	garminErrorText,
 	isValidCode,
@@ -46,6 +47,9 @@ test('인증 실패 문구는 모드별, 세션 만료(AUTH_REQUIRED)와 구분'
 
 test('레이트리밋·상류 오류·검증 오류 문구', () => {
 	assert.match(garminErrorText(err(503, 'GARMIN_RATE_LIMITED'), 'login').text, /15분/);
+	// 서버가 실제 남은 쿨다운을 주면 그 시간(올림 분) — 고정 15분 아님
+	assert.match(garminErrorText(err(503, 'GARMIN_RATE_LIMITED', '', { retry_after_sec: 299 }), 'login').text, /5분 뒤/);
+	assert.match(garminErrorText(err(503, 'GARMIN_RATE_LIMITED', '', { retry_after_sec: 20 }), 'login').text, /1분 뒤/);
 	assert.match(garminErrorText(err(429, 'RATE_LIMITED'), 'login').text, /너무 많아요/);
 	assert.match(garminErrorText(err(502, 'GARMIN_UPSTREAM'), 'login').text, /연결하지 못했어요/);
 	assert.equal(garminErrorText(err(400, 'INVALID_PARAM', '이메일을 확인해 주세요'), 'login').text, '이메일을 확인해 주세요');
@@ -71,4 +75,10 @@ test('v2 화면에 v1 Garmin 연결 링크가 남지 않는다', () => {
 	for (const f of ['src/lib/components/data/ConnectPanel.svelte', 'src/lib/components/welcome/Step1Connect.svelte']) {
 		assert.ok(!readFileSync(f, 'utf8').includes('/connect/garmin'), f);
 	}
+});
+
+test('cooldownMinutes: retry_after_sec 올림, 없거나 이상하면 15', () => {
+	assert.equal(cooldownMinutes(err(503, 'GARMIN_RATE_LIMITED', '', { retry_after_sec: 61 })), 2);
+	assert.equal(cooldownMinutes(err(503, 'GARMIN_RATE_LIMITED')), 15);
+	assert.equal(cooldownMinutes(err(503, 'GARMIN_RATE_LIMITED', '', { retry_after_sec: 'x' })), 15);
 });

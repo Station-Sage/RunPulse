@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,7 +31,7 @@ MSG = {
     "mfa_invalid": "인증 코드가 맞지 않아요. 다시 입력해 주세요",
     "mfa_expired": "시간이 지났어요. 다시 로그인해 주세요",
     "mfa_unavailable": "지금은 인증 코드 단계를 처리할 수 없어요. 관리자에게 알려 주세요",
-    "rate_upstream": "Garmin이 잠시 막았어요. 15분 뒤 다시 시도해 주세요",
+    "rate_upstream": "Garmin이 잠시 막았어요. {minutes}분 뒤 다시 시도해 주세요",
     "upstream": "Garmin에 연결하지 못했어요. 잠시 후 다시 시도해 주세요",
     "internal": "토큰을 저장하지 못했어요. 잠시 후 다시 시도해 주세요",
 }
@@ -79,10 +80,18 @@ def in_cooldown(user_id: str) -> bool:
     return rate_window.count(_cooldown_key(user_id), COOLDOWN_S) > 0
 
 
+def cooldown_remaining(user_id: str) -> int:
+    """남은 쿨다운 초(올림). 쿨다운이 아니면 0."""
+    return math.ceil(rate_window.remaining(_cooldown_key(user_id), COOLDOWN_S))
+
+
 def _rate_fail(user_id: str, record: bool = True) -> Fail:
+    """Garmin 429 → 쿨다운 기록(이미 쿨다운이면 연장하지 않음). Retry-After·문구는 실제 남은 시간(고정 900초 아님)."""
     if record and not in_cooldown(user_id):
         rate_window.hit(_cooldown_key(user_id), 1, COOLDOWN_S)
-    return Fail("GARMIN_RATE_LIMITED", 503, MSG["rate_upstream"], retry_after=COOLDOWN_S)
+    remain = cooldown_remaining(user_id) or COOLDOWN_S
+    message = MSG["rate_upstream"].format(minutes=max(1, math.ceil(remain / 60)))
+    return Fail("GARMIN_RATE_LIMITED", 503, message, {"retry_after_sec": remain}, retry_after=remain)
 
 
 def _map_exc(exc: Exception, user_id: str, where: str, auth_msg: str = MSG["auth"]) -> Fail:

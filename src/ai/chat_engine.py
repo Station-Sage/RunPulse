@@ -29,13 +29,6 @@ from .chat_engine_providers import (
 
 log = logging.getLogger(__name__)
 
-# ── 하위 호환 private alias (ai_message.py 등에서 직접 참조) ──────────────
-_call_claude = call_claude
-_call_openai = call_openai
-_call_gemini = call_gemini
-_call_groq = call_groq
-
-
 def get_ai_provider(config: dict | None = None) -> str:
     """설정에서 AI 제공자 이름 반환."""
     if not config:

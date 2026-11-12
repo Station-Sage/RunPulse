@@ -43,14 +43,29 @@ def shoe_view(shoe: dict, stat: dict | None, race_days: int | None) -> dict:
     }
 
 
+_SOURCE_LABEL = {"strava": "Strava", "strava_export": "Strava", "garmin": "Garmin",
+                 "intervals": "Intervals", "runalyze": "Runalyze"}
+
+
+def gear_label(source: str | None, source_gear_id: str | None, name: str | None) -> str:
+    """gear 표시 이름. 이름이 없으면(Intervals 숫자 id 등 — 소스가 이름을 안 줌) `<소스> 신발 #<소스 id>`.
+
+    이름 없는 gear 가 모두 '이름 없는 신발' 로 보이고, 가져오기 때 같은 이름의 신발로 여러 켤레 생기던 문제를 막는다.
+    """
+    if name and name.strip():
+        return name
+    label = _SOURCE_LABEL.get(source or "", source or "소스")
+    return f"{label} 신발 #{source_gear_id}" if source_gear_id else "이름 없는 신발"
+
+
 def suggestions(conn: sqlite3.Connection) -> list[dict]:
     """미연결 신발 gear 를 정규화 이름으로 묶은 가져오기 제안."""
     groups: dict[str, dict] = {}
-    for gid, src, name, dist in conn.execute(
-            "SELECT id, source, name, total_distance_m FROM gear WHERE shoe_id IS NULL"
+    for gid, src, sgid, name, dist in conn.execute(
+            "SELECT id, source, source_gear_id, name, total_distance_m FROM gear WHERE shoe_id IS NULL"
             " AND COALESCE(gear_type,'shoes')='shoes' ORDER BY id"):
         key = normalize_name(name) or f"#{gid}"
-        g = groups.setdefault(key, {"name": name or "이름 없는 신발", "sources": [], "gear_ids": [], "total_km": 0.0})
+        g = groups.setdefault(key, {"name": gear_label(src, sgid, name), "sources": [], "gear_ids": [], "total_km": 0.0})
         g["gear_ids"].append(gid)
         if src not in g["sources"]:
             g["sources"].append(src)
@@ -93,9 +108,11 @@ def get_shoe(conn: sqlite3.Connection, shoe_id: int, today: str) -> dict | None:
     monthly: dict[str, float] = {}
     for a in assigns:
         monthly[a.date[:7]] = monthly.get(a.date[:7], 0.0) + a.distance_m / 1000
-    sources = [{"gear_id": gid, "source": src, "name": name, "total_km": round((dist or 0) / 1000, 1)}
-               for gid, src, name, dist in conn.execute(
-                   "SELECT id, source, name, total_distance_m FROM gear WHERE shoe_id=? ORDER BY source", (shoe_id,))]
+    sources = [{"gear_id": gid, "source": src, "name": gear_label(src, sgid, name),
+                "total_km": round((dist or 0) / 1000, 1)}
+               for gid, src, sgid, name, dist in conn.execute(
+                   "SELECT id, source, source_gear_id, name, total_distance_m FROM gear WHERE shoe_id=? ORDER BY source",
+                   (shoe_id,))]
     view.update({
         "breakdown": {"initial_km": view["initial_km"],
                       "assigned_km": round(((stat or {}).get("assigned_m") or 0) / 1000, 1),

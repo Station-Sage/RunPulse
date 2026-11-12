@@ -1,7 +1,7 @@
 <script lang="ts">
 	import IconButton from '$lib/components/ui/IconButton.svelte';
-	// §2.2/§2.3(40-v2-unimplemented/design.md), 40:S0 "과도기 드로어" — 첫 행은 동기화 요약(탭하면
-	// ?sheet=sync 패널), 나머지는 v2 화면 바로가기.
+	// 첫 행은 동기화 요약(탭하면 ?sheet=sync 패널). 그 아래는 v1 일몰 후 정보 구조(MENUDRAWER-POST-V1, S4-90):
+	// 데이터(주 탭 없는 영역) · 설정 · 바로가기 그룹 — 그룹·링크는 $lib/menuLinks. 맨 아래 개발용 사용자 전환·로그아웃.
 	import Icon from '$lib/components/Icon.svelte';
 	import DevUserSwitch from '$lib/components/DevUserSwitch.svelte';
 	import { base } from '$app/paths';
@@ -10,7 +10,7 @@
 	import { openSheet } from '$lib/sheetHistory';
 	import { pillView } from '$lib/syncState';
 	import { syncStore } from '$lib/syncStore.svelte';
-	import { EXPORT_LABEL, EXPORT_PATH, DATA_LINKS, QUICK_LINKS } from '$lib/menuLinks';
+	import { MENU_GROUPS } from '$lib/menuLinks';
 
 	let { open, onClose }: { open: boolean; onClose: () => void } = $props();
 
@@ -57,47 +57,21 @@
 				</button>
 			</div>
 
-			<div class="flex flex-col gap-1 px-2 py-3">
-				<p class="px-2 py-1 text-xs text-fg-muted">바로가기</p>
-				{#each QUICK_LINKS as link (link.href)}
-					<a
-						href="{base}{link.href}"
-						onclick={onClose}
-						class="min-h-11 rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
-					>
-						{link.label}
-					</a>
-				{/each}
-			</div>
-
-			<div class="flex flex-col gap-1 border-t border-border-subtle px-2 py-3">
-				<p class="px-2 py-1 text-xs text-fg-muted">데이터·설정</p>
-				<a
-					href="{base}/data"
-					onclick={onClose}
-					class="min-h-11 rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
-				>
-					데이터 (동기화·소스)
-				</a>
-				<!-- V1-11 (b): v1 CSV 라우트 대신 v2 내보내기(EXP) 화면 -->
-				<a
-					href="{base}{EXPORT_PATH}"
-					onclick={onClose}
-					data-testid="menu-export-link"
-					class="min-h-11 rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
-				>
-					{EXPORT_LABEL}
-				</a>
-				{#each DATA_LINKS as link (link.href)}
-					<a
-						href="{base}{link.href}"
-						onclick={onClose}
-						class="min-h-11 rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
-					>
-						{link.label}
-					</a>
-				{/each}
-			</div>
+			{#each MENU_GROUPS as group, i (group.id)}
+				<div class="flex flex-col gap-1 px-2 py-3 {i > 0 ? 'border-t border-border-subtle' : ''}" role="group" aria-labelledby="menu-group-{group.id}">
+					<p id="menu-group-{group.id}" class="px-2 py-1 text-xs text-fg-muted">{group.title}</p>
+					{#each group.links as link (link.href)}
+						<a
+							href="{base}{link.href}"
+							onclick={onClose}
+							data-testid={link.testid}
+							class="min-h-11 rounded-lg px-3 py-2 text-sm text-fg-primary hover:bg-surface-2"
+						>
+							{link.label}
+						</a>
+					{/each}
+				</div>
+			{/each}
 
 			<div class="mt-auto border-t border-border-subtle px-2 py-3">
 				<!-- 개발 전용(V1-8): 서버가 production 이면 /dev/users 가 404 라 렌더되지 않는다 -->

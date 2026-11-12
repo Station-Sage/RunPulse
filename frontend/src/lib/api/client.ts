@@ -1,6 +1,8 @@
 // 05-tech-architecture.md §4.2 apiFetch 그대로 — 개발/프로덕션 모두 동일 출처 요청.
 // 개발 중엔 vite.config.ts의 server.proxy가 /api를 Flask(src/serve.py, 18080)로 프록시한다.
 
+import { takeBootResponse } from './bootPrefetch.ts';
+
 const API_BASE = '/api/v1';
 
 interface ApiErrorBody {
@@ -25,11 +27,13 @@ export class ApiError extends Error {
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 	let res: Response;
 	try {
-		res = await fetch(`${API_BASE}${path}`, {
-			headers: { 'Content-Type': 'application/json' },
-			redirect: 'manual',
-			...init
-		});
+		// 첫 로드 선요청(index.html 인라인, 같은 헤더·redirect)이 있으면 그 응답을 쓴다 — S4-90
+		res = await (takeBootResponse(path, init) ??
+			fetch(`${API_BASE}${path}`, {
+				headers: { 'Content-Type': 'application/json' },
+				redirect: 'manual',
+				...init
+			}));
 	} catch (e) {
 		const aborted = e instanceof Error && e.name === 'AbortError';
 		throw new ApiError(0, {

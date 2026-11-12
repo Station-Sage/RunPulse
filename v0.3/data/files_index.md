@@ -223,10 +223,10 @@
 - class **CleanupError**: 없음
 - functions: targets, cleanup
 
-### `garmin_connect_service.py` (239줄) — Garmin 연결 쓰기 — 비밀번호 로그인·MFA 완료·토큰 붙여넣기·해제, 예외→오류코드 매핑. 설계: garmin-connect.md §3.
+### `garmin_connect_service.py` (248줄) — Garmin 연결 쓰기 — 비밀번호 로그인·MFA 완료·토큰 붙여넣기·해제, 예외→오류코드 매핑. 설계: garmin-connect.md §3.
 
 - class **Fail**: 없음
-- functions: mask_email, token_dir, in_cooldown, start_login, complete_mfa, cancel, parse_token, submit_token, remove_tokens
+- functions: mask_email, token_dir, in_cooldown, cooldown_remaining, start_login, complete_mfa, cancel, parse_token, submit_token, remove_tokens
 
 ### `garmin_mfa_store.py` (140줄) — Garmin MFA 대기 상태 보관 — 프로세스 메모리, 사용자당 1개, TTL 300초·오답 5회 폐기. 설계: garmin-connect.md §3.2.
 
@@ -495,9 +495,9 @@
 - class **Assignment**: 없음
 - functions: kind_of, gear_lookup_sources, load_shoes, resolve, resolve_one, aggregate
 
-### `shoe_query.py` (188줄) — 신발 조회 — 목록·상세·배정 활동·미배정·Today 알림·활동 칩(읽기 전용). 설계 shoes.md §5·§6.
+### `shoe_query.py` (205줄) — 신발 조회 — 목록·상세·배정 활동·미배정·Today 알림·활동 칩(읽기 전용). 설계 shoes.md §5·§6.
 
-- functions: days_to_race, shoe_view, suggestions, normalize_name, list_shoes, require, get_shoe, method_source, conflict_sources, shoe_activities, unassigned_activities, activity_shoe_view, today_alert
+- functions: days_to_race, shoe_view, gear_label, suggestions, normalize_name, list_shoes, require, get_shoe, method_source, conflict_sources, shoe_activities, unassigned_activities, activity_shoe_view, today_alert
 
 ### `shoe_service.py` (206줄) — 신발 쓰기 — CRUD·기본 신발 교체·merge·gear 연결·가져오기·활동 배정. 설계 shoes.md §6.
 
@@ -753,10 +753,6 @@
 ### `relative_effort.py` (90줄) — Relative Effort (Strava 방식) — 심박존 기반 노력도 점수.
 
 - class **RelativeEffortCalculator**: compute
-
-### `reprocess.py` (87줄) — Reprocess — Raw payload에서 Layer 1/2 재구축. 설계서 4-7 기준.
-
-- functions: reprocess_from_payloads
 
 ### `rmr.py` (71줄) — RMR (Recovery & Metabolic Readiness) — 설계서 4-4 기준.
 
@@ -1107,10 +1103,6 @@
 
 - functions: build_context, format_context_text, format_activity_context
 
-### `ai_message.py` (311줄) — AI 우선 메시지 생성기 — API 있으면 AI, 없으면 규칙 기반.
-
-- functions: get_ai_message, get_card_ai_message, get_tab_ai
-
 ### `ai_parser.py` (125줄) — AI 응답에서 JSON 추출 및 훈련 계획/추천 칩 파싱.
 
 - functions: extract_json_block, parse_weekly_plan, parse_suggestions, parse_ai_chips
@@ -1118,10 +1110,6 @@
 ### `ai_schema.py` (121줄) — AI 훈련 계획 JSON 스키마 정의 및 검증.
 
 - functions: validate_weekly_plan, normalize_workout
-
-### `ai_validator.py` (127줄) — AI 응답 검증 — 포맷 + 길이 + 데이터 정합성.
-
-- functions: validate_response, parse_json_response
 
 ### `briefing.py` (101줄) — AI 코치 브리핑 프롬프트 조립.
 
@@ -1159,7 +1147,7 @@
 
 - functions: seconds_to_pace
 
-### `chat_engine.py` (252줄) — AI 채팅 엔진 — 교체 가능 구조.
+### `chat_engine.py` (245줄) — AI 채팅 엔진 — 교체 가능 구조.
 
 - functions: get_ai_provider, chat_result, chat
 
@@ -1204,10 +1192,6 @@
 - class **RuleAnswer**: 없음
 - functions: chip_view
 
-### `context_builders.py` (437줄) — 탭별 컨텍스트 빌더 — AI 프롬프트에 필요한 데이터를 탭별로 조합.
-
-- functions: build_dashboard_context, build_training_context, build_report_context, build_race_context, build_wellness_context, build_activity_context, format_context_compact
-
 ### `genspark_driver.py` (384줄) — Genspark AI 채팅 DOM 자동화 — proot subprocess 브릿지.
 
 - functions: send_and_receive
@@ -1217,10 +1201,6 @@
 - class **Scope**: 없음
 - class **Ticket**: 없음
 - functions: now_kst, limits, day_of, resets_at, scope, ensure_scope, uid_from_db, current, admit, settle, chars_of, usage_today, global_ratio, reset_for_tests
-
-### `prompt_config.py` (244줄) — 프롬프트 템플릿 관리 — 카드별 AI 프롬프트 정의 + 사용자 커스터마이즈.
-
-- functions: get_prompt, get_all_prompts, get_tab_prompt
 
 ### `provider_common.py` (99줄) — AI provider 공통 — 구조화 오류(ProviderError), 모델 ID 해석, 타임아웃(30-coach-chat design §4.3·§6.2).
 
@@ -1638,9 +1618,9 @@
 
 - functions: public_base_url
 
-### `rate_window.py` (38줄) — 프로세스 메모리 슬라이딩 윈도 레이트 리미터 (워커 1개 전제).
+### `rate_window.py` (46줄) — 프로세스 메모리 슬라이딩 윈도 레이트 리미터 (워커 1개 전제).
 
-- functions: hit, count, reset
+- functions: hit, count, remaining, reset
 
 ### `raw_payload.py` (117줄) — source_payloads 저장/병합 유틸리티.
 
@@ -2679,9 +2659,9 @@
 - class **FakeClient**: get_workout_by_id, delete_workout
 - functions: test_targets_sorted_and_filtered, test_cleanup_partial_failure_and_retry, test_rejects_undone_and_missing
 
-### `test_garmin_connect_service.py` (216줄) — garmin_connect_service(T2~T4) — 로그인·MFA·토큰 붙여넣기·해제. Garmin 은 전부 가짜(tests/helpers_garmin).
+### `test_garmin_connect_service.py` (241줄) — garmin_connect_service(T2~T4) — 로그인·MFA·토큰 붙여넣기·해제. Garmin 은 전부 가짜(tests/helpers_garmin).
 
-- functions: env, test_token_dir_rules, test_login_success_persists_and_clears_explicit_paths, test_login_needs_mfa_clears_password, test_login_error_mapping_keeps_existing_token, test_login_validation, test_cooldown_blocks_garmin_calls, test_import_error_maps_upstream_503, test_dump_oserror_maps_internal, test_multi_worker_returns_mfa_unavailable, test_mfa_success_persists, test_mfa_wrong_code_keeps_pending_then_expires, test_mfa_rate_limited_keeps_pending, test_mfa_upstream_error_discards, test_mfa_validation_and_other_user, test_parse_token, test_submit_token_verifies_inline_then_saves, test_submit_token_rejected_not_saved, test_disconnect_removes_tokens_and_clears_config, test_connected_token_readable_by_sync_rules, test_data_connect_delegates_garmin, test_mask_email
+- functions: env, test_token_dir_rules, test_login_success_persists_and_clears_explicit_paths, test_login_needs_mfa_clears_password, test_login_error_mapping_keeps_existing_token, test_login_validation, test_cooldown_blocks_garmin_calls, test_import_error_maps_upstream_503, test_dump_oserror_maps_internal, test_multi_worker_returns_mfa_unavailable, test_mfa_success_persists, test_mfa_wrong_code_keeps_pending_then_expires, test_mfa_rate_limited_keeps_pending, test_mfa_upstream_error_discards, test_mfa_validation_and_other_user, test_parse_token, test_submit_token_verifies_inline_then_saves, test_submit_token_rejected_not_saved, test_disconnect_removes_tokens_and_clears_config, test_connected_token_readable_by_sync_rules, test_data_connect_delegates_garmin, test_mask_email, test_rate_window_remaining_counts_from_latest_hit, test_cooldown_retry_after_is_actual_remaining
 
 ### `test_garmin_extractor.py` (320줄) — Garmin Extractor 단위 테스트.
 
@@ -3468,9 +3448,9 @@
 
 - functions: c, act, shoe, gear, test_kind_of, test_gear_lookup_sources, test_priority_manual_source_rule_none, test_manual_null_means_no_shoe, test_manual_survives_canonical_change, test_non_running_excluded, test_date_window, test_default_since_blocks_past, test_conflict_flag_uses_garmin_priority, test_rule_history_rows, test_aggregate_and_resolve_one
 
-### `test_shoe_service.py` (143줄) — shoe_service/shoe_query — CRUD·기본 신발 교체(이력 고정)·merge·import-gear·배정·조회.
+### `test_shoe_service.py` (164줄) — shoe_service/shoe_query — CRUD·기본 신발 교체(이력 고정)·merge·import-gear·배정·조회.
 
-- functions: c, test_create_update_delete, test_default_switch_freezes_history, test_retire_releases_default_and_unretire, test_merge_moves_links_and_assignments, test_import_gear_groups_names_and_is_idempotent, test_manual_assign_group_and_clear, test_bulk_assign_and_unassigned, test_link_unlink_gear, test_today_alert_and_race_note
+- functions: c, test_create_update_delete, test_default_switch_freezes_history, test_retire_releases_default_and_unretire, test_merge_moves_links_and_assignments, test_import_gear_groups_names_and_is_idempotent, test_manual_assign_group_and_clear, test_bulk_assign_and_unassigned, test_link_unlink_gear, test_today_alert_and_race_note, test_gear_label_falls_back_to_source_and_id, test_nameless_gear_get_distinct_suggestion_and_shoe_names
 
 ### `test_shoe_status.py` (46줄) — shoe_status — 임계값·상태 경계·문구·대회 보조 문구·정렬.
 
@@ -3877,7 +3857,7 @@
 - functions: run
 
 ---
-총 834개 파일
+총 829개 파일
 
 ## docstring 누락
 

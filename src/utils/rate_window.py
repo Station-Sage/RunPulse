@@ -33,6 +33,14 @@ def count(key: str, window_s: float, now: float | None = None) -> int:
         return sum(1 for x in q if x > t - window_s) if q else 0
 
 
+def remaining(key: str, window_s: float, now: float | None = None) -> float:
+    """가장 최근 기록이 창 밖으로 나갈 때까지 남은 초(창 안 기록이 없으면 0). 쿨다운 Retry-After 용."""
+    t = time.monotonic() if now is None else now
+    with _lock:
+        q = _hits.get(key)
+        return max(0.0, q[-1] + window_s - t) if q else 0.0
+
+
 def reset() -> None:
     with _lock:
         _hits.clear()

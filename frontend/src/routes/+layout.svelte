@@ -10,6 +10,7 @@
 	import { navigating, page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { removeBootSplash } from '$lib/bootSplash';
+	import { clearBootPrefetch } from '$lib/api/bootPrefetch';
 	import OfflineBanner from '$lib/components/shell/OfflineBanner.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import ShellNav from '$lib/components/shell/ShellNav.svelte';
@@ -41,6 +42,7 @@
 	// S-05: 첫 화면이 그려지면 app.html 정적 로딩 화면 제거. S-06/E-16: 이동 중 본문 aria-busy.
 	onMount(() => {
 		removeBootSplash(document);
+		clearBootPrefetch(); // 첫 화면 로더가 끝났다 — 남은 선요청은 이후 이동에서 쓰지 않는다(S4-90)
 		// S-22: /library·/coach 로 바로 들어와도 신규 계정(소스 0·활동 0·온보딩 대기)은 /welcome 으로
 		if (!isDemoActive() && welcomeGuardApplies(page.url.pathname, base)) void redirectToWelcomeIfNew();
 	});

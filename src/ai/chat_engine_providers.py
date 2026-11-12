@@ -2,7 +2,7 @@
 
 chat_engine.py에서 분리. Claude, OpenAI, Gemini, Groq, Genspark 등 외부 AI API 호출.
 `complete()`는 실패를 ProviderError(reason·http_status)로 올린다 — 조용히 삼키지 않는다(design §6.2).
-`call_claude` 등 단순 호출은 기존 호출자(ai_message·today 내러티브) 호환을 위해 실패 문자열/RateLimitError를 유지한다.
+`call_claude` 등 단순 호출은 기존 호출자(today 내러티브 등) 호환을 위해 실패 문자열/RateLimitError를 유지한다.
 """
 from __future__ import annotations
 
