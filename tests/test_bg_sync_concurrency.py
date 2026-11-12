@@ -81,8 +81,3 @@ def test_cancel_job_marks_cancelled_with_reason(monkeypatch):
 def test_cancel_job_without_active_job_is_noop(monkeypatch):
     monkeypatch.setattr(bg_sync, "get_active_job", lambda s: None)
     assert bg_sync.cancel_job("strava", "u") == []
-
-
-def test_resume_ignores_cancelled_job(monkeypatch):
-    monkeypatch.setattr(bg_sync, "get_active_job", lambda s: None)
-    assert bg_sync.resume_job("strava", {}, "u") is False

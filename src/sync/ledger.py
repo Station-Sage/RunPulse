@@ -64,20 +64,6 @@ def _gate_partial_code(job_id: str) -> str | None:
     return None
 
 
-def fail_run(
-    job_id: str, code: str, message: str, http_status: int | None = None,
-    *, service: str = "unknown", source_path: str = "manual",
-) -> None:
-    """부모 프로세스용 실패 기록. 이미 failed인 행은 덮어쓰지 않고, 행이 없으면 만든다."""
-    job = get_job(job_id)
-    if job is None:
-        start_run(service, source_path=source_path, job_id=job_id)
-    elif job.status == "failed":
-        return
-    update_job(job_id, status="failed", error_code=code,
-               http_status=http_status, last_error=message[:300])
-
-
 def claim_run(
     service: str, from_date: str, to_date: str, *, source_path: str,
     params: dict | None = None, job_id: str | None = None, user_id: str | None = None,

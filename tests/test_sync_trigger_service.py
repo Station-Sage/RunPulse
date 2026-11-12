@@ -25,8 +25,6 @@ def _patch(monkeypatch, *, connected=("garmin", "strava"), enabled=("garmin", "s
     import src.utils.sync_policy as sp
     monkeypatch.setattr(sp, "check_incremental_guard", lambda s, last: (guard or {}).get(
         s, SimpleNamespace(allowed=True, retry_after_sec=None, message_ko="")))
-    import src.sync.bg_sync as bg
-    monkeypatch.setattr(bg, "get_status", lambda s, u=None: {"active": False})
     import src.utils.sync_jobs as sj
     monkeypatch.setattr(sj, "get_active_job", lambda s: None)
 

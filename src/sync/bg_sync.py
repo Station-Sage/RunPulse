@@ -24,7 +24,6 @@ from src.utils.sync_jobs import (
     INTER_BATCH_SLEEP,
     get_active_job,
     get_job,
-    get_latest_job,
     update_job,
     windows,
 )
@@ -510,15 +509,6 @@ def start_job(
     return _start_or_existing(service, from_date, to_date, config, user_id, source_path)[0]
 
 
-def pause_job(service: str, user_id: str | None = None) -> bool:
-    with _lock:
-        t = _find_thread(service, user_id)
-    if isinstance(t, BgSyncThread) and t.is_alive():
-        t.pause()
-        return True
-    return False
-
-
 def stop_job(service: str, user_id: str | None = None) -> bool:
     with _lock:
         t = _find_thread(service, user_id)
@@ -549,25 +539,6 @@ def cancel_job(service: str, user_id: str | None = None, reason: str = "source_d
     return ids
 
 
-def resume_job(service: str, config: dict, user_id: str = "default") -> bool:
-    """일시정지/중지 상태에서 재개. 스레드가 살아 있으면 resume, 없으면 새 스레드 생성."""
-    with _lock:
-        t = _find_thread(service, user_id)
-    if isinstance(t, BgSyncThread) and t.is_alive():
-        t.resume()
-        return True
-
-    job = get_active_job(service)
-    if not job or job.status not in ("paused", "stopped", "rate_limited"):
-        return False
-
-    thread = BgSyncThread(job.id, config, user_id=user_id)
-    with _lock:
-        _threads[(user_id, service)] = thread
-    thread.start()
-    return True
-
-
 def start_basic_sync(
     sources: list[str],
     from_dates: dict[str, str],
@@ -588,38 +559,3 @@ def start_basic_sync(
         if job_id:
             result[service] = job_id
     return result
-
-
-def get_status(service: str, user_id: str | None = None) -> dict:
-    """서비스의 현재 백그라운드 동기화 상태 반환 (UI 폴링용)."""
-    job = get_latest_job(service)
-    if not job:
-        return {"active": False}
-
-    retry_sec = wait_sec(service)
-    rl = job.rate_limit
-    with _lock:
-        t = _find_thread(service, user_id)
-    thread_alive = bool(t and t.is_alive())
-
-    return {
-        "active": True,
-        "job_id": job.id,
-        "service": job.service,
-        "from_date": job.from_date,
-        "to_date": job.to_date,
-        "status": job.status,
-        "current_from": job.current_from,
-        "current_to": job.current_to,
-        "completed_days": job.completed_days,
-        "total_days": job.total_days,
-        "progress_pct": round(job.progress_pct, 1),
-        "synced_count": job.synced_count,
-        "req_count": job.req_count,
-        "rate_limit_15min": rl["per_15min"],
-        "rate_limit_daily": rl["per_day"],
-        "retry_after_sec": retry_sec,
-        "last_error": job.last_error,
-        "thread_alive": thread_alive,
-        "resumable": job.status in ("paused", "stopped", "rate_limited"),
-    }

@@ -847,11 +847,11 @@
 
 - functions: scheduler_mode, start, stop, restart, status
 
-### `bg_sync.py` (625줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (561줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
-- functions: start_job, pause_job, stop_job, cancel_job, resume_job, start_basic_sync, get_status
+- functions: start_job, stop_job, cancel_job, start_basic_sync
 
 ### `bg_sync_wait.py` (85줄) — bg_sync 완료 대기·서비스 전역 토큰 — 스케줄러가 동기화 스레드 수를 실제로 제한하게 한다(multiuser-sync §3.2·T4).
 
@@ -941,9 +941,9 @@
 
 - functions: sync_wellness
 
-### `ledger.py` (154줄) — 동기화 원장 기록 진입점 — sync_jobs.db에 실행 1건(manual·auto·cli)을 남긴다. bg 경로는 bg_sync가 직접 기록.
+### `ledger.py` (140줄) — 동기화 원장 기록 진입점 — sync_jobs.db에 실행 1건(manual·auto·cli)을 남긴다. bg 경로는 bg_sync가 직접 기록.
 
-- functions: start_run, finish_run, fail_run, claim_run, heartbeat
+- functions: start_run, finish_run, claim_run, heartbeat
 
 ### `orchestrator.py` (120줄) — 통합 sync 진입점.
 
@@ -2183,10 +2183,10 @@
 - class **_Timeout**: 없음
 - functions: test_all_batches_failed_marks_failed, test_partial_success_stays_completed, test_exception_in_batch_is_classified
 
-### `test_bg_sync_concurrency.py` (88줄) — bg_sync — 동시 시작 중복 방지, (user, service) 키 분리.
+### `test_bg_sync_concurrency.py` (83줄) — bg_sync — 동시 시작 중복 방지, (user, service) 키 분리.
 
 - class **_FakeThread**: start, is_alive
-- functions: test_concurrent_start_creates_one_job, test_different_users_do_not_collide, test_create_failure_releases_slot, test_cancel_job_marks_cancelled_with_reason, test_cancel_job_without_active_job_is_noop, test_resume_ignores_cancelled_job
+- functions: test_concurrent_start_creates_one_job, test_different_users_do_not_collide, test_create_failure_releases_slot, test_cancel_job_marks_cancelled_with_reason, test_cancel_job_without_active_job_is_noop
 
 ### `test_bg_sync_wait.py` (80줄) — bg_sync_wait(T4) — 가짜 스레드 join, 타임아웃 반환, 서비스 토큰 비차단 실패.
 
@@ -3498,9 +3498,9 @@
 
 - functions: test_ensure_ledger_idempotent, test_old_15_column_db_upgraded, test_syncjob_has_24_fields, test_cleanup_all_users_closes_only_stale, test_update_job_stamps_started_and_finished
 
-### `test_sync_ledger_paths.py` (39줄) — 원장 기록 4경로(manual·bg·auto·cli)와 fail_run 비덮어쓰기 테스트.
+### `test_sync_ledger_paths.py` (26줄) — 원장 기록 4경로(manual·bg·auto·cli) 테스트.
 
-- functions: test_cli_run_completed, test_manual_failed_with_code, test_fail_run_creates_missing_row_for_timeout, test_fail_run_does_not_overwrite_child_failure, test_auto_and_bg_source_path_persist
+- functions: test_cli_run_completed, test_manual_failed_with_code, test_auto_and_bg_source_path_persist
 
 ### `test_sync_ledger_query.py` (79줄) — sync_ledger_query — 읽기 전용 질의.
 
@@ -3518,7 +3518,7 @@
 
 - functions: conn, test_ok_when_recent_success, test_restart_stopped_job_is_not_an_error, test_auth_error_and_caveat, test_stale_when_success_older_than_12h, test_payload_time_converted_from_utc, test_error_code_takes_priority_and_state_groups, test_legacy_row_403_maps_to_subscription_required, test_upstream_codes_group_to_error_upstream, test_cancelled_job_is_not_an_error
 
-### `test_sync_trigger_service.py` (101줄) — sync_trigger_service — 판정 순서·시작 실패 격리·days_since_last_sync.
+### `test_sync_trigger_service.py` (99줄) — sync_trigger_service — 판정 순서·시작 실패 격리·days_since_last_sync.
 
 - functions: test_plan_skip_codes, test_plan_cooldown_then_rate_limited, test_plan_from_date_default_seven_days, test_days_since_last_sync, test_trigger_isolates_start_failure, test_trigger_existing_job_becomes_running_skip, test_skip_reason_to_dict_omits_none
 
