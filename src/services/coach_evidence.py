@@ -202,7 +202,8 @@ def _briefing_extras(conn: sqlite3.Connection) -> list[dict]:
     """Today 브리핑 근거(레이스 예측·UTRS 등) — LLM 답변이 인용했을 때만 후보가 된다."""
     try:
         from src.services.today_service import get_today_briefing
-        return [dict(e, role="supports") for e in get_today_briefing(conn)["evidence"]]
+        # freshness 같은 metric 키 없는 안내 항목은 답변이 인용할 수 없으므로 제외
+        return [dict(e, role="supports") for e in get_today_briefing(conn)["evidence"] if e.get("metric")]
     except Exception:
         return []
 

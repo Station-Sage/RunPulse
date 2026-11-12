@@ -148,3 +148,10 @@ def test_adjustment_in_effect_follows_state(monkeypatch):
                             ("declined", False), ("undone", False), ("stale", False), ("expired", False)):
         monkeypatch.setattr(pas, "get_day_adjustment", lambda *a, _s=state, **k: {"state": _s, "adjustment": None})
         assert ce._adjustment_in_effect(None, "2026-10-08") is expected
+
+
+def test_briefing_extras_skip_items_without_metric(db_conn):
+    """브리핑 근거에 freshness(metric 키 없음) 항목이 섞여도 LLM 경로가 빈 목록으로 무너지지 않는다."""
+    from src.services.coach_evidence import _briefing_extras
+    _metric(db_conn, DAY, "tsb", -20.0)
+    assert all(e.get("metric") for e in _briefing_extras(db_conn))
