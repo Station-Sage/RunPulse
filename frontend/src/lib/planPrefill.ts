@@ -92,7 +92,7 @@ export function parseLongRunWeekday(raw: string | null | undefined, runDays: num
 	return runDays.includes(n) ? n : null;
 }
 
-/** 롱런 요일 선택지 — "자동(주말 우선)" + 고른 운동 요일만(TXT-1 잠정). */
+/** 롱런 요일 선택지 — "자동(주말 우선)" + 고른 운동 요일만(TXT-1 확정). */
 export function longRunOptions(runDays: number[]): { value: string; label: string }[] {
 	return [{ value: LONG_RUN_AUTO, label: '자동(주말 우선)' }, ...runDays.map((d) => ({ value: String(d), label: WEEKDAY_LABELS[d] }))];
 }

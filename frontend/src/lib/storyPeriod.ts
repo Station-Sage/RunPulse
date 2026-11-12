@@ -11,7 +11,7 @@ export function isoWeekId(iso: string): string {
 	return `${d.getUTCFullYear()}-W${String(w).padStart(2, '0')}`;
 }
 
-/** M-15: 기간 중 가장 높았던 ACWR 한 줄 — 등급이 안전하면 '위험'이라 부르지 않는다. 문구 임시(TXT-1). */
+/** M-15: 기간 중 가장 높았던 ACWR 한 줄 — 등급이 안전하면 '위험'이라 부르지 않는다. 문구 TXT-1 확정. */
 export function riskPeakText(rp: { slug: string; value: number; date: string; status?: string | null; status_label?: string | null }): {
 	title: string;
 	body: string;

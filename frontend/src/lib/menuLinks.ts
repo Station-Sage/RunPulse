@@ -2,7 +2,7 @@
 // 링크는 `base` 를 붙여 클라이언트 라우팅으로 이동한다(v1 화면은 S5-4 에서 제거).
 // v1 일몰 후 정보 구조(MENUDRAWER-POST-V1, S4-90 — design-2026-11-features/menudrawer-post-v1.md):
 // 드로어는 "탭이 없는 영역(데이터)·설정·계정"의 입구이고, 탭(Today/Library/Coach) 루트와 같은 목적지는 두지 않는다.
-// 라벨은 TXT-1 잠정.
+// 라벨은 TXT-1 확정.
 
 export interface MenuLink {
 	href: string;

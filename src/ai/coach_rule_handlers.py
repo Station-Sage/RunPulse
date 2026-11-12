@@ -217,7 +217,7 @@ def free_text_answer(conn: sqlite3.Connection, today: date | None = None, messag
     except Exception:
         log.warning("coach rule: 상태 요약 실패", exc_info=True)
         state = None
-    # 문구 TXT-1 잠정
+    # 문구 TXT-1 확정
     hint = f" 대신 '{CHIP_TEXT[chips[0]]}'는 지금 데이터로 답할 수 있어요 — 아래 칩을 눌러 보세요." if matched else ""
     text = FREE_TEXT_HEAD + hint + (f" 참고로 {state}" if state else "")
     return RuleAnswer(text, followups=chips)

@@ -118,7 +118,7 @@ export function pointsCaption(sources: string[], n: number, totalSec: number | n
 	const names = [...new Set(sources.map((s) => SOURCE_NAMES[s.split(':')[0]] ?? s))].join(' / ');
 	const gap = totalSec != null && totalSec > 0 && n > 1 ? Math.round(totalSec / (n - 1)) : null;
 	const every = gap != null && gap >= 1 ? `(약 ${gap}초마다)` : '';
-	// n = 원본 기록점 수. 서버가 줄여 보냈으면(shown < n) 차트에 그린 점 수를 덧붙인다(A-36, 문구 TXT-1 잠정)
+	// n = 원본 기록점 수. 서버가 줄여 보냈으면(shown < n) 차트에 그린 점 수를 덧붙인다(A-36, 문구 TXT-1 확정)
 	const thin = shown != null && shown < n ? ` · 차트는 ${shown.toLocaleString('ko-KR')}개로 줄여 표시` : '';
 	return `${names ? `${names} · ` : ''}기록점 ${n.toLocaleString('ko-KR')}개${every}${thin}`;
 }

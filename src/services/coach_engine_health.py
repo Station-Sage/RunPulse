@@ -32,7 +32,7 @@ def reason_label(reason: str | None) -> str:
 
 
 def failure_history(attempts: list | None) -> str:
-    """성공 전에 실패한 시도 → "Gemini 실패(사용량 한도) → " 접두(S4-88, TXT-1 잠정). 실패가 없거나 옛 메시지면 ''.
+    """성공 전에 실패한 시도 → "Gemini 실패(사용량 한도) → " 접두(S4-88, TXT-1 확정). 실패가 없거나 옛 메시지면 ''.
 
     사유는 REASON_LABELS 에서 괄호 코드("(429)")만 떼어 짧게 쓴다 — 전체 사유는 '원인 보기' 시트가 보여 준다.
     """
@@ -45,7 +45,7 @@ def failure_history(attempts: list | None) -> str:
     return "".join(f"{p} → " for p in parts)
 
 
-# C-13: 답변 엔진 표기는 "규칙 답변 (사유)" 한 형식으로 통일한다(TXT-1 잠정).
+# C-13: 답변 엔진 표기는 "규칙 답변 (사유)" 한 형식으로 통일한다(TXT-1 확정).
 def engine_label(status: str, provider: str | None, model: str | None, tool_calls: int, reason: str | None) -> str:
     if status == "ok":
         base = model_label(provider or "", model)

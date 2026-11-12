@@ -18,7 +18,7 @@
 		<span class="text-sm text-fg-primary">소스 연결</span>
 		<span class="text-xs text-fg-secondary">소스별 연결·해제와 동기화 켜기/끄기를 바꿔요.</span>
 	</a>
-	<!-- D-32: 자동 동기화는 동기화 탭에 있어 카드를 나눈다(문구는 TXT-1 잠정) -->
+	<!-- D-32: 자동 동기화는 동기화 탭에 있어 카드를 나눈다(문구는 TXT-1 확정) -->
 	<a
 		href="{base}/data/sync"
 		class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3 hover:bg-surface-3"

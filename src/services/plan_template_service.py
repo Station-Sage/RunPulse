@@ -84,7 +84,7 @@ def _get_current_vdot(conn: sqlite3.Connection) -> float | None:
 
 
 def finish_goal_summary(weeks: int, rec: dict) -> str:
-    """완주 목표(목표 기록 없음) 비교 카드 해설 — 달성 가능성 대신 기간만 안내한다(문구 TXT-1 잠정)."""
+    """완주 목표(목표 기록 없음) 비교 카드 해설 — 달성 가능성 대신 기간만 안내한다(문구 TXT-1 확정)."""
     text = "완주 목표라 달성 가능성은 계산하지 않아요. 예상 기록은 지금 기록과 훈련 기간으로 낸 값이에요."
     if weeks < rec["optimal_min"]:
         text += f" 훈련 기간이 권장({rec['optimal_min']}~{rec['optimal_max']}주)보다 짧아요."

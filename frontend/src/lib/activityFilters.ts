@@ -62,7 +62,7 @@ export function invalidListParams(params: URLSearchParams): string[] {
 	return Object.keys(PARAM_LABELS).filter((k) => bad(k, checks[k]));
 }
 
-/** 빼고 보여 준 조건 안내 한 줄('' 이면 표시 안 함). 문구는 임시(TXT-1). */
+/** 빼고 보여 준 조건 안내 한 줄('' 이면 표시 안 함). 문구는 TXT-1 확정. */
 export function invalidParamsNotice(keys: string[]): string {
 	if (keys.length === 0) return '';
 	return `주소의 ${keys.map((k) => PARAM_LABELS[k] ?? k).join('·')} 값을 쓸 수 없어 빼고 보여 드려요.`;

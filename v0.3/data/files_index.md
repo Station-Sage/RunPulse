@@ -1582,7 +1582,7 @@
 
 - (public API 없음)
 
-### `metric_label_texts_c.py` (37줄) — 지표 한 줄 설명 2차분(M-07) — 상세 화면에 설명이 비던 지표. 문구는 임시(TXT-1, 사용자 확정 전).
+### `metric_label_texts_c.py` (37줄) — 지표 한 줄 설명 2차분(M-07) — 상세 화면에 설명이 비던 지표. 문구는 TXT-1 확정.
 
 - (public API 없음)
 

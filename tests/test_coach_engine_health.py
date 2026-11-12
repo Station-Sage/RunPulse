@@ -94,7 +94,7 @@ def test_message_engine_view_lists_actual_attempts():
 
 
 def test_failure_history_prefix_on_retry_success():
-    """S4-88: 다른 provider 로 재시도해 성공하면 라벨에 실패 이력을 함께 쓴다(TXT-1 잠정)."""
+    """S4-88: 다른 provider 로 재시도해 성공하면 라벨에 실패 이력을 함께 쓴다(TXT-1 확정)."""
     import json
     eng = {"status": "ok", "provider": "groq", "model": "llama-3.3-70b", "fallback_reason": "http_429",
            "tool_calls": 2, "attempts": [

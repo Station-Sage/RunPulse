@@ -61,7 +61,7 @@ export function rowActionMode(w: PlannedWorkout, today: string): RowActionMode {
 	return w.date > today ? 'locked' : 'active';
 }
 
-/** 잠금 시트 안내 문구(TXT-1 잠정) — 휴식 행은 당일에도 직접 바꿀 수 없어 코치 상담만 안내한다(P-24). */
+/** 잠금 시트 안내 문구(TXT-1 확정) — 휴식 행은 당일에도 직접 바꿀 수 없어 코치 상담만 안내한다(P-24). */
 export function lockedText(w: Pick<PlannedWorkout, 'workout_type' | 'adjusted'>): string {
 	if (w.workout_type === 'rest' && !w.adjusted)
 		return '휴식일은 직접 바꿀 수 없어요. 이날 달리고 싶다면 코치와 상의해 보세요.';

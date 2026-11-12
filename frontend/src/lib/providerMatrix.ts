@@ -28,7 +28,7 @@ export function daysInvalid(raw: string | null): boolean {
 	return raw != null && parseDays(raw) !== Number(raw);
 }
 
-/** 쓸 수 없는 기간 안내 한 줄(임시 문구, TXT-1). */
+/** 쓸 수 없는 기간 안내 한 줄(TXT-1 확정 문구). */
 export const DAYS_NOTICE = '주소의 기간 값을 쓸 수 없어 4주로 보여 드려요.';
 
 /** 부호 있는 % — 반올림해 0이면 '0%'('-0%' 방지), 음수는 U+2212(M-19). */

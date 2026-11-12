@@ -28,7 +28,7 @@ export function classifyFailure(e: unknown): Failure {
 	return { kind: 'server', status: 0, code: 'UNKNOWN', detail: name };
 }
 
-// 문구는 초안(TXT-1 미결). 404 는 오류 문구가 아니라 화면별 EmptyState 를 쓴다(ERR-6).
+// 문구는 TXT-1 확정. 404 는 오류 문구가 아니라 화면별 EmptyState 를 쓴다(ERR-6).
 export function failureMessage(kind: FailureKind): string {
 	if (kind === 'auth') return '로그인이 만료됐어요. 다시 로그인해 주세요.';
 	return kind === 'network'

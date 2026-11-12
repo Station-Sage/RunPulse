@@ -7,7 +7,7 @@ from datetime import date, timedelta
 def compare_basis(scope: str, start: str, end: str, prev_start: str, prev_end: str, today: str) -> dict:
     """{prev_end, partial, label}. 현재 기간이 오늘을 지나 끝나지 않았으면(진행 중) 이전 기간도 같은 일수까지만.
 
-    label 은 비교 섹션 머리말 보조 문구(임시, TXT-1). 진행 중이 아니면 label=None.
+    label 은 비교 섹션 머리말 보조 문구(TXT-1 확정). 진행 중이 아니면 label=None.
     """
     s, e, ps, pe = (date.fromisoformat(x) for x in (start, end, prev_start, prev_end))
     t = date.fromisoformat(today)

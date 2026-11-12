@@ -37,5 +37,5 @@ export function togglePin(pins: string[], name: string): string[] {
 	return pins.includes(name) ? pins.filter((p) => p !== name) : [...pins, name];
 }
 
-/** M-30: 고정 목록은 이 기기(브라우저)에만 저장한다 — 서버 동기화는 하지 않는다(S4-85, TXT-1 잠정). */
+/** M-30: 고정 목록은 이 기기(브라우저)에만 저장한다 — 서버 동기화는 하지 않는다(S4-85, TXT-1 확정). */
 export const PINS_DEVICE_NOTE = '이 기기에만 저장';

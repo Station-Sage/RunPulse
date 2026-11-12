@@ -21,7 +21,7 @@ export const LOAD_SCALE_METRICS = [
 	'training_load', 'trimp', 'hrss', 'rtss', 'training_stress_score', 'suffer_score', 'relative_effort', 'wlei'
 ];
 
-/** 부하 계열 지표가 2개 이상 같이 보이면 척도 차이 안내 한 줄, 아니면 ''(A-35). 문구는 임시(TXT-1). */
+/** 부하 계열 지표가 2개 이상 같이 보이면 척도 차이 안내 한 줄, 아니면 ''(A-35). 문구는 TXT-1 확정. */
 export function loadScaleNote(names: string[]): string {
 	const n = new Set(names.filter((m) => LOAD_SCALE_METRICS.includes(m))).size;
 	return n >= 2 ? `부하 지표 ${n}개는 계산 방식마다 척도가 달라 숫자끼리 크기를 비교할 수 없어요.` : '';

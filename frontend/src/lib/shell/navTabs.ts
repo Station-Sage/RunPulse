@@ -3,7 +3,7 @@ export type NavIcon = 'today' | 'library' | 'coach';
 export interface NavTab {
 	href: string;
 	label: string;
-	/** E-12: 영어 탭 이름은 브랜드 표기로 유지하고 한글 뜻을 툴팁·접근성 이름에 덧붙인다(TXT-1 잠정). */
+	/** E-12: 영어 탭 이름은 브랜드 표기로 유지하고 한글 뜻을 툴팁·접근성 이름에 덧붙인다(TXT-1 확정). */
 	ko: string;
 	match: string;
 	icon: NavIcon;

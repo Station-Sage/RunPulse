@@ -12,7 +12,7 @@ export function dateError(s: string): 'format' | 'nonexistent' | null {
 	return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s ? null : 'nonexistent';
 }
 
-/** 오류 화면 문구(M-24) — 임시 문구(TXT-1). */
+/** 오류 화면 문구(M-24) — TXT-1 확정 문구. */
 export const DATE_ERROR_TEXT = {
 	format: { title: '날짜 형식이 올바르지 않아요', body: 'YYYY-MM-DD 형식의 날짜만 볼 수 있어요.' },
 	nonexistent: { title: '없는 날짜예요', body: '달력에 없는 날이에요. 날짜를 다시 확인해 주세요.' }
@@ -31,7 +31,7 @@ export function localToday(): string {
 	return new Date().toLocaleDateString('sv-SE');
 }
 
-/** M-23: 미래 날짜를 오늘로 옮겼을 때 안내 한 줄(임시 문구, TXT-1). 옮기지 않았으면 null. */
+/** M-23: 미래 날짜를 오늘로 옮겼을 때 안내 한 줄(TXT-1 확정 문구). 옮기지 않았으면 null. */
 export function movedNotice(requested: string | null, shown: string): string | null {
 	if (!requested || requested === shown || requested < shown) return null;
 	return `${dateLabel(requested, shown)}은 아직 오지 않은 날이라 오늘 기록을 보여 드려요.`;

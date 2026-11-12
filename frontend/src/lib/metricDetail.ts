@@ -25,7 +25,7 @@ export function parseDetailParams(sp: URLSearchParams): { period: string; date: 
 	return { period, date, dropped };
 }
 
-/** 빼고 보여 준 주소 값 안내 한 줄('' 이면 표시 안 함). 문구는 임시(TXT-1) — 활동 목록(E-27)과 같은 말투. */
+/** 빼고 보여 준 주소 값 안내 한 줄('' 이면 표시 안 함). 문구는 TXT-1 확정 — 활동 목록(E-27)과 같은 말투. */
 export function droppedNotice(dropped: string[]): string {
 	if (!dropped.length) return '';
 	return `주소의 ${dropped.map((k) => PARAM_LABELS[k] ?? k).join('·')} 값을 쓸 수 없어 빼고 보여 드려요.`;
@@ -77,7 +77,7 @@ export function metricUnitText(meta: { format?: string; unit?: string | null }, 
 	return unitLabel(unit, name);
 }
 
-/** M-08: 출처 한 줄 — 'wellness' 는 웰니스 기록, 그 외 provider 이름. 없으면 ''. 문구 임시(TXT-1). */
+/** M-08: 출처 한 줄 — 'wellness' 는 웰니스 기록, 그 외 provider 이름. 없으면 ''. 문구 TXT-1 확정. */
 export function sourceText(source: string | null | undefined): string {
 	if (!source) return '';
 	if (source === 'wellness') return '출처: 웰니스 기록(기기 동기화 값)';

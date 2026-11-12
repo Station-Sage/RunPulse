@@ -87,7 +87,7 @@ export function fallbackNames(engine: Pick<CoachEngine, 'fallback_providers'>): 
 	return (engine.fallback_providers ?? []).map((f) => f.label || providerName(f.provider)).join('·');
 }
 
-/** 동의 문구(TXT-1 잠정) — 기본 제공자와, 재시도를 켜면 함께 전송될 제공자를 같이 밝힌다. */
+/** 동의 문구(TXT-1 확정) — 기본 제공자와, 재시도를 켜면 함께 전송될 제공자를 같이 밝힌다. */
 export function consentText(engine: Pick<CoachEngine, 'selected' | 'fallback_providers'>): string {
 	const main = providerName(engine.selected.provider);
 	const fb = fallbackNames(engine);

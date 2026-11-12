@@ -38,7 +38,7 @@
 
 - **[AUTH-MULTIUSER-SYNC]** (G-9) 가입 개방 전 필수 — **T1~T9 구현 완료(2026-11-09, feat/frs-f3, 커밋·운영 반영 대기)**. 설계 `v0.3/data/phase-7-ui-renewal/design-2026-11-features/multiuser-sync.md` §10·§11. 검증: DoD 4(동시≤2✓, 격리✓)·DoD 5 단위부분(LLM 한도 pytest 9건✓) 통과. 소규모 실측(synth 활동 14건·15회 반복): API p95 24~45ms, 모바일 에뮬 네비게이션 444~535ms — **LCP/CLS 미측정·브라우저 LLM 한도 UI 시나리오 미수행·대규모 데이터 p95 미측정**(`multiuser-sync-dod5-results.md`). 남은 것: (ADR-054 기록 완료·S4-77) 운영 legacy 24h 관찰, multi 전환 후 스모크(사용자 확인), 계정 삭제 경로 `OpsStore.delete_user` 훅 연결.
 
-- **[MENUDRAWER-POST-V1]** v1 일몰(UI·라우트) 후 MenuDrawer 정보 구조 — **설계·구현 완료(2026-11-12, S4-90, 추천 B)**: `design-2026-11-features/menudrawer-post-v1.md`. 드로어 = 데이터(주 탭 없는 영역)·설정·바로가기 3그룹(`menuLinks.ts` `MENU_GROUPS`), 탭 루트 중복(오늘·AI 코치) 제거, 데이터·설정 하위 화면 직접 링크. 남은 것: 라벨 TXT-1 확정, C안(Data 주 탭) 여부는 사용자 결정.
+- **[MENUDRAWER-POST-V1]** v1 일몰(UI·라우트) 후 MenuDrawer 정보 구조 — **설계·구현 완료(2026-11-12, S4-90, 추천 B)**: `design-2026-11-features/menudrawer-post-v1.md`. 드로어 = 데이터(주 탭 없는 영역)·설정·바로가기 3그룹(`menuLinks.ts` `MENU_GROUPS`), 탭 루트 중복(오늘·AI 코치) 제거, 데이터·설정 하위 화면 직접 링크. 남은 것: C안(Data 주 탭) 여부는 사용자 결정.
 
 - **[SYNC-STATE-RETIRE]** R0~R5 완료(2026-10-10, ADR-044): `utils/sync_state.py` 삭제, 원장·`sync_gates` 일원화. 구 `sync_jobs` 잔재·이관 코드·json 파일 제거 완료(2026-10-11, ADR-047, 스키마 v36).
 
