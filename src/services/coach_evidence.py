@@ -7,12 +7,17 @@
 """
 from __future__ import annotations
 
+import logging
 import re
 import sqlite3
 from datetime import datetime, timedelta
 
 from src.utils.timefmt import to_iso_instant
 from src.utils.format_ko import fmt_distance, fmt_int, fmt_signed, workout_ko
+
+log = logging.getLogger(__name__)
+# 선택 근거 수집 실패로 허용하는 예외 — KeyError 등 코드 결함은 숨기지 않고 올린다
+_EXPECTED = (sqlite3.Error, ValueError, TypeError)
 
 MAX_ITEMS = 8
 DRIFT_ABS = 5.0
@@ -86,7 +91,7 @@ def _status_of(metric: str, value) -> str | None:
     from src.metrics.bands import grade
     try:
         g = grade(metric, value)
-    except Exception:
+    except TypeError:  # 숫자가 아닌 값
         return None
     return g["status"] if g else None
 
@@ -137,7 +142,8 @@ def _adjustment_in_effect(conn: sqlite3.Connection, date: str) -> bool:
     try:
         from src.services.plan_adjustment_service import get_day_adjustment
         return get_day_adjustment(conn, date, ensure=False)["state"] not in ("declined", "undone", "expired", "stale")
-    except Exception:
+    except _EXPECTED:
+        log.warning("조정 상태 조회 실패 — 적용 중으로 간주", exc_info=True)
         return True
 
 
@@ -148,7 +154,8 @@ def _trigger_items(conn: sqlite3.Connection, date: str) -> list[dict]:
     try:
         from src.services.plan_adjustment_service import get_day_adjustment
         r = get_day_adjustment(conn, date, ensure=False)
-    except Exception:
+    except _EXPECTED:
+        log.warning("트리거 근거 조회 실패", exc_info=True)
         return []
     adj = r["adjustment"]
     if not adj or adj["source"] in MANUAL_SOURCES or r["state"] in ("declined", "undone", "expired", "stale"):
@@ -173,7 +180,8 @@ def _candidates(conn: sqlite3.Connection, date: str) -> list[dict]:
     try:
         from src.services.plan_service import todays_adjustment_with_hold
         plan_adj = todays_adjustment_with_hold(conn, date)
-    except Exception:
+    except _EXPECTED:
+        log.warning("오늘 계획 조회 실패", exc_info=True)
         plan_adj = None
     if plan_adj:
         dist = f" {fmt_distance(plan_adj['distance_km'])}" if plan_adj.get("distance_km") else ""
@@ -204,7 +212,8 @@ def _briefing_extras(conn: sqlite3.Connection) -> list[dict]:
         from src.services.today_service import get_today_briefing
         # freshness 같은 metric 키 없는 안내 항목은 답변이 인용할 수 없으므로 제외
         return [dict(e, role="supports") for e in get_today_briefing(conn)["evidence"] if e.get("metric")]
-    except Exception:
+    except _EXPECTED:
+        log.warning("브리핑 근거 조회 실패", exc_info=True)
         return []
 
 
@@ -223,7 +232,8 @@ def build_answer_evidence(conn: sqlite3.Connection, text: str, *, llm: bool, as_
             out.append({**it, "drill": drill, "snapshot": _snapshot(conn, it, as_of)})
         out.sort(key=lambda i: i["role"] == "caveat")
         return out[:MAX_ITEMS]
-    except Exception:
+    except sqlite3.Error:
+        log.warning("답변 근거 생성 실패", exc_info=True)
         return []
 
 

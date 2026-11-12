@@ -76,8 +76,9 @@ class TestBuildAnswerEvidence:
         items = ce.build_answer_evidence(db_conn, "TSB -20이라 쉬는 게 좋아요", llm=True, as_of=DAY)
         assert {i["metric"] for i in items} == {"tsb", "checkin"}
 
-    def test_exception_returns_empty(self):
-        assert ce.build_answer_evidence(None, "x", llm=False, as_of=DAY) == []
+    def test_db_error_returns_empty(self, db_conn):
+        db_conn.close()
+        assert ce.build_answer_evidence(db_conn, "x", llm=False, as_of=DAY) == []
 
     def test_dedupes_by_metric(self, db_conn):
         _metric(db_conn, DAY, "tsb", -20.0)
@@ -155,3 +156,21 @@ def test_briefing_extras_skip_items_without_metric(db_conn):
     from src.services.coach_evidence import _briefing_extras
     _metric(db_conn, DAY, "tsb", -20.0)
     assert all(e.get("metric") for e in _briefing_extras(db_conn))
+
+
+def test_expected_source_failure_degrades_with_warning(db_conn, monkeypatch, caplog):
+    import sqlite3
+    from src.services import coach_evidence as ce
+    monkeypatch.setattr("src.services.today_service.get_today_briefing",
+                        lambda c: (_ for _ in ()).throw(sqlite3.OperationalError("boom")))
+    with caplog.at_level("WARNING"):
+        assert ce._briefing_extras(db_conn) == []
+    assert "브리핑 근거 조회 실패" in caplog.text
+
+
+def test_code_defect_is_not_swallowed(db_conn, monkeypatch):
+    import pytest
+    from src.services import coach_evidence as ce
+    monkeypatch.setattr(ce, "_candidates", lambda c, d: [{"type": "metric"}])
+    with pytest.raises(KeyError):
+        ce.build_answer_evidence(db_conn, "x", llm=False, as_of=DAY)
