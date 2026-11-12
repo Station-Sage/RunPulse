@@ -9,7 +9,7 @@ from __future__ import annotations
 import sqlite3
 import statistics
 from collections import Counter
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from src.services import context_episodes
 from src.utils.reference_day import reference_today
@@ -97,9 +97,9 @@ def rhr_hrv_question(conn: sqlite3.Connection, today: str) -> bool:
     return rhr - rhr_b >= RHR_UP_BPM and hrv_b > 0 and (hrv_b - hrv) / hrv_b * 100 >= HRV_DOWN_PCT
 
 
-def run(conn: sqlite3.Connection) -> dict:
+def run(conn: sqlite3.Connection, now_utc: datetime | None = None) -> dict:
     """후보 생성(이미 진행 중인 같은 kind 가 있으면 건너뜀). commit 은 호출자."""
-    today = reference_today(conn)[0]
+    today = reference_today(conn, now_utc)[0]
     made = {}
     for kind, found in (("travel", detect_travel(conn, today)), ("altitude", detect_altitude(conn, today))):
         if not found:

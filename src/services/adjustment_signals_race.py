@@ -4,7 +4,6 @@ from __future__ import annotations
 import sqlite3
 from datetime import date, timedelta
 
-from src.utils.reference_day import reference_today
 
 LOOKBACK = 21
 LOOKAHEAD = 14
@@ -41,10 +40,9 @@ def collect_race(conn: sqlite3.Connection, day: str) -> dict | None:
         "SELECT id, race_date, distance_km, priority, adapt_choice, taper_days, recovery_days, status FROM race_calendar"
         " WHERE status IN ('planned','done') AND adapt_choice != 'no_adapt' AND race_date BETWEEN ? AND ?",
         (lo, hi)).fetchall()
-    today = reference_today(conn)[0]
     best = None
     for rid, rdate, km, prio, adapt, taper, rec, status in rows:
-        if status == "done" and rdate >= today:
+        if status == "done" and rdate >= day:
             continue  # 확인 필요(done·대회일≥오늘)는 신호에서 제외
         dd = (date.fromisoformat(rdate) - d).days
         ph = phase_of(dd, prio, taper, rec, km)

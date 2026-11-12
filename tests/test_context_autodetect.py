@@ -1,5 +1,5 @@
 """여행·고지대 자동 감지 + RHR/HRV 질문 (NEW-2·8)."""
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from src.services import context_autodetect as ca
 from tests.helpers_pred import mem_conn, seed_run
@@ -69,8 +69,15 @@ def test_run_creates_candidates_once():
     for n in range(5, 15):
         _tz(c, seed_run(c, sid=f"h{n}", date=_d(n)), 9.0)
     _tz(c, seed_run(c, sid="t", date=_d(0)), -5.0)
-    first = ca.run(c)
+    now = datetime(TODAY.year, TODAY.month, TODAY.day, 12, tzinfo=timezone.utc)
+    first = ca.run(c, now)
     assert "travel" in first["created"]
-    assert ca.run(c)["created"] == {}
+    assert ca.run(c, now)["created"] == {}
     row = c.execute("SELECT origin,status FROM context_episodes").fetchone()
     assert row == ("auto", "candidate")
+
+
+def test_reference_today_honors_injected_clock_without_tz_data():
+    from src.utils.reference_day import reference_today
+    now = datetime(2026, 10, 17, 12, tzinfo=timezone.utc)
+    assert reference_today(mem_conn(), now) == ("2026-10-17", "server_local")

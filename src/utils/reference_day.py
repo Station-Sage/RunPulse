@@ -65,4 +65,7 @@ def reference_today(
         now = now_utc or datetime.now(timezone.utc)
         now = now.replace(tzinfo=None) if now.tzinfo is None else now.astimezone(timezone.utc).replace(tzinfo=None)
         return (now + timedelta(seconds=off)).strftime("%Y-%m-%d"), "activity_tz"
+    if now_utc is not None:
+        aware = now_utc if now_utc.tzinfo else now_utc.replace(tzinfo=timezone.utc)
+        return aware.astimezone().strftime("%Y-%m-%d"), "server_local"
     return conn.execute("SELECT date('now','localtime')").fetchone()[0], "server_local"

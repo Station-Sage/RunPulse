@@ -63,7 +63,9 @@ def test_cumulative_basis_labels():
 
 def test_rematch_goal_matches_past_activity(conn):
     gid = _make(conn)
-    assert pts.rematch_goal(conn, gid, TODAY + timedelta(days=30)) is not None
+    # 플랜 시작일은 오늘 기준 요일에 따라 +28~+34일 — 전 구간이 과거가 되는 기준일로 고정해 날짜 의존을 없앤다.
+    out = pts.rematch_goal(conn, gid, TODAY + timedelta(weeks=14))
+    assert out is not None and {"reset", "matched", "external"} <= set(out)
 
 
 def test_rematch_goal_swallows_errors(conn):

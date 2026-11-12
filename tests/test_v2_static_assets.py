@@ -106,14 +106,16 @@ def test_favicon_is_real_ico_with_small_sizes():
     assert {16, 32} <= sizes
 
 
-def test_app_html_links_and_no_theme_color():
+def test_app_html_links_and_theme_color():
     html = APP_HTML.read_text(encoding="utf-8")
     assert 'rel="icon" href="%sveltekit.assets%/favicon.ico"' in html
     assert 'rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png"' in html
     assert 'rel="manifest" href="%sveltekit.assets%/manifest.webmanifest"' in html
     # CF Access 뒤에서 manifest 요청에 쿠키가 실려야 302 로 막히지 않는다
     assert re.search(r'rel="manifest"[^>]*crossorigin="use-credentials"', html)
-    assert not re.search(r'<meta[^>]*name="theme-color"', html)   # A11Y §2.5 단일 소유 — 이 단계에서 넣지 않는다
+    # S4-54: 라이트·다크 media 별 theme-color 메타 (런타임 갱신은 theme.ts)
+    assert re.search(r'<meta name="theme-color" media="\(prefers-color-scheme: dark\)"', html)
+    assert re.search(r'<meta name="theme-color" media="\(prefers-color-scheme: light\)"', html)
 
 
 @pytest.mark.parametrize("name,mime", [
