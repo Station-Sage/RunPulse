@@ -19,9 +19,10 @@ from .plan_readiness import cold_peak_km
 from .planner_config import DISTANCE_LABEL_KM, LONG_RUN_BASE, load_prefs
 from .planner_rules import get_paces_from_vdot, plan_start_monday
 from .week_structure import feasible_week_km
+from .run_history import window_distances
 from .readiness import get_taper_weeks, recommend_weekly_km
 
-_RUN = "('running','run','virtualrun','treadmill','highintensityintervaltraining')"
+from .run_history import RUN_TYPES as _RUN
 _LONG_CAP = {"full": 0.50, "half": 0.50}      # 그 외 0.40
 COLD_WEEK_KM = 12.0                           # 이 미만이면 콜드스타트(6km 세션 2회 미만)
 W_COLD = {"5k": 12.0, "10k": 12.0, "half": 16.0, "full": 20.0}   # 기록 없음 기본 시작 부하
@@ -30,31 +31,19 @@ DETRAIN_FACTOR = 0.6                          # 직전 16주 평균 할인(가�
 
 def recent_load(conn: sqlite3.Connection, as_of: date) -> tuple[float, float]:
     """(as_of 직전 4주 주평균 km, 직전 6주 최장 러닝 km). 데이터가 없으면 (0, 0)."""
-    def _sum(days: int, agg: str) -> float:
-        r = conn.execute(
-            f"SELECT {agg}(distance_m) FROM v_canonical_activities WHERE activity_type IN {_RUN} "
-            "AND DATE(start_time) >= ? AND DATE(start_time) < ?",
-            ((as_of - timedelta(days=days)).isoformat(), as_of.isoformat())).fetchone()
-        return float(r[0] or 0.0) / 1000.0
-    return round(_sum(28, "SUM") / 4, 1), round(_sum(42, "MAX"), 1)
+    d28 = window_distances(conn, as_of - timedelta(days=28), as_of)
+    d42 = window_distances(conn, as_of - timedelta(days=42), as_of)
+    return round(sum(d28) / 1000.0 / 4, 1), round(max(d42, default=0.0) / 1000.0, 1)
 
 
 def recent_long_max(conn: sqlite3.Connection, as_of: date, weeks: int = 12) -> float:
     """as_of 직전 weeks 주 최장 러닝 km(롱런 basis·게이트 공용). 없으면 0."""
-    r = conn.execute(
-        f"SELECT MAX(distance_m) FROM v_canonical_activities WHERE activity_type IN {_RUN} "
-        "AND DATE(start_time) >= ? AND DATE(start_time) < ?",
-        ((as_of - timedelta(weeks=weeks)).isoformat(), as_of.isoformat())).fetchone()
-    return round(float(r[0] or 0.0) / 1000.0, 1)
+    return round(max(window_distances(conn, as_of - timedelta(weeks=weeks), as_of), default=0.0) / 1000.0, 1)
 
 
 def recent_avg_km(conn: sqlite3.Connection, as_of: date, weeks: int = 16) -> float:
     """as_of 직전 weeks 주 주평균 러닝 km. 없으면 0."""
-    r = conn.execute(
-        f"SELECT SUM(distance_m) FROM v_canonical_activities WHERE activity_type IN {_RUN} "
-        "AND DATE(start_time) >= ? AND DATE(start_time) < ?",
-        ((as_of - timedelta(weeks=weeks)).isoformat(), as_of.isoformat())).fetchone()
-    return round(float(r[0] or 0.0) / 1000.0 / weeks, 1)
+    return round(sum(window_distances(conn, as_of - timedelta(weeks=weeks), as_of)) / 1000.0 / weeks, 1)
 
 
 def cold_start_km(dlabel: str, prev4: float, avg16: float, user_km: float | None = None) -> tuple[float, str]:

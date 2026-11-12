@@ -1421,7 +1421,7 @@
 
 - functions: weeks_to_race, plan_weeks_until_race, plan_start_monday, apply_race_week, training_phase, resolve_distance_label, weekly_volume_km, assign_qday_slots, assign_long_run_slot, get_paces_from_vdot, pace_range, distribute_volume, description
 
-### `planner_schedule.py` (231줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
+### `planner_schedule.py` (220줄) — 목표 대회 역산 주간 목표 조회 — 최근 훈련량(DB)을 읽어 periodization.build_schedule 에 넣는다.
 
 - functions: recent_load, recent_long_max, recent_avg_km, cold_start_km, start_load, schedule_for_goal, recent_run_days_per_week, week_cap_km, plan_start_source, week_target
 
@@ -1448,6 +1448,10 @@
 ### `rematch.py` (131줄) — 기존 계획 정정 도구 — 자동 매칭 재평가 + 대회일 기준 미래 주차 재생성.
 
 - functions: rematch, rematch_goal, replan_future, main
+
+### `run_history.py` (37줄) — 커넥션 단위 러닝 거리 이력 캐시 — v_canonical_activities(윈도우 뷰, 조회당 ~8ms)를 요청당 1회만 읽는다.
+
+- functions: run_rows, window_distances
 
 ### `week_compliance.py` (253줄) — 날짜별 유효 계획·이행 수치 — UX 리뷰 31-coach-plan design §4.1 R1·R2·R3·R5 (읽기 시점 계산).
 
@@ -3314,6 +3318,10 @@
 - class **TestRTTIMock**: test_optimal_mock, test_no_data_mock
 - class **TestRTTIConfidence**: test_full_inputs_confidence_one, test_no_wellness_lowers_confidence
 
+### `test_run_history.py` (29줄) — run_history 캐시: 집계 동일성·쓰기 후 무효화.
+
+- functions: test_aggregates_and_invalidation
+
 ### `test_run_totals.py` (49줄) — run_totals / other_totals / other_line 테스트 (NRA N2).
 
 - functions: test_run_totals_ignores_non_running, test_run_totals_empty, test_other_totals_and_line, test_week_digest_and_story_stats_running_only
@@ -3750,7 +3758,7 @@
 - functions: run
 
 ---
-총 808개 파일
+총 810개 파일
 
 ## docstring 누락
 
