@@ -14,7 +14,6 @@ from src.utils.config import load_config
 log = logging.getLogger(__name__)
 
 # v1 에서 남은 Blueprint (S4-91, ADR-056)
-from .views_settings_garmin import settings_garmin_bp
 from .views_strava_oauth import strava_oauth_bp
 from .v1_retired import v1_retired_bp
 
@@ -189,13 +188,6 @@ def create_app() -> Flask:
         except Exception as exc:
             log.warning("요청별 마이그레이션 실패: %s", exc)
 
-    # ── Jinja2 설정 — 남은 v1 화면(Garmin 연동)의 base.html 스타일만 (S4-91) ──
-    from .v1_shell_style import _CSS
-
-    @app.context_processor
-    def _inject_ui_context():
-        return {"stylesheet": _CSS}
-
     # 사용자 전환은 v2 로 이관됨 — GET /api/v1/dev/users, POST /api/v1/dev/switch-user (개발 전용, V1-8)
 
     @app.errorhandler(NoUserContext)
@@ -230,7 +222,6 @@ def create_app() -> Flask:
         return serve_v2_response(_project_root() / "frontend" / "build", path)
 
     # ── Blueprint 등록 ─────────────────────────────────────────────────
-    app.register_blueprint(settings_garmin_bp)       # v1 Garmin 연동 화면(CF 설정 폼 — v2 대체 없음)
     app.register_blueprint(strava_oauth_bp)          # Strava OAuth 시작·콜백(v2 사용, redirect URI 불변)
     app.register_blueprint(v1_retired_bp)            # 퇴역 v1 URL: GET→v2 302, POST→410 (ADR-056)
     app.register_blueprint(training_export_bp)     # v0.3 훈련 내보내기/전송

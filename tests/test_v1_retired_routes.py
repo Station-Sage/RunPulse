@@ -1,5 +1,5 @@
 """S4-91 (AUDIT-SERVICE-LAYER 2단계, ADR-056) — 퇴역 v1 URL 은 GET 302→v2, POST 410,
-유지 라우트(Strava OAuth·Garmin local-sync·/connect/garmin·내보내기 .ics·/mcp·/feeds/cal)는 그대로."""
+유지 라우트(Strava OAuth·Garmin local-sync·내보내기 .ics·/mcp·/feeds/cal)는 그대로."""
 from __future__ import annotations
 
 import pytest
@@ -65,8 +65,6 @@ def test_kept_routes_registered(app):
         ("/connect/strava/oauth-start", "GET"): "strava_oauth.",
         ("/connect/strava/callback", "GET"): "strava_oauth.",
         ("/api/garmin/local-sync", "POST"): "garmin_local_sync.",
-        ("/connect/garmin", "GET"): "settings_garmin.",
-        ("/connect/garmin/cf-settings", "POST"): "settings_garmin.",
         ("/training/export.ics", "GET"): "training_export.",
     }
     for key, prefix in kept.items():
@@ -93,5 +91,6 @@ def test_garmin_local_sync_stays_origin_exempt(client):
 def test_smoke_root_v2_and_kept_screens(client):
     assert client.get("/").status_code == 302
     assert client.get("/v2/").status_code in (200, 404)  # 404 = frontend/build 없음
-    assert client.get("/connect/garmin").status_code == 200
+    r = client.get("/connect/garmin")
+    assert r.status_code == 302 and r.headers["Location"] == "/v2/data/sources/garmin"
     assert client.get("/training/export.ics").status_code != 500

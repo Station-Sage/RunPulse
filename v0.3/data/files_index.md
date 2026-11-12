@@ -110,7 +110,7 @@
 
 - functions: travel_window_days, return_window_days, collect_illness, collect_travel, collect_altitude, collect_context
 
-### `adjustment_signals_race.py` (61줄) — 대회 신호 race_plan 수집 (ADJ §3.4) — race_calendar 의 -14..+21일 대회를 단계(phase)로 정규화한다. 읽기 전용.
+### `adjustment_signals_race.py` (59줄) — 대회 신호 race_plan 수집 (ADJ §3.4) — race_calendar 의 -14..+21일 대회를 단계(phase)로 정규화한다. 읽기 전용.
 
 - functions: windows_for, phase_of, collect_race
 
@@ -151,7 +151,7 @@
 
 - functions: model_label, reason_label, failure_history, engine_label, parse_engine, attempt_views, message_engine_view, health_summary, get_engine
 
-### `coach_evidence.py` (250줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
+### `coach_evidence.py` (261줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
 
 - functions: is_drifted, with_current, build_answer_evidence, view_evidence
 
@@ -1245,7 +1245,7 @@
 > Flask 앱 셸 + 남은 v1 라우트.
 > 
 > v1 화면은 일몰 중(V1-1). S4-91(ADR-056)에서 대체 완료 화면을 퇴역 — `v1_retired`(GET→v2 302, POST→410).
-> 남은 v1: `views_settings_garmin`(CF 설정 폼 대체 없음)·`views_strava_oauth`(OAuth URL 불변)·`views_training_export`(.ics).
+> 남은 v1: `views_strava_oauth`(OAuth URL 불변)·`views_training_export`(.ics).
 > 공용 파일은 view 밖으로 이관했다(V1-10·V1-19):
 > bg_sync·auto_sync → src/sync/, 공용 3함수 → src/utils/user_context.py,
 > views_mcp_remote → src/mcp_remote/http.py, template_helpers → src/utils/template_helpers.py.
@@ -1254,7 +1254,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (245줄) — RunPulse integration workbench web app.
+### `app.py` (236줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1283,17 +1283,9 @@
 
 - functions: resolve_v2, cache_control_for, inline_script_hashes, serve_v2_response
 
-### `v1_retired.py` (73줄) — 퇴역한 v1 화면·동작 URL — GET 은 v2 대응 화면으로 302, POST 는 410 (AUDIT-SERVICE-LAYER 2단계, ADR-056).
+### `v1_retired.py` (86줄) — 퇴역한 v1 화면·동작 URL — GET 은 v2 대응 화면으로 302, POST 는 410 (AUDIT-SERVICE-LAYER 2단계, ADR-056).
 
 - functions: gone_response
-
-### `v1_shell_style.py` (175줄) — 남은 v1 화면(Garmin 연동 `/connect/garmin*`)의 `base.html` 스타일시트 — Jinja context `stylesheet`.
-
-- (public API 없음)
-
-### `views_settings_garmin.py` (590줄) — 설정 — Garmin 연동 라우트 (connect/MFA/disconnect).
-
-- functions: garmin_connect_view, garmin_connect_post, garmin_mfa_view, garmin_mfa_submit, garmin_disconnect, garmin_browser_login, garmin_upload_token, garmin_paste_token, garmin_cf_settings_post, garmin_download_script, garmin_download_env
 
 ### `views_strava_oauth.py` (92줄) — Strava OAuth2 시작·콜백 — `/connect/strava/oauth-start`·`/connect/strava/callback`.
 
@@ -1620,7 +1612,7 @@
 
 - functions: store_raw_payload, update_changed_fields, fill_null_columns
 
-### `reference_day.py` (68줄) — '오늘' 기준일 헬퍼 — 최근 활동의 UTC 오프셋으로 사용자 현지 날짜를 구한다 (TZ T5, TZ-17/18/21).
+### `reference_day.py` (71줄) — '오늘' 기준일 헬퍼 — 최근 활동의 UTC 오프셋으로 사용자 현지 날짜를 구한다 (TZ T5, TZ-17/18/21).
 
 - functions: reference_offset, reference_today
 
@@ -2304,12 +2296,12 @@
 
 - functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys, test_legacy_rule_label_single_source, test_row_status_overrides_engine_json, test_message_engine_view_lists_actual_attempts, test_failure_history_prefix_on_retry_success, test_failure_history_absent_for_plain_and_legacy_messages, test_every_status_reason_has_label
 
-### `test_coach_evidence.py` (150줄) — coach_evidence 테스트 — 답변 근거 v2 (role·스냅샷·drift·legacy).
+### `test_coach_evidence.py` (176줄) — coach_evidence 테스트 — 답변 근거 v2 (role·스냅샷·drift·legacy).
 
 - class **TestPureHelpers**: test_rest_signal, test_is_drifted_threshold_and_sign, test_cited_needs_keyword_and_number, test_cited_rounding_tolerance
-- class **TestBuildAnswerEvidence**: test_rule_path_roles_and_snapshot, test_llm_path_keeps_only_cited_and_pinned, test_exception_returns_empty, test_dedupes_by_metric
+- class **TestBuildAnswerEvidence**: test_rule_path_roles_and_snapshot, test_llm_path_keeps_only_cited_and_pinned, test_db_error_returns_empty, test_dedupes_by_metric
 - class **TestViewEvidence**: test_legacy_without_snapshot, test_user_message_and_empty, test_drift_detected_after_recalc, test_no_drift_when_unchanged, test_wellness_current, test_kst_date_invalid
-- functions: test_adjustment_in_effect_follows_state
+- functions: test_adjustment_in_effect_follows_state, test_briefing_extras_skip_items_without_metric, test_expected_source_failure_degrades_with_warning, test_code_defect_is_not_swallowed
 
 ### `test_coach_rule_handlers.py` (153줄) — Coach 규칙 핸들러 레지스트리 (design 30-coach-chat §7.3, §8).
 
@@ -2358,9 +2350,9 @@
 - class **TestViewsExportCSV**: test_csv_distance_km_conversion
 - functions: conn
 
-### `test_context_autodetect.py` (76줄) — 여행·고지대 자동 감지 + RHR/HRV 질문 (NEW-2·8).
+### `test_context_autodetect.py` (83줄) — 여행·고지대 자동 감지 + RHR/HRV 질문 (NEW-2·8).
 
-- functions: test_detect_travel_flags_large_tz_shift, test_detect_travel_ignores_small_shift_and_no_data, test_detect_altitude_needs_threshold_and_delta, test_rhr_hrv_question_requires_both, test_run_creates_candidates_once
+- functions: test_detect_travel_flags_large_tz_shift, test_detect_travel_ignores_small_shift_and_no_data, test_detect_altitude_needs_threshold_and_delta, test_rhr_hrv_question_requires_both, test_run_creates_candidates_once, test_reference_today_honors_injected_clock_without_tz_data
 
 ### `test_context_episode_delete.py` (62줄) — 에피소드 삭제 연쇄 테스트 (NEW-18·28).
 
@@ -2658,11 +2650,9 @@
 
 - functions: test_lap_extras_drops_none, test_pick_prefers_first_key_list_and_dict, test_extractor_uses_real_time_axis, test_laps_keep_gap_and_step, test_activity_gap_metric_sec_per_km, test_garmin_lap_extras_preserved, test_garmin_stream_uses_sum_elapsed_and_distance
 
-### `test_garmin_local_sync_api.py` (556줄) — POST /api/garmin/local-sync 엔드포인트 테스트.
+### `test_garmin_local_sync_api.py` (365줄) — POST /api/garmin/local-sync 엔드포인트 테스트.
 
 - class **TestGarminLocalSyncEndpoint**: test_returns_202_on_valid_token, test_missing_token_returns_400, test_empty_token_dict_returns_400, test_days_clamped_to_90, test_di_access_token_accepted, test_token_saved_to_disk, test_combined_token_saved_to_disk, test_combined_token_accepted, test_non_json_body_returns_400
-- class **TestUploadTokenTriggerSync**: garmin_settings_app, test_upload_with_trigger_sync_redirects, test_paste_without_trigger_sync_no_bg_job, test_paste_with_trigger_sync_calls_redirect
-- class **TestCfSettingsAndDownload**: garmin_app, test_cf_settings_saves_and_redirects, test_cf_settings_strips_header_prefix, test_cf_settings_missing_fields_returns_error_redirect, test_download_script_returns_python_file, test_download_env_contains_cf_values
 - class **TestSyncKeyValidation**: test_valid_sync_key_returns_202, test_missing_sync_key_returns_401, test_wrong_sync_key_returns_401, test_no_cf_config_dev_allows_any_key, test_no_cf_config_production_returns_500
 - class **TestAuthCfBypass**: test_local_sync_path_bypasses_auth, test_other_path_blocked_in_production
 
@@ -3099,7 +3089,7 @@
 
 - functions: test_only_accepted_listed, test_apply_overrides_and_keeps_original, test_fingerprint_mismatch_is_stale, test_move_applies_and_unadjusted_untouched
 
-### `test_plan_overview.py` (71줄) — R3 — 플랜 주간 개요(PLN-1/5/7) 서비스·API.
+### `test_plan_overview.py` (73줄) — R3 — 플랜 주간 개요(PLN-1/5/7) 서비스·API.
 
 - functions: conn, test_unknown_goal_returns_none, test_totals_equal_planned_workouts_aggregate, test_partial_first_week_carries_start_date, test_future_weeks_have_no_actuals, test_cumulative_basis_labels, test_rematch_goal_matches_past_activity, test_rematch_goal_swallows_errors
 
@@ -3628,13 +3618,13 @@
 
 - class **TestUTRS**: test_full_inputs_confidence_1, test_partial_inputs_lower_confidence, test_three_inputs_confidence, test_score_range, test_json_has_components, test_no_inputs, test_child_metrics_have_parent_and_correct_names
 
-### `test_v1_retired_routes.py` (97줄) — S4-91 (AUDIT-SERVICE-LAYER 2단계, ADR-056) — 퇴역 v1 URL 은 GET 302→v2, POST 410,
+### `test_v1_retired_routes.py` (96줄) — S4-91 (AUDIT-SERVICE-LAYER 2단계, ADR-056) — 퇴역 v1 URL 은 GET 302→v2, POST 410,
 
 - functions: app, client, test_retired_get_redirects_to_v2, test_retired_post_is_gone, test_retired_post_without_origin_still_blocked, test_gone_response_shape, test_kept_routes_registered, test_no_duplicate_rules, test_garmin_local_sync_stays_origin_exempt, test_smoke_root_v2_and_kept_screens
 
-### `test_v2_static_assets.py` (147줄) — frontend/static 의 favicon·manifest·apple-touch-icon 자산 정합성 (S3 9단계, SEC-7/D7).
+### `test_v2_static_assets.py` (149줄) — frontend/static 의 favicon·manifest·apple-touch-icon 자산 정합성 (S3 9단계, SEC-7/D7).
 
-- functions: manifest, client, png_size, test_manifest_basics, test_manifest_colors_match_dark_s1_token, test_manifest_icons_exist_and_sizes_match, test_maskable_glyph_inside_safe_zone, test_icons_are_opaque_not_fake_checkerboard, test_apple_touch_icon_180, test_favicon_is_real_ico_with_small_sizes, test_app_html_links_and_no_theme_color, test_served_200_with_revalidation, test_unknown_icon_still_404, test_hooks_client_wiring_present
+- functions: manifest, client, png_size, test_manifest_basics, test_manifest_colors_match_dark_s1_token, test_manifest_icons_exist_and_sizes_match, test_maskable_glyph_inside_safe_zone, test_icons_are_opaque_not_fake_checkerboard, test_apple_touch_icon_180, test_favicon_is_real_ico_with_small_sizes, test_app_html_links_and_theme_color, test_served_200_with_revalidation, test_unknown_icon_still_404, test_hooks_client_wiring_present
 
 ### `test_validator.py` (376줄) — DataValidator 테스트.
 
@@ -3656,16 +3646,6 @@
 ### `test_vdot_guard.py` (19줄) — P7-PRED-84: runpulse_vdot moving_time 붕괴 가드.
 
 - functions: test_normal_value, test_collapsed_moving_time_rejected
-
-### `test_views_settings_garmin_migration.py` (352줄) — views_settings_garmin.py garminconnect 0.3.x 마이그레이션 테스트.
-
-- class **TestGarminConnectView**: test_renders_200, test_token_status_shows_garminconnect_path, test_no_token_shows_status_badge
-- class **TestServerLogin**: test_save_only_no_password_required, test_login_calls_garminconnect_garmin, test_mfa_redirect_on_needs_mfa, test_no_email_returns_error, test_429_shows_error_redirect
-- class **TestTokenUpload**: test_upload_garmin_tokens_json, test_no_file_returns_error, test_invalid_json_returns_error
-- class **TestPasteToken**: test_paste_valid_json, test_paste_invalid_json_returns_error, test_empty_input_returns_error
-- class **TestMFA**: test_expired_session_returns_error, test_mfa_submit_calls_resume_login, test_empty_mfa_code_redirects_back, test_mfa_resume_exception_returns_error
-- class **TestMiscRoutes**: test_browser_login_200, test_disconnect_redirects
-- functions: garmin_app
 
 ### `test_vo2max_consumers.py` (27줄) — VO2max 소비처가 일별 정밀값을 쓰는지 회귀 확인.
 
@@ -3830,7 +3810,7 @@
 - functions: run
 
 ---
-총 822개 파일
+총 819개 파일
 
 ## docstring 누락
 

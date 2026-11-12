@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const ALLOWED = ['/training/export.ics', '/connect/garmin'];
+const ALLOWED = ['/training/export.ics'];
 
 function walk(dir) {
 	return readdirSync(dir).flatMap((n) => {

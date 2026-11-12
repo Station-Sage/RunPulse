@@ -4,7 +4,8 @@
 - GET: `RETIRED_GET` 의 v2 경로로 302(쿼리스트링은 버린다 — v1 전용 `msg`·`error` 였다).
 - POST: 410 `{error:{code:"GONE", message, moved_to}}` — 폼 재전송·스크립트가 조용히 성공한 것처럼 보이지 않게.
   POST 도 Origin 관문(request_guard)을 먼저 지나므로 Origin 없는 요청은 403 이다.
-유지(여기 없음): `/connect/garmin*`(views_settings_garmin — CF 설정 폼의 v2 대체 없음), Strava OAuth
+`/connect/garmin*` 도 퇴역(V2-GARMIN-CONNECT 후속, S4-97 — CF 설정 폼은 폐기, 설계 R8).
+유지(여기 없음): Strava OAuth
 `/connect/strava/oauth-start`·`/callback`(views_strava_oauth), `/api/garmin/local-sync`(routes_garmin_local_sync).
 """
 from __future__ import annotations
@@ -15,6 +16,7 @@ v1_retired_bp = Blueprint("v1_retired", __name__)
 
 _DATA_SYNC = "/v2/data/sync"
 _DATA_IMPORT = "/v2/data/import"
+_GARMIN = "/v2/data/sources/garmin"
 
 # 퇴역 GET URL → v2 대응 화면
 RETIRED_GET: dict[str, str] = {
@@ -26,6 +28,11 @@ RETIRED_GET: dict[str, str] = {
     "/sync-status": _DATA_SYNC,
     "/bg-sync/status": _DATA_SYNC,
     "/activities/export.csv": "/v2/data/export",
+    "/connect/garmin": _GARMIN,
+    "/connect/garmin/mfa": _GARMIN,
+    "/connect/garmin/browser-login": _GARMIN,
+    "/connect/garmin/download-script": _GARMIN,
+    "/connect/garmin/download-env": _GARMIN,
 }
 
 # 퇴역 POST URL → 안내용 v2 화면(moved_to)
@@ -45,6 +52,12 @@ RETIRED_POST: dict[str, str] = {
     "/bg-sync/pause": _DATA_SYNC,
     "/bg-sync/stop": _DATA_SYNC,
     "/bg-sync/resume": _DATA_SYNC,
+    "/connect/garmin": _GARMIN,
+    "/connect/garmin/mfa": _GARMIN,
+    "/connect/garmin/disconnect": _GARMIN,
+    "/connect/garmin/upload-token": _GARMIN,
+    "/connect/garmin/paste-token": _GARMIN,
+    "/connect/garmin/cf-settings": _GARMIN,
 }
 
 
