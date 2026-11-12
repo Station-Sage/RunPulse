@@ -23,7 +23,6 @@
   - `07-entry-common.md` E-: 19건 (03,05,10,11,12,13,16,17,18,19,20,21,22,25,26,27,28,29,30)
   - `08-supplement.md` S-: 11건 (05,06,09,14,16,18,19,20,21,22,23)
 
-- **[TEST-PLAN-CREATION-DATE]** `tests/test_plan_creation.py::test_created_plan_follows_periodization_and_ends_on_race` 가 `assert 9 == 10`(주 수 불일치)로 실패 — S1 이전 기준선(2026-10-13, 샌드박스 python3.13·venv)에서도 동일. 원인 미확인(`date.today()` 의존·실행 날짜 경계 의심). S1과 무관.
 - **[ADJUSTMENT-SOURCE-CRS-LABEL]** `plan_adjustment_service` 의 `source='crs'` 조정 제안은 실제로는 `plan_pain.proposal`/`adjust_todays_plan`(readiness·피로도 기반)에서 생성되어 이름과 근거가 불일치. **방향(2026-10-11): 조정 제안 근거에 CRS·readiness 등 복수 신호를 모두 반영하도록 확장 — opus 설계 진행(`design-2026-10/bundles/adjustment-signals.md`).** ADR-035 영향 확인 필요. 출처: 같은 문서 §8.
 
 - **[RUN-TYPES-SSOT]** **(판단 필요)** 종목(러닝) 판정 SSOT 이관 후속(결정 NRA-8, 2026-10-11): `src/utils/activity_types` 의 `sport_family`·`family_clause` 로 나머지 RUN_TYPES 사본(training·metrics·archive·matcher·suggestions 등 10여 곳, `LIKE '%running%'` 포함)을 통합. 일부는 Calculator 입력(CTL·classifier)이라 결과값이 바뀔 수 있고 HIIT(NRA-7=비러닝)가 계획 매칭에서 빠지는 영향 확인 필요. 출처: `v0.3/data/phase-7-ui-renewal/design-2026-10/patterns/non-running-activities.md`.
