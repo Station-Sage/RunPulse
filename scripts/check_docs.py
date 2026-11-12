@@ -722,11 +722,6 @@ def check_phase3_sync():
     else:
         ok(f"Phase 3 핵심 파일 {len(required)}개 전부 존재")
 
-    # CLI 진입점
-    if not (ROOT / "src" / "sync_cli.py").exists():
-        warn("src/sync_cli.py 없음")
-    else:
-        ok("sync_cli.py 존재")
 
     # full_sync() 존재 확인
     orch = sync_dir / "orchestrator.py"
@@ -871,7 +866,6 @@ def check_phase5_services():
         ("src/services/activity_service.py",  "get_activity_list"),
         ("src/services/dashboard_service.py", "get_dashboard_data"),
         ("src/services/wellness_service.py",  "get_wellness_detail"),
-        ("src/services/unified_view.py",      "fetch_unified_activities"),
     ]
     # 헬퍼 파일 → 대표 함수
     required_helpers = [
@@ -897,16 +891,6 @@ def check_phase5_services():
             if f"def {fn_name}" not in text:
                 missing_fns.append(f"{rel_path}: {fn_name}() 없음")
 
-    # unified_activities.py가 re-export shim인지 확인
-    ua_path = ROOT / "src" / "services" / "unified_activities.py"
-    if ua_path.exists():
-        ua_text = ua_path.read_text(encoding="utf-8")
-        if "unified_view" not in ua_text:
-            missing_fns.append("unified_activities.py: re-export shim 변환 필요 (unified_view 미참조)")
-        else:
-            ok("unified_activities.py: re-export shim 확인")
-    else:
-        missing_files.append("src/services/unified_activities.py")
 
     if missing_files:
         for f in missing_files:
@@ -982,20 +966,6 @@ def check_phase6_load_validate():
                 error(f"db_status.py: {fn}() 없음")
             else:
                 ok(f"db_status.py: {fn}() 존재")
-
-    # ── sync_cli.py initial-load ──
-    cli_path = ROOT / "src" / "sync_cli.py"
-    if cli_path.exists():
-        text = cli_path.read_text(encoding="utf-8")
-        for fn in ("_parse_steps", "_run_initial_load"):
-            if f"def {fn}" not in text:
-                error(f"sync_cli.py: {fn}() 없음")
-            else:
-                ok(f"sync_cli.py: {fn}() 존재")
-        if "initial-load" not in text:
-            error("sync_cli.py: 'initial-load' 서브커맨드 없음")
-        else:
-            ok("sync_cli.py: 'initial-load' 서브커맨드 존재")
 
     # ── snapshot.sh ──
     snapshot = ROOT / "scripts" / "snapshot.sh"

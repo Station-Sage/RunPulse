@@ -787,42 +787,6 @@ class TestActivityServiceRangesReal:
                 break
 
 
-class TestUnifiedViewRangesReal:
-    @pytest.fixture(scope="class")
-    def unified_page(self, real_conn):
-        from src.services.unified_view import fetch_unified_activities
-        activities, total, meta = fetch_unified_activities(real_conn, page=1, page_size=10)
-        return activities, total, meta
-
-    def test_pagination(self, unified_page):
-        activities, total, _ = unified_page
-        assert isinstance(activities, list)
-        assert len(activities) <= 10
-        assert total >= len(activities)
-
-    def test_distance_km_range(self, unified_page):
-        activities, _, _ = unified_page
-        for ua in activities:
-            dist_m = ua.distance_m.value
-            if dist_m is not None:
-                dist_km = dist_m / 1000
-                assert 0 <= dist_km <= _DIST_KM_MAX, f"distance_km={dist_km}"
-
-    def test_meta_keys(self, unified_page):
-        _, _, meta = unified_page
-        assert "total_count" in meta
-        assert "total_dist_km" in meta
-
-    def test_source_comparison(self, real_conn):
-        from src.services.unified_view import fetch_unified_activities, build_source_comparison
-        activities, _, _ = fetch_unified_activities(real_conn, page=1, page_size=5)
-        for ua in activities:
-            if ua.source_rows:
-                comparison = build_source_comparison(ua.source_rows)
-                assert isinstance(comparison, list)
-                break
-
-
 # ═══════════════════════════════════════════════════════════════════
 # Part 4: 보조 검증
 # ═══════════════════════════════════════════════════════════════════

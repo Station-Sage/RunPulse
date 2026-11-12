@@ -11,7 +11,7 @@
   # TODO(v0.4-ML): session_outcomes 50회+ 축적 시 개인화 회귀 모델로 교체
   # - 입력: current_vdot, di, ef, fearp, rtti, weeks_trained
   # - 출력: projected_time_sec, achievability_pct
-  # - ref: src/training/replanner.py session_outcomes 스키마 참조
+  # - ref: session_outcomes 스키마 참조 (replanner 는 퇴역)
 
 논문 근거:
   - Daniels 2014: VDOT 공식, 훈련 단계

@@ -562,16 +562,6 @@
 
 - functions: compute_axes, get_training_balance
 
-### `unified_activities.py` (17줄) — 하위호환 re-export 심 — 직접 import는 각 모듈을 사용할 것.
-
-- (public API 없음)
-
-### `unified_view.py` (360줄) — 멀티 소스 활동 통합 뷰 — UnifiedActivity 빌드 + 페이지 조회.
-
-- class **UnifiedField**: 없음
-- class **UnifiedActivity**: date, can_expand
-- functions: build_unified_activity, fetch_unified_activities, build_source_comparison
-
 ### `user_settings_service.py` (52줄) — 사용자 UI 설정 key-value 저장소(user_settings, ADR-023) — 화이트리스트 키만 허용.
 
 - functions: get_setting, set_setting, global_ui_default, resolve_ui_default, entry_path
@@ -1099,14 +1089,6 @@
 
 - functions: build_context, format_context_text, format_activity_context
 
-### `ai_parser.py` (125줄) — AI 응답에서 JSON 추출 및 훈련 계획/추천 칩 파싱.
-
-- functions: extract_json_block, parse_weekly_plan, parse_suggestions, parse_ai_chips
-
-### `ai_schema.py` (121줄) — AI 훈련 계획 JSON 스키마 정의 및 검증.
-
-- functions: validate_weekly_plan, normalize_workout
-
 ### `briefing.py` (101줄) — AI 코치 브리핑 프롬프트 조립.
 
 - functions: build_briefing_prompt, build_chip_prompt, get_clipboard_prompt
@@ -1466,10 +1448,6 @@
 ### `rematch.py` (131줄) — 기존 계획 정정 도구 — 자동 매칭 재평가 + 대회일 기준 미래 주차 재생성.
 
 - functions: rematch, rematch_goal, replan_future, main
-
-### `replanner.py` (289줄) — 건너뜀/이행 미달 시 이번 주 잔여 계획 재조정.
-
-- functions: replan_remaining_week
 
 ### `week_compliance.py` (253줄) — 날짜별 유효 계획·이행 수치 — UX 리뷰 31-coach-plan design §4.1 R1·R2·R3·R5 (읽기 시점 계산).
 
@@ -1993,14 +1971,6 @@
 ### `test_ai_context.py` (236줄) — tests/test_ai_context.py — Phase 5-D AI 컨텍스트 빌더 테스트.
 
 - functions: conn, test_build_daily_briefing_full, test_build_daily_briefing_contains_readiness, test_build_daily_briefing_contains_fitness, test_build_daily_briefing_no_wellness, test_build_daily_briefing_race_predictions, test_build_daily_briefing_format, test_build_activity_analysis_full, test_build_activity_analysis_contains_core, test_build_activity_analysis_no_rp_metrics, test_build_ai_context_daily_only, test_build_ai_context_with_activity, test_build_context_today_activity, test_build_context_no_activity, test_build_context_fitness, test_build_context_no_data_graceful, test_format_context_text_is_string, test_format_context_text_no_data_graceful, test_format_activity_context_is_string, test_format_activity_context_missing_activity, test_rule_based_response_does_not_raise, test_rule_based_response_no_data_graceful, test_legacy_reexport_paths_identical
-
-### `test_ai_parser.py` (154줄) — ai_parser 모듈 테스트.
-
-- functions: test_extract_json_block_from_code_block, test_extract_json_block_bare_code_block, test_extract_json_block_no_code_block, test_extract_json_block_list, test_extract_json_block_none_when_invalid, test_extract_json_block_broken_json, test_parse_weekly_plan_valid, test_parse_weekly_plan_no_json, test_parse_weekly_plan_invalid_type, test_parse_weekly_plan_missing_date, test_parse_weekly_plan_rest_no_distance_ok, test_parse_weekly_plan_empty_workouts, test_parse_suggestions_string_list, test_parse_suggestions_dict_list, test_parse_suggestions_max_5, test_parse_suggestions_no_json, test_parse_ai_chips_basic, test_parse_ai_chips_with_id, test_parse_ai_chips_empty_on_failure
-
-### `test_ai_schema.py` (92줄) — ai_schema 모듈 테스트.
-
-- functions: test_validate_valid_plan, test_validate_not_dict, test_validate_no_workouts, test_validate_invalid_type, test_validate_invalid_date, test_validate_distance_out_of_range, test_validate_too_many_workouts, test_validate_rest_no_distance_ok, test_normalize_uses_type_key, test_normalize_uses_workout_type_key, test_normalize_source_is_ai, test_normalize_none_distance
 
 ### `test_ai_settings.py` (97줄) — ai_settings_service + /data/settings/ai 라우트 — 키 값 비노출, PATCH 검증, 사용량, 연결 테스트.
 
@@ -2732,14 +2702,7 @@
 
 - functions: make_client, test_default_goes_to_v2, test_global_v1_still_goes_to_v2, test_global_v2, test_stored_v1_falls_back_to_v2
 
-### `test_initial_load_cli.py` (219줄) — initial-load CLI 테스트.
-
-- class **TestParseSteps**: test_all_steps, test_subset, test_dedup_and_sort, test_whitespace_tolerance, test_invalid_exits
-- class **TestArgparse**: test_defaults, test_custom_flags
-- class **TestDryRun**: test_dry_run_no_db_changes, test_step_subset_executes_only_requested
-- class **TestStepDedup**: test_dedup_sets_group_id, test_dedup_dry_run_no_groups
-
-### `test_integration_realdb.py` (1161줄) — 실 데이터(pansongit@gmail.com) 기반 통합 테스트.
+### `test_integration_realdb.py` (1125줄) — 실 데이터(pansongit@gmail.com) 기반 통합 테스트.
 
 - class **TestRawActivitySummaries**: test_distance_m_range, test_elapsed_time_range, test_avg_pace_running_only, test_hr_range, test_elevation_nonneg, test_source_valid, test_timestamp_iso, test_no_duplicate_source_ids
 - class **TestRawWellness**: test_sleep_score_range, test_sleep_duration_range, test_hrv_range, test_resting_hr_range, test_body_battery_range, test_stress_range, test_weight_range, test_no_duplicate_dates
@@ -2757,7 +2720,6 @@
 - class **TestDashboardRangesReal**: dashboard, test_required_keys, test_training_phase_valid, test_weekly_summary_non_negative, test_ctl_when_present, test_pmc_chart_sorted, test_pmc_chart_values, test_daily_metric_chart
 - class **TestWellnessRangesReal**: test_detail_is_dict, test_hrv_range, test_resting_hr_range, test_sleep_score_range, test_trend_arrays_same_length
 - class **TestActivityServiceRangesReal**: test_list_pagination, test_list_distance_km, test_detail_structure, test_filter_sport, test_streams_values
-- class **TestUnifiedViewRangesReal**: unified_page, test_pagination, test_distance_km_range, test_meta_keys, test_source_comparison
 - class **TestDedupIntegrity**: test_group_source_uniqueness, test_canonical_ratio_plausible, test_no_orphan_canonical
 - class **TestExportRangesReal**: test_distance_km_from_canonical, test_pace_conversion_plausible
 - class **TestAllActivitySummaryColumns**: test_column_range
@@ -3305,10 +3267,6 @@
 - class **TestRelativeEffort**: test_from_avg_hr, test_high_intensity, test_low_intensity, test_no_hr, test_confidence_from_avg_hr, test_category
 - class **TestRelativeEffortMock**: test_basic_mock, test_no_hr_mock
 
-### `test_replanner.py` (279줄) — replanner.py 테스트 — 재조정 규칙 (고강도 이동, 볼륨 축소, 테이퍼 보호).
-
-- functions: test_rule1_interval_moved_to_easy_day, test_rule1_tempo_moved, test_rule1_easy_not_moved, test_rule1_no_available_slot, test_rule2_consecutive_skips_reduce_volume, test_rule3_low_dist_ratio_warning, test_rule4_taper_no_move, test_result_has_required_keys, test_unknown_workout_id_returns_error, test_crs_low_level_adds_warning, test_crs_level_above_z1_no_warning, test_crs_missing_row_no_warning_no_error, test_crs_other_day_row_not_used_as_today, test_crs_corrupt_row_no_warning_no_error
-
 ### `test_reprocess.py` (285줄) — DoD #4 (reprocess): Layer 0 → Layer 1/2 재구축 테스트.
 
 - class **TestReprocessActivity**: test_rebuilds_from_raw, test_metrics_rebuilt, test_primary_resolved, test_preserves_raw, test_clears_derived_only, test_no_clear_accumulates
@@ -3591,15 +3549,6 @@
 
 - functions: test_distance_matches, test_rank_and_overwrite, test_peer_direct_offset, test_peer_outside_tolerance_or_distance, test_peer_irregular_offset_discarded, test_derived_only_when_unique, test_direct_conflict_uses_source_priority, test_chain_order, test_neighbor_then_fallback, test_lookup_no_network_on_init, test_tz_context_summary_and_borrow, test_tz_payload_fields, test_apply_to_existing_rank_rules, test_apply_to_existing_protects_manual_and_pinned, test_csv_import_uses_peer_and_reimport_protects
 
-### `test_unified_activities.py` (338줄) — unified_activities 서비스 테스트.
-
-- class **TestPickValue**: test_garmin_first, test_fallback_when_garmin_missing, test_none_when_all_missing, test_all_values_populated, test_service_priority_order
-- class **TestBuildUnifiedActivity**: test_single_source, test_multi_source_group, test_representative_id_garmin_first, test_date_property, test_effective_group_id_solo, test_effective_group_id_real_group
-- class **TestBuildSourceComparison**: test_returns_list_of_dicts, test_field_names_present, test_values_per_source, test_missing_source_not_in_row, test_unified_value_and_source_present, test_unified_source_fallback, test_unified_value_none_when_all_missing
-- class **TestFetchUnifiedActivities**: test_returns_solo_activities, test_groups_by_matched_group_id, test_grouped_activity_has_both_sources, test_pagination, test_stats_total_dist, test_date_filter, test_source_filter
-- class **TestGroupOperations**: test_assign_creates_group, test_assign_requires_two, test_remove_from_group
-- functions: mem_db
-
 ### `test_user_context.py` (109줄) — user_context — user_id 해석 우선순위.
 
 - functions: test_argument_wins, test_thread_local_fallback_is_per_thread, test_default_without_context, test_validate_uid_accepts_existing_forms, test_validate_uid_rejects, test_invalid_uid_error_does_not_carry_raw_value, test_get_db_path_rejects_and_creates_no_directory, test_get_db_path_rejects_symlink_escape, test_get_config_path_validates_uid, test_list_user_ids_skips_invalid_dirs_and_logs_masked
@@ -3745,7 +3694,7 @@
 
 - functions: parse_ddl_tables, parse_db_schema, parse_arch_categories, check_all, main
 
-### `check_docs.py` (1054줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 6 확장판).
+### `check_docs.py` (1024줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 6 확장판).
 
 - functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, check_phase2_extractors, check_phase3_sync, check_phase4_metrics, check_phase5_services, check_phase6_load_validate, main
 
@@ -3810,7 +3759,7 @@
 - functions: run
 
 ---
-총 819개 파일
+총 809개 파일
 
 ## docstring 누락
 
