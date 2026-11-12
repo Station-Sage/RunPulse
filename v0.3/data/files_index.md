@@ -257,10 +257,6 @@
 
 - functions: race_date_window, check_checkin, check_plan_request, target_pace_error
 
-### `manual_sync_service.py` (90줄) — 수동 동기화 1소스 실행 — 원장 선점(claim_run) → sync.py subprocess → 원장 판독으로 결과 dict 생성.
-
-- functions: skipped, precheck, run_one
-
 ### `metric_browse_groups.py` (101줄) — 메트릭 브라우저 표시 분류·정렬 — 8의도 그룹 slug 매핑 + 당일 주목도(salience) 정렬.
 
 - functions: classify, baseline_z, salience_key
@@ -1246,9 +1242,11 @@
 
 ## `src/web/`
 
-> Flask 웹 뷰(v1 UI) + 앱 셸.
+> Flask 앱 셸 + 남은 v1 라우트.
 > 
-> v1 UI 는 v2 완료 후 일몰 예정(V1-1). 공용 파일은 view 밖으로 이관했다(V1-10·V1-19):
+> v1 화면은 일몰 중(V1-1). S4-91(ADR-056)에서 대체 완료 화면을 퇴역 — `v1_retired`(GET→v2 302, POST→410).
+> 남은 v1: `views_settings_garmin`(CF 설정 폼 대체 없음)·`views_strava_oauth`(OAuth URL 불변)·`views_training_export`(.ics).
+> 공용 파일은 view 밖으로 이관했다(V1-10·V1-19):
 > bg_sync·auto_sync → src/sync/, 공용 3함수 → src/utils/user_context.py,
 > views_mcp_remote → src/mcp_remote/http.py, template_helpers → src/utils/template_helpers.py.
 > 
@@ -1256,7 +1254,7 @@
 > 의존: src/services/, src/utils/metric_registry.py
 > 주의: 기존 뷰는 v0.2 스키마 기준 — 새 스키마와 혼용 금지
 
-### `app.py` (258줄) — RunPulse integration workbench web app.
+### `app.py` (245줄) — RunPulse integration workbench web app.
 
 - functions: create_app
 
@@ -1273,14 +1271,6 @@
 - class **RedactingLogger**: access
 - functions: redact
 
-### `helpers.py` (880줄) — 웹 뷰 공통 헬퍼 함수 — HTML 조립·포맷터. (공용 경로/사용자 함수는 src/utils/user_context.py 로 이관, V1S-2)
-
-- functions: render_sub_nav, bottom_nav, html_page, make_table, metric_row, score_badge, readiness_badge, fmt_min, fmt_duration, safe_str, connected_services, tooltip, race_shape_label, no_data_card, fmt_pace, last_sync_info
-
-### `helpers_svg.py` (171줄) — SVG 시각화 헬퍼 — 반원 게이지 + 레이더 차트.
-
-- functions: svg_semicircle_gauge, svg_radar_chart
-
 ### `request_guard.py` (177줄) — 요청 경계 보호 — Origin 관문·봉투 경로 규칙·403 응답 (SRV 2.1, ADR-048). 앱 셸(`src/web/`) 전용.
 
 - functions: is_envelope_path, forbidden_response, guard_mode, is_exempt, allowed_origins, request_origin, same_origin, init_request_guard
@@ -1293,17 +1283,21 @@
 
 - functions: resolve_v2, cache_control_for, inline_script_hashes, serve_v2_response
 
-### `views_export.py` (99줄) — 활동 데이터 CSV 내보내기 라우트.
+### `v1_retired.py` (73줄) — 퇴역한 v1 화면·동작 URL — GET 은 v2 대응 화면으로 302, POST 는 410 (AUDIT-SERVICE-LAYER 2단계, ADR-056).
 
-- functions: activities_export_csv
+- functions: gone_response
+
+### `v1_shell_style.py` (175줄) — 남은 v1 화면(Garmin 연동 `/connect/garmin*`)의 `base.html` 스타일시트 — Jinja context `stylesheet`.
+
+- (public API 없음)
 
 ### `views_settings_garmin.py` (590줄) — 설정 — Garmin 연동 라우트 (connect/MFA/disconnect).
 
 - functions: garmin_connect_view, garmin_connect_post, garmin_mfa_view, garmin_mfa_submit, garmin_disconnect, garmin_browser_login, garmin_upload_token, garmin_paste_token, garmin_cf_settings_post, garmin_download_script, garmin_download_env
 
-### `views_settings_integrations.py` (327줄) — 설정 — Strava / Intervals.icu / Runalyze 연동 라우트.
+### `views_strava_oauth.py` (92줄) — Strava OAuth2 시작·콜백 — `/connect/strava/oauth-start`·`/connect/strava/callback`.
 
-- functions: strava_connect_view, strava_save_app, strava_oauth_start, strava_oauth_callback, strava_disconnect, intervals_connect_view, intervals_connect_post, intervals_disconnect, runalyze_connect_view, runalyze_connect_post, runalyze_disconnect
+- functions: strava_oauth_start, strava_oauth_callback
 
 ### `views_training_export.py` (42줄) — 훈련 계획 ICS 다운로드 라우트 (v1 push-garmin/push-caldav 는 S4-70 에서 제거).
 
@@ -1814,6 +1808,10 @@
 
 - functions: get_dev_users, post_dev_switch_user
 
+### `routes_garmin_local_sync.py` (116줄) — Garmin 로컬 동기화 수신 — `POST /api/garmin/local-sync` (외부 클라이언트 `scripts/garmin_local_sync.py`).
+
+- functions: garmin_local_sync
+
 ### `routes_library.py` (300줄) — GET /api/v1/library/activities(+:id, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b.
 
 - functions: get_library_activities, get_library_activity_detail, get_library_metric_breakdown, get_library_activity_providers, get_library_metrics_browser, get_library_metric_trend, get_library_wellness, get_library_providers_status, get_library_providers_coverage, get_library_providers_matrix, get_library_providers_pairs, get_library_wellness_trend, get_library_archive
@@ -1877,18 +1875,6 @@
 ### `routes_today.py` (169줄) — GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
 
 - functions: get_today, get_today_checkin, get_today_milestones, get_today_narrative, get_today_race_hub, post_today_checkin
-
-### `routes_v1_pages.py` (295줄) — v1 HTML 페이지 라우트 — `/import`·`/import-preview`·`/import/upload*`·`/sync-status` (V1S-12 b안).
-
-- functions: import_page, import_upload, import_upload_archive, sync_status
-
-### `routes_v1_sync.py` (418줄) — v1 동기화 JSON·SSE 라우트 — `/trigger-sync*`·`/api/garmin/local-sync`·`/bg-sync/*` (V1S-12 b안).
-
-- functions: trigger_sync, trigger_sync_stream, trigger_sync_bg, garmin_local_sync, bg_sync_start, bg_sync_pause, bg_sync_stop, bg_sync_resume, bg_sync_status
-
-### `v1_pages_helpers.py` (68줄) — v1 import·sync-status 화면용 작은 HTML/스캔 헬퍼 (views_dev 에서 이관, S4-33).
-
-- functions: table, scan_history_dir
 
 ### `validation.py` (252줄) — 라우트 경계 요청 검증 — 선언형 Field + `parse_body`/`parse_args` (SRV 2.2, ADR-048).
 
@@ -2629,11 +2615,6 @@
 
 - functions: test_fixtures_layout_exists
 
-### `test_flask_routes.py` (84줄) — Flask 라우트 스모크 테스트 (DoD #12).
-
-- class **TestRouteSmoke**: test_activities_export_csv_200, test_activities_export_csv_has_rows, test_activities_export_csv_distance_km
-- functions: mini_app
-
 ### `test_format_ko.py` (37줄) — format_ko — Coach 규칙 답변 표기 단일 소스.
 
 - functions: test_distance_pace_duration, test_signed_uses_unicode_minus, test_labels, test_sanitize_raw_floats_and_sec_per_km
@@ -2757,9 +2738,9 @@
 
 - functions: udb, test_detect_kind, test_preview_does_not_touch_original, test_apply_then_duplicates, test_safe_extract_rejects_traversal, test_routes, test_run_job_records_result, test_reimport_updates_changed_distance
 
-### `test_index_ui_default.py` (54줄) — `/` 진입 분기 — 사용자 ui_default → 전역값 → v2(/v2/today).
+### `test_index_ui_default.py` (46줄) — `/` 진입 분기 — 사용자 ui_default → 전역값 → v2(/v2/today).
 
-- functions: make_client, test_default_goes_to_v2, test_global_v1_still_goes_to_v2, test_global_v2, test_stored_v1_falls_back_to_v2, test_v1_pages_helpers
+- functions: make_client, test_default_goes_to_v2, test_global_v1_still_goes_to_v2, test_global_v2, test_stored_v1_falls_back_to_v2
 
 ### `test_initial_load_cli.py` (219줄) — initial-load CLI 테스트.
 
@@ -2823,10 +2804,6 @@
 ### `test_long_run_rules.py` (92줄) — U16-LR L1: 롱런 하한·상한 순수 규칙 — 설계서 §8.1 경계값 표(#1~#17).
 
 - functions: ctx, test_floor_boundaries, test_floor_uses_long12_basis, test_half_base_low_volume_week_has_no_long, test_cap_boundaries, test_share_ratio_by_days, test_min_viable_week_km, test_floor_never_exceeds_cap, test_prog_cap_only_with_prev_long, test_budget_full_build_moves_mp_into_long, test_budget_relaxes_floor_before_dropping_long, test_budget_floor_matches_recorded_ctx, test_feasible_week_km_monotone_and_full_peak_share
-
-### `test_manual_sync_service.py` (61줄) — manual_sync_service — 원장 선점·결과 판독 단위 테스트.
-
-- functions: test_run_one_skips_when_slot_taken, test_run_one_reads_count_from_ledger, test_run_one_partial_flag, test_run_one_nonzero_exit_records_failure, test_run_one_timeout_records_failure, test_precheck_blocks_on_retry_after
 
 ### `test_marathon_rules.py` (43줄) — U16g: R6 MP 규칙(순수 함수).
 
@@ -3485,6 +3462,10 @@
 - class **TestStartTimeWallclock**: test_fake_z_removed_from_local, test_only_utc_uses_offset
 - functions: ext, activity_raw
 
+### `test_strava_oauth_routes.py` (83줄) — views_strava_oauth — v1 화면 없이 결과를 return_to 또는 v2 Strava 화면으로 돌려보내는지 (S4-91).
+
+- functions: client, test_oauth_start_redirects_to_strava_with_state, test_oauth_start_without_client_id_goes_to_v2, test_callback_error_with_state_returns_to_caller, test_callback_without_code_goes_to_v2, test_callback_success_saves_tokens, test_fail_helper_strips_query
+
 ### `test_strava_sync.py` (140줄) — DoD #8: Strava sync — OAuth + detail + streams mock 기반.
 
 - class **TestStravaActivitySync**: test_sync_one_activity, test_sync_with_best_efforts, test_sync_empty_list, test_sync_skip_unchanged, test_sync_no_token
@@ -3602,10 +3583,6 @@
 
 - functions: test_weekly_zone_minutes_and_summary, test_set_trend_needs_4, test_long_mp_km
 
-### `test_trigger_sync_bg_v1.py` (28줄) — v1 /trigger-sync-bg — 서비스 판정 위임 후에도 응답 포맷 유지.
-
-- functions: test_v1_response_shape
-
 ### `test_trimp_calc.py` (89줄) — TRIMP + HRSS calculator 테스트 — 설계서 4-2 기준.
 
 - class **TestTRIMPCalculator**: test_compute, test_no_hr, test_uses_wellness_rest_hr, test_confidence_without_measured_max
@@ -3651,13 +3628,9 @@
 
 - class **TestUTRS**: test_full_inputs_confidence_1, test_partial_inputs_lower_confidence, test_three_inputs_confidence, test_score_range, test_json_has_components, test_no_inputs, test_child_metrics_have_parent_and_correct_names
 
-### `test_v1_routes_moved.py` (83줄) — S3-7 (V1S-12 b) — v1 sync/import 라우트를 app.py → src/api/ 블루프린트로 옮긴 뒤에도
+### `test_v1_retired_routes.py` (97줄) — S4-91 (AUDIT-SERVICE-LAYER 2단계, ADR-056) — 퇴역 v1 URL 은 GET 302→v2, POST 410,
 
-- functions: app, test_urls_and_methods_unchanged, test_owned_by_new_blueprints, test_no_duplicate_rules, test_app_py_has_no_moved_helpers, test_garmin_local_sync_stays_origin_exempt, test_trigger_sync_without_origin_is_rejected
-
-### `test_v1_sync_guards.py` (45줄) — v1 동기화 경로(/bg-sync/*, /trigger-sync-stream)가 sync_sources 토글을 따르는지 검증.
-
-- functions: client, test_bg_start_blocks_disabled_source, test_bg_start_allows_enabled_source, test_bg_resume_blocks_disabled_source, test_stream_skips_disabled_source
+- functions: app, client, test_retired_get_redirects_to_v2, test_retired_post_is_gone, test_retired_post_without_origin_still_blocked, test_gone_response_shape, test_kept_routes_registered, test_no_duplicate_rules, test_garmin_local_sync_stays_origin_exempt, test_smoke_root_v2_and_kept_screens
 
 ### `test_v2_static_assets.py` (147줄) — frontend/static 의 favicon·manifest·apple-touch-icon 자산 정합성 (S3 9단계, SEC-7/D7).
 
@@ -3857,7 +3830,7 @@
 - functions: run
 
 ---
-총 829개 파일
+총 822개 파일
 
 ## docstring 누락
 

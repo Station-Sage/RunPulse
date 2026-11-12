@@ -4,7 +4,7 @@
 `after_request` 1개로 모든 응답에 공통 헤더를 붙이고, 경로로 분류한 표면(surface)에 맞는 CSP 를 붙인다.
 
 - 표면(`classify_surface`): `v2`(`/v2/`) · `api`(`/api/`, `/mcp` — `/api/context-episodes` 포함) · `feed`(`/feeds/`) ·
-  `default`(그 밖: 일몰 전 v1 화면, `/trigger-sync` 등, 미정의 경로 404). `v1` 표면은 없다(V1-15).
+  `default`(그 밖: 남은 v1 화면 `/connect/garmin*`·퇴역 v1 URL(302/410, ADR-056), 미정의 경로 404). `v1` 표면은 없다(V1-15).
 - 공통 헤더: nosniff · Referrer-Policy · X-Frame-Options DENY · Permissions-Policy. HSTS 는 Cloudflare 에 위임(D4)해 보내지 않는다.
 - CSP: `api`/`feed` 는 항상 enforce(`default-src 'none'`). `v2`·`default` 는 `CSP_V2_MODE`(report-only 기본 → enforce, 2주 관찰 후 전환).
   `v2` 만 index.html 인라인 부트스트랩 해시를 `script-src` 에 넣고, `default` 는 넣지 않는다(SEC-12, 엄격).

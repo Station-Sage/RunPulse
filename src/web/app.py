@@ -13,10 +13,10 @@ from src.utils.config import load_config
 
 log = logging.getLogger(__name__)
 
-# Phase 5 Blueprint imports
+# v1 에서 남은 Blueprint (S4-91, ADR-056)
 from .views_settings_garmin import settings_garmin_bp
-from .views_settings_integrations import settings_integrations_bp
-from .views_export import export_bp
+from .views_strava_oauth import strava_oauth_bp
+from .v1_retired import v1_retired_bp
 
 # Phase 3 (v0.2) Blueprint imports
 from .views_training_export import training_export_bp
@@ -26,8 +26,7 @@ from src.mcp_remote.http import mcp_remote_bp
 # Phase 7 /api/v1/ JSON API (SvelteKit v2 소비)
 from src.api import api_bp
 from src.api.routes_context import context_bp
-from src.api.routes_v1_sync import v1_sync_bp
-from src.api.routes_v1_pages import v1_pages_bp
+from src.api.routes_garmin_local_sync import garmin_local_sync_bp
 from .spa_static import serve_v2_response
 def _project_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
@@ -190,23 +189,12 @@ def create_app() -> Flask:
         except Exception as exc:
             log.warning("요청별 마이그레이션 실패: %s", exc)
 
-    # ── Jinja2 설정 ──────────────────────────────────────────────────────────
-    from .helpers import _CSS, _SYNC_JS, _build_nav, bottom_nav
+    # ── Jinja2 설정 — 남은 v1 화면(Garmin 연동)의 base.html 스타일만 (S4-91) ──
+    from .v1_shell_style import _CSS
 
     @app.context_processor
     def _inject_ui_context():
-        try:
-            _dev = bool(load_config().get("dev_mode", True))
-        except Exception:
-            _dev = True
-        return {
-            "stylesheet": _CSS,
-            "nav_html": _build_nav(),
-            "sync_js": _SYNC_JS,
-            "dev_mode": _dev,
-        }
-
-    app.jinja_env.globals["bottom_nav"] = bottom_nav
+        return {"stylesheet": _CSS}
 
     # 사용자 전환은 v2 로 이관됨 — GET /api/v1/dev/users, POST /api/v1/dev/switch-user (개발 전용, V1-8)
 
@@ -242,9 +230,9 @@ def create_app() -> Flask:
         return serve_v2_response(_project_root() / "frontend" / "build", path)
 
     # ── Blueprint 등록 ─────────────────────────────────────────────────
-    app.register_blueprint(settings_garmin_bp)       # 설정 — Garmin 연동
-    app.register_blueprint(settings_integrations_bp) # 설정 — Strava/Intervals/Runalyze
-    app.register_blueprint(export_bp)         # 활동 CSV 내보내기
+    app.register_blueprint(settings_garmin_bp)       # v1 Garmin 연동 화면(CF 설정 폼 — v2 대체 없음)
+    app.register_blueprint(strava_oauth_bp)          # Strava OAuth 시작·콜백(v2 사용, redirect URI 불변)
+    app.register_blueprint(v1_retired_bp)            # 퇴역 v1 URL: GET→v2 302, POST→410 (ADR-056)
     app.register_blueprint(training_export_bp)     # v0.3 훈련 내보내기/전송
     app.register_blueprint(mcp_remote_bp)          # 원격 MCP (/mcp, Bearer 토큰)
     app.register_blueprint(calendar_feed_bp)       # 캘린더 구독 공개 피드 (/feeds/cal/<token>.ics)
@@ -252,7 +240,6 @@ def create_app() -> Flask:
     app.register_blueprint(auth_bp)           # AUTH-2026-11 /auth/start·/auth/logout
     app.register_blueprint(api_bp)            # Phase 7 /api/v1/ JSON API
     app.register_blueprint(context_bp)        # 컨텍스트 에피소드 /api/context-episodes (NEW-40)
-    app.register_blueprint(v1_sync_bp)        # v1 sync 트리거·bg-sync·garmin local-sync (V1S-12 b, S3-7)
-    app.register_blueprint(v1_pages_bp)       # v1 import 화면·sync-status (V1S-12 b, S3-7)
+    app.register_blueprint(garmin_local_sync_bp)  # POST /api/garmin/local-sync (외부 scripts/garmin_local_sync.py)
 
     return app

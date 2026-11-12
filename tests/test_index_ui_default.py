@@ -44,11 +44,3 @@ def test_global_v2(make_client):
 def test_stored_v1_falls_back_to_v2(make_client):
     assert make_client(global_value="v2", user_value="v1").get("/").headers["Location"].endswith("/v2/today")
 
-
-def test_v1_pages_helpers(tmp_path):
-    from src.api.v1_pages_helpers import scan_history_dir, table
-    assert "no rows" in table(["a"], [])
-    assert "<td>1</td>" in table(["a"], [(1,)])
-    assert scan_history_dir(tmp_path / "none")["exists"] is False
-    (tmp_path / "x.fit").write_bytes(b"")
-    assert scan_history_dir(tmp_path)["total_files"] == 1

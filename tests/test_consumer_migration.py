@@ -243,17 +243,17 @@ class TestIntervalsExtractor:
         assert core["distance_m"] == pytest.approx(10_000.0)
 
 
-# ─── 10. views_export CSV ─────────────────────────────────────────────────
+# ─── 10. 활동 CSV 변환 (구 views_export, S4-91 퇴역) ─────────────────────────────────────────────────
 
 class TestViewsExportCSV:
     def test_csv_distance_km_conversion(self, conn):
-        """views_export CSV가 distance_m → km 변환을 올바르게 수행하는지 확인."""
+        """활동 목록의 distance_m → km CSV 변환이 올바른지 확인(구 views_export 로직)."""
         from src.services.activity_service import get_activity_list
 
         result = get_activity_list(conn, per_page=100)
         acts = result["activities"]
 
-        # views_export._CSV_COLUMNS와 동일한 변환 로직 검증
+        # 구 views_export._CSV_COLUMNS 와 같은 변환 로직 검증
         buf = io.StringIO()
         writer = csv.writer(buf)
         writer.writerow(["소스", "거리(km)"])
