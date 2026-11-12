@@ -19,7 +19,6 @@ _ACT1_DATE = (_TODAY - timedelta(days=7)).isoformat()
 _ACT2_DATE = (_TODAY - timedelta(days=3)).isoformat()
 
 from src.analysis.trends import weekly_trends, fitness_trend
-from src.analysis.compare import compare_periods
 from src.analysis.weekly_score import _get_week_basics as get_week_basics
 from src.services.activity_service import get_activity_list
 from src.utils.dedup import assign_group_id, auto_group_all
@@ -117,18 +116,6 @@ class TestTrends:
         for r in rows:
             assert "week_start" in r
             assert "intervals_ctl" in r  # 키는 항상 존재
-
-
-# ─── 3. analysis.compare ──────────────────────────────────────────────────
-
-class TestCompare:
-    def test_compare_periods_distance_km(self, conn):
-        p1_start = (_TODAY - timedelta(days=14)).isoformat()
-        mid = (_TODAY - timedelta(days=4)).isoformat()
-        p2_end = (_TODAY + timedelta(days=3)).isoformat()
-        p1 = compare_periods(conn, p1_start, mid, mid, p2_end)
-        # 첫 번째 기간에 garmin 10km 활동이 있어야 함
-        assert p1["period1"]["total_distance_km"] == pytest.approx(10.0, abs=0.1)
 
 
 # ─── 4. analysis.weekly_score ─────────────────────────────────────────────

@@ -1,5 +1,8 @@
 # RunPulse Integration Validation Plan
 
+> **퇴역 안내(S4-99, 2026-11-12):** `src/analyze.py` CLI 와 `analysis.compare/race_readiness/report` 는 제거됐다(v1_backup). 이 문서의 `analyze.py` 명령은 더 이상 동작하지 않으며, 분석은 v2 웹 UI·코치로 대체됐다.
+
+
 최종 업데이트: 2026-03-20
 
 ## 목적

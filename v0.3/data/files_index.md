@@ -2306,11 +2306,10 @@
 
 - functions: test_heat_moves_quality_and_keeps_km, test_heat_below_threshold_noop, test_blocked_redistribute_cap, test_b_race_week, test_cross_substituted, test_race_impact_windows_and_protection, test_race_impact_empty_outside_window
 
-### `test_consumer_migration.py` (270줄) — Phase 5-J consumer migration 검증 테스트.
+### `test_consumer_migration.py` (257줄) — Phase 5-J consumer migration 검증 테스트.
 
 - class **TestActivityService**: test_distance_m_present_in_row, test_filter_min_distance_m
 - class **TestTrends**: test_weekly_distance_km, test_fitness_trend_daily_metrics, test_fitness_trend_activity_metrics, test_fitness_trend_returns_none_when_no_data
-- class **TestCompare**: test_compare_periods_distance_km
 - class **TestWeeklyScore**: test_total_distance_km
 - class **TestActivityDeep**: test_distance_km_alias_sql
 - class **TestDedup**: test_assign_group_no_crash, test_auto_group_all_no_crash
@@ -2408,12 +2407,10 @@
 
 - functions: test_empty, test_counts_missing_within_window_only
 
-### `test_data_quality.py` (419줄) — 분석 파이프라인 데이터 품질 검증 테스트.
+### `test_data_quality.py` (318줄) — 분석 파이프라인 데이터 품질 검증 테스트.
 
 - class **TestTrendsRanges**: test_weekly_distances_in_km, test_weekly_pace_range, test_fitness_ctl_atl_range, test_fitness_tsb_range, test_nonzero_weeks_exist, test_fitness_ctl_present
-- class **TestCompareRanges**: test_all_required_keys, test_delta_equals_p2_minus_p1, test_distances_in_km_range, test_avg_hr_range_when_present
 - class **TestWeeklyScoreRanges**: test_score_0_to_100, test_grade_valid, test_components_non_negative, test_data_distance_km
-- class **TestRaceReadinessRanges**: test_readiness_score_range, test_grade_valid, test_5k_prediction_range, test_10k_prediction_range, test_half_prediction_range, test_full_prediction_range, test_recommendation_nonempty, test_component_scores_range, test_predictions_come_from_fixture_data
 - class **TestActivityDeepRanges**: first_act_id, test_structure_keys, test_pace_format, test_distance_km_not_m, test_hr_range, test_fitness_context_ctl_present
 - class **TestDashboardRanges**: test_required_keys, test_training_phase_valid, test_weekly_summary_non_negative, test_ctl_range_when_present, test_recent_activities_have_distance
 - class **TestWellnessRanges**: test_hrv_range, test_resting_hr_range, test_sleep_score_range, test_trend_arrays_same_length, test_wellness_detail_has_core
@@ -2702,7 +2699,7 @@
 
 - functions: make_client, test_default_goes_to_v2, test_global_v1_still_goes_to_v2, test_global_v2, test_stored_v1_falls_back_to_v2
 
-### `test_integration_realdb.py` (1125줄) — 실 데이터(pansongit@gmail.com) 기반 통합 테스트.
+### `test_integration_realdb.py` (1024줄) — 실 데이터(pansongit@gmail.com) 기반 통합 테스트.
 
 - class **TestRawActivitySummaries**: test_distance_m_range, test_elapsed_time_range, test_avg_pace_running_only, test_hr_range, test_elevation_nonneg, test_source_valid, test_timestamp_iso, test_no_duplicate_source_ids
 - class **TestRawWellness**: test_sleep_score_range, test_sleep_duration_range, test_hrv_range, test_resting_hr_range, test_body_battery_range, test_stress_range, test_weight_range, test_no_duplicate_dates
@@ -2710,11 +2707,9 @@
 - class **TestRawActivityStreams**: test_heart_rate_range, test_cadence_range, test_speed_ms_range, test_altitude_range, test_lat_lon_bounds
 - class **TestRawCanonicalView**: test_no_source_id_dupes, test_canonical_lte_summaries, test_valid_sources, test_distance_range
 - class **TestTrendsRangesReal**: test_weekly_distances_in_km, test_weekly_pace_running, test_fitness_ctl_atl_range, test_fitness_tsb_range, test_nonzero_weeks_count
-- class **TestCompareRangesReal**: test_compare_periods_keys, test_compare_periods_delta_math, test_compare_this_week_vs_last, test_compare_today_vs_yesterday, test_compare_this_month_vs_last
 - class **TestWeeklyScoreRangesReal**: test_score_range, test_grade_valid, test_components_non_negative
-- class **TestRaceReadinessRangesReal**: test_readiness_score_range, test_grade_valid, test_predictions_range, test_component_scores_range, test_vdot_race_predictions
 - class **TestActivityDeepRangesReal**: recent_run_ids, test_structure_keys, test_pace_format_or_none, test_distance_km_unit, test_hr_in_range
-- class **TestEfficiencyRangesReal**: run_with_streams_id, test_calculate_efficiency_structure, test_decoupling_pct_range, test_efficiency_trend_structure, test_efficiency_trend_ef_values
+- class **TestEfficiencyRangesReal**: run_with_streams_id, test_calculate_efficiency_structure, test_decoupling_pct_range
 - class **TestRecoveryRangesReal**: test_recovery_status_always_dict, test_recovery_score_range, test_recovery_grade_valid, test_recovery_trend_structure
 - class **TestZonesRangesReal**: test_analyze_zones_structure, test_zone_pct_sums, test_weekly_zone_trend_length, test_weekly_zone_trend_pct_range
 - class **TestDashboardRangesReal**: dashboard, test_required_keys, test_training_phase_valid, test_weekly_summary_non_negative, test_ctl_when_present, test_pmc_chart_sorted, test_pmc_chart_values, test_daily_metric_chart
@@ -3596,10 +3591,6 @@
 
 - functions: test_normal_value, test_collapsed_moving_time_rejected
 
-### `test_vo2max_consumers.py` (27줄) — VO2max 소비처가 일별 정밀값을 쓰는지 회귀 확인.
-
-- functions: test_fitness_trend_uses_precise, test_race_readiness_uses_precise, test_semantic_group_has_daily_member
-
 ### `test_vo2max_source.py` (49줄) — vo2max_source — 정밀값/활동값 선택 규칙.
 
 - functions: test_empty, test_activity_only, test_precise_newer_wins, test_activity_newer_wins_and_tie_prefers_precise, test_asof_and_between_bounds
@@ -3759,7 +3750,7 @@
 - functions: run
 
 ---
-총 809개 파일
+총 808개 파일
 
 ## docstring 누락
 

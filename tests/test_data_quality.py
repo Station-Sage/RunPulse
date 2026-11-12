@@ -14,9 +14,7 @@ from datetime import date, timedelta
 import pytest
 
 from src.analysis.trends import weekly_trends, fitness_trend
-from src.analysis.compare import compare_periods, compare_this_week_vs_last
 from src.analysis.weekly_score import calculate_weekly_score
-from src.analysis.race_readiness import assess_race_readiness
 from src.analysis.activity_deep import deep_analyze
 from src.services.dashboard_service import get_dashboard_data
 from src.services.wellness_service import get_wellness_detail, get_wellness_trend
@@ -182,48 +180,6 @@ class TestTrendsRanges:
         assert len(ctl_values) >= 1, "CTL이 한 번도 조회되지 않음 (scope_type 오류 의심)"
 
 
-# ─── 2. TestCompareRanges ─────────────────────────────────────────────────────
-
-class TestCompareRanges:
-    def test_all_required_keys(self, rich_conn):
-        p1_start = (_TODAY - timedelta(days=21)).isoformat()
-        p1_end   = (_TODAY - timedelta(days=10)).isoformat()
-        p2_start = (_TODAY - timedelta(days=10)).isoformat()
-        p2_end   = _TODAY.isoformat()
-        result = compare_periods(rich_conn, p1_start, p1_end, p2_start, p2_end)
-        for key in ("period1", "period2", "delta", "pct"):
-            assert key in result, f"compare_periods 결과에 키 누락: {key}"
-
-    def test_delta_equals_p2_minus_p1(self, rich_conn):
-        p1_start = (_TODAY - timedelta(days=21)).isoformat()
-        p1_end   = (_TODAY - timedelta(days=10)).isoformat()
-        p2_start = (_TODAY - timedelta(days=10)).isoformat()
-        p2_end   = _TODAY.isoformat()
-        result = compare_periods(rich_conn, p1_start, p1_end, p2_start, p2_end)
-        p1_dist = result["period1"]["total_distance_km"] or 0
-        p2_dist = result["period2"]["total_distance_km"] or 0
-        delta   = result["delta"]["total_distance_km"] or 0
-        assert abs(delta - (p2_dist - p1_dist)) < 0.01, \
-            f"delta 수학 오류: {delta:.2f} ≠ {p2_dist:.2f} - {p1_dist:.2f}"
-
-    def test_distances_in_km_range(self, rich_conn):
-        result = compare_this_week_vs_last(rich_conn)
-        for key in ("period1", "period2"):
-            dist = result[key].get("total_distance_km") or 0
-            assert 0 <= dist < 500, f"{key} 거리 범위 초과: {dist}km"
-
-    def test_avg_hr_range_when_present(self, rich_conn):
-        p1_start = (_TODAY - timedelta(days=21)).isoformat()
-        p1_end   = (_TODAY - timedelta(days=10)).isoformat()
-        p2_start = (_TODAY - timedelta(days=10)).isoformat()
-        p2_end   = _TODAY.isoformat()
-        result = compare_periods(rich_conn, p1_start, p1_end, p2_start, p2_end)
-        for key in ("period1", "period2"):
-            hr = result[key].get("avg_hr")
-            if hr is not None:
-                assert _HR_MIN <= hr <= _HR_MAX, f"{key}.avg_hr 범위 초과: {hr}"
-
-
 # ─── 3. TestWeeklyScoreRanges ─────────────────────────────────────────────────
 
 class TestWeeklyScoreRanges:
@@ -247,63 +203,6 @@ class TestWeeklyScoreRanges:
         result = calculate_weekly_score(rich_conn)
         dist = result.get("data", {}).get("total_distance_km") or 0
         assert 0 <= dist < _DIST_WEEK_MAX, f"주간 거리 범위 초과: {dist}km"
-
-
-# ─── 4. TestRaceReadinessRanges ───────────────────────────────────────────────
-
-class TestRaceReadinessRanges:
-    def test_readiness_score_range(self, rich_conn):
-        result = assess_race_readiness(rich_conn)
-        score = result.get("readiness_score")
-        if score is not None:
-            assert 0 <= score <= 100, f"준비도 점수 범위 초과: {score}"
-
-    def test_grade_valid(self, rich_conn):
-        result = assess_race_readiness(rich_conn)
-        grade = result.get("grade")
-        assert grade is None or grade in _VALID_GRADES, f"잘못된 grade: {grade!r}"
-
-    def test_5k_prediction_range(self, rich_conn):
-        result = assess_race_readiness(rich_conn)
-        pred = (result.get("race_predictions") or {}).get("5k")
-        if pred is not None:
-            assert 600 <= pred <= 3600, f"5k 예측 범위 초과: {pred}s"
-
-    def test_10k_prediction_range(self, rich_conn):
-        result = assess_race_readiness(rich_conn)
-        pred = (result.get("race_predictions") or {}).get("10k")
-        if pred is not None:
-            assert 1200 <= pred <= 7200, f"10k 예측 범위 초과: {pred}s"
-
-    def test_half_prediction_range(self, rich_conn):
-        result = assess_race_readiness(rich_conn)
-        pred = (result.get("race_predictions") or {}).get("half")
-        if pred is not None:
-            assert 3000 <= pred <= 14400, f"하프 예측 범위 초과: {pred}s"
-
-    def test_full_prediction_range(self, rich_conn):
-        result = assess_race_readiness(rich_conn)
-        pred = (result.get("race_predictions") or {}).get("full")
-        if pred is not None:
-            assert 7200 <= pred <= 28800, f"풀마 예측 범위 초과: {pred}s"
-
-    def test_recommendation_nonempty(self, rich_conn):
-        result = assess_race_readiness(rich_conn)
-        rec = result.get("recommendation") or ""
-        assert len(rec.strip()) > 0, "recommendation이 빈 문자열"
-
-    def test_component_scores_range(self, rich_conn):
-        result = assess_race_readiness(rich_conn)
-        for name, val in (result.get("scores") or {}).items():
-            if val is not None:
-                assert 0 <= val <= 100, f"scores.{name} 범위 초과: {val}"
-
-    def test_predictions_come_from_fixture_data(self, rich_conn):
-        """픽스처에 race_prediction JSON이 있으므로 예측값이 반드시 존재해야 한다."""
-        result = assess_race_readiness(rich_conn)
-        preds = result.get("race_predictions") or {}
-        has_any = any(v is not None for v in preds.values())
-        assert has_any, "race_prediction 메트릭이 있음에도 예측값 전체 None"
 
 
 # ─── 5. TestActivityDeepRanges ────────────────────────────────────────────────

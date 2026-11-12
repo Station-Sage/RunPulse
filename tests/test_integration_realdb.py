@@ -371,48 +371,6 @@ class TestTrendsRangesReal:
         assert len(nonzero) >= 1, "거리 > 0 인 주가 없음"
 
 
-class TestCompareRangesReal:
-    def _check_keys(self, result):
-        for key in ("period1", "period2", "delta", "pct"):
-            assert key in result, f"'{key}' 키 없음"
-
-    def test_compare_periods_keys(self, real_conn):
-        from src.analysis.compare import compare_periods
-        p1_start = (datetime.today() - timedelta(weeks=8)).strftime("%Y-%m-%d")
-        result = compare_periods(real_conn, p1_start, _4W_AGO, _4W_AGO, _TODAY)
-        self._check_keys(result)
-
-    def test_compare_periods_delta_math(self, real_conn):
-        from src.analysis.compare import compare_periods
-        p1_start = (datetime.today() - timedelta(weeks=8)).strftime("%Y-%m-%d")
-        result = compare_periods(real_conn, p1_start, _4W_AGO, _4W_AGO, _TODAY)
-        d1 = result["period1"].get("total_distance_km") or 0
-        d2 = result["period2"].get("total_distance_km") or 0
-        delta = result["delta"].get("total_distance_km") or 0
-        assert abs(delta - (d2 - d1)) < 0.01, f"delta mismatch: {delta} != {d2}-{d1}"
-
-    def test_compare_this_week_vs_last(self, real_conn):
-        from src.analysis.compare import compare_this_week_vs_last
-        result = compare_this_week_vs_last(real_conn)
-        self._check_keys(result)
-        for pk in ("period1", "period2"):
-            dist = result[pk].get("total_distance_km") or 0
-            assert 0 <= dist < 500, f"{pk}.dist={dist}"
-
-    def test_compare_today_vs_yesterday(self, real_conn):
-        from src.analysis.compare import compare_today_vs_yesterday
-        result = compare_today_vs_yesterday(real_conn)
-        self._check_keys(result)
-
-    def test_compare_this_month_vs_last(self, real_conn):
-        from src.analysis.compare import compare_this_month_vs_last
-        result = compare_this_month_vs_last(real_conn)
-        self._check_keys(result)
-        for pk in ("period1", "period2"):
-            dist = result[pk].get("total_distance_km") or 0
-            assert 0 <= dist < 500, f"{pk}.dist={dist}"
-
-
 class TestWeeklyScoreRangesReal:
     def _monday(self, weeks_ago: int = 0) -> str:
         today = datetime.today()
@@ -442,52 +400,6 @@ class TestWeeklyScoreRangesReal:
         for k, v in components.items():
             if v is not None:
                 assert v >= 0, f"component {k}={v}"
-
-
-class TestRaceReadinessRangesReal:
-    def test_readiness_score_range(self, real_conn):
-        from src.analysis.race_readiness import assess_race_readiness
-        result = assess_race_readiness(real_conn)
-        score = result.get("readiness_score")
-        if score is not None:
-            assert 0 <= score <= 100, f"readiness_score={score}"
-
-    def test_grade_valid(self, real_conn):
-        from src.analysis.race_readiness import assess_race_readiness
-        result = assess_race_readiness(real_conn)
-        grade = result.get("grade")
-        if grade is not None:
-            assert grade in _VALID_GRADES, f"grade={grade}"
-
-    def test_predictions_range(self, real_conn):
-        from src.analysis.race_readiness import assess_race_readiness
-        result = assess_race_readiness(real_conn)
-        preds = result.get("predictions") or {}
-        if preds.get("5k") is not None:
-            assert 600 <= preds["5k"] <= 3600, f"5k={preds['5k']}"
-        if preds.get("10k") is not None:
-            assert 1200 <= preds["10k"] <= 7200, f"10k={preds['10k']}"
-        if preds.get("half") is not None:
-            assert 3000 <= preds["half"] <= 14400, f"half={preds['half']}"
-        if preds.get("full") is not None:
-            assert 7200 <= preds["full"] <= 28800, f"full={preds['full']}"
-
-    def test_component_scores_range(self, real_conn):
-        from src.analysis.race_readiness import assess_race_readiness
-        result = assess_race_readiness(real_conn)
-        scores = result.get("scores") or {}
-        for k, v in scores.items():
-            if v is not None:
-                assert 0 <= v <= 100, f"score[{k}]={v}"
-
-    def test_vdot_race_predictions(self, real_conn):
-        from src.analysis.race_readiness import vdot_race_predictions
-        preds = vdot_race_predictions(50.0)
-        assert preds is not None
-        assert 600 <= preds["5k"] <= 3600
-        assert 1200 <= preds["10k"] <= 7200
-        assert 3000 <= preds["half"] <= 14400
-        assert 7200 <= preds["full"] <= 28800
 
 
 class TestActivityDeepRangesReal:
@@ -567,19 +479,6 @@ class TestEfficiencyRangesReal:
         dec = result.get("decoupling_pct")
         if dec is not None:
             assert -50 <= dec <= 100, f"decoupling={dec}"
-
-    def test_efficiency_trend_structure(self, real_conn):
-        from src.analysis.efficiency import efficiency_trend
-        results = efficiency_trend(real_conn, weeks=8)
-        assert isinstance(results, list)
-
-    def test_efficiency_trend_ef_values(self, real_conn):
-        from src.analysis.efficiency import efficiency_trend
-        results = efficiency_trend(real_conn, weeks=8)
-        for w in results:
-            ef = w.get("avg_ef")
-            if ef is not None:
-                assert 0 < ef < 5, f"avg_ef={ef}"
 
 
 class TestRecoveryRangesReal:
