@@ -3,7 +3,7 @@ import { apiFetch } from './client';
 import type { ExportGroup, archiveBody } from '$lib/exportScope';
 import type { SyncSource, SyncState, TriggerResponse } from '$lib/syncState';
 
-export const getSyncState = () => apiFetch<SyncState>('/data/sync-state');
+export { getSyncState, resetSyncStateCache, SYNC_STATE_TTL_MS } from './syncStateCache';
 
 // POST는 자동 재시도하지 않는다(중복 시작 방지) — 실패 처리는 syncStore.runTrigger.
 export const triggerSync = (sources?: string[]) =>

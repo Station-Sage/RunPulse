@@ -74,3 +74,26 @@ test('첫 로드 선요청(__rpBoot)이 있으면 그 응답을 1회 쓰고, 다
 		delete globalThis.__rpBoot;
 	}
 });
+
+test('getSyncState: 동시 호출은 1회 fetch, TTL 내 재사용, fresh 는 새 fetch (S4-103)', async () => {
+	const { getSyncState, resetSyncStateCache } = await import('../src/lib/api/syncStateCache.ts');
+	const orig = globalThis.fetch;
+	let n = 0;
+	globalThis.fetch = async () => {
+		n++;
+		return new Response(JSON.stringify({ data: { n } }), { status: 200 });
+	};
+	try {
+		resetSyncStateCache();
+		const [a, b, c] = await Promise.all([getSyncState(), getSyncState(), getSyncState()]);
+		assert.equal(n, 1);
+		assert.deepEqual([a, b, c], [{ n: 1 }, { n: 1 }, { n: 1 }]);
+		assert.deepEqual(await getSyncState(), { n: 1 });
+		assert.equal(n, 1);
+		assert.deepEqual(await getSyncState({ fresh: true }), { n: 2 });
+		assert.equal(n, 2);
+	} finally {
+		globalThis.fetch = orig;
+		resetSyncStateCache();
+	}
+});

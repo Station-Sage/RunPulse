@@ -58,9 +58,9 @@ function onFinished(summary: string) {
 	refetchTimer = setTimeout(refreshData, REFETCH_DELAY_MS);
 }
 
-export async function loadSyncState(): Promise<void> {
+export async function loadSyncState(fresh = false): Promise<void> {
 	try {
-		const next = await getSyncState();
+		const next = await getSyncState({ fresh });
 		const summary = completionSummary(syncStore.data, next);
 		syncStore.data = next;
 		syncStore.failed = false;
@@ -75,7 +75,7 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 function schedule(delay: number) {
 	clearTimeout(timer);
 	timer = setTimeout(async () => {
-		await loadSyncState();
+		await loadSyncState(true);
 		schedule(pollIntervalMs(syncStore.data, syncStore.triggeredAt));
 	}, delay);
 }
@@ -83,7 +83,7 @@ function schedule(delay: number) {
 /** 대기 중인 타이머를 취소하고 즉시 갱신한 뒤 주기를 다시 잡는다 */
 export async function kick(): Promise<void> {
 	clearTimeout(timer);
-	await loadSyncState();
+	await loadSyncState(true);
 	schedule(pollIntervalMs(syncStore.data, syncStore.triggeredAt));
 }
 

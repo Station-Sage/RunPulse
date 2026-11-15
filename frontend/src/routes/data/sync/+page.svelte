@@ -29,7 +29,7 @@
 				message: enable ? `${name}를 동기화에 다시 포함했어요` : `${name}를 동기화에서 제외했어요`,
 				undo: undoable ? () => void toggle(provider, !enable, false) : null
 			};
-			await loadSyncState();
+			await loadSyncState(true);
 		} catch {
 			toast = { message: '변경하지 못했어요 · 잠시 후 다시 시도해 주세요', undo: null, error: true };
 		} finally {
