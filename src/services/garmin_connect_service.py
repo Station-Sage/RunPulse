@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import math
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,6 +20,9 @@ from src.utils.config import load_config, update_service_config
 from src.utils.user_context import validate_uid
 
 log = logging.getLogger(__name__)
+
+# garminconnect 는 tokenstore 가 비면 GARMINTOKENS 를 읽는다 — 서버는 항상 사용자별 경로를 쓰므로 제거
+os.environ.pop("GARMINTOKENS", None)
 
 COOLDOWN_S = 900
 EMAIL_MAX, PASSWORD_MAX, TOKEN_MAX = 254, 256, 16 * 1024

@@ -239,3 +239,15 @@ def test_cooldown_retry_after_is_actual_remaining(monkeypatch):
     assert svc.cooldown_remaining(UID) == 300
     clock["t"] += 300
     assert svc.cooldown_remaining(UID) == 0 and not svc.in_cooldown(UID)
+
+
+def test_garmintokens_env_is_dropped_on_import(monkeypatch):
+    import importlib
+
+    from src.services import garmin_connect_service as svc
+
+    monkeypatch.setenv("GARMINTOKENS", "/tmp/other-user-tokens")
+    importlib.reload(svc)
+    import os
+
+    assert "GARMINTOKENS" not in os.environ
