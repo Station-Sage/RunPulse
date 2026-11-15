@@ -223,7 +223,7 @@
 - class **CleanupError**: 없음
 - functions: targets, cleanup
 
-### `garmin_connect_service.py` (248줄) — Garmin 연결 쓰기 — 비밀번호 로그인·MFA 완료·토큰 붙여넣기·해제, 예외→오류코드 매핑. 설계: garmin-connect.md §3.
+### `garmin_connect_service.py` (252줄) — Garmin 연결 쓰기 — 비밀번호 로그인·MFA 완료·토큰 붙여넣기·해제, 예외→오류코드 매핑. 설계: garmin-connect.md §3.
 
 - class **Fail**: 없음
 - functions: mask_email, token_dir, in_cooldown, cooldown_remaining, start_login, complete_mfa, cancel, parse_token, submit_token, remove_tokens
@@ -960,9 +960,13 @@
 
 - functions: orphan_activity_count, reextract_laps_streams
 
-### `reprocess.py` (298줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
+### `reprocess.py` (300줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
 
 - functions: reprocess_all
+
+### `reprocess_refs.py` (59줄) — 재처리(clear_first)로 활동 id 가 바뀌어도 사용자 입력 참조(activity_feedback·activity_shoe)를 보존한다.
+
+- functions: snapshot_refs, restore_refs
 
 ### `runalyze.py` (262줄) — Runalyze 데이터 동기화 (API Token).
 
@@ -2603,9 +2607,9 @@
 - class **FakeClient**: get_workout_by_id, delete_workout
 - functions: test_targets_sorted_and_filtered, test_cleanup_partial_failure_and_retry, test_rejects_undone_and_missing
 
-### `test_garmin_connect_service.py` (241줄) — garmin_connect_service(T2~T4) — 로그인·MFA·토큰 붙여넣기·해제. Garmin 은 전부 가짜(tests/helpers_garmin).
+### `test_garmin_connect_service.py` (253줄) — garmin_connect_service(T2~T4) — 로그인·MFA·토큰 붙여넣기·해제. Garmin 은 전부 가짜(tests/helpers_garmin).
 
-- functions: env, test_token_dir_rules, test_login_success_persists_and_clears_explicit_paths, test_login_needs_mfa_clears_password, test_login_error_mapping_keeps_existing_token, test_login_validation, test_cooldown_blocks_garmin_calls, test_import_error_maps_upstream_503, test_dump_oserror_maps_internal, test_multi_worker_returns_mfa_unavailable, test_mfa_success_persists, test_mfa_wrong_code_keeps_pending_then_expires, test_mfa_rate_limited_keeps_pending, test_mfa_upstream_error_discards, test_mfa_validation_and_other_user, test_parse_token, test_submit_token_verifies_inline_then_saves, test_submit_token_rejected_not_saved, test_disconnect_removes_tokens_and_clears_config, test_connected_token_readable_by_sync_rules, test_data_connect_delegates_garmin, test_mask_email, test_rate_window_remaining_counts_from_latest_hit, test_cooldown_retry_after_is_actual_remaining
+- functions: env, test_token_dir_rules, test_login_success_persists_and_clears_explicit_paths, test_login_needs_mfa_clears_password, test_login_error_mapping_keeps_existing_token, test_login_validation, test_cooldown_blocks_garmin_calls, test_import_error_maps_upstream_503, test_dump_oserror_maps_internal, test_multi_worker_returns_mfa_unavailable, test_mfa_success_persists, test_mfa_wrong_code_keeps_pending_then_expires, test_mfa_rate_limited_keeps_pending, test_mfa_upstream_error_discards, test_mfa_validation_and_other_user, test_parse_token, test_submit_token_verifies_inline_then_saves, test_submit_token_rejected_not_saved, test_disconnect_removes_tokens_and_clears_config, test_connected_token_readable_by_sync_rules, test_data_connect_delegates_garmin, test_mask_email, test_rate_window_remaining_counts_from_latest_hit, test_cooldown_retry_after_is_actual_remaining, test_garmintokens_env_is_dropped_on_import
 
 ### `test_garmin_extractor.py` (320줄) — Garmin Extractor 단위 테스트.
 
@@ -3266,12 +3270,13 @@
 - class **TestRelativeEffort**: test_from_avg_hr, test_high_intensity, test_low_intensity, test_no_hr, test_confidence_from_avg_hr, test_category
 - class **TestRelativeEffortMock**: test_basic_mock, test_no_hr_mock
 
-### `test_reprocess.py` (285줄) — DoD #4 (reprocess): Layer 0 → Layer 1/2 재구축 테스트.
+### `test_reprocess.py` (307줄) — DoD #4 (reprocess): Layer 0 → Layer 1/2 재구축 테스트.
 
 - class **TestReprocessActivity**: test_rebuilds_from_raw, test_metrics_rebuilt, test_primary_resolved, test_preserves_raw, test_clears_derived_only, test_no_clear_accumulates
 - class **TestReprocessWellness**: test_wellness_rebuilt, test_sleep_columns_rebuilt, test_garmin_reprocess_corrects_stale_partial_day_row, test_wellness_metrics_rebuilt
 - class **TestReprocessSourceFilter**: test_source_filter
 - class **TestReprocessDedup**: test_dedup_runs
+- class **TestReprocessKeepsUserRefs**: test_feedback_and_shoe_follow_new_activity_id
 
 ### `test_request_guard.py` (349줄) — tests/test_request_guard.py — Origin 관문·봉투 403·쿠키 속성 (SRV 2.1, ADR-048 4단계).
 
@@ -3758,7 +3763,7 @@
 - functions: run
 
 ---
-총 810개 파일
+총 811개 파일
 
 ## docstring 누락
 

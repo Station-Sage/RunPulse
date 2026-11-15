@@ -25,6 +25,8 @@ from src.sync._helpers import (
     resolve_primaries,
 )
 
+from .reprocess_refs import restore_refs, snapshot_refs
+
 log = logging.getLogger(__name__)
 
 
@@ -36,7 +38,7 @@ def reprocess_all(
 ) -> dict:
     """Layer 0 → Layer 1 + Layer 2 전체 재구축. source=None 이면 전체, clear_first 면 Layer 1/2 먼저 삭제.
 
-    clear_first 는 활동 id 를 새로 매긴다(참조 테이블 주의). payload 없는 활동이 있으면 force 없이는 거부.
+    clear_first 는 활동 id 를 새로 매긴다(activity_feedback·activity_shoe 는 (source, source_id) 로 보존·복원). payload 없는 활동이 있으면 force 없이는 거부.
     Returns: {"activities": int, "metrics": int, "wellness": int, "errors": int}
     """
     stats = {"activities": 0, "metrics": 0, "wellness": 0, "errors": 0}
@@ -44,14 +46,14 @@ def reprocess_all(
         raise RuntimeError(f"payload 없는 활동 {lost}건 삭제 위험 — reextract_laps_streams 사용 또는 force=True")
 
     log.info("Starting reprocess: source=%s, clear_first=%s", source or "all", clear_first)
-
+    refs = snapshot_refs(conn, source) if clear_first else {}
     if clear_first:
         _clear_derived_data(conn, source)
 
     # ── 1. Activity summaries 재구축 ──
     activity_id_map = _reprocess_activity_summaries(conn, source, stats)
     conn.commit()
-
+    restore_refs(conn, refs)
     # ── 2. Activity detail → metrics, laps ──
     _reprocess_activity_details(conn, source, activity_id_map, stats)
     conn.commit()

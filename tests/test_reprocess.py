@@ -283,3 +283,25 @@ class TestReprocessDedup:
             "WHERE matched_group_id IS NOT NULL"
         ).fetchall()
         assert len(gids) == 1
+
+
+class TestReprocessKeepsUserRefs:
+    def test_feedback_and_shoe_follow_new_activity_id(self):
+        conn = _conn()
+        _seed_garmin_activity(conn)
+        reprocess_all(conn)
+        old = conn.execute("SELECT id FROM activity_summaries").fetchone()[0]
+        conn.execute("INSERT INTO user_shoes (name) VALUES ('A')")
+        sid = conn.execute("SELECT id FROM user_shoes").fetchone()[0]
+        conn.execute("INSERT INTO activity_shoe (activity_id, shoe_id, origin) VALUES (?, ?, 'manual')", (old, sid))
+        conn.execute("INSERT INTO activity_feedback (activity_id, rpe, note) VALUES (?, 7, 'ok')", (old,))
+        conn.execute("INSERT INTO activity_summaries (source, source_id, activity_type, start_time) "
+                     "VALUES ('garmin', 'zzz', 'running', '2020-01-01 00:00:00')")  # id 를 밀어 새 id 가 달라지게
+        conn.commit()
+
+        reprocess_all(conn, force=True)
+
+        new = conn.execute("SELECT id FROM activity_summaries WHERE source_id = '11111'").fetchone()[0]
+        assert conn.execute("SELECT shoe_id, origin FROM activity_shoe WHERE activity_id = ?", (new,)).fetchone() == (sid, "manual")
+        assert conn.execute("SELECT rpe, note FROM activity_feedback WHERE activity_id = ?", (new,)).fetchone() == (7, "ok")
+        assert conn.execute("SELECT COUNT(*) FROM activity_shoe").fetchone()[0] == 1
