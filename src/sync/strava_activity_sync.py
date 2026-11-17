@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from src.sync.extractors import get_extractor
 from src.sync.rate_limiter import RateLimiter
 from src.sync.raw_store import upsert_raw_payload, update_raw_activity_id
+from src.sync.strava_laps_zones_sync import fetch_and_save_laps_zones
 from src.sync.sync_result import SyncResult
 from src.sync.sync_errors import classify_exception
 from src.sync._helpers import (
@@ -19,6 +20,7 @@ from src.sync._helpers import (
 log = logging.getLogger(__name__)
 
 STRAVA_API = "https://www.strava.com/api/v3"
+_RUN_TYPES = {"Run", "TrailRun", "VirtualRun"}
 STREAM_KEYS = "time,distance,heartrate,velocity_smooth,cadence,altitude,grade_smooth,watts,temp,latlng"
 
 
@@ -104,6 +106,9 @@ def sync(
 
             if metrics:
                 save_metrics(conn, "activity", str(aid), "strava", metrics)
+
+            if raw.get("type") in _RUN_TYPES:
+                fetch_and_save_laps_zones(conn, headers, extractor, limiter, result, sid, aid)
 
             if include_streams:
                 _fetch_and_save_streams(conn, headers, extractor, limiter, result, sid, aid)

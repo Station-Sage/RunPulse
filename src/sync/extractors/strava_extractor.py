@@ -111,6 +111,49 @@ class StravaExtractor(BaseExtractor):
 
         return metrics
 
+    def extract_activity_laps(self, detail_raw, summary: dict | None = None) -> list[dict]:
+        """`/activities/{id}/laps` 응답(리스트) → activity_laps dict 리스트."""
+        if not isinstance(detail_raw, list):
+            return []
+        laps = []
+        for i, lap in enumerate(detail_raw):
+            if not isinstance(lap, dict):
+                continue
+            speed = lap.get("average_speed")
+            row = {
+                "source": self.SOURCE,
+                "lap_index": i,
+                "start_time": to_local_wallclock(lap.get("start_date_local"), lap.get("start_date")),
+                "duration_sec": lap.get("elapsed_time"),
+                "elapsed_duration_sec": lap.get("elapsed_time"),
+                "moving_duration_sec": lap.get("moving_time"),
+                "distance_m": lap.get("distance"),
+                "avg_hr": _int(lap.get("average_heartrate")),
+                "max_hr": _int(lap.get("max_heartrate")),
+                "avg_pace_sec_km": round(1000.0 / speed, 2) if speed and speed > 0 else None,
+                "avg_cadence": _int(lap.get("average_cadence")),
+                "avg_power": lap.get("average_watts"),
+                "elevation_gain": lap.get("total_elevation_gain"),
+            }
+            laps.append({k: v for k, v in row.items() if v is not None})
+        return laps
+
+    def extract_zone_metrics(self, zones_raw) -> list[MetricRecord]:
+        """`/activities/{id}/zones` 의 heartrate 분포 → hr_zone_N_sec + hr_zones_detail."""
+        if not isinstance(zones_raw, list):
+            return []
+        hr = next((z for z in zones_raw if isinstance(z, dict) and z.get("type") == "heartrate"), None)
+        buckets = hr.get("distribution_buckets") if hr else None
+        if not isinstance(buckets, list) or not buckets:
+            return []
+        times = [b.get("time") for b in buckets if isinstance(b, dict)]
+        recs = [
+            self._metric(f"hr_zone_{i + 1}_sec", t, raw_name=f"zones.heartrate[{i}]")
+            for i, t in enumerate(times[:5]) if t is not None
+        ]
+        recs.append(self._metric("hr_zones_detail", json_val=buckets, raw_name="zones.heartrate"))
+        return self._collect(*recs)
+
     def extract_activity_streams(
         self, streams_raw: dict | list
     ) -> list[dict]:

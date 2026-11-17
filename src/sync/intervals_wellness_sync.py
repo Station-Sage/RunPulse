@@ -7,6 +7,7 @@ from src.utils import api
 from src.utils.db_helpers import upsert_metric
 from src.utils.raw_payload import store_raw_payload as _store_rp
 
+from src.sync.extractors.intervals_extractor import IntervalsExtractor
 from .intervals_auth import base_url, auth
 
 
@@ -71,7 +72,7 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
                        updated_at = datetime('now')""",
                 (
                     date_str,
-                    entry.get("sleepQuality"),
+                    entry.get("sleepScore"),
                     entry.get("sleepSecs"),
                     entry.get("hrv"),
                     entry.get("restingHR"),
@@ -84,6 +85,10 @@ def sync_wellness(config: dict, conn: sqlite3.Connection, days: int) -> int:
             count += 1
         except sqlite3.Error as e:
             print(f"[intervals] 웰니스 삽입 실패 {date_str}: {e}")
+
+        for rec in IntervalsExtractor().extract_wellness_metrics(date_str, wellness=entry):
+            upsert_metric(conn, "daily", date_str, rec.metric_name, "intervals",
+                          numeric_value=rec.numeric_value, category=rec.category)
 
         # CTL/ATL/TSB → metric_store(scope=daily)
         ctl = entry.get("ctl")

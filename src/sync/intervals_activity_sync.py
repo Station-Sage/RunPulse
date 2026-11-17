@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from src.sync.extractors import get_extractor
 from src.sync.rate_limiter import RateLimiter
 from src.sync.raw_store import upsert_raw_payload, update_raw_activity_id
+from src.sync.intervals_laps_sync import fetch_and_save_interval_laps
 from src.sync.sync_result import SyncResult
 from src.sync.sync_errors import classify_exception
 from src.sync._helpers import (
@@ -85,6 +86,8 @@ def sync(
             laps = extractor.extract_activity_laps(raw)
             if laps:
                 save_laps(conn, aid, laps)
+            else:
+                fetch_and_save_interval_laps(conn, extractor, limiter, result, base, auth, raw, aid)
 
             resolve_primaries(conn, "activity", str(aid))
             result.synced_count += 1

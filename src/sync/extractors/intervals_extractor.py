@@ -163,7 +163,7 @@ class IntervalsExtractor(BaseExtractor):
 
         core = {"date": date}
         mapping = {
-            "sleepQuality": "sleep_score",
+            "sleepScore": "sleep_score",
             "sleepSecs": "sleep_duration_sec",
             "hrv": "hrv_last_night",
             "restingHR": "resting_hr",
@@ -177,6 +177,50 @@ class IntervalsExtractor(BaseExtractor):
 
         return {k: v for k, v in core.items() if v is not None}
 
+    def extract_wellness_metrics(self, date: str, **raw_payloads) -> list[MetricRecord]:
+        """Intervals.icu wellness 의 요약 외 필드(HRV SDNN·주관 점수 등) → metric_store 용."""
+        raw = raw_payloads.get("wellness") or {}
+        recs = [
+            self._metric(f"icu_{name}", raw.get(key), category="wellness", raw_name=key)
+            for key, name in _WELLNESS_METRIC_KEYS
+        ]
+        return self._collect(*recs)
+
+    def extract_activity_laps(self, detail_raw: dict, summary: dict | None = None) -> list[dict]:
+        """`/activity/{id}/intervals` 응답의 icu_intervals → activity_laps dict 리스트.
+
+        lap_kind 는 Garmin intensityType 어휘(ACTIVE/REST/RECOVERY/WARMUP/COOLDOWN)로 맞춘다.
+        """
+        intervals = (detail_raw or {}).get("icu_intervals")
+        if not isinstance(intervals, list):
+            return []
+        laps = []
+        for i, iv in enumerate(intervals):
+            if not isinstance(iv, dict):
+                continue
+            dur = iv.get("elapsed_time") or iv.get("moving_time")
+            dist = iv.get("distance")
+            speed = iv.get("average_speed")
+            pace = round(1000.0 / speed, 2) if speed and speed > 0 else None
+            lap = {
+                "source": self.SOURCE,
+                "lap_index": i,
+                "duration_sec": dur,
+                "distance_m": dist,
+                "avg_hr": _int(iv.get("average_heartrate")),
+                "max_hr": _int(iv.get("max_heartrate")),
+                "avg_pace_sec_km": pace,
+                "avg_cadence": _int(iv.get("average_cadence")),
+                "avg_power": iv.get("average_watts"),
+                "max_power": iv.get("max_watts"),
+                "elevation_gain": iv.get("total_elevation_gain"),
+                "moving_duration_sec": iv.get("moving_time"),
+                "elapsed_duration_sec": iv.get("elapsed_time"),
+                "lap_kind": _INTERVAL_KIND.get(str(iv.get("type") or "").upper()),
+            }
+            laps.append({k: v for k, v in lap.items() if v is not None})
+        return laps
+
     def extract_fitness(self, date: str, raw: dict) -> dict:
         """Intervals.icu fitness → daily_fitness dict."""
         fitness = {"source": self.SOURCE, "date": date}
@@ -188,6 +232,20 @@ class IntervalsExtractor(BaseExtractor):
             if val is not None:
                 fitness[db_key] = float(val)
         return {k: v for k, v in fitness.items() if v is not None}
+
+
+_WELLNESS_METRIC_KEYS = [
+    ("hrvSDNN", "hrv_sdnn"), ("avgSleepingHR", "sleeping_hr_avg"),
+    ("sleepQuality", "sleep_quality"), ("readiness", "readiness"),
+    ("soreness", "soreness"), ("fatigue", "fatigue"), ("stress", "stress"),
+    ("mood", "mood"), ("motivation", "motivation"), ("injury", "injury"),
+    ("spO2", "spo2"), ("respiration", "respiration"),
+]
+
+_INTERVAL_KIND = {
+    "WORK": "ACTIVE", "RECOVERY": "RECOVERY", "REST": "REST",
+    "WARMUP": "WARMUP", "COOLDOWN": "COOLDOWN",
+}
 
 
 # ── 헬퍼 ──

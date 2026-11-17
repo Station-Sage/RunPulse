@@ -42,7 +42,8 @@ SAMPLE_ICU_WELLNESS = {
     "restingHR": 52,
     "hrv": 45.0,
     "sleepSecs": 28800,
-    "sleepQuality": 80,
+    "sleepScore": 80,
+    "sleepQuality": 2,
     "weight": 70.5,
     "steps": 9200,
 }
@@ -114,7 +115,7 @@ class TestIntervalsWellnessSync:
             "SELECT sleep_score, hrv_last_night, resting_hr, steps FROM daily_wellness"
         ).fetchone()
         assert row is not None
-        assert row[0] == 80    # sleepQuality → sleep_score
+        assert row[0] == 80    # sleepScore → sleep_score
         assert row[1] == 45.0  # hrv → hrv_last_night
         assert row[2] == 52    # restingHR → resting_hr
         assert row[3] == 9200  # steps

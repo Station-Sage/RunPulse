@@ -924,7 +924,7 @@
 
 - functions: sync_activities, sync_wellness, sync_intervals
 
-### `intervals_activity_sync.py` (175줄) — Intervals.icu 활동 + wellness 동기화 Orchestrator.
+### `intervals_activity_sync.py` (178줄) — Intervals.icu 활동 + wellness 동기화 Orchestrator.
 
 - functions: sync, sync_wellness
 
@@ -936,7 +936,11 @@
 
 - functions: base_url, auth, check_intervals_connection
 
-### `intervals_wellness_sync.py` (103줄) — Intervals.icu 웰니스 / 피트니스 동기화.
+### `intervals_laps_sync.py` (34줄) — Intervals.icu 활동의 구간(icu_intervals) 조회·Lap 저장.
+
+- functions: fetch_and_save_interval_laps
+
+### `intervals_wellness_sync.py` (108줄) — Intervals.icu 웰니스 / 피트니스 동기화.
 
 - functions: sync_wellness
 
@@ -1004,7 +1008,7 @@
 
 - functions: sync_activities, sync_strava
 
-### `strava_activity_sync.py` (185줄) — Strava 활동 동기화 Orchestrator.
+### `strava_activity_sync.py` (190줄) — Strava 활동 동기화 Orchestrator.
 
 - functions: sync
 
@@ -1015,6 +1019,10 @@
 ### `strava_auth.py` (91줄) — Strava OAuth2 토큰 관리 및 연결 상태 확인.
 
 - functions: refresh_token, check_strava_connection
+
+### `strava_laps_zones_sync.py` (50줄) — Strava 활동의 Lap(`/laps`)·HR 존(`/zones`) 조회·저장.
+
+- functions: fetch_and_save_laps_zones
 
 ### `stream_meta_backfill.py` (31줄) — 스트림 meta 백필(U18e) — Garmin 은 payload 재추출로 meta 생성, 나머지는 기존 행 기준으로 meta 기록(없으면 unknown).
 
@@ -1071,17 +1079,17 @@
 
 - functions: f_to_c, mph_to_ms, hr_zone_seconds, weather_values
 
-### `intervals_extractor.py` (209줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
+### `intervals_extractor.py` (267줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
 
-- class **IntervalsExtractor**: extract_activity_core, extract_activity_metrics, extract_wellness_core, extract_fitness
+- class **IntervalsExtractor**: extract_activity_core, extract_activity_metrics, extract_wellness_core, extract_wellness_metrics, extract_activity_laps, extract_fitness
 
 ### `runalyze_extractor.py` (105줄) — Runalyze raw JSON → Layer 1 + Layer 2 변환.
 
 - class **RunalyzeExtractor**: extract_activity_core, extract_activity_metrics
 
-### `strava_extractor.py` (217줄) — Strava raw JSON → Layer 1 + Layer 2 변환.
+### `strava_extractor.py` (260줄) — Strava raw JSON → Layer 1 + Layer 2 변환.
 
-- class **StravaExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_streams, extract_best_efforts
+- class **StravaExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_zone_metrics, extract_activity_streams, extract_best_efforts
 
 ### `stream_time.py` (95줄) — 스트림 시간축 결정(U18a) — 경과시간 키 선택·보간·출처(time_basis) 판정과 meta 요약 (순수 함수).
 
@@ -1892,6 +1900,13 @@
 ### `helpers_pred.py` (36줄) — 예측 v2 테스트 공용 시드 헬퍼(P7-PRED-11).
 
 - functions: mem_conn, with_days, seed_run, seed_laps
+
+### `test_a7_laps_wellness.py` (159줄) — A7: Intervals wellness 확장 지표, Intervals/Strava Lap·존 수집 테스트.
+
+- class **TestIntervalsWellnessMetrics**: test_extra_keys, test_empty
+- class **TestIntervalsLaps**: test_extract_kind_mapping, test_extract_invalid, test_fetch_saves, test_non_run_skipped, test_request_failure_is_nonfatal
+- class **TestStravaLapsZones**: test_extract_laps, test_extract_zones, test_extract_zones_invalid, test_fetch_saves_laps_and_zones, test_zones_403_skipped, test_429_reraised
+- functions: conn
 
 ### `test_activity_calcs.py` (172줄) — Activity-Scope calculator 테스트 (decoupling, gap, classifier, vdot, ef).
 
@@ -2781,7 +2796,7 @@
 - class **TestIntervalsWellness**: test_wellness_core, test_fitness
 - functions: ext, activity_raw, wellness_raw
 
-### `test_intervals_sync.py` (156줄) — DoD #9: Intervals.icu activity + wellness sync — mock 기반.
+### `test_intervals_sync.py` (157줄) — DoD #9: Intervals.icu activity + wellness sync — mock 기반.
 
 - class **TestIntervalsActivitySync**: test_sync_one_activity, test_sync_empty, test_sync_skip_unchanged, test_sync_no_credentials
 - class **TestIntervalsWellnessSync**: test_wellness_sync, test_wellness_skip_unchanged, test_wellness_fitness_stored
@@ -3809,7 +3824,7 @@
 - functions: run
 
 ---
-총 821개 파일
+총 824개 파일
 
 ## docstring 누락
 
