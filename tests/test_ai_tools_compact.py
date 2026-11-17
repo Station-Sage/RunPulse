@@ -170,7 +170,7 @@ class TestTrainingSummary:
         for i, lap_pace in enumerate((270, 272)):
             conn.execute(
                 "INSERT INTO activity_laps (activity_id, source, lap_index, distance_m, duration_sec, "
-                "avg_pace_sec_km, lap_trigger) VALUES (3,'garmin',?,1000,?,?,'ACTIVE')",
+                "avg_pace_sec_km, lap_kind) VALUES (3,'garmin',?,1000,?,?,'ACTIVE')",
                 (i, lap_pace, lap_pace),
             )
         _act(conn, 4, "2026-09-20", km=21.1, sec=6300, wtype="race", name="하프")

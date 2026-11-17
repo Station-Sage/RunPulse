@@ -1046,13 +1046,13 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (677줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (682줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_lap_fields.py` (52줄) — Garmin 랩(lapDTOs)·스트림 확장 필드 — 예측 리뉴얼(P7-PRED-12)에서 보존하는 값.
+### `garmin_lap_fields.py` (60줄) — Garmin 랩(lapDTOs)·스트림 확장 필드 — 예측 리뉴얼(P7-PRED-12)에서 보존하는 값.
 
-- functions: lap_extras, pick
+- functions: lap_extras, pick, seconds_float
 
 ### `garmin_maxmet_fields.py` (35줄) — Garmin maxmet/daily 응답 → 일별 VO2max(소수 1자리) MetricRecord 변환.
 
@@ -1520,7 +1520,7 @@
 
 - functions: get_training_paces, get_race_predictions, get_marathon_volume_targets, get_race_volume_targets, vdot_to_t_pace, t_pace_to_vdot
 
-### `db_helpers.py` (759줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
+### `db_helpers.py` (761줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
 
 - functions: upsert_payload, get_payload, upsert_activity, get_activity, get_activity_list, upsert_metric, upsert_metrics_batch, get_primary_metric, get_primary_metrics, get_all_providers, get_metrics_by_category, get_metric_history, upsert_daily_wellness, get_db_status, upsert_laps_batch, upsert_streams_batch, load_activity_streams, upsert_best_efforts_batch
 
@@ -1642,9 +1642,9 @@
 
 - functions: format_distance, format_pace, format_duration, format_speed, format_time_prediction, format_metric, interpret_metric_level, metric_level_color, confidence_badge, provider_badge, metric_display_name, metric_unit
 
-### `timefmt.py` (57줄) — 시각 직렬화·현지화 단일 출처 (TZ-1~, patterns/timezone-display.md).
+### `timefmt.py` (67줄) — 시각 직렬화·현지화 단일 출처 (TZ-1~, patterns/timezone-display.md).
 
-- functions: to_iso_instant, to_local_wallclock
+- functions: to_iso_instant, to_local_wallclock, offset_between_sec
 
 ### `tz_peers.py` (203줄) — 교차 소스 시간대 추정 — 다른 소스의 같은 활동에서 UTC 오프셋을 빌린다 (TZ T2, ADR-052).
 
@@ -2643,9 +2643,9 @@
 - class **TestGarminExtractorStreams**: test_basic_parsing, test_elapsed_sec_sequence, test_none_values_excluded, test_elapsed_sec_fallback_to_index, test_empty_descriptors_returns_empty, test_non_dict_input_returns_empty, test_temperature_prefers_air
 - functions: ext, summary_raw, detail_raw, wellness_raw
 
-### `test_garmin_lap_fields.py` (72줄) — P7-PRED-12: Garmin 랩 확장 필드·스트림 키 선택.
+### `test_garmin_lap_fields.py` (114줄) — P7-PRED-12: Garmin 랩 확장 필드·스트림 키 선택.
 
-- functions: test_lap_extras_drops_none, test_pick_prefers_first_key_list_and_dict, test_extractor_uses_real_time_axis, test_laps_keep_gap_and_step, test_activity_gap_metric_sec_per_km, test_garmin_lap_extras_preserved, test_garmin_stream_uses_sum_elapsed_and_distance
+- functions: test_lap_extras_drops_none, test_pick_prefers_first_key_list_and_dict, test_extractor_uses_real_time_axis, test_laps_keep_gap_and_step, test_activity_gap_metric_sec_per_km, test_garmin_lap_extras_preserved, test_garmin_stream_uses_sum_elapsed_and_distance, test_lap_semantics_kind_trigger_index_duration, test_lap_start_localized_by_summary_offset, test_save_laps_replaces_stale_rows_of_same_source, test_ensure_v45_moves_intensity_out_of_trigger
 
 ### `test_garmin_local_sync_api.py` (365줄) — POST /api/garmin/local-sync 엔드포인트 테스트.
 

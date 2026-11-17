@@ -593,7 +593,7 @@ def upsert_laps_batch(
     activity_id: int,
     laps: list[dict],
 ) -> int:
-    """activity_laps 일괄 UPSERT. UNIQUE(activity_id, source, lap_index) 기준.
+    """activity_laps 교체 저장: 같은 (activity, source) 의 옛 랩을 지우고 새로 넣는다.
 
     Returns: 처리된 랩 수.
     """
@@ -601,12 +601,14 @@ def upsert_laps_batch(
         "source", "lap_index", "start_time", "duration_sec",
         "distance_m", "avg_hr", "max_hr", "avg_pace_sec_km",
         "avg_cadence", "avg_power", "max_power",
-        "elevation_gain", "calories", "lap_trigger",
+        "elevation_gain", "calories", "lap_trigger", "lap_kind",
         "gap_speed_ms", "elevation_loss", "avg_temperature_c",
         "elapsed_duration_sec", "moving_duration_sec", "compliance_score", "wkt_step_index",
         "avg_ground_contact_ms", "avg_vertical_osc_cm", "avg_stride_length_cm",
         "avg_vertical_ratio_pct", "normalized_power", "avg_respiration_rate",
     ]
+    for src in {lap["source"] for lap in laps if lap.get("source")}:
+        conn.execute("DELETE FROM activity_laps WHERE activity_id = ? AND source = ?", (activity_id, src))
     count = 0
     for lap in laps:
         if lap.get("lap_index") is None:

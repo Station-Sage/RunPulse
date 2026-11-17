@@ -55,3 +55,13 @@ def to_local_wallclock(
         dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
     off = KST_OFFSET_SEC if offset_sec is None else int(offset_sec)
     return (dt + timedelta(seconds=off)).isoformat(timespec="seconds")
+
+
+def offset_between_sec(local: str | None, utc: str | None) -> int | None:
+    """현지 벽시계와 UTC 의 차(초). 어느 한쪽이 없거나 파싱 불가면 None."""
+    if not local or not utc:
+        return None
+    a, b = _parse(_strip_suffix(local)), _parse(_strip_suffix(utc))
+    if a is None or b is None:
+        return None
+    return int((a.replace(tzinfo=None) - b.replace(tzinfo=None)).total_seconds())

@@ -151,7 +151,7 @@ class TestClassifierV2Segments:
 
     def _laps(self, conn, aid, laps):
         for i, (d, s, hr, it) in enumerate(laps):
-            conn.execute("INSERT INTO activity_laps (activity_id, source, lap_index, distance_m, duration_sec, avg_hr, max_hr, lap_trigger)"
+            conn.execute("INSERT INTO activity_laps (activity_id, source, lap_index, distance_m, duration_sec, avg_hr, max_hr, lap_kind)"
                          " VALUES (?,?,?,?,?,?,?,?)", (aid, "garmin", i, d, s, hr, hr + 5, it))
         conn.commit()
 

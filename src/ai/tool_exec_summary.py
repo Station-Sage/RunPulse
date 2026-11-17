@@ -22,7 +22,7 @@ _ACTIVITY_SQL = (
     "a.avg_pace_sec_km, a.avg_hr, a.name, "
     "(SELECT m.text_value FROM metric_store m WHERE m.scope_type='activity' "
     "   AND m.scope_id=CAST(a.id AS TEXT) AND m.metric_name='workout_type_classified' LIMIT 1), "
-    "(SELECT COUNT(*) FROM activity_laps l WHERE l.activity_id=a.id AND l.lap_trigger='ACTIVE') "
+    "(SELECT COUNT(*) FROM activity_laps l WHERE l.activity_id=a.id AND l.lap_kind='ACTIVE') "
     "FROM v_canonical_activities a "
     "WHERE a.activity_type='running' AND a.start_time>=? AND a.start_time<=? || 'T99' "
     "ORDER BY a.start_time"

@@ -32,7 +32,7 @@ ORDER BY v.start_time
 
 _LAPS_SQL = """
 SELECT activity_id, lap_index, distance_m, duration_sec, elapsed_duration_sec, avg_hr, max_hr, avg_pace_sec_km,
-       gap_speed_ms, elevation_gain, elevation_loss, avg_temperature_c, lap_trigger, compliance_score, wkt_step_index
+       gap_speed_ms, elevation_gain, elevation_loss, avg_temperature_c, lap_kind, compliance_score, wkt_step_index
 FROM activity_laps WHERE activity_id IN ({ids}) ORDER BY activity_id, lap_index
 """
 
@@ -54,7 +54,7 @@ def lap_block(row) -> dict | None:
         return None
     raw = d / t
     return {"dist_m": d, "dur_s": t, "speed_ms": row["gap_speed_ms"] or raw, "raw_speed_ms": raw,
-            "hr": row["avg_hr"], "max_hr": row["max_hr"], "itype": row["lap_trigger"],
+            "hr": row["avg_hr"], "max_hr": row["max_hr"], "itype": row["lap_kind"],
             "temp_c": row["avg_temperature_c"], "compliance": row["compliance_score"], "wkt_step": row["wkt_step_index"],
             "elev_gain": row["elevation_gain"], "elev_loss": row["elevation_loss"]}
 

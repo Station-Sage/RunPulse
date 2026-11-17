@@ -11,7 +11,7 @@ from src.utils.pace import seconds_to_pace
 _LAP_FIELDS = [
     ("lap", "lap_index"), ("km", "distance_m"), ("sec", "duration_sec"),
     ("pace", "avg_pace_sec_km"), ("hr", "avg_hr"), ("cad", "avg_cadence"),
-    ("pwr", "avg_power"), ("type", "lap_trigger"),
+    ("pwr", "avg_power"), ("type", "lap_kind"),
 ]
 
 
@@ -32,10 +32,10 @@ def _exec_get_activity_laps(conn: sqlite3.Connection, args: dict) -> dict:
     lap_type = args.get("lap_type")
 
     sql = ("SELECT lap_index, distance_m, duration_sec, avg_pace_sec_km, avg_hr, "
-           "avg_cadence, avg_power, lap_trigger FROM activity_laps WHERE activity_id=?")
+           "avg_cadence, avg_power, lap_kind FROM activity_laps WHERE activity_id=?")
     params: list = [aid]
     if lap_type:
-        sql += " AND lap_trigger=?"
+        sql += " AND lap_kind=?"
         params.append(str(lap_type).upper())
     rows = conn.execute(sql + " ORDER BY lap_index", params).fetchall()
 
@@ -68,7 +68,7 @@ def _exec_compare_workout_sets(conn: sqlite3.Connection, args: dict) -> dict:
     limit = int(args.get("limit", 5))
     sql = ("SELECT a.id, a.name, date(a.start_time) FROM v_canonical_activities a "
            "WHERE EXISTS (SELECT 1 FROM activity_laps l "
-           "              WHERE l.activity_id = a.id AND l.lap_trigger = 'ACTIVE')")
+           "              WHERE l.activity_id = a.id AND l.lap_kind = 'ACTIVE')")
     params: list = []
     if args.get("name_contains"):
         sql += " AND a.name LIKE ?"
@@ -86,7 +86,7 @@ def _exec_compare_workout_sets(conn: sqlite3.Connection, args: dict) -> dict:
     for aid, name, day in conn.execute(sql, params).fetchall():
         laps = conn.execute(
             "SELECT distance_m, avg_pace_sec_km, avg_hr FROM activity_laps "
-            "WHERE activity_id=? AND lap_trigger='ACTIVE' ORDER BY lap_index", (aid,)
+            "WHERE activity_id=? AND lap_kind='ACTIVE' ORDER BY lap_index", (aid,)
         ).fetchall()
         paces = [r[1] for r in laps if r[1]]
         hrs = [r[2] for r in laps if r[2]]

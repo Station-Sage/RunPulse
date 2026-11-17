@@ -185,7 +185,7 @@ def _reprocess_activity_details(conn, source, activity_id_map, stats):
                 (src, eid),
             ).fetchone()
             laps = extractor.extract_activity_laps(
-                json.loads(splits_row[0]) if splits_row else detail
+                json.loads(splits_row[0]) if splits_row else detail, summary_raw
             )
             if laps:
                 save_laps(conn, activity_id, laps)

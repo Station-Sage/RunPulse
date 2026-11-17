@@ -226,11 +226,11 @@ class TestGarminLaps:
         sync(conn, api, days=7, _sleep_fn=lambda _: None)
 
         rows = conn.execute(
-            "SELECT lap_index, distance_m, avg_hr, avg_cadence, avg_power, lap_trigger "
+            "SELECT lap_index, distance_m, avg_hr, avg_cadence, avg_power, lap_kind "
             "FROM activity_laps ORDER BY lap_index"
         ).fetchall()
         assert len(rows) == 2
-        assert rows[0] == (0, 1000.0, 118, 172, 226.0, "INTERVAL")
+        assert rows[0] == (1, 1000.0, 118, 172, 226.0, "INTERVAL")
         assert rows[1][2] == 128
 
     def test_splits_payload_stored(self):

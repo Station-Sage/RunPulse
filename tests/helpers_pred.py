@@ -33,4 +33,4 @@ def seed_laps(c, aid, laps, source="garmin"):
     """laps: [(dist_m, dur_s, hr, itype, gap_speed_ms|None, max_hr|None)]"""
     for i, (d, s, hr, it, gap, mx) in enumerate(laps):
         c.execute("INSERT INTO activity_laps (activity_id, source, lap_index, distance_m, duration_sec, avg_hr, max_hr,"
-                  " lap_trigger, gap_speed_ms) VALUES (?,?,?,?,?,?,?,?,?)", (aid, source, i, d, s, hr, mx, it, gap))
+                  " lap_kind, gap_speed_ms) VALUES (?,?,?,?,?,?,?,?,?)", (aid, source, i, d, s, hr, mx, it, gap))

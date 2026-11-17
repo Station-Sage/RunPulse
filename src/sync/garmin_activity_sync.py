@@ -187,7 +187,7 @@ def _sync_single(conn, api, extractor, limiter, result, raw, include_streams) ->
     # [10-11] Laps — detail에는 lapDTOs가 없고 /splits 응답에만 있음
     splits = _fetch_splits(conn, api, limiter, result, source_id, activity_id)
     if splits:
-        laps = extractor.extract_activity_laps(splits)
+        laps = extractor.extract_activity_laps(splits, raw)
         if laps:
             save_laps(conn, activity_id, laps)
 

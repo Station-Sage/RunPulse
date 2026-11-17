@@ -49,7 +49,7 @@ def reextract_laps_streams(conn: sqlite3.Connection, source: str = "garmin", dry
                 if ms and not dry_run:
                     save_metrics(conn, "activity", str(aid), source, ms)
             if splits:
-                laps = ex.extract_activity_laps(json.loads(splits[0]))
+                laps = ex.extract_activity_laps(json.loads(splits[0]), json.loads(summ[0]) if summ else None)
                 stats["laps"] += len(laps or [])
                 if laps and not dry_run:
                     save_laps(conn, aid, laps)

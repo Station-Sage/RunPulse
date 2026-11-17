@@ -50,3 +50,11 @@ def pick(metrics, idx_map: dict[str, int], keys: tuple[str, ...]):
         if pos is not None and pos < len(metrics) and metrics[pos] is not None:
             return metrics[pos]
     return None
+
+
+def seconds_float(value) -> float | None:
+    """duration → 초(소수 유지). 86400 초 초과면 밀리초로 간주."""
+    if value is None:
+        return None
+    v = float(value)
+    return v / 1000 if v > 86400 else v

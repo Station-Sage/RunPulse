@@ -30,7 +30,7 @@ def test_reextract_keeps_ids_and_fills_fields():
     _payload(c, "activity_streams", "12345", STREAMS)
     st = reextract_laps_streams(c)
     assert st == {"activities": 1, "laps": 2, "streams": 3, "metrics": 0, "missing_payload": 1, "errors": 0}
-    laps = c.execute("SELECT lap_index, gap_speed_ms, elapsed_duration_sec, lap_trigger FROM activity_laps "
+    laps = c.execute("SELECT lap_index, gap_speed_ms, elapsed_duration_sec, lap_kind FROM activity_laps "
                      "WHERE activity_id=? ORDER BY lap_index", (aid,)).fetchall()
     assert laps[0][1:] == (3.40, 305.0, "WARMUP") and laps[1][1] == 4.20
     s = c.execute("SELECT elapsed_sec, distance_m, gap_speed_ms FROM activity_streams WHERE activity_id=? "

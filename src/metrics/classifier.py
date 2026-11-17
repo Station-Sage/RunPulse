@@ -93,7 +93,7 @@ class WorkoutClassifier(MetricCalculator):
             t = lap.get("duration_sec") or 0
             if d > 0 and t > 0:
                 blocks.append({"dist_m": d, "dur_s": t, "speed_ms": lap.get("gap_speed_ms") or d / t,
-                               "hr": lap.get("avg_hr"), "max_hr": lap.get("max_hr"), "itype": lap.get("lap_trigger")})
+                               "hr": lap.get("avg_hr"), "max_hr": lap.get("max_hr"), "itype": lap.get("lap_kind")})
         if len(blocks) >= 2:
             return blocks, "laps"
         streams = ctx.get_streams()

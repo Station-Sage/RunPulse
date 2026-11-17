@@ -24,7 +24,7 @@ def _add_activity(conn, aid, name, start, km=10.0):
 def _add_lap(conn, aid, idx, trigger, pace, hr=None, cad=None, power=None, dist=1000.0):
     conn.execute(
         "INSERT INTO activity_laps (activity_id, source, lap_index, distance_m, "
-        "duration_sec, avg_pace_sec_km, avg_hr, avg_cadence, avg_power, lap_trigger) "
+        "duration_sec, avg_pace_sec_km, avg_hr, avg_cadence, avg_power, lap_kind) "
         "VALUES (?,'garmin',?,?,?,?,?,?,?,?)",
         (aid, idx, dist, int(pace * dist / 1000), pace, hr, cad, power, trigger),
     )

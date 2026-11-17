@@ -60,7 +60,7 @@ class BaseExtractor(ABC):
         """
         ...
 
-    def extract_activity_laps(self, detail_raw: dict) -> list[dict]:
+    def extract_activity_laps(self, detail_raw: dict, summary: dict | None = None) -> list[dict]:
         """→ activity_laps INSERT용 dict 리스트. 기본: 빈 리스트."""
         return []
 

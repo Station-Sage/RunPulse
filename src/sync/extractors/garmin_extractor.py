@@ -13,9 +13,9 @@ from datetime import datetime, timezone
 from src.sync.extractors.base import BaseExtractor, MetricRecord
 from src.utils.activity_types import normalize_activity_type
 from src.sync.extractors.garmin_zone_weather import hr_zone_seconds, weather_values
-from src.sync.extractors.garmin_lap_fields import STREAM_EXTRA_KEYS, STREAM_KEY_ALIASES, lap_extras, pick
+from src.sync.extractors.garmin_lap_fields import STREAM_EXTRA_KEYS, STREAM_KEY_ALIASES, lap_extras, pick, seconds_float
 from src.sync.extractors.stream_time import StreamRows, resolve_time_axis, stream_meta
-from src.utils.timefmt import to_local_wallclock
+from src.utils.timefmt import offset_between_sec, to_local_wallclock
 
 
 class GarminExtractor(BaseExtractor):
@@ -233,20 +233,24 @@ class GarminExtractor(BaseExtractor):
 
     # ── Activity Laps ──
 
-    def extract_activity_laps(self, splits_raw: dict) -> list[dict]:
+    def extract_activity_laps(self, splits_raw: dict, summary: dict | None = None) -> list[dict]:
         """Garmin `/splits` 응답(`lapDTOs`)에서 랩 추출.
 
         랩은 activity detail이 아니라 `get_activity_splits()` 응답에만 들어 있다.
+        summary(활동 요약)가 있으면 그 현지-UTC 차로 랩 시작 시각을 현지 벽시계로 맞춘다.
+        lap_kind=강도(intensityType), lap_trigger=랩 종료 원인(lapTrigger).
         """
         laps_raw = splits_raw.get("lapDTOs") or splits_raw.get("laps") or []
+        s = summary or {}
+        offset = offset_between_sec(s.get("startTimeLocal"), s.get("startTimeGMT"))
         laps = []
         for i, lap in enumerate(laps_raw):
             avg_speed = lap.get("averageSpeed")
             lap_dict = {
                 "source": self.SOURCE,
-                "lap_index": i,
-                "start_time": lap.get("startTimeGMT"),
-                "duration_sec": _seconds(lap.get("duration")),
+                "lap_index": lap.get("lapIndex") if lap.get("lapIndex") is not None else i,
+                "start_time": to_local_wallclock(None, lap.get("startTimeGMT"), offset),
+                "duration_sec": seconds_float(lap.get("duration")),
                 "distance_m": lap.get("distance"),
                 "avg_hr": _int(lap.get("averageHR")),
                 "max_hr": _int(lap.get("maxHR")),
@@ -258,7 +262,8 @@ class GarminExtractor(BaseExtractor):
                 "max_power": lap.get("maxPower"),
                 "elevation_gain": lap.get("elevationGain"),
                 "calories": _int(lap.get("calories")),
-                "lap_trigger": lap.get("intensityType") or lap.get("lapTrigger"),
+                "lap_kind": lap.get("intensityType"),
+                "lap_trigger": lap.get("lapTrigger"),
             }
             if avg_speed and avg_speed > 0:
                 lap_dict["avg_pace_sec_km"] = round(1000.0 / avg_speed, 2)
