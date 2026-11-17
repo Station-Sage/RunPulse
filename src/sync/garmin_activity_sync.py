@@ -10,6 +10,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from src.sync.extractors import get_extractor
+from src.sync.garmin_activity_extras import RateLimitStop, fetch_activity_extras, save_detail_metrics
 from src.sync.garmin_api_extensions import sync_activity_gear
 from src.utils.activity_types import sport_family
 from src.sync.rate_limiter import RateLimiter
@@ -29,10 +30,6 @@ log = logging.getLogger(__name__)
 _WINDOW_MARGIN_DAYS = 1
 # 기본 maxchart(2000)은 장거리 스트림을 ~2초 간격으로 다운샘플한다
 _STREAM_MAXCHART = 100000
-
-
-class _RateLimitStop(Exception):
-    """rate-limit으로 전체 sync 중단 시그널."""
 
 
 def sync(
@@ -78,8 +75,7 @@ def sync(
         )
         limiter.post_request(success=True)
         result.api_calls += 1
-        log.info("[garmin/activity] get_activities_by_date 응답: %s건",
-                 len(activities_raw) if activities_raw else 0)
+        log.info("[garmin/activity] 목록 응답: %s건", len(activities_raw or []))
     except Exception as e:
         if _is_rate_limit_error(e):
             log.warning("[garmin/activity] 활동 목록 조회 중 429: %s", e)
@@ -96,9 +92,7 @@ def sync(
         return result
 
     result.total_items = len(activities_raw)
-    log.info("[garmin/activity] 처리 대상 %d건 — IDs: %s",
-             len(activities_raw),
-             [a.get("activityId") for a in activities_raw[:5]])
+    log.info("[garmin/activity] 처리 대상 %d건", len(activities_raw))
 
     for raw_activity in activities_raw:
         aid_str = str(raw_activity.get("activityId", ""))
@@ -113,11 +107,8 @@ def sync(
                 result.skipped_count += 1
             conn.commit()
 
-        except _RateLimitStop:
-            log.warning(
-                "[garmin] Rate limit reached. Synced %d/%d",
-                result.synced_count, result.total_items,
-            )
+        except RateLimitStop:
+            log.warning("[garmin] Rate limit reached. Synced %d/%d", result.synced_count, result.total_items)
             result.status = "partial"
             result.retry_after = _retry_after(limiter)
             conn.commit()
@@ -140,7 +131,8 @@ def sync(
 
 def _sync_single(conn, api, extractor, limiter, result, raw, include_streams) -> bool:
     source_id = str(raw.get("activityId", ""))
-    act_type = raw.get("activityType", {}).get("typeKey", "unknown") if isinstance(raw.get("activityType"), dict) else str(raw.get("activityType", ""))
+    at = raw.get("activityType")
+    act_type = at.get("typeKey", "unknown") if isinstance(at, dict) else str(at or "")
     log.info("[garmin/activity] 처리: activityId=%s, type=%s", source_id, act_type)
 
     # [2] Raw summary
@@ -148,41 +140,47 @@ def _sync_single(conn, api, extractor, limiter, result, raw, include_streams) ->
         conn, "garmin", "activity_summary", source_id, raw,
         endpoint="activitylist-service/activities/search/activities",
     )
-    log.debug("[garmin/activity] upsert_raw_payload is_new=%s for %s", is_new, source_id)
 
     # [3-4] Core
     core = extractor.extract_activity_core(raw)
     activity_id = save_activity_core(conn, core)
-    log.debug("[garmin/activity] save_activity_core → activity_id=%s", activity_id)
 
     # [5] 역참조
     update_raw_activity_id(conn, "garmin", "activity_summary", source_id, activity_id)
 
-    # [5b] 신규 러닝만 신발 gear 조회(V2-SHOES T3) — 실패해도 1회 재시도 후 계속
+    # [5b] 신규 러닝만 신발 gear 조회(V2-SHOES T3)
     if is_new and sport_family(act_type, "garmin") == "running":
         limiter.pre_request()
         sync_activity_gear(conn, api, activity_id, source_id)
         result.api_calls += 1
 
-    # [6-7] Detail — 기존 활동이라도 빠진 payload가 있으면 보충한다
+    # [6-7] Detail — 빠진 payload 보충
     stored = {
         row[0] for row in conn.execute(
             "SELECT entity_type FROM source_payloads WHERE source='garmin' "
-            "AND entity_type IN ('activity_detail','activity_splits','activity_streams') AND entity_id=?",
+            "AND entity_type IN ('activity_detail','activity_splits','activity_streams',"
+            "'activity_hr_zones','activity_weather') AND entity_id=?",
             (source_id,),
         )
     }
     has_detail = "activity_detail" in stored
     streams_ok = (not include_streams) or "activity_streams" in stored
     if not is_new and has_detail and "activity_splits" in stored and streams_ok:
-        log.debug("[garmin/activity] skip (summary+detail+splits+streams 모두 기존): %s", source_id)
-        return False
+        # 부가(심박존·날씨)만 빠졌으면 그것만 보충
+        if {"activity_hr_zones", "activity_weather"} <= stored:
+            log.debug("[garmin/activity] skip: %s", source_id)
+            return False
+        fetch_activity_extras(conn, api, limiter, result, source_id, activity_id)
+        save_detail_metrics(conn, extractor, raw, activity_id, source_id)
+        resolve_primaries(conn, "activity", str(activity_id))
+        return True
 
     log.info("[garmin/activity] detail 조회: %s (is_new=%s, has_detail=%s)", source_id, is_new, has_detail)
     detail = _fetch_detail(conn, api, limiter, result, source_id, activity_id)
 
-    # [8-9] Metrics
-    metrics = extractor.extract_activity_metrics(raw, detail)
+    # [8-9] Metrics — 심박존·날씨는 별도 엔드포인트
+    extras = fetch_activity_extras(conn, api, limiter, result, source_id, activity_id)
+    metrics = extractor.extract_activity_metrics(raw, {**(detail or {}), **extras})
     if metrics:
         save_metrics(conn, "activity", str(activity_id), "garmin", metrics)
 
@@ -223,7 +221,7 @@ def _fetch_detail(conn, api, limiter, result, source_id, activity_id):
     except Exception as e:
         if _is_rate_limit_error(e):
             if not limiter.handle_rate_limit():
-                raise _RateLimitStop()
+                raise RateLimitStop()
             try:
                 limiter.pre_request()
                 detail = api.get_activity(int(source_id))
@@ -259,7 +257,7 @@ def _fetch_splits(conn, api, limiter, result, source_id, activity_id):
         return splits
     except Exception as e:
         if _is_rate_limit_error(e) and not limiter.handle_rate_limit():
-            raise _RateLimitStop()
+            raise RateLimitStop()
         log.warning("[garmin] Splits fetch failed for %s: %s", source_id, e)
         return None
 

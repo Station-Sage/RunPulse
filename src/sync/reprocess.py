@@ -14,6 +14,7 @@ from collections import defaultdict
 from src.sync.extractors import get_extractor
 from src.sync.reextract import orphan_activity_count
 from src.sync.dedup import run as run_dedup
+from src.sync.garmin_activity_extras import load_activity_extras
 from src.sync._helpers import (
     save_activity_core,
     save_metrics,
@@ -131,7 +132,8 @@ def _reprocess_activity_summaries(conn, source, stats) -> dict:
 
             conn.execute(  # 같은 활동의 detail/splits/streams payload 도 새 id 로(옛 id 부착 버그)
                 "UPDATE source_payloads SET activity_id = ? WHERE source = ? AND entity_id = ? "
-                "AND entity_type IN ('activity_summary', 'activity_detail', 'activity_splits', 'activity_streams')",
+                "AND entity_type IN ('activity_summary', 'activity_detail', 'activity_splits', "
+                "'activity_streams', 'activity_hr_zones', 'activity_weather')",
                 (activity_id, src, eid),
             )
             stats["activities"] += 1
@@ -169,6 +171,8 @@ def _reprocess_activity_details(conn, source, activity_id_map, stats):
             ).fetchone()
             summary_raw = json.loads(summary_row[0]) if summary_row else {}
 
+            if src == "garmin":  # 심박존·날씨는 별도 payload
+                detail = {**detail, **load_activity_extras(conn, eid)}
             metrics = extractor.extract_activity_metrics(summary_raw, detail)
             if metrics:
                 count = save_metrics(conn, "activity", str(activity_id), src, metrics)

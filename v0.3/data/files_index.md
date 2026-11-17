@@ -856,9 +856,13 @@
 
 - functions: sync_activities, sync_wellness, sync_daily_extensions, sync_athlete_extensions, sync_garmin
 
-### `garmin_activity_sync.py` (302줄) — Garmin 활동 동기화 Orchestrator.
+### `garmin_activity_extras.py` (82줄) — Garmin 활동 부가 엔드포인트(/hrTimeInZones·/weather) 조회·저장·재조립.
 
-- class **_RateLimitStop**: 없음
+- class **RateLimitStop**: 없음
+- functions: fetch_activity_extras, load_activity_extras, save_detail_metrics
+
+### `garmin_activity_sync.py` (300줄) — Garmin 활동 동기화 Orchestrator.
+
 - functions: sync
 
 ### `garmin_api_extensions.py` (168줄) — Garmin 활동 확장 API — gear, exercise_sets.
@@ -960,7 +964,7 @@
 
 - functions: orphan_activity_count, reextract_laps_streams
 
-### `reprocess.py` (300줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
+### `reprocess.py` (304줄) — Raw payload(Layer 0)에서 Layer 1/2 재구축.
 
 - functions: reprocess_all
 
@@ -1042,17 +1046,21 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (689줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (677줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_lap_fields.py` (36줄) — Garmin 랩(lapDTOs)·스트림 확장 필드 — 예측 리뉴얼(P7-PRED-12)에서 보존하는 값.
+### `garmin_lap_fields.py` (52줄) — Garmin 랩(lapDTOs)·스트림 확장 필드 — 예측 리뉴얼(P7-PRED-12)에서 보존하는 값.
 
 - functions: lap_extras, pick
 
 ### `garmin_maxmet_fields.py` (35줄) — Garmin maxmet/daily 응답 → 일별 VO2max(소수 1자리) MetricRecord 변환.
 
 - functions: extract_vo2max_daily
+
+### `garmin_zone_weather.py` (44줄) — Garmin /hrTimeInZones·/weather 실제 응답 → 메트릭 변환 (단위 변환 포함).
+
+- functions: f_to_c, mph_to_ms, hr_zone_seconds, weather_values
 
 ### `intervals_extractor.py` (209줄) — Intervals.icu raw JSON → Layer 1 + Layer 2 변환.
 
@@ -1512,7 +1520,7 @@
 
 - functions: get_training_paces, get_race_predictions, get_marathon_volume_targets, get_race_volume_targets, vdot_to_t_pace, t_pace_to_vdot
 
-### `db_helpers.py` (756줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
+### `db_helpers.py` (759줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
 
 - functions: upsert_payload, get_payload, upsert_activity, get_activity, get_activity_list, upsert_metric, upsert_metrics_batch, get_primary_metric, get_primary_metrics, get_all_providers, get_metrics_by_category, get_metric_history, upsert_daily_wellness, get_db_status, upsert_laps_batch, upsert_streams_batch, load_activity_streams, upsert_best_efforts_batch
 
@@ -2590,11 +2598,16 @@
 
 - functions: test_distance_pace_duration, test_signed_uses_unicode_minus, test_labels, test_sanitize_raw_floats_and_sec_per_km
 
-### `test_garmin_activity_sync.py` (304줄) — DoD #6: Garmin activity sync 흐름 — mock API 기반.
+### `test_garmin_activity_extras.py` (59줄) — garmin_activity_extras — 부가 엔드포인트 조회·저장·재조립.
+
+- functions: test_fetch_stores_and_returns_both, test_failure_continues_with_other_endpoint, test_rate_limit_raises_stop, test_load_roundtrip_unwraps_list_payload, test_load_missing_returns_empty
+
+### `test_garmin_activity_sync.py` (343줄) — DoD #6: Garmin activity sync 흐름 — mock API 기반.
 
 - class **TestGarminActivitySync**: test_sync_empty_list, test_sync_one_activity, test_sync_skip_unchanged, test_sync_with_streams, test_sync_rate_limit_error, test_sync_detail_failure_continues, test_primary_resolution
 - class **TestGarminLaps**: test_laps_saved_from_splits, test_splits_payload_stored, test_existing_activity_missing_splits_is_refetched, test_splits_failure_does_not_break_sync
 - class **TestGarminStreamBackfill**: test_streams_request_large_maxchart, test_existing_activity_without_streams_is_backfilled, test_existing_activity_with_streams_is_skipped, test_list_window_has_one_day_margin
+- class **TestGarminExtras**: test_extras_stored_and_metrics_saved, test_extras_failure_does_not_break_sync, test_existing_activity_missing_extras_backfills_only_extras
 
 ### `test_garmin_auth_migration.py` (190줄) — garmin_auth.py garminconnect 0.3.x 마이그레이션 테스트.
 
@@ -2616,10 +2629,14 @@
 
 - functions: env, test_token_dir_rules, test_login_success_persists_and_clears_explicit_paths, test_login_needs_mfa_clears_password, test_login_error_mapping_keeps_existing_token, test_login_validation, test_cooldown_blocks_garmin_calls, test_import_error_maps_upstream_503, test_dump_oserror_maps_internal, test_multi_worker_returns_mfa_unavailable, test_mfa_success_persists, test_mfa_wrong_code_keeps_pending_then_expires, test_mfa_rate_limited_keeps_pending, test_mfa_upstream_error_discards, test_mfa_validation_and_other_user, test_parse_token, test_submit_token_verifies_inline_then_saves, test_submit_token_rejected_not_saved, test_disconnect_removes_tokens_and_clears_config, test_connected_token_readable_by_sync_rules, test_data_connect_delegates_garmin, test_mask_email, test_rate_window_remaining_counts_from_latest_hit, test_cooldown_retry_after_is_actual_remaining, test_garmintokens_env_is_dropped_on_import
 
-### `test_garmin_extractor.py` (320줄) — Garmin Extractor 단위 테스트.
+### `test_garmin_dynamics.py` (60줄) — v44 — Garmin 러닝 다이내믹스(스트림·랩) 컬럼. 키는 운영 계정 실응답(2026-11-17) 기준.
+
+- functions: test_stream_extracts_dynamics, test_lap_extracts_dynamics, test_dynamics_persist_roundtrip, test_ensure_v44_idempotent_on_old_tables
+
+### `test_garmin_extractor.py` (343줄) — Garmin Extractor 단위 테스트.
 
 - class **TestGarminActivityCore**: test_required_fields, test_distance_and_time, test_pace_calculated, test_heart_rate, test_training_effects_in_metrics, test_running_dynamics, test_location, test_no_none_values, test_source_url, test_empty_input_returns_minimal
-- class **TestGarminActivityMetrics**: test_basic_metrics, test_no_empty_metrics, test_detail_hr_zones, test_detail_weather, test_no_core_duplicates
+- class **TestGarminActivityMetrics**: test_basic_metrics, test_no_empty_metrics, test_detail_hr_zones, test_detail_weather, test_indoor_weather_all_null_yields_no_metrics, test_no_core_duplicates
 - class **TestGarminLaps**: test_lap_extraction, test_lap_pace_calculated, test_empty_detail
 - class **TestGarminDataQualityGuards**: test_doubled_cadence_is_halved, test_normal_cadence_is_kept, test_missing_cadence_stays_none, test_lap_doubled_cadence_is_halved, test_negative_stress_is_ignored
 - class **TestGarminWellness**: test_wellness_core, test_resting_hr_prefers_user_summary_over_sleep, test_resting_hr_falls_back_to_sleep_payload, test_missing_sleep_dto_yields_no_sleep_fields, test_body_battery_without_levels_is_skipped, test_wellness_metrics, test_wellness_metric_values, test_fitness
@@ -2675,6 +2692,10 @@
 ### `test_garmin_wellness_sync.py` (151줄) — DoD #7: Garmin wellness sync 6 endpoint — mock API 기반.
 
 - class **TestGarminWellnessSync**: test_sync_one_day, test_resync_updates_partial_day_values, test_sync_multi_day, test_sync_skip_unchanged, test_sync_stores_raw_payloads, test_sync_metrics_created, test_sync_partial_endpoint_failure
+
+### `test_garmin_zone_weather.py` (38줄) — garmin_zone_weather 단위 변환·None 처리 테스트.
+
+- functions: test_f_to_c, test_mph_to_ms, test_hr_zone_seconds_real_list, test_hr_zone_seconds_invalid, test_weather_values_converts_units, test_weather_values_indoor_empty
 
 ### `test_goal_reported_load.py` (27줄) — v28: 목표 생성 시 사용자 입력 시작 부하(최근 주간 km·최장 롱런 km).
 
@@ -3768,7 +3789,7 @@
 - functions: run
 
 ---
-총 812개 파일
+총 817개 파일
 
 ## docstring 누락
 

@@ -21,6 +21,15 @@ def _mock_api(activities=None, detail=None, streams=None, splits=None):
     api.get_activity_splits.return_value = (
         splits if splits is not None else {"activityId": 12345, "lapDTOs": []}
     )
+    # 실제 Garmin 응답 구조(운영 계정 확인): 심박존 list, 날씨 °F/mph dict
+    api.get_activity_hr_in_timezones.return_value = [
+        {"zoneNumber": 1, "secsInZone": 239.5, "zoneLowBoundary": 106},
+        {"zoneNumber": 2, "secsInZone": 981.9, "zoneLowBoundary": 134},
+    ]
+    api.get_activity_weather.return_value = {
+        "temp": 58, "dewPoint": 37, "relativeHumidity": 44,
+        "windDirection": 70, "windSpeed": 3,
+    }
     return api
 
 
@@ -302,3 +311,33 @@ class TestGarminStreamBackfill:
         api = _mock_api()
         sync(conn, api, start_date="2026-11-10", end_date="2026-11-12", _sleep_fn=lambda _: None)
         assert api.get_activities_by_date.call_args.args == ("2026-11-09", "2026-11-13")
+
+
+class TestGarminExtras:
+    def test_extras_stored_and_metrics_saved(self):
+        conn = _conn()
+        api = _mock_api(activities=[SAMPLE_ACTIVITY], detail=SAMPLE_DETAIL)
+        sync(conn, api, days=7, _sleep_fn=lambda _: None)
+        types = {r[0] for r in conn.execute("SELECT entity_type FROM source_payloads")}
+        assert {"activity_hr_zones", "activity_weather"} <= types
+        names = {r[0] for r in conn.execute("SELECT metric_name FROM metric_store")}
+        assert {"hr_zone_1_sec", "weather_temp_c"} <= names
+
+    def test_extras_failure_does_not_break_sync(self):
+        conn = _conn()
+        api = _mock_api(activities=[SAMPLE_ACTIVITY], detail=SAMPLE_DETAIL)
+        api.get_activity_weather.side_effect = RuntimeError("boom")
+        result = sync(conn, api, days=7, _sleep_fn=lambda _: None)
+        assert result.synced_count == 1
+
+    def test_existing_activity_missing_extras_backfills_only_extras(self):
+        conn = _conn()
+        api = _mock_api(activities=[SAMPLE_ACTIVITY], detail=SAMPLE_DETAIL)
+        sync(conn, api, days=7, _sleep_fn=lambda _: None)
+        conn.execute("DELETE FROM source_payloads WHERE entity_type IN ('activity_hr_zones','activity_weather')")
+        conn.execute("DELETE FROM metric_store WHERE metric_name LIKE 'hr_zone_%'")
+        api.get_activity.reset_mock()
+        api.get_activity_splits.reset_mock()
+        sync(conn, api, days=7, _sleep_fn=lambda _: None)
+        assert api.get_activity.call_count == 0 and api.get_activity_splits.call_count == 0
+        assert conn.execute("SELECT COUNT(*) FROM metric_store WHERE metric_name='hr_zone_1_sec'").fetchone()[0] == 1

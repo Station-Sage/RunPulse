@@ -90,6 +90,21 @@ class TestGarminActivityCore:
         assert "activity_type" in core
 
 
+# 운영 Garmin 계정 실응답 구조(2026-11-17 확인) — 날씨는 °F·mph
+REAL_HR_ZONES = [
+    {"zoneNumber": 1, "secsInZone": 239.544, "zoneLowBoundary": 106},
+    {"zoneNumber": 2, "secsInZone": 981.923, "zoneLowBoundary": 134},
+    {"zoneNumber": 3, "secsInZone": 542.313, "zoneLowBoundary": 147},
+    {"zoneNumber": 4, "secsInZone": 0.0, "zoneLowBoundary": 160},
+    {"zoneNumber": 5, "secsInZone": 0.0, "zoneLowBoundary": 167},
+]
+REAL_WEATHER = {
+    "issueDate": "2026-11-04T10:00:00.000+00:00", "temp": 58, "apparentTemp": 58,
+    "dewPoint": 37, "relativeHumidity": 44, "windDirection": 70,
+    "windDirectionCompassPoint": "ene", "windSpeed": 3, "windGust": None,
+}
+
+
 class TestGarminActivityMetrics:
     def test_basic_metrics(self, ext, summary_raw):
         metrics = ext.extract_activity_metrics(summary_raw)
@@ -104,16 +119,24 @@ class TestGarminActivityMetrics:
             assert not m.is_empty()
 
     def test_detail_hr_zones(self, ext, summary_raw, detail_raw):
-        metrics = ext.extract_activity_metrics(summary_raw, detail_raw)
-        names = {m.metric_name for m in metrics}
-        assert "hr_zone_1_sec" in names
-        assert "hr_zones_detail" in names
+        detail = {**detail_raw, "hrTimeInZones": REAL_HR_ZONES}
+        by = {m.metric_name: m for m in ext.extract_activity_metrics(summary_raw, detail)}
+        assert by["hr_zone_2_sec"].numeric_value == 981.923
+        assert by["hr_zone_4_sec"].numeric_value == 0.0
+        assert "hr_zones_detail" in by
 
     def test_detail_weather(self, ext, summary_raw, detail_raw):
-        metrics = ext.extract_activity_metrics(summary_raw, detail_raw)
-        names = {m.metric_name for m in metrics}
-        assert "weather_temp_c" in names
-        assert "weather_humidity_pct" in names
+        detail = {**detail_raw, "activityWeather": REAL_WEATHER}
+        by = {m.metric_name: m for m in ext.extract_activity_metrics(summary_raw, detail)}
+        assert by["weather_temp_c"].numeric_value == 14.4  # 58°F
+        assert by["weather_dew_point_c"].numeric_value == 2.8
+        assert by["weather_wind_speed_ms"].numeric_value == 1.34  # 3 mph
+        assert by["weather_humidity_pct"].numeric_value == 44
+
+    def test_indoor_weather_all_null_yields_no_metrics(self, ext, summary_raw, detail_raw):
+        detail = {**detail_raw, "activityWeather": {"temp": None, "relativeHumidity": None}}
+        names = {m.metric_name for m in ext.extract_activity_metrics(summary_raw, detail)}
+        assert not any(n.startswith("weather_") for n in names)
 
     def test_no_core_duplicates(self, ext, summary_raw):
         """activity_summaries 잔류 필드가 metric에 중복되면 안 됨."""

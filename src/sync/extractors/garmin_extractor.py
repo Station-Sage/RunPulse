@@ -12,7 +12,8 @@ import json
 from datetime import datetime, timezone
 from src.sync.extractors.base import BaseExtractor, MetricRecord
 from src.utils.activity_types import normalize_activity_type
-from src.sync.extractors.garmin_lap_fields import STREAM_KEY_ALIASES, lap_extras, pick
+from src.sync.extractors.garmin_zone_weather import hr_zone_seconds, weather_values
+from src.sync.extractors.garmin_lap_fields import STREAM_EXTRA_KEYS, STREAM_KEY_ALIASES, lap_extras, pick
 from src.sync.extractors.stream_time import StreamRows, resolve_time_axis, stream_meta
 from src.utils.timefmt import to_local_wallclock
 
@@ -175,21 +176,20 @@ class GarminExtractor(BaseExtractor):
         """활동 상세 API 응답에서 추가 메트릭 추출."""
         results: list[MetricRecord] = []
 
-        # HR Zones
-        hr_zones = detail.get("hrTimeInZone") or detail.get("heartRateZones")
+        # HR Zones — /hrTimeInZones 응답(sync 가 detail["hrTimeInZones"] 로 합쳐 전달)
+        hr_zones = detail.get("hrTimeInZones")
         if hr_zones and isinstance(hr_zones, list):
-            for i, zone_data in enumerate(hr_zones[:5]):
-                secs = _zone_to_seconds(zone_data)
+            for i, secs in enumerate(hr_zone_seconds(hr_zones)):
                 if secs is not None:
                     r = self._metric(
                         f"hr_zone_{i+1}_sec", secs,
-                        raw_name=f"hrTimeInZone[{i}]",
+                        raw_name=f"hrTimeInZones[{i}].secsInZone",
                     )
                     if r:
                         results.append(r)
             r = self._metric(
                 "hr_zones_detail", json_val=hr_zones,
-                raw_name="hrTimeInZone",
+                raw_name="hrTimeInZones",
             )
             if r:
                 results.append(r)
@@ -213,25 +213,11 @@ class GarminExtractor(BaseExtractor):
             if r:
                 results.append(r)
 
-        # Weather
-        weather = detail.get("weatherDTO") or detail.get("weather", {})
-        if weather and isinstance(weather, dict):
-            results.extend(self._collect(
-                self._metric("weather_temp_c", weather.get("temp"),
-                             raw_name="weatherDTO.temp"),
-                self._metric("weather_humidity_pct",
-                             weather.get("relativeHumidity"),
-                             raw_name="weatherDTO.relativeHumidity"),
-                self._metric("weather_wind_speed_ms",
-                             weather.get("windSpeed"),
-                             raw_name="weatherDTO.windSpeed"),
-                self._metric("weather_wind_direction_deg",
-                             weather.get("windDirection"),
-                             raw_name="weatherDTO.windDirection"),
-                self._metric("weather_dew_point_c",
-                             weather.get("dewPoint"),
-                             raw_name="weatherDTO.dewPoint"),
-            ))
+        # Weather — /weather 응답(detail["activityWeather"]), °F·mph → SI 변환
+        for name, val in weather_values(detail.get("activityWeather")).items():
+            r = self._metric(name, val, raw_name=f"weather.{name}")
+            if r:
+                results.append(r)
 
         # Splits
         splits = detail.get("splitSummaries") or detail.get("splits")
@@ -365,6 +351,8 @@ class GarminExtractor(BaseExtractor):
                 "grade_pct":   _get("directGrade"),
                 "gap_speed_ms": pick(metrics, idx_map, STREAM_KEY_ALIASES["gap_speed_ms"]),
             }
+            for col, keys in STREAM_EXTRA_KEYS.items():
+                row[col] = pick(metrics, idx_map, keys)
             # elapsed_sec, source는 항상 포함; 나머지 None 제거
             rows.append(
                 {k: v for k, v in row.items()
