@@ -1,6 +1,5 @@
 <script lang="ts">
-	// U15d — 활동 상세 `⋯` 메뉴(F8): 메모·RPE 기록 / 원본 열기 / GPX 내려받기 / 코치에게 묻기.
-	import { base } from '$app/paths';
+	// U15d — 활동 상세 `⋯` 메뉴(F8): 메모·RPE 기록 / 원본 열기 / GPX 내려받기. (코치에게 묻기는 화면의 고정 버튼·칩이 맡는다 — 중복 제거)
 	import type { ActivityMenuInfo } from '$lib/types';
 	import { gpxUrl } from '$lib/activityExport';
 
@@ -30,7 +29,6 @@
 			{:else}
 				<span role="menuitem" aria-disabled="true" class="{item} cursor-default text-fg-muted">GPX 내려받기 · 위치 기록 없음</span>
 			{/if}
-			<a role="menuitem" class={item} href="{base}/coach/new?activity={activityId}" onclick={() => (open = false)}>코치에게 묻기</a>
 		</div>
 	{/if}
 </div>

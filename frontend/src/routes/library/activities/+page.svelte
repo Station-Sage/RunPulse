@@ -1,6 +1,7 @@
 <script lang="ts">
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import ErrorState from '$lib/components/ErrorState.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 	import { classifyFailure, type Failure } from '$lib/loadFailure';
 	// 03c-library.md 3-B / 20-library-activities §2-3 — 활동 목록. 필터(URL 동기화)·월 헤더·주 헤더(12주 평균 눈금)·
 	// 연-월 스크러버·무한 스크롤. 정렬이 최신순이 아니면 주 그룹 없이 평면 목록.
@@ -227,10 +228,7 @@
 			<ErrorState message="활동 목록을 불러오지 못했어요" failure={failure ?? undefined} detail={failure ? undefined : errorMessage ?? undefined} onRetry={() => reload()} />
 		</div>
 	{:else if activities.length === 0 && !loading}
-		<div class="flex flex-col items-center gap-2 px-4 py-16 text-center">
-			<p class="text-lg text-fg-secondary">활동이 없습니다</p>
-			<p class="text-sm text-fg-muted">필터를 조정하거나 데이터를 동기화해 주세요.</p>
-		</div>
+		<EmptyState title="활동이 없습니다" description="필터를 조정하거나 데이터를 동기화해 주세요." />
 	{:else if chronological}
 		{#each groups as g, gi (g.key)}
 			{@const w = weeks.get(g.key)}
