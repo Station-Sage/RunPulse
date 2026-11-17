@@ -25,6 +25,11 @@ from src.sync._helpers import (
 
 log = logging.getLogger(__name__)
 
+# Garmin 목록은 UTC 경계로 조회되므로 로컬 날짜 활동 누락 방지용 여유 일수
+_WINDOW_MARGIN_DAYS = 1
+# 기본 maxchart(2000)은 장거리 스트림을 ~2초 간격으로 다운샘플한다
+_STREAM_MAXCHART = 100000
+
 
 class _RateLimitStop(Exception):
     """rate-limit으로 전체 sync 중단 시그널."""
@@ -68,8 +73,8 @@ def sync(
     try:
         limiter.pre_request()
         activities_raw = api.get_activities_by_date(
-            start_dt.strftime("%Y-%m-%d"),
-            end_dt.strftime("%Y-%m-%d"),
+            (start_dt - timedelta(days=_WINDOW_MARGIN_DAYS)).strftime("%Y-%m-%d"),
+            (end_dt + timedelta(days=_WINDOW_MARGIN_DAYS)).strftime("%Y-%m-%d"),
         )
         limiter.post_request(success=True)
         result.api_calls += 1
@@ -163,13 +168,14 @@ def _sync_single(conn, api, extractor, limiter, result, raw, include_streams) ->
     stored = {
         row[0] for row in conn.execute(
             "SELECT entity_type FROM source_payloads WHERE source='garmin' "
-            "AND entity_type IN ('activity_detail','activity_splits') AND entity_id=?",
+            "AND entity_type IN ('activity_detail','activity_splits','activity_streams') AND entity_id=?",
             (source_id,),
         )
     }
     has_detail = "activity_detail" in stored
-    if not is_new and has_detail and "activity_splits" in stored:
-        log.debug("[garmin/activity] skip (summary+detail+splits 모두 기존): %s", source_id)
+    streams_ok = (not include_streams) or "activity_streams" in stored
+    if not is_new and has_detail and "activity_splits" in stored and streams_ok:
+        log.debug("[garmin/activity] skip (summary+detail+splits+streams 모두 기존): %s", source_id)
         return False
 
     log.info("[garmin/activity] detail 조회: %s (is_new=%s, has_detail=%s)", source_id, is_new, has_detail)
@@ -261,7 +267,9 @@ def _fetch_splits(conn, api, limiter, result, source_id, activity_id):
 def _fetch_streams(conn, api, extractor, limiter, result, source_id, activity_id):
     try:
         limiter.pre_request()
-        streams_raw = api.get_activity_details(int(source_id), maxpoly=9999999)
+        streams_raw = api.get_activity_details(
+            int(source_id), maxchart=_STREAM_MAXCHART, maxpoly=9999999,
+        )
         limiter.post_request(success=True)
         result.api_calls += 1
         if streams_raw:

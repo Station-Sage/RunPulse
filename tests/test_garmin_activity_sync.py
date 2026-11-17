@@ -260,3 +260,45 @@ class TestGarminLaps:
 
         assert result.synced_count == 1
         assert conn.execute("SELECT COUNT(*) FROM activity_laps").fetchone()[0] == 0
+
+
+_STREAMS = {
+    "metricDescriptors": [
+        {"key": "directElapsedDuration", "metricsIndex": 0},
+        {"key": "directHeartRate", "metricsIndex": 1},
+    ],
+    "activityDetailMetrics": [{"metrics": [0, 120]}, {"metrics": [1, 125]}],
+}
+
+
+class TestGarminStreamBackfill:
+    def test_streams_request_large_maxchart(self):
+        conn = _conn()
+        api = _mock_api(activities=[SAMPLE_ACTIVITY], detail=SAMPLE_DETAIL, streams=_STREAMS)
+        sync(conn, api, days=7, include_streams=True, _sleep_fn=lambda _: None)
+        kwargs = api.get_activity_details.call_args.kwargs
+        assert kwargs["maxchart"] >= 10000
+
+    def test_existing_activity_without_streams_is_backfilled(self):
+        conn = _conn()
+        api = _mock_api(activities=[SAMPLE_ACTIVITY], detail=SAMPLE_DETAIL, streams=_STREAMS)
+        sync(conn, api, days=7, include_streams=False, _sleep_fn=lambda _: None)
+        assert conn.execute("SELECT COUNT(*) FROM activity_streams").fetchone()[0] == 0
+
+        result = sync(conn, api, days=7, include_streams=True, _sleep_fn=lambda _: None)
+
+        assert result.skipped_count == 0
+        assert conn.execute("SELECT COUNT(*) FROM activity_streams").fetchone()[0] == 2
+
+    def test_existing_activity_with_streams_is_skipped(self):
+        conn = _conn()
+        api = _mock_api(activities=[SAMPLE_ACTIVITY], detail=SAMPLE_DETAIL, streams=_STREAMS)
+        sync(conn, api, days=7, include_streams=True, _sleep_fn=lambda _: None)
+        result = sync(conn, api, days=7, include_streams=True, _sleep_fn=lambda _: None)
+        assert result.skipped_count == 1
+
+    def test_list_window_has_one_day_margin(self):
+        conn = _conn()
+        api = _mock_api()
+        sync(conn, api, start_date="2026-11-10", end_date="2026-11-12", _sleep_fn=lambda _: None)
+        assert api.get_activities_by_date.call_args.args == ("2026-11-09", "2026-11-13")
