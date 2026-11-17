@@ -2,7 +2,7 @@
 	// Data 영역 서브탭 [개요|동기화|소스|내보내기|설정] — 40 design §2.4.
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
-	import SubTabs from '$lib/components/SubTabs.svelte';
+	import SubTabs from '$lib/components/ui/SubTabs.svelte';
 	import { DATA_TABS, activeDataTab } from '$lib/dataArea';
 
 	let { children } = $props();
