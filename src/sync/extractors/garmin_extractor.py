@@ -478,7 +478,7 @@ class GarminExtractor(BaseExtractor):
             ))
 
         # Training Readiness
-        tr = raw_payloads.get("wellness_training_readiness", {})
+        tr = _readiness_record(raw_payloads.get("wellness_training_readiness"))
         if tr:
             metrics.extend(self._collect(
                 self._metric("training_readiness_score", tr.get("score"),
@@ -493,8 +493,8 @@ class GarminExtractor(BaseExtractor):
                              tr.get("hrvFactorPercent"),
                              raw_name="hrvFactorPercent"),
                 self._metric("training_readiness_recovery_factor",
-                             tr.get("recoveryFactorPercent"),
-                             raw_name="recoveryFactorPercent"),
+                             tr.get("recoveryTimeFactorPercent", tr.get("recoveryFactorPercent")),
+                             raw_name="recoveryTimeFactorPercent"),
             ))
 
         # Race Predictions
@@ -569,6 +569,22 @@ def _running_cadence(value) -> int | None:
     if cadence is not None and cadence > _MAX_RUNNING_CADENCE:
         return round(cadence / 2)
     return cadence
+
+
+def _readiness_record(payload) -> dict:
+    """get_training_readiness 응답(하루 여러 건 list, sync 가 {"data":[...]} 로 감쌈) → 대표 1건.
+
+    기상 직후(AFTER_WAKEUP_RESET) 값이 있으면 그것, 없으면 가장 늦은 timestamp 의 값."""
+    if isinstance(payload, dict) and isinstance(payload.get("data"), list):
+        payload = payload["data"]
+    if isinstance(payload, dict):
+        return payload
+    recs = [r for r in (payload or []) if isinstance(r, dict)]
+    if not recs:
+        return {}
+    wake = [r for r in recs if r.get("inputContext") == "AFTER_WAKEUP_RESET"]
+    pool = wake or recs
+    return max(pool, key=lambda r: str(r.get("timestamp") or r.get("timestampLocal") or ""))
 
 
 def _score_value(dto: dict, key: str):

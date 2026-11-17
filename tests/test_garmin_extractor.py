@@ -341,3 +341,36 @@ class TestGarminExtractorStreams:
         }
         rows = ext.extract_activity_streams(raw)
         assert rows[0]["temperature_c"] == 20.0  # directAirTemperature 우선
+
+
+class TestGarminTrainingReadinessList:
+    """실제 get_training_readiness 는 list[dict] — sync 가 {"data": [...]} 로 감싼다 (S-8)."""
+
+    RECS = [
+        {"timestamp": "2026-11-16T06:10:00.0", "inputContext": "AFTER_WAKEUP_RESET",
+         "score": 62, "level": "MODERATE", "sleepScoreFactorPercent": 80,
+         "hrvFactorPercent": 70, "recoveryTimeFactorPercent": 55},
+        {"timestamp": "2026-11-16T18:00:00.0", "inputContext": "AFTER_POST_EXERCISE_RESET",
+         "score": 40, "level": "LOW", "hrvFactorPercent": 70},
+    ]
+
+    @staticmethod
+    def _by_id(metrics):
+        return {m.metric_name: m for m in metrics}
+
+    def test_wrapped_list_is_unwrapped_and_prefers_wakeup(self, ext):
+        res = ext.extract_wellness_metrics(
+            "2026-11-16", wellness_training_readiness={"data": self.RECS})
+        got = self._by_id(res)
+        assert got["training_readiness_score"].numeric_value == 62
+        assert got["training_readiness_recovery_factor"].numeric_value == 55
+
+    def test_bare_list_without_wakeup_uses_latest(self, ext):
+        res = ext.extract_wellness_metrics(
+            "2026-11-16", wellness_training_readiness=[self.RECS[1]])
+        assert self._by_id(res)["training_readiness_score"].numeric_value == 40
+
+    def test_empty_list_yields_nothing(self, ext):
+        res = ext.extract_wellness_metrics(
+            "2026-11-16", wellness_training_readiness={"data": []})
+        assert "training_readiness_score" not in self._by_id(res)

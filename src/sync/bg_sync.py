@@ -361,7 +361,15 @@ class BgSyncThread(threading.Thread):
                         raise
                     except Exception as me:
                         log.warning("[bg_sync] VO2max 동기화 실패: %s", me)
-                    req_added = count * 2 + 1 + 8
+                    ext_calls = 0
+                    try:
+                        from src.sync.garmin_bg_extensions import sync_bg_extensions
+                        ext_calls = sync_bg_extensions(conn, garmin_client, win_from, win_to)
+                    except _G429:
+                        raise
+                    except (sqlite3.Error, ValueError, TypeError) as ee:
+                        log.warning("[bg_sync] 확장 동기화 실패: %s", ee)
+                    req_added = count * 2 + 1 + 8 + ext_calls
                 elif service == "strava":
                     from src.sync.strava import sync_activities
                     count = sync_activities(

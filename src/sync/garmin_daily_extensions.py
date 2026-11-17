@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from src.utils.db_helpers import upsert_metric
 from src.sync.garmin_helpers import _store_raw_payload, _upsert_daily_detail_metric
+from src.sync.wellness_series import ingest_hr_day
 from src.sync.garmin_ref_sync import sync_lactate_threshold, sync_race_predictions
 
 if TYPE_CHECKING:
@@ -163,9 +164,16 @@ def sync_daily_user_summary(
 
     _store_raw_payload(conn, "user_summary_day", date_str, data)
 
-    # daily_wellness에 누락 컬럼 COALESCE 보완
-    wellness_updates = {
-        "steps": data.get("totalSteps") or data.get("steps"),
+    # daily_wellness 는 날짜당 1행(source 컬럼 없음) — 존재하는 steps 만 비어 있을 때 보완
+    steps = data.get("totalSteps") or data.get("steps")
+    if steps is not None:
+        conn.execute(
+            "UPDATE daily_wellness SET steps = COALESCE(steps, ?) WHERE date = ?",
+            (steps, date_str),
+        )
+
+    # daily_detail_metrics 추가 필드
+    extra: dict[str, object] = {
         "spo2_avg": data.get("averageSpo2") or data.get("avgSpo2"),
         "respiration_avg": (
             data.get("avgWakingRespirationValue")
@@ -173,23 +181,6 @@ def sync_daily_user_summary(
         ),
         "intensity_min_moderate": data.get("moderateIntensityMinutes"),
         "intensity_min_vigorous": data.get("vigorousIntensityMinutes"),
-    }
-    non_null = {k: v for k, v in wellness_updates.items() if v is not None}
-    if non_null:
-        set_clause = ", ".join(
-            f"{col} = COALESCE({col}, ?)" for col in non_null
-        )
-        try:
-            conn.execute(
-                f"UPDATE daily_wellness SET {set_clause} "
-                "WHERE date = ? AND source = 'garmin'",
-                (*non_null.values(), date_str),
-            )
-        except sqlite3.OperationalError:
-            pass
-
-    # daily_detail_metrics 추가 필드
-    extra: dict[str, object] = {
         "body_battery_highest": data.get("bodyBatteryHighestValue"),
         "body_battery_lowest": data.get("bodyBatteryLowestValue"),
         "body_battery_charged_summary": data.get("bodyBatteryChargedValue"),
@@ -296,6 +287,7 @@ def sync_daily_heart_rates(
 
     _store_raw_payload(conn, "heart_rates_day", date_str, data)
 
+    ingest_hr_day(conn, date_str, data)
     hr_values = data.get("heartRateValues") or []
     if not hr_values:
         return
