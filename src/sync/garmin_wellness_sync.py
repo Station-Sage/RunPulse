@@ -9,6 +9,7 @@ from src.sync.extractors import get_extractor
 from src.sync.rate_limiter import RateLimiter
 from src.sync.raw_store import upsert_raw_payload
 from src.sync.sync_result import SyncResult
+from src.sync.wellness_series import ingest_day
 from src.sync._helpers import (
     save_daily_wellness,
     save_metrics,
@@ -147,6 +148,8 @@ def _sync_day(conn, api, extractor, limiter, result, date_str) -> bool:
     metrics = extractor.extract_wellness_metrics(date_str, **raw_payloads)
     if metrics:
         save_metrics(conn, "daily", date_str, "garmin", metrics)
+
+    ingest_day(conn, date_str, raw_payloads)
 
     resolve_primaries(conn, "daily", date_str)
     return True

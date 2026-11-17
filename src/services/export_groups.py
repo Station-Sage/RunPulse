@@ -44,8 +44,9 @@ EXPORT_GROUPS: tuple[GroupDef, ...] = (
         _t("activity_exercise_sets", fk=True), _t("activity_groups", "activity_date"),
         _t("activity_feedback", fk=True), _t("gear"), _t("user_shoes", optional=True),
         _t("activity_shoe", fk=True, optional=True)), default=True),
-    GroupDef("streams", "활동 스트림 (초 단위 심박·위치, 용량 큼)", (
-        _t("activity_streams", fk=True), _t("activity_stream_meta", fk=True))),
+    GroupDef("streams", "활동 스트림·일중 웰니스 시계열 (용량 큼)", (
+        _t("activity_streams", fk=True), _t("activity_stream_meta", fk=True),
+        _t("wellness_series", "date", optional=True))),
     GroupDef("metrics", "지표·웰니스·예측·마일스톤", (
         _t("metric_store", "scope_id"), _t("daily_wellness", "date"), _t("prediction_snapshots", "as_of"),
         _t("milestones", "date")), default=True),

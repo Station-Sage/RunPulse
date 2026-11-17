@@ -204,7 +204,7 @@
 - class **ExportError**: 없음
 - functions: check_free_space, build_archive
 
-### `export_groups.py` (97줄) — 내보내기 그룹 정의 — 허용 목록(allow-list). 목록에 없는 테이블은 절대 내보내지 않는다(data-export §2.1).
+### `export_groups.py` (98줄) — 내보내기 그룹 정의 — 허용 목록(allow-list). 목록에 없는 테이블은 절대 내보내지 않는다(data-export §2.1).
 
 - class **TableDef**: 없음
 - class **GroupDef**: 없음
@@ -837,7 +837,7 @@
 
 - functions: scheduler_mode, start, stop, restart, status
 
-### `bg_sync.py` (561줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (569줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
@@ -882,11 +882,16 @@
 
 - functions: backfill_from_zip
 
+### `garmin_bg_extensions.py` (85줄) — 웹 bg_sync 용 Garmin 일별 확장 동기화 — 훈련 상태·일중 HR(안정시 HR)·레이스 예측·젖산역치.
+
+- class **_RateLimitGuard**: 없음
+- functions: sync_bg_extensions
+
 ### `garmin_bulk_loader.py` (250줄) — Garmin Bulk Export ZIP 로더.
 
 - class **GarminBulkLoader**: load
 
-### `garmin_daily_extensions.py` (433줄) — Garmin 일별 확장 API — race_predictions, training_status, fitness_metrics,
+### `garmin_daily_extensions.py` (425줄) — Garmin 일별 확장 API — race_predictions, training_status, fitness_metrics,
 
 - functions: sync_daily_race_predictions, sync_daily_training_status, sync_daily_fitness_metrics, sync_daily_user_summary, sync_daily_all_day_stress, sync_daily_body_battery_events, sync_daily_heart_rates, sync_daily_hydration, sync_daily_weigh_ins, sync_daily_running_tolerance
 
@@ -910,7 +915,7 @@
 
 - functions: extract_summary_fields_from_api, extract_summary_fields_from_zip, extract_detail_fields, build_upsert_sql
 
-### `garmin_wellness_sync.py` (163줄) — Garmin 일별 wellness 동기화 Orchestrator.
+### `garmin_wellness_sync.py` (166줄) — Garmin 일별 wellness 동기화 Orchestrator.
 
 - class **_RateLimitStop**: 없음
 - functions: sync
@@ -1028,6 +1033,10 @@
 
 - class **SyncResult**: is_rate_limited, merge, to_sync_job_dict
 
+### `wellness_series.py` (182줄) — Garmin 웰니스 raw payload → wellness_series 시계열 + 파생 요약 (REVIEW-10 A6).
+
+- functions: parse_hrv, parse_sleep, parse_body_battery, parse_stress, parse_hr_day, derive_summary, save_series, ingest_day, ingest_hr_day
+
 ## `src/sync/extractors/`
 
 > RunPulse v0.3 Extractor 모듈.
@@ -1046,7 +1055,7 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (682줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (698줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
@@ -2620,6 +2629,12 @@
 - class **TestSaveZipMetrics**: test_routes_metric_fields_to_metric_store, test_skips_none_values
 - class **TestBackfillFromZip**: test_insert_new_stores_raw_payload, test_insert_new_no_operationalerror_on_nondll_columns, test_insert_new_routes_metrics, test_update_filters_nondll_columns, test_update_links_raw_payload_to_activity
 
+### `test_garmin_bg_extensions.py` (70줄) — 웹 bg_sync 확장 동기화 — 호출 구성·최근 N일 제한·429 전파.
+
+- class **_TooMany**: 없음
+- class **_Client**: get_training_status, get_heart_rates, get_race_predictions, get_lactate_threshold
+- functions: conn, test_window_with_today_calls_snapshots_and_daily, test_old_window_is_skipped_beyond_recent_days, test_window_partly_recent_is_clamped_without_snapshots, test_429_propagates_even_though_inner_sync_swallows
+
 ### `test_garmin_cleanup.py` (55줄)
 
 - class **FakeClient**: get_workout_by_id, delete_workout
@@ -2633,7 +2648,7 @@
 
 - functions: test_stream_extracts_dynamics, test_lap_extracts_dynamics, test_dynamics_persist_roundtrip, test_ensure_v44_idempotent_on_old_tables
 
-### `test_garmin_extractor.py` (343줄) — Garmin Extractor 단위 테스트.
+### `test_garmin_extractor.py` (376줄) — Garmin Extractor 단위 테스트.
 
 - class **TestGarminActivityCore**: test_required_fields, test_distance_and_time, test_pace_calculated, test_heart_rate, test_training_effects_in_metrics, test_running_dynamics, test_location, test_no_none_values, test_source_url, test_empty_input_returns_minimal
 - class **TestGarminActivityMetrics**: test_basic_metrics, test_no_empty_metrics, test_detail_hr_zones, test_detail_weather, test_indoor_weather_all_null_yields_no_metrics, test_no_core_duplicates
@@ -2641,6 +2656,7 @@
 - class **TestGarminDataQualityGuards**: test_doubled_cadence_is_halved, test_normal_cadence_is_kept, test_missing_cadence_stays_none, test_lap_doubled_cadence_is_halved, test_negative_stress_is_ignored
 - class **TestGarminWellness**: test_wellness_core, test_resting_hr_prefers_user_summary_over_sleep, test_resting_hr_falls_back_to_sleep_payload, test_missing_sleep_dto_yields_no_sleep_fields, test_body_battery_without_levels_is_skipped, test_wellness_metrics, test_wellness_metric_values, test_fitness
 - class **TestGarminExtractorStreams**: test_basic_parsing, test_elapsed_sec_sequence, test_none_values_excluded, test_elapsed_sec_fallback_to_index, test_empty_descriptors_returns_empty, test_non_dict_input_returns_empty, test_temperature_prefers_air
+- class **TestGarminTrainingReadinessList**: test_wrapped_list_is_unwrapped_and_prefers_wakeup, test_bare_list_without_wakeup_uses_latest, test_empty_list_yields_nothing
 - functions: ext, summary_raw, detail_raw, wellness_raw
 
 ### `test_garmin_lap_fields.py` (114줄) — P7-PRED-12: Garmin 랩 확장 필드·스트림 키 선택.
@@ -2684,10 +2700,10 @@
 - class **WindowClient**: get_race_predictions, get_lactate_threshold
 - functions: test_snapshots, test_history_and_failure, test_history_is_split_into_windows
 
-### `test_garmin_training_status.py` (53줄) — Garmin training_status 중첩 payload 파서 테스트.
+### `test_garmin_training_status.py` (72줄) — Garmin training_status 중첩 payload 파서 테스트.
 
 - class **FakeClient**: get_training_status
-- functions: test_primary_device_selected, test_falls_back_to_first_and_empty, test_saves_garmin_loads_not_pmc, test_no_data_is_noop
+- functions: test_primary_device_selected, test_falls_back_to_first_and_empty, test_saves_garmin_loads_not_pmc, test_no_data_is_noop, test_user_summary_updates_steps_without_source_column
 
 ### `test_garmin_wellness_sync.py` (151줄) — DoD #7: Garmin wellness sync 6 endpoint — mock API 기반.
 
@@ -3675,6 +3691,10 @@
 
 - functions: conn, test_percentile_band_requires_min_n, test_headline_reasons_by_abs_z_and_status, test_headline_without_reasons_when_usual, test_baselines_exclude_current_day_and_omit_small_n, test_no_record_day_has_week_and_nav, test_as_of_only_for_today, test_detail_keeps_legacy_fields, test_trend_end_and_band
 
+### `test_wellness_series.py` (95줄) — wellness_series: Garmin 실제 payload 구조 파싱·저장·파생 요약 (REVIEW-10 A6).
+
+- functions: conn, kinds, test_parsers_extract_real_structures, test_parsers_tolerate_empty_and_garbage, test_derive_summary, test_ingest_day_saves_series_and_summary_idempotently, test_resave_replaces_stale_rows_of_same_kind, test_retention_drops_old_days, test_ingest_hr_day
+
 ### `test_wellness_service.py` (153줄) — tests/test_wellness_service.py — Phase 5-C 서비스 레이어 테스트.
 
 - functions: conn, test_get_wellness_detail_full, test_get_wellness_detail_core, test_get_wellness_detail_metrics_by_category, test_get_wellness_detail_sleep_category, test_get_wellness_detail_hr_category, test_get_wellness_detail_body_category, test_get_wellness_detail_stress_category, test_get_wellness_detail_readiness_summary, test_get_wellness_detail_no_data, test_get_wellness_detail_default_date, test_get_wellness_trend_full, test_get_wellness_trend_includes_utrs, test_get_wellness_trend_with_gaps, test_get_wellness_trend_empty
@@ -3789,7 +3809,7 @@
 - functions: run
 
 ---
-총 817개 파일
+총 821개 파일
 
 ## docstring 누락
 
