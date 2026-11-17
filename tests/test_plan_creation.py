@@ -44,9 +44,10 @@ def test_created_plan_follows_periodization_and_ends_on_race():
     assert any(r[1] == "race" and r[0] == race.isoformat() for r in rows)
     by_week: dict[str, float] = {}
     for d, t, km in rows:
+        mon = (date.fromisoformat(d) - timedelta(days=date.fromisoformat(d).weekday())).isoformat()
+        by_week.setdefault(mon, 0.0)             # 대회가 월요일이면 대회 주에 훈련 세션이 없어도 한 주로 센다
         if t not in ("rest", "race"):
-            mon = (date.fromisoformat(d) - timedelta(days=date.fromisoformat(d).weekday())).isoformat()
-            by_week[mon] = by_week.get(mon, 0.0) + (km or 0.0)
+            by_week[mon] += km or 0.0
     vols = [by_week[k] for k in sorted(by_week)]
     assert len(vols) == weeks and vols[-1] < max(vols) * 0.7      # 대회 주는 피크보다 크게 낮다
     base = vols[1] if date.today().weekday() > 0 else vols[0]       # 시작 주가 부분 주면(PLN-32) 첫 온전한 주 기준

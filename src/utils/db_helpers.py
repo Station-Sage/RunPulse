@@ -649,7 +649,7 @@ def upsert_streams_batch(
         return 0
 
     _STREAM_COLUMNS = [
-        "activity_id", "source", "elapsed_sec", "distance_m",
+        "activity_id", "source", "elapsed_sec", "sample_idx", "distance_m",
         "heart_rate", "cadence", "power_watts", "altitude_m",
         "speed_ms", "latitude", "longitude", "grade_pct", "temperature_c",
         "gap_speed_ms",
@@ -668,6 +668,8 @@ def upsert_streams_batch(
         for c in _STREAM_COLUMNS:
             if c == "activity_id":
                 vals.append(activity_id)
+            elif c == "sample_idx":
+                vals.append(row.get(c) or 0)
             else:
                 vals.append(row.get(c))
         placeholders = ", ".join("?" * len(_STREAM_COLUMNS))

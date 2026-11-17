@@ -30,7 +30,7 @@ def test_v41_to_v42_idempotent_keeps_gear_rows():
 def test_new_db_ddl_matches_migrated():
     new = sqlite3.connect(":memory:")
     create_tables(new)
-    assert SCHEMA_VERSION == 42
+    assert SCHEMA_VERSION >= 42
     assert "shoe_id" in _cols(new, "gear")
     old = sqlite3.connect(":memory:")
     _v41_gear(old)

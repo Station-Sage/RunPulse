@@ -856,7 +856,7 @@
 
 - functions: sync_activities, sync_wellness, sync_daily_extensions, sync_athlete_extensions, sync_garmin
 
-### `garmin_activity_sync.py` (294줄) — Garmin 활동 동기화 Orchestrator.
+### `garmin_activity_sync.py` (302줄) — Garmin 활동 동기화 Orchestrator.
 
 - class **_RateLimitStop**: 없음
 - functions: sync
@@ -1042,7 +1042,7 @@
 - class **MetricRecord**: is_empty
 - class **BaseExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_best_efforts, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
-### `garmin_extractor.py` (684줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
+### `garmin_extractor.py` (689줄) — Garmin raw JSON → Layer 1 + Layer 2 변환.
 
 - class **GarminExtractor**: extract_activity_core, extract_activity_metrics, extract_activity_laps, extract_activity_streams, extract_wellness_core, extract_wellness_metrics, extract_fitness
 
@@ -1512,7 +1512,7 @@
 
 - functions: get_training_paces, get_race_predictions, get_marathon_volume_targets, get_race_volume_targets, vdot_to_t_pace, t_pace_to_vdot
 
-### `db_helpers.py` (754줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
+### `db_helpers.py` (756줄) — RunPulse v0.3 DB 헬퍼 유틸리티.
 
 - functions: upsert_payload, get_payload, upsert_activity, get_activity, get_activity_list, upsert_metric, upsert_metrics_batch, get_primary_metric, get_primary_metrics, get_all_providers, get_metrics_by_category, get_metric_history, upsert_daily_wellness, get_db_status, upsert_laps_batch, upsert_streams_batch, load_activity_streams, upsert_best_efforts_batch
 
@@ -2500,6 +2500,10 @@
 
 - functions: test_v41_to_v42_idempotent_keeps_gear_rows, test_new_db_ddl_matches_migrated, test_one_active_default_per_kind, test_shoe_delete_sets_gear_null_with_fk, test_check_constraints
 
+### `test_db_schema_v43.py` (69줄) — v43 마이그레이션 — activity_streams.sample_idx (같은 초 샘플 보존).
+
+- functions: test_schema_version, test_migration_preserves_rows_and_is_idempotent, test_fresh_db_has_sample_idx, test_same_second_samples_are_kept, test_extractor_assigns_sample_idx
+
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
 - class **TestPhase1Schema**: setup_db, test_schema_version_is_20, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
@@ -2586,10 +2590,11 @@
 
 - functions: test_distance_pace_duration, test_signed_uses_unicode_minus, test_labels, test_sanitize_raw_floats_and_sec_per_km
 
-### `test_garmin_activity_sync.py` (262줄) — DoD #6: Garmin activity sync 흐름 — mock API 기반.
+### `test_garmin_activity_sync.py` (304줄) — DoD #6: Garmin activity sync 흐름 — mock API 기반.
 
 - class **TestGarminActivitySync**: test_sync_empty_list, test_sync_one_activity, test_sync_skip_unchanged, test_sync_with_streams, test_sync_rate_limit_error, test_sync_detail_failure_continues, test_primary_resolution
 - class **TestGarminLaps**: test_laps_saved_from_splits, test_splits_payload_stored, test_existing_activity_missing_splits_is_refetched, test_splits_failure_does_not_break_sync
+- class **TestGarminStreamBackfill**: test_streams_request_large_maxchart, test_existing_activity_without_streams_is_backfilled, test_existing_activity_with_streams_is_skipped, test_list_window_has_one_day_margin
 
 ### `test_garmin_auth_migration.py` (190줄) — garmin_auth.py garminconnect 0.3.x 마이그레이션 테스트.
 
@@ -3021,7 +3026,7 @@
 
 - functions: test_create_cancels_old_goal_and_clears_its_future_rows, test_failure_rolls_back_goal_and_plan, test_commit_false_defers_to_caller
 
-### `test_plan_creation.py` (68줄) — 목표 대회 역산 계획 생성 — 시작·기간·볼륨 진행.
+### `test_plan_creation.py` (69줄) — 목표 대회 역산 계획 생성 — 시작·기간·볼륨 진행.
 
 - functions: test_plan_start_monday, test_recent_load_reads_history, test_created_plan_follows_periodization_and_ends_on_race, test_shorter_plan_starts_in_future_and_week_index_is_zero_before_start
 
@@ -3763,7 +3768,7 @@
 - functions: run
 
 ---
-총 811개 파일
+총 812개 파일
 
 ## docstring 누락
 

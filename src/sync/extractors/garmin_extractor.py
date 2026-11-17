@@ -322,6 +322,7 @@ class GarminExtractor(BaseExtractor):
                 idx_map[str(k)] = int(idx)
 
         rows = StreamRows()
+        seen_sec: dict = {}
         points = [p.get("metrics", []) for p in detail_metrics]
         points = [m for m in points if m]
         times, basis, time_key = resolve_time_axis(points, idx_map)
@@ -345,9 +346,13 @@ class GarminExtractor(BaseExtractor):
             if temp is None:
                 temp = _get("directTemperature")
 
+            # 같은 초로 반올림되는 샘플은 sample_idx 로 구분해 유실을 막는다
+            sample_idx = seen_sec.get(elapsed, 0)
+            seen_sec[elapsed] = sample_idx + 1
             row: dict = {
                 "source":      self.SOURCE,
                 "elapsed_sec": elapsed,
+                "sample_idx":  sample_idx,
                 "latitude":    _get("directLatitude"),
                 "longitude":   _get("directLongitude"),
                 "altitude_m":  _get("directElevation"),
@@ -363,7 +368,7 @@ class GarminExtractor(BaseExtractor):
             # elapsed_sec, source는 항상 포함; 나머지 None 제거
             rows.append(
                 {k: v for k, v in row.items()
-                 if v is not None or k in ("elapsed_sec", "source")}
+                 if v is not None or k in ("elapsed_sec", "source", "sample_idx")}
             )
 
         rows.meta = stream_meta(rows, basis, time_key, len(points))
