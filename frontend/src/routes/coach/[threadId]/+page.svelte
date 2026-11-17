@@ -197,13 +197,13 @@
 		{#if data.errorMessage}
 			<p class="text-xs text-fg-muted">{data.errorMessage}</p>
 		{/if}
-		<a href="{base}/coach" class="text-sm text-fg-secondary underline">← Coach로</a>
+		<a href="{base}/coach" class="text-sm text-fg-secondary underline">‹ Coach로</a>
 	</div>
 {:else}
 <DrillPanel scopeType="daily" scopeId={localDateString()} {answerChip}>
 	<!-- 헤더 -->
 	<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-		<a href={back.href} class="shrink-0 text-fg-muted" aria-label={back.label} data-testid="thread-back">←</a>
+		<a href={back.href} class="shrink-0 text-fg-muted" aria-label={back.label} data-testid="thread-back">‹</a>
 		<h1 class="min-w-0 flex-1 truncate text-base font-semibold">{thread.title}</h1>
 	</div>
 

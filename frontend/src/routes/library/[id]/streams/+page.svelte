@@ -130,13 +130,13 @@
 
 <!-- 본문 -->
 {#if data.failure && data.streams.length === 0}
-	<LoadFailure failure={data.failure} retryKey={`app:activity-streams:${data.activityId}`} backHref="{base}/library/{data.activityId}" backLabel="← 활동으로 돌아가기" notFoundText="활동을 찾을 수 없어요" />
+	<LoadFailure failure={data.failure} retryKey={`app:activity-streams:${data.activityId}`} backHref="{base}/library/{data.activityId}" backLabel="‹ 활동으로 돌아가기" notFoundText="활동을 찾을 수 없어요" />
 {:else if data.streams.length === 0}
 	<div class="px-4 py-8 text-center">
 		<p class="text-sm text-fg-muted">스트림 데이터 없음</p>
 		<p class="mt-1 text-xs text-fg-muted" data-testid="empty-reason">{note.reason}</p>
 		{#if note.action}<a href="{base}{note.action.path}" class="mt-2 inline-block text-xs text-fg-secondary underline">{note.action.label}</a>{/if}
-		<a href="{base}/library/{data.activityId}" class="mt-2 block text-xs text-fg-muted underline">← 활동으로 돌아가기</a>
+		<a href="{base}/library/{data.activityId}" class="mt-2 block text-xs text-fg-muted underline">‹ 활동으로 돌아가기</a>
 	</div>
 {:else}
 	<div class="flex flex-col gap-4 px-4 py-4">

@@ -110,13 +110,12 @@
 				<p class="text-fg-secondary">플랜을 불러올 수 없습니다</p>
 				<p class="text-xs text-fg-muted">{data.errorMessage}</p>
 			{/if}
-			<a href="{base}/coach" class="mt-2 text-sm text-semantic-amber hover:underline">← 코치 홈</a>
+			<a href="{base}/coach" class="mt-2 text-sm text-semantic-amber hover:underline">‹ 코치 홈</a>
 		</div>
 	{:else if data.plan}
 		<!-- 헤더 -->
 		<div class="border-b border-border-subtle px-4 py-4">
 			<div class="mb-1 flex items-center gap-2">
-				<a href="{base}/coach" class="text-xs text-fg-muted hover:underline">← 코치</a>
 				<a href="{base}/coach/plan/new" class="ml-auto text-xs text-fg-muted hover:underline" data-testid="plan-new-link">새 플랜</a>
 				<a href="{base}/coach/plan?past=1" class="text-xs text-fg-muted hover:underline">지난 플랜</a>
 			</div>

@@ -30,7 +30,7 @@
 {#if data.errorMessage || !data.pairs}
 	<div class="px-4 py-8 text-center">
 		<p class="text-sm text-fg-secondary">{data.errorMessage ?? '데이터가 없어요.'}</p>
-		<a href={back} class="mt-2 block text-xs text-fg-muted underline">← 소스 비교로</a>
+		<a href={back} class="mt-2 block text-xs text-fg-muted underline">‹ 소스 비교로</a>
 	</div>
 {:else}
 	<div class="space-y-3 px-4 py-3">

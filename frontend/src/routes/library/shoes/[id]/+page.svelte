@@ -63,7 +63,7 @@
 
 <div class="flex flex-col gap-5 px-4 py-4 pb-24">
 	{#if !data.shoe.ok && data.shoe.failure.kind === 'not_found'}
-		<EmptyState title="신발을 찾을 수 없어요" description="삭제됐거나 합쳐진 신발일 수 있어요." actionLabel="← 목록으로" actionHref="{base}/library/shoes" />
+		<EmptyState title="신발을 찾을 수 없어요" description="삭제됐거나 합쳐진 신발일 수 있어요." actionLabel="‹ 목록으로" actionHref="{base}/library/shoes" />
 	{:else if !data.shoe.ok}
 		<ErrorState failure={data.shoe.failure} onRetry={reload} />
 	{:else if shoe}

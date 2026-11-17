@@ -120,7 +120,7 @@
 {/snippet}
 
 <div class="mx-auto max-w-xl space-y-4 p-4 pb-48 lg:pb-32">
-	<a href={href.plan} class="inline-flex min-h-11 items-center text-xs text-fg-secondary">← 계획</a>
+	<a href={href.plan} class="inline-flex min-h-11 items-center text-xs text-fg-secondary">‹ 계획</a>
 	<PageHead title="남은 일정 다시 맞추기" class="text-lg font-semibold" />
 
 	{#if stage === 'applied' && applied}

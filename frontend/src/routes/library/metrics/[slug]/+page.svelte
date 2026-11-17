@@ -118,7 +118,7 @@
 </div>
 
 {#if data.failure && !data.trend}
-	<LoadFailure failure={data.failure} retryKey={`app:metric:${data.slug}`} backHref="{base}/library/metrics" backLabel="← 메트릭 브라우저로" notFoundText="없는 메트릭이에요" />
+	<LoadFailure failure={data.failure} retryKey={`app:metric:${data.slug}`} backHref="{base}/library/metrics" backLabel="‹ 메트릭 브라우저로" notFoundText="없는 메트릭이에요" />
 {:else if data.trend}
 	{#if lockedNotice}
 		<div class="mx-4 mt-3 rounded-lg border border-dashed border-border-subtle px-3 py-2" data-testid="metric-locked">

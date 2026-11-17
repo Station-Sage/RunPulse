@@ -1,5 +1,5 @@
 <script lang="ts">
-	import PageHead from '$lib/components/ui/PageHead.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import ToggleGroup from '$lib/components/ui/ToggleGroup.svelte';
 	// 03e-coach.md 5-D — 새 프로그램 생성: 거리/날짜/목표 입력.
 	import { goto } from '$app/navigation';
@@ -86,14 +86,10 @@
 	}
 </script>
 
-<PageHead title="새 플랜" heading={null} />
+<PageHeader title="새 플랜" heading="새 프로그램" back backLabel="이전" fallback="/coach/plan" />
 
 <div class="flex flex-col">
 	<div class="border-b border-border-subtle px-4 py-3">
-		<div class="mb-1">
-			<a href="{base}/coach" class="text-xs text-fg-muted hover:underline">← 코치</a>
-		</div>
-		<h1 class="text-base font-semibold">새 프로그램</h1>
 		<p class="text-xs text-fg-muted">{planStepText(1)} — 목표와 운동 요일을 정해요</p>
 	</div>
 

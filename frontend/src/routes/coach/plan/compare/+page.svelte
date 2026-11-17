@@ -67,7 +67,7 @@
 <div class="flex flex-col">
 	<div class="border-b border-border-subtle px-4 py-3">
 		<div class="mb-1">
-			<a href="{base}/coach/plan/new" class="text-xs text-fg-muted hover:underline">← 새 프로그램</a>
+			<a href="{base}/coach/plan/new" class="text-xs text-fg-muted hover:underline">‹ 새 프로그램</a>
 		</div>
 		<h1 class="text-base font-semibold">프로그램 비교</h1>
 		<p class="text-xs text-fg-muted">{planStepText(2)} — 원하는 프로그램을 선택하세요</p>

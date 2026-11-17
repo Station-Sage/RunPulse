@@ -13,7 +13,7 @@
 
 <!-- 본문 -->
 {#if data.failure && !data.comparison}
-	<LoadFailure failure={data.failure} retryKey={`app:activity:${data.activityId}`} backHref="{base}/library/{data.activityId}" backLabel="← 활동으로 돌아가기" notFoundText="활동을 찾을 수 없어요" />
+	<LoadFailure failure={data.failure} retryKey={`app:activity:${data.activityId}`} backHref="{base}/library/{data.activityId}" backLabel="‹ 활동으로 돌아가기" notFoundText="활동을 찾을 수 없어요" />
 {:else}
 	<ProviderComparison
 		data={data.comparison}

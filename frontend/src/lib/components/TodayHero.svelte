@@ -7,6 +7,7 @@
 	import { heroView, caveatText } from '$lib/todayHero';
 	import { providerLabel } from '$lib/provider';
 	import { planNewHref } from '$lib/planPrefill';
+	import { sessionDetail } from '$lib/ctaRoutes';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
 
 	let { briefing, goal = null, onEvidence, onRetry }: {
@@ -45,7 +46,7 @@
 		{#if view.cta === 'plan_new'}
 			<a href={planHref} class="self-start rounded-md bg-surface-3 px-3 py-1.5 text-sm font-medium hover:bg-border-subtle">계획 만들기 ›</a>
 		{:else if view.cta === 'session'}
-			<a href="{base}/coach/plan" class="self-start text-sm text-fg-secondary hover:text-fg-primary">세션 상세 ›</a>
+			<a href="{base}{sessionDetail(goal?.id, briefing.session?.date)}" class="self-start text-sm text-fg-secondary hover:text-fg-primary">세션 상세 ›</a>
 		{:else if view.cta === 'activity' && briefing.today_result}
 			<a href="{base}/library/{briefing.today_result.activity_id}?from=today" class="self-start text-sm text-fg-secondary hover:text-fg-primary">활동 보기 ›</a>
 		{/if}

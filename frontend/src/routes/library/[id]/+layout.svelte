@@ -64,7 +64,7 @@
 			class="shrink-0 text-sm text-fg-muted"
 			onclick={onBack}
 			aria-label="{withEuro(back.label)} 돌아가기"
-			data-testid="activity-back">← {back.label}</a
+			data-testid="activity-back">‹ {back.label}</a
 		>
 		{#if core}
 			<div class="min-w-0 flex-1">
@@ -102,7 +102,7 @@
 	<div class="flex flex-col items-center gap-3 px-4 py-20 text-center" data-testid="activity-missing">
 		<PageHead title={missing.title} class="text-lg text-fg-secondary" />
 		<p class="text-sm text-fg-muted">{missing.body}</p>
-		<a href="{base}/library/activities" class="text-sm text-fg-secondary underline">← 활동 목록으로</a>
+		<a href="{base}/library/activities" class="text-sm text-fg-secondary underline">‹ 활동 목록으로</a>
 	</div>
 {:else}
 	{@render children()}

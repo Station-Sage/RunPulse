@@ -71,7 +71,7 @@
 <div class="flex min-h-[calc(100dvh-8rem)] flex-col">
 	<DegradedBanner {engine} />
 	<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-		<a href={metric ? `${base}/library/metrics/${metric.slug}?date=${metric.date}` : data.activityId != null ? `${base}/library/${data.activityId}` : `${base}/coach`} class="shrink-0 text-fg-muted" aria-label="활동으로" data-testid="new-back">←</a>
+		<a href={metric ? `${base}/library/metrics/${metric.slug}?date=${metric.date}` : data.activityId != null ? `${base}/library/${data.activityId}` : `${base}/coach`} class="shrink-0 text-fg-muted" aria-label="활동으로" data-testid="new-back">‹</a>
 		<h1 class="min-w-0 flex-1 truncate text-base font-semibold">코치에게 묻기</h1>
 	</div>
 
@@ -83,7 +83,7 @@
 			{:else}
 				<p class="text-fg-secondary">{data.activityId != null ? '활동 정보를 불러올 수 없어요' : '무엇에 대해 물어볼지 정해지지 않았어요'}</p>
 			{/if}
-			<a href="{base}/coach" class="inline-flex min-h-11 items-center text-sm text-fg-secondary underline">← Coach로</a>
+			<a href="{base}/coach" class="inline-flex min-h-11 items-center text-sm text-fg-secondary underline">‹ Coach로</a>
 		</div>
 	{:else}
 		<div class="flex flex-1 flex-col gap-4 px-4 py-4">

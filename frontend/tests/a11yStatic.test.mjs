@@ -72,8 +72,8 @@ const pages = files.filter((f) => /\+(page|error)\.svelte$/.test(f) && f.include
 // 리다이렉트 전용 페이지(마크업 없음)는 제외.
 const REDIRECT_ONLY = new Set(['src/routes/+page.svelte', 'src/routes/library/wellness/+page.svelte']);
 const content = (f) => readFileSync(f, 'utf8');
-const hasHead = (s) => /<PageHead\b/.test(s) || /<title>/.test(s);
-const ownsH1 = (s) => /<h1\b/.test(s) || /<PageHead\b(?![^>]*heading=\{null\})/.test(s);
+const hasHead = (s) => /<PageHead(?:er)?\b/.test(s) || /<title>/.test(s);
+const ownsH1 = (s) => /<h1\b/.test(s) || /<PageHead(?:er)?\b(?![^>]*heading=\{null\})/.test(s);
 
 test('모든 +page/+error 에 PageHead 또는 <title>', () => {
 	const bad = pages.filter((f) => !REDIRECT_ONLY.has(f) && !hasHead(content(f)));
@@ -89,7 +89,6 @@ const H1_IN_CHILD = [
 	'src/routes/library/[id]/providers/+page.svelte',
 	'src/routes/library/[id]/streams/+page.svelte',
 	'src/routes/library/wellness/[date]/+page.svelte',
-	'src/routes/coach/plan/[id]/session/[date]/+page.svelte',
 	'src/routes/today/+page.svelte',
 	'src/routes/welcome/+page.svelte'
 ];

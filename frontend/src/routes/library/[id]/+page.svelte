@@ -108,7 +108,7 @@
 		{#if data.errorMessage}
 			<p class="text-xs text-fg-muted">{data.errorMessage}</p>
 		{/if}
-		<a href="{base}/library/activities" class="text-sm text-fg-secondary underline">← 목록으로</a>
+		<a href="{base}/library/activities" class="text-sm text-fg-secondary underline">‹ 목록으로</a>
 	</div>
 {:else}
 	<!-- 요약 탭 본문 -->

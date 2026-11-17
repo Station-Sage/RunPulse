@@ -1,6 +1,6 @@
 <script lang="ts">
 	import TextField from '$lib/components/ui/TextField.svelte';
-	import PageHead from '$lib/components/ui/PageHead.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	// 03e-coach.md 5-G — 일일 세션 상세.
 	import type { SessionDetailPageData } from './+page';
 	import { saveSessionNote } from '$lib/api/plan';
@@ -46,14 +46,14 @@
 	}
 </script>
 
-<PageHead title="세션 상세" heading={null} />
+<PageHeader title="세션 상세" heading="세션 상세" back backLabel="플랜" fallback={`/coach/plan/${data.goalId}`} />
 
 <div class="flex flex-col">
 	{#if data.errorMessage && !data.session}
 		<div class="flex flex-col items-center gap-2 px-4 py-10 text-center">
 			<p class="text-fg-secondary">세션을 불러올 수 없습니다</p>
 			<p class="text-xs text-fg-muted">{data.errorMessage}</p>
-			<a href="{base}/coach/plan/{data.goalId}" class="mt-2 text-sm text-semantic-amber hover:underline">← 플랜 상세</a>
+			<a href="{base}/coach/plan/{data.goalId}" class="mt-2 text-sm text-semantic-amber hover:underline">‹ 플랜 상세</a>
 		</div>
 	{:else if data.session}
 		<!-- 헤더 -->
