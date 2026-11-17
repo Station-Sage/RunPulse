@@ -1,6 +1,7 @@
 <script lang="ts">
 	// 1/4 기기 연결 — Garmin은 연결 시트(이 화면 안), Strava는 OAuth(return_to), 키 방식은 소스 상세로.
 	import { base } from '$app/paths';
+	import { withFrom } from '$lib/backNav';
 	import { onMount } from 'svelte';
 	import { connectSource, getSyncState } from '$lib/api/data';
 	import GarminConnectSheet from '../data/GarminConnectSheet.svelte';
@@ -37,8 +38,8 @@
 		}
 	}
 	const rows = [
-		{ id: 'intervals', label: 'Intervals.icu', href: `${base}/data/sources/intervals`, note: 'API 키 입력' },
-		{ id: 'runalyze', label: 'Runalyze', href: `${base}/data/sources/runalyze`, note: 'API 키 입력' }
+		{ id: 'intervals', label: 'Intervals.icu', href: `${base}${withFrom('/data/sources/intervals', '/welcome?step=1')}`, note: 'API 키 입력' },
+		{ id: 'runalyze', label: 'Runalyze', href: `${base}${withFrom('/data/sources/runalyze', '/welcome?step=1')}`, note: 'API 키 입력' }
 	];
 </script>
 

@@ -30,7 +30,7 @@
 		if (tp.value != null) overrides.threshold_pace = tp.value;
 		try {
 			await patchProfile({ overrides });
-			msg = '저장했어요';
+			msg = '저장했어요. 아래 \'완료\'를 눌러 마치세요.';
 		} catch (e) {
 			msg = e instanceof ApiError && e.status === 400 ? `저장하지 못했어요: ${e.message}` : '저장하지 못했어요. 나중에 설정에서 입력할 수 있어요.';
 		}
