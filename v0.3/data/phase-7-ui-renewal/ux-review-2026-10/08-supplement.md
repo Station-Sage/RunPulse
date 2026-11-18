@@ -71,3 +71,10 @@
 - 코드 확인: S-15 skip 링크("본문 바로가기", `+layout.svelte`, Tab→Enter 시 `#main` 포커스) 이미 구현됨, S-21 welcome 동기화 배지 `hideSyncPill` 로 숨김됨, S-04 활동 목록은 `ErrorState` 재시도 있음, S-01~03 오류 상태는 `ErrorState`/`missingActivityView` 로 처리됨 — 위 "미확인" 표기는 해소.
 - MetricTerm ⓘ 히트 영역 확대(after:-inset-3), Library 최고기록 "전체 ›" 44px.
 - 잔여(결정/서버): S-12/13·E-15 대비 토큰, E-20 초대 mailto, S-18 데이터, T-03/T-21/T-25.
+
+### 처리 기록 (2026-11-18, 잔여 일괄 — 추천안 채택)
+- 수정: T-03 UTRS 신뢰도 0.5 미만이면 게이지에 "입력 일부 누락 · 참고용" 배지, E-15/S-12/13 `--color-fg-secondary` `#a3b1c6` 상향, T-21 주간 요약 프롬프트에 W1·W2 나열 금지(캐시 키 `:r4`), A-28 활동 상세 시간 칸 "시간 (이동/총)" 값=이동 시간·단위=`/ 총 …`(375px 줄바꿈, 가로 넘침 없음 확인).
+- 이미 해결(코드 확인): T-08(`raceHub.ts` '모델 범위'), M-09(`displayLabel` 공용), A-31(`activityRow.ts` 수영 /100m·m), T-25(trend 404 skip `shouldFetchChart`, `redirectToWelcomeIfNew`), T-28(차트는 today 이후 fetch), breadcrumb(DrillPanel 텍스트 전용, 비대화형).
+- 의도 유지: `/coach/plan/active` 404 는 `nullOn404`/`orNull` 로 처리되는 설계.
+- 수락·보류: S-18 Strava 'Z'(실제 UTC) 와 타 소스 로컬 시각 혼재는 데이터 재작성 없이 읽기 시 환산(S-17)만 유지. E-20 초대 mailto 는 기본안(변경 없음).
+- 미검증: T-01 주간 스트립은 사용한 사본 DB 에 플랜이 없어 시각 확인 불가.

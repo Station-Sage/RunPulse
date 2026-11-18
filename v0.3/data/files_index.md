@@ -24,7 +24,7 @@
 > 주의: metric_store 조회 시 is_primary=1 필터 필수. CalcContext는 사용하지 않는다
 > (ADR-009는 Calculator 전용, 서비스 레이어와 다른 레이어).
 
-### `_narrative.py` (231줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
+### `_narrative.py` (232줄) — 내러티브 생성 헬퍼 — today_service.get_today_narrative() 전용.
 
 - functions: month_date_range, peak_ctl_in_range, query_metric, sleep_trend, build_evidence, build_narrative_prompt, empty_month_text, attach_drill, get_narrative_cache, set_narrative_cache, rule_narrative
 
