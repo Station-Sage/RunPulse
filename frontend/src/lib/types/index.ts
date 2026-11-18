@@ -792,6 +792,7 @@ export interface GaugeEntry {
 	status_label: string | null;
 	provider: ProviderKey | null;
 	version: string;
+	confidence?: number | null;
 	freshness?: FreshnessInfo | null;
 }
 

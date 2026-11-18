@@ -19,6 +19,7 @@
 	const color = $derived(entry?.status ? COLORS[entry.status] ?? 'var(--color-semantic-teal)' : 'var(--color-semantic-teal)');
 	const badge = $derived(freshnessBadgeText(entry?.freshness));
 	const delta = $derived(deltaText(entry?.delta_1d));
+	const lowConfidence = $derived(slug === 'utrs' && entry?.confidence != null && entry.confidence < 0.5);
 
 	// 반원: 중심 (50,50) 반지름 40, 각도 180°(왼쪽)~0°(오른쪽)
 	function pt(deg: number, r = 40): [number, number] {
@@ -80,6 +81,7 @@
 	{#if entry}
 		<span class="text-[11px]" style="color:{color}">{entry.status_label ?? ''}</span>
 		{#if badge}<span class="rounded bg-surface-3 px-1.5 py-0.5 text-[10px] text-fg-muted" data-testid="gauge-fresh-badge">{badge}</span>{/if}
+		{#if lowConfidence}<span class="rounded bg-surface-3 px-1.5 py-0.5 text-[10px] text-semantic-amber" data-testid="gauge-lowconf">입력 일부 누락 · 참고용</span>{/if}
 		<span class="text-[10px] text-fg-muted">{delta ? `어제 대비 ${delta}` : ' '}</span>
 	{/if}
 </button>
