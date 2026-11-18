@@ -18,6 +18,7 @@ from src.ai import tool_exec_context as _ctx
 from src.ai import tool_exec_raw as _raw
 from src.ai import tool_exec_series as _series
 from src.ai.tool_exec_adherence import _exec_get_plan_adherence
+from src.ai.tool_exec_plan_constraints import _exec_get_plan_constraints
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ _DISPATCH = {
     "compare_periods": _ctx._exec_compare_periods,
     "get_training_plan": _ctx._exec_get_training_plan,
     "get_plan_adherence": _exec_get_plan_adherence,
+    "get_plan_constraints": _exec_get_plan_constraints,
     "get_runner_profile": _ctx._exec_get_runner_profile,
     "get_weather": _ctx._exec_get_weather,
     "get_wellness_series": _series._exec_get_wellness_series,

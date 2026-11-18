@@ -60,7 +60,7 @@ def rest_mask(days: int) -> int:
     return sum(1 << i for i in range(7) if i not in avail)
 
 
-def _plan_from_rows(k: int, to_race: int, rows: list[dict]) -> G.WeekPlan:
+def rows_to_weekplan(k: int, to_race: int, rows: list[dict]) -> G.WeekPlan:
     race = next((r["date"] for r in rows if r["workout_type"] == "race"), None)
     days = [G.Session("shakeout" if r["workout_type"] != "rest" and _is_shakeout(r, race) else r["workout_type"], 0.0 if r["workout_type"] == "race" else float(r.get("distance_km") or 0.0), mp_km=float(r.get("mp_km") or 0.0),
                       pace_sec=r.get("target_pace_min")) for r in rows]
@@ -80,7 +80,7 @@ def engine_v1(scn: Scenario, conn: sqlite3.Connection, rules_version: int = 1) -
     weeks = []
     for k in range(scn.plan_weeks):
         rows = generate_weekly_plan(conn, gid, week_start=start + timedelta(weeks=k), as_of=start)
-        weeks.append(_plan_from_rows(k, scn.plan_weeks - 1 - k, rows))
+        weeks.append(rows_to_weekplan(k, scn.plan_weeks - 1 - k, rows))
     conn.execute("DELETE FROM goals WHERE id=?", (gid,))
     return weeks, {}
 

@@ -1268,7 +1268,7 @@
 
 - functions: main
 
-### `tool_declarations.py` (282줄) — AI Function Calling 도구 선언 — Gemini function_declarations 형식.
+### `tool_declarations.py` (287줄) — AI Function Calling 도구 선언 — Gemini function_declarations 형식.
 
 - (public API 없음)
 
@@ -1285,6 +1285,10 @@
 - functions: fitness_rows
 
 ### `tool_exec_laps.py` (112줄) — 랩(세트) 단위 도구 실행기 — 랩별 기록, 세션 간 세트 비교.
+
+- (public API 없음)
+
+### `tool_exec_plan_constraints.py` (39줄) — get_plan_constraints 도구 실행기 — 계획 초안이 지켜야 할 사용자 선호·게이트 한계값(읽기 전용).
 
 - (public API 없음)
 
@@ -1308,7 +1312,7 @@
 
 - (public API 없음)
 
-### `tools.py` (61줄) — AI Function Calling 도구 진입점 — 선언 재노출 + 실행 디스패치.
+### `tools.py` (63줄) — AI Function Calling 도구 진입점 — 선언 재노출 + 실행 디스패치.
 
 - functions: execute_tool
 
@@ -1461,7 +1465,7 @@
 ### `plan_backtest.py` (237줄) — 계획 엔진 백테스트(읽기 전용) — v1/v2 엔진을 같은 시나리오로 돌려 plan_gates 로 판정한다.
 
 - class **Scenario**: start_monday
-- functions: workout_mask, rest_mask, engine_v1, engine_v2, grid_scenarios, seed_grid_history, history_inputs, history_scenarios, judge, run_scenario, summarize
+- functions: workout_mask, rest_mask, rows_to_weekplan, engine_v1, engine_v2, grid_scenarios, seed_grid_history, history_inputs, history_scenarios, judge, run_scenario, summarize
 
 ### `plan_backtest_replan.py` (83줄) — 재계획(v1 계획 중간 anchor 에서 v2 로 전환) 백테스트 — 전환 이후 주(꼬리)를 게이트로 판정한다 (PLAN-ENGINE E7).
 
@@ -3232,6 +3236,10 @@
 
 - functions: test_replan_grid_skips_cold_and_short_tails, test_replan_tail_passes_hard_gates_sample
 
+### `test_plan_constraints_tool.py` (36줄) — get_plan_constraints 도구 — 선호·게이트 한계값 반환.
+
+- functions: test_registered_and_classified, test_no_goal_defaults, test_rows_to_weekplan_public
+
 ### `test_plan_create_atomic.py` (56줄) — POST /coach/plan 생성 — 단일 트랜잭션·이전 목표 미래 행 정리 (ADR-035 부록 R T6).
 
 - functions: test_create_cancels_old_goal_and_clears_its_future_rows, test_failure_rolls_back_goal_and_plan, test_commit_false_defers_to_caller
@@ -4002,7 +4010,7 @@
 - functions: run
 
 ---
-총 868개 파일
+총 870개 파일
 
 ## docstring 누락
 

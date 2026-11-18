@@ -5,7 +5,7 @@ REMOTE_TOOLS: frozenset[str] = frozenset({
     "get_activity", "get_activities_range", "get_activity_detail", "get_activity_laps",
     "compare_workout_sets", "get_training_summary", "get_metrics", "get_metrics_trend",
     "get_wellness", "get_fitness", "get_race_history", "compare_periods",
-    "get_training_plan", "get_plan_adherence", "get_runner_profile", "get_weather",
+    "get_training_plan", "get_plan_adherence", "get_plan_constraints", "get_runner_profile", "get_weather",
     "get_wellness_series", "get_insights", "get_checkins", "get_predictions",
 })
 REMOTE_DENIED: frozenset[str] = frozenset()

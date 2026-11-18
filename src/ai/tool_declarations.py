@@ -215,6 +215,11 @@ TOOL_DECLARATIONS = [
         }
     },
     {
+        "name": "get_plan_constraints",
+        "description": "훈련 계획 초안이 지켜야 할 제약: 운동·휴식·롱런 요일, 차단 날짜, Q일 상한, 세션 최소·주간 증가율·롱런 상한 등 게이트 한계값.",
+        "parameters": {"type": "object", "properties": {}}
+    },
+    {
         "name": "get_wellness_series",
         "description": "웰니스 시계열의 일별 요약(평균·최소·최대)과 7/28일 기준선. kind 생략 시 존재하는 kind 목록. 최대 120일.",
         "parameters": {"type": "object", "properties": {

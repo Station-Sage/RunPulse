@@ -29,7 +29,7 @@ def engine_replan(scn: B.Scenario, conn: sqlite3.Connection, anchor_k: int) -> t
     weeks = []
     for k in range(anchor_k, scn.plan_weeks):
         rows = generate_weekly_plan(conn, gid, week_start=start + timedelta(weeks=k), as_of=anchor)
-        weeks.append(B._plan_from_rows(k - anchor_k, scn.plan_weeks - 1 - k, rows))
+        weeks.append(B.rows_to_weekplan(k - anchor_k, scn.plan_weeks - 1 - k, rows))
     conn.execute("DELETE FROM plan_replans WHERE goal_id=?", (gid,))
     conn.execute("DELETE FROM goals WHERE id=?", (gid,))
     return weeks, {"anchor_km": km}
