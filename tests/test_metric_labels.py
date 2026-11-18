@@ -71,7 +71,7 @@ def test_texts_within_40_chars():
 def test_action_hint_keys_are_five_level_status():
     from src.metrics.bands import BANDS
 
-    allowed = {"excellent", "good", "neutral", "caution", "poor"}
+    allowed = {"excellent", "good", "neutral", "caution", "poor", "low", "layoff"}
     for name, lab in METRIC_LABELS.items():
         if lab.action_hint:
             assert set(lab.action_hint) <= (allowed if name != "crs" else {f"level_{i}" for i in range(5)}), name

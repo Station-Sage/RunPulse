@@ -173,7 +173,7 @@ def get_metrics_browser(conn: sqlite3.Connection, date: str | None = None) -> di
                 name, entry.get("status"), _crs_level(conn, date),
                 assertive=fr.get("assertive", True), boost_hold=crs_boost_hold(conn, date)["hold"])
         else:
-            entry["action_hint"] = action_hint(name, entry.get("status"))
+            entry["action_hint"] = action_hint(name, entry.get("status"), value=value, conn=conn)
         group_map.setdefault(group, []).append((salience_key(entry, idx), entry))
 
     categories = []

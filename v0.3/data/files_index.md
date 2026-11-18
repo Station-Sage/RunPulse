@@ -281,9 +281,9 @@
 
 - functions: classify, baseline_z, salience_key
 
-### `metric_display.py` (87줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
+### `metric_display.py` (103줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
 
-- functions: display_name, action_hint, min_span, display_meta
+- functions: display_name, band_key, action_hint, min_span, display_meta
 
 ### `metric_freshness.py` (240줄) — 메트릭 신선도 평가 (ADR-050) — 값이 오늘의 입력으로 계산됐는지 fresh/partial/stale/missing 으로 판정.
 
@@ -292,6 +292,10 @@
 ### `metric_freshness_spec.py` (40줄) — 메트릭별 신선도 입력 명세 (ADR-050) — 어떤 wellness 컬럼·선행 메트릭에 의존하는지 선언.
 
 - (public API 없음)
+
+### `metric_notes.py` (85줄) — 지표 안내 문구 사전 생성 (Claude 큐) — 규칙 힌트를 haiku 로 미리 다듬어 ai_outputs(kind='metric_note')에 캐시한다.
+
+- functions: cached_note, warm, warm_in_background
 
 ### `metric_unlock_service.py` (32줄) — 지표 해금 진행도 — 핵심 게이지(CTL·TSB·CIRS·UTRS)가 열리기까지 모은 일수 (REVIEW03 §2.5, D-L7).
 
@@ -866,7 +870,7 @@
 
 - functions: scheduler_mode, start, stop, restart, status
 
-### `bg_sync.py` (582줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (584줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
@@ -1662,7 +1666,7 @@
 
 - functions: get_group_for_metric, get_group_members
 
-### `metric_label_texts.py` (113줄) — 지표 한 줄 설명(description_short)·상태별 행동 힌트(action_hint) — B-4 1차 범위(기본 8 + 대표 20).
+### `metric_label_texts.py` (115줄) — 지표 한 줄 설명(description_short)·상태별 행동 힌트(action_hint) — B-4 1차 범위(기본 8 + 대표 20).
 
 - (public API 없음)
 
@@ -3072,6 +3076,10 @@
 
 - class **TestMetricNaming**: test_no_calculator_uses_activity_summary_column_name, test_no_duplicate_produces_across_calculators, test_all_produces_are_non_empty, test_all_names_are_unique
 
+### `test_metric_notes.py` (54줄) — 지표 안내 문구 사전 생성(metric_notes) + ACWR 저부하·휴식기 밴드.
+
+- functions: test_band_key_acwr_low_and_layoff, test_action_hint_layoff_text_differs_from_overload, test_cached_note_used_only_when_rule_unchanged, test_warm_stores_valid_and_rejects_numbers, test_warm_noop_when_queue_unavailable
+
 ### `test_metric_priority.py` (100줄) — metric_priority.py 단위 테스트 — Phase 1 조건 7
 
 - class **TestProviderPriority**: test_user_highest, test_garmin_before_strava, test_runpulse_ml_before_garmin, test_unknown_provider_low_priority
@@ -4038,7 +4046,7 @@
 - functions: run
 
 ---
-총 877개 파일
+총 879개 파일
 
 ## docstring 누락
 

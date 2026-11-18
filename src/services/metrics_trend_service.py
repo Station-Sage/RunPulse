@@ -90,7 +90,7 @@ def get_metric_trend(
             slug, (grade(slug, current) or {}).get("status"), _crs_level(conn, current_date),
             assertive=freshness["assertive"], boost_hold=crs_boost_hold(conn, current_date)["hold"])
     else:
-        hint = action_hint(slug, (grade(slug, current) or {}).get("status"))
+        hint = action_hint(slug, (grade(slug, current) or {}).get("status"), value=current, conn=conn)
 
     return {
         "slug": slug,
