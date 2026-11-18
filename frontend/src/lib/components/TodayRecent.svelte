@@ -15,6 +15,6 @@
 		{#each activities as act (act.id)}
 			<ActivityRow {act} from="today" showProvider thumbSize={32} />
 		{/each}
-		<a href="{base}/library/activities" class="mt-1 text-xs text-fg-secondary hover:text-fg-primary">활동 전체 →</a>
+		<a href="{base}/library/activities" class="mt-1 inline-flex min-h-11 items-center text-xs text-fg-secondary hover:text-fg-primary">활동 전체 →</a>
 	{/if}
 </div>

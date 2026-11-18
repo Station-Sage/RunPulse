@@ -23,7 +23,7 @@
 		<section class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-2 p-3" aria-label="피트니스·폼">
 			<div class="flex items-center justify-between text-xs text-fg-muted">
 				<span>체력·피로·폼 · 최근 3개월{hub?.projection ? ' + 레이스 예측' : ''}</span>
-				<button type="button" onclick={onMonth} class="hover:text-fg-primary">이번 달 이야기 →</button>
+				<button type="button" onclick={onMonth} class="inline-flex min-h-11 items-center hover:text-fg-primary">이번 달 이야기 →</button>
 			</div>
 			<FormChart
 				ctl={c.ctl.points}

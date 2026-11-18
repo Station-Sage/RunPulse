@@ -54,10 +54,10 @@
 					{/if}
 				{/each}
 			</div>
-			<button class="self-start text-sm text-fg-secondary hover:text-fg-primary" onclick={onMilestones}>전체 마일스톤 →</button>
+			<button class="inline-flex min-h-11 items-center self-start text-sm text-fg-secondary hover:text-fg-primary" onclick={onMilestones}>전체 마일스톤 →</button>
 		{/if}
 		{#if n.source === 'rule'}<p class="text-xs text-fg-muted">규칙 기반 요약</p>{/if}
-		<button class="self-start text-sm text-fg-secondary hover:text-fg-primary" onclick={onMonth}>이번 달 전체 이야기 보기 →</button>
+		<button class="inline-flex min-h-11 items-center self-start text-sm text-fg-secondary hover:text-fg-primary" onclick={onMonth}>이번 달 전체 이야기 보기 →</button>
 	{:else}
 		<p class="text-sm text-fg-secondary">
 			현재 CTL {ctl ?? '—'} · <span class="text-fg-muted">상세 이야기를 불러올 수 없습니다.</span>

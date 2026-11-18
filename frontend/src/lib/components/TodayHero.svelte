@@ -44,7 +44,7 @@
 			<p class="rounded-md bg-surface-3 px-2.5 py-1.5 text-sm text-fg-muted" data-testid="hero-hold">{view.hold}</p>
 		{/if}
 		{#if view.cta === 'plan_new'}
-			<a href={planHref} class="self-start rounded-md bg-surface-3 px-3 py-1.5 text-sm font-medium hover:bg-border-subtle">계획 만들기 ›</a>
+			<a href={planHref} class="inline-flex min-h-11 items-center self-start rounded-md bg-surface-3 px-3 text-sm font-medium hover:bg-border-subtle">계획 만들기 ›</a>
 		{:else if view.cta === 'session'}
 			<a href="{base}{sessionDetail(goal?.id, briefing.session?.date)}" class="self-start text-sm text-fg-secondary hover:text-fg-primary">세션 상세 ›</a>
 		{:else if view.cta === 'activity' && briefing.today_result}

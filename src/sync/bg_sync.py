@@ -138,6 +138,11 @@ class BgSyncThread(threading.Thread):
 
         total_synced = job.synced_count
         total_req = job.req_count
+        try:
+            from src.training.match_hooks import count_canonical
+            canonical_before = count_canonical(str(get_db_path(self.user_id)))
+        except Exception:
+            canonical_before = 0
         job_from = job.from_date  # progress_cb 클로저에서 사용
 
         def _progress_cb(day_str: str, synced: int = 0, req: int = 0) -> None:
@@ -273,20 +278,19 @@ class BgSyncThread(threading.Thread):
             from src.services.narrative_warm import warm_in_background
             warm_in_background(str(get_db_path(self.user_id)), date.today().isoformat(), self.config)
 
-        # 동기화 완료 후 최근 4주 계획↔활동 자동 매칭
+        # 동기화 완료 후 최근 4주 계획↔활동 자동 매칭 (신규 활동이 있을 때만, 결과는 counts_json 에 기록)
+        from src.training.match_hooks import count_canonical, run_post_sync_match
+        db_path = str(get_db_path(self.user_id))
         try:
-            import sqlite3 as _sqlite3
-            from datetime import date as _date, timedelta as _td
-            from src.training.matcher import match_week_activities
-            today = _date.today()
-            this_week = today - _td(days=today.weekday())
-            with _sqlite3.connect(str(get_db_path(self.user_id)), timeout=30) as conn:
-                conn.execute("PRAGMA journal_mode=WAL")
-                for w in range(4):
-                    match_week_activities(conn, this_week - _td(weeks=w))
-                conn.commit()
+            new_acts = max(0, count_canonical(db_path) - canonical_before)
         except Exception:
-            pass
+            new_acts = total_synced
+        res = run_post_sync_match(db_path, new_acts)
+        update_job(
+            self.job_id,
+            counts_json=json.dumps({"activities": total_synced, "new_activities": new_acts, "match": res}),
+            **({"last_error": f"계획 매칭 실패: {res['error']}"} if "error" in res else {}),
+        )
 
     # ── 배치 실행 ─────────────────────────────────────────────────────
 

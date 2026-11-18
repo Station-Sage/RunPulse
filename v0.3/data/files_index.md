@@ -837,7 +837,7 @@
 
 - functions: scheduler_mode, start, stop, restart, status
 
-### `bg_sync.py` (569줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (573줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
@@ -1354,6 +1354,10 @@
 ### `marathon_rules.py` (64줄) — 마라톤 페이스(MP) 규칙 R6(순수) — 처방 MP, 롱런 페이스, long_mp 비중, 테이퍼 MP 세션 (DESIGN-U16 §2.3).
 
 - functions: prescribed_mp, long_run_pace, long_mp_km, taper_week1_mp_km, race_week_session, mp_now_from_prediction
+
+### `match_hooks.py` (39줄) — 동기화 후 계획↔활동 매칭 훅 — 신규 활동이 있을 때만 최근 N주를 재매칭하고 결과를 반환한다(HSR-5 b, HSR-9).
+
+- functions: count_canonical, run_post_sync_match
 
 ### `match_select.py` (62줄) — 계획↔활동 매칭 선택 규칙(순수) — 같은 날 활동 중 계획에 맞는 하나를 고르고, 결과 라벨을 분류한다.
 
@@ -2830,6 +2834,10 @@
 
 - functions: test_fresh_schema_accepts_new_types, test_v27_rebuild_keeps_rows_columns_and_indexes, test_marathon_structure_and_outcome_on_target, test_long_mp_structure_is_max_only, test_matcher_and_labels
 
+### `test_match_hooks.py` (34줄) — match_hooks — 신규 활동 0건이면 skip, 예외는 error 로 반환, 신규 있으면 최근 N주 매칭 실행.
+
+- functions: test_skip_when_no_new_activities, test_runs_weeks_when_new, test_error_is_reported_not_raised, test_count_canonical_empty
+
 ### `test_matcher_context_crs.py` (59줄) — matcher_context._get_condition_snapshot — 저장된 CRS 가 스냅샷에 채워지는지 (ADJ-22).
 
 - functions: test_snapshot_fills_crs_from_stored_row, test_snapshot_crs_none_without_row_or_other_day, test_snapshot_crs_none_on_invalid_row, test_snapshot_other_fields_unaffected_by_crs, test_skipped_outcome_persists_crs, test_snapshot_tsb_acwr_stale_rule
@@ -3824,7 +3832,7 @@
 - functions: run
 
 ---
-총 824개 파일
+총 826개 파일
 
 ## docstring 누락
 

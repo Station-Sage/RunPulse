@@ -186,7 +186,7 @@
 		<section class="flex flex-col gap-2 border-t border-border-subtle pt-4 lg:col-span-2">
 			<h2 class="text-xs uppercase tracking-wide text-fg-muted">원본 데이터</h2>
 			{#if !$demoActive}<TodayShoeAlert />{/if}
-			<a href="{base}/library" class="text-sm text-fg-secondary hover:text-fg-primary">Library에서 전체 탐색 →</a>
+			<a href="{base}/library" class="inline-flex min-h-11 items-center text-sm text-fg-secondary hover:text-fg-primary">Library에서 전체 탐색 →</a>
 		</section>
 	</div>
 

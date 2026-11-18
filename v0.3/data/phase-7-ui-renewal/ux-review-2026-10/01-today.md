@@ -88,3 +88,10 @@
 - T-03 부분: 입력 오래됨은 freshness 배지로 이미 표시. UTRS confidence 는 API(`GaugeEntry`)에 없어 노출하려면 서버 응답 확장 필요 → 보류.
 - 남은 항목: T-01(HSR-1/HSR-5 결정 대기), T-21 "W2~W5만 나열" 문구(AI 출력 의존), T-25 `coach/plan/active` 404(API 계약 변경), T-28 콜드 로드 실측.
 
+
+## 처리 기록 (2026-11-18, V2-AUDIT-INDIV Today 재검증)
+앞선 "이미됨/해결됨" 표기를 코드·브라우저(390px, pansongit 사본 DB)로 다시 확인한 결과.
+- T-01: HSR-1 (c)(같은 날 후보 1개면 거리비 무시)는 `match_select.pick_activity` 에 이미 구현·테스트됨. HSR-5 (b)(새 활동이 있을 때만 재매칭)는 이번에 구현 — `src/training/match_hooks.py`(`run_post_sync_match`, `count_canonical`), `bg_sync`/`sync.py` 연결, 실패는 삼키지 않고 job `last_error`·로그에 기록, `tests/test_match_hooks.py`. 계획이 있는 DB 에서의 화면 확인은 사본에 계획이 없어 미실시(주간 스트립 시각 검증 잔여).
+- T-12·터치 대상: 390px 실측에서 44px 미만이던 "계획 만들기 ›"(32px), "+ 상태"(20), "활동 전체 →"(16), "이번 달 이야기 →"(16), "전체 마일스톤 →"(20), "이번 달 전체 이야기 보기 →"(20), "Library에서 전체 탐색 →"(20)에 `min-h-11` 적용. 재측정 결과 44px 미만 0건, 가로 넘침 0, 콘솔 오류 0.
+- T-28: 콜드 로드 1GB 사본에서 6.5s → 차트 지연 로드 반영 뒤 재측정 3.3s(같은 사본, 단일 측정).
+- 여전히 열림: T-03(UTRS confidence 는 `GaugeEntry` 에 없음, 서버 응답 확장 필요), T-21 "W2~W5만 나열" 문구(AI 출력 의존), T-25 `coach/plan/active` 404(API 계약 변경).

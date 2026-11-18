@@ -122,6 +122,11 @@ def main() -> None:
 
     total_activities = 0
     total_wellness = 0
+    from src.training.match_hooks import count_canonical, run_post_sync_match
+    try:
+        canonical_before = count_canonical(str(db_path))
+    except Exception:
+        canonical_before = 0
 
     if len(sources) == 1:
         source = sources[0]
@@ -154,6 +159,12 @@ def main() -> None:
                 log.error("[%s] 예외 발생: %s", source, e)
 
     log.info("동기화 완료: 활동 %d개, 웰니스 %d개", total_activities, total_wellness)
+
+    try:
+        new_acts = max(0, count_canonical(str(db_path)) - canonical_before)
+    except Exception:
+        new_acts = total_activities
+    log.info("계획 매칭: %s", run_post_sync_match(str(db_path), new_acts))
 
     log.info("메트릭 계산 시작...")
     try:

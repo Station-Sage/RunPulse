@@ -78,7 +78,7 @@
 	<ContextEpisodeList episodes={list?.episodes ?? []} onChange={reload} />
 
 	{#if !open}
-		<button type="button" class="self-start text-sm text-fg-secondary hover:text-fg-primary" onclick={() => (open = true)}>+ 상태</button>
+		<button type="button" class="inline-flex min-h-11 items-center self-start text-sm text-fg-secondary hover:text-fg-primary" onclick={() => (open = true)}>+ 상태</button>
 	{:else}
 		<div class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-surface-1 p-3">
 			<ToggleGroup
