@@ -122,3 +122,9 @@
 
 ## 처리 기록 (2026-11-11, 실계정 응답시간 실측, S4-88)
 - 실계정 DB 사본(9회): 활동 상세 49~101ms(최대 스트림 5241점 활동 101ms), 스트림 `?max_points=1000` 7~58ms(1765점 28ms, 5241점 58ms) — 300ms 미만, 변경 없음.
+
+## 처리 기록 (2026-11-18, V2-AUDIT-INDIV 화면별 1차 — Library 활동)
+- A-01·A-03 해결됨 확인: 상세 히어로는 서버 `display` 계약을 따름(`activityDisplay.paceCell/altCells/showDistance`) — 수영은 m·/100m(이동시간 기준), 근력·기타는 거리·페이스 블록 없이 시간·심박·세트.
+- A-02 해결됨 확인: 해석 줄 머리말은 `build_verdict` 가 `display.label`(수영·근력·걷기 등)을 쓰고 러닝 전용 항목(페이스 변동·날씨 효과)은 러닝만 붙임.
+- A-33 해결됨 확인: `layout.css` `:focus-visible` 2px 링(`--color-focus-ring`, 다크 #38bdf8)으로 이미 교체.
+- 남은 A- 항목은 위 묶음(B1·B2·G)에서 처리·보류 사유가 기록된 대로 유지.
