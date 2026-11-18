@@ -64,7 +64,7 @@ def explain_utrs(conn: sqlite3.Connection, scope_type: str, scope_id: str) -> tu
 
 
 _CIRS_CHILD_LABEL = {
-    "cirs_acwr": ("ACWR 편차", "acwr"),
+    "cirs_acwr": ("ACWR 구간", "acwr"),
     "cirs_lsi": ("부하 스파이크(LSI)", "lsi"),
     "cirs_consecutive": ("연속 훈련일", "consecutive"),
     "cirs_fatigue": ("피로(CTL−ATL)", "fatigue"),

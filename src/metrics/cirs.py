@@ -10,11 +10,26 @@ from src.metrics.base import CalcContext, CalcResult, MetricCalculator, Confiden
 from src.metrics.lsi import LSICalculator
 
 
+def acwr_risk_band(acwr: float) -> float:
+    """ACWR 구간별 위험 점수. 0.8~1.3 안전, 저부하는 0.2 단위로 10/20/30, 1.3 초과 70, 1.5 초과 100."""
+    if acwr > 1.5:
+        return 100.0
+    if acwr > 1.3:
+        return 70.0
+    if acwr >= 0.8:
+        return 0.0
+    if acwr >= 0.6:
+        return 10.0
+    if acwr >= 0.4:
+        return 20.0
+    return 30.0
+
+
 class CIRSCalculator(MetricCalculator):
     name = "cirs"
     produces = ["cirs", "cirs_acwr", "cirs_lsi", "cirs_consecutive", "cirs_fatigue"]
     provider = "runpulse:formula_v1"
-    version = "1.0"
+    version = "1.1"
     scope_type = "daily"
     category = "readiness"
     display_name = "부상 위험 지수 (CIRS)"
@@ -42,11 +57,10 @@ class CIRSCalculator(MetricCalculator):
         components = {}
         total_weight = 0.0
 
-        # ── ACWR 편차 (1.0이 이상적, 벗어날수록 위험) ──
+        # ── ACWR 구간 위험 (저부하는 완만, 급증은 가파르게) ──
         acwr = ctx.get_metric("acwr", provider="runpulse:formula_v1")
         if acwr is not None:
-            acwr_risk = abs(acwr - 1.0) * 100  # 0.5→50, 1.5→50
-            acwr_risk = min(acwr_risk, 100)
+            acwr_risk = acwr_risk_band(acwr)
             components["acwr"] = acwr_risk
             total_weight += self.WEIGHTS["acwr"]
 

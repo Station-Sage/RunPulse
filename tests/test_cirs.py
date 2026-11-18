@@ -76,3 +76,8 @@ class TestCIRS:
         child_names = {r.metric_name for r in children}
         assert "cirs_acwr" in child_names
         assert "cirs_lsi" in child_names
+
+
+def test_acwr_risk_band():
+    from src.metrics.cirs import acwr_risk_band
+    assert [acwr_risk_band(x) for x in (1.6, 1.4, 1.0, 0.8, 0.7, 0.5, 0.25, 0.06)] == [100, 70, 0, 0, 10, 20, 30, 30]

@@ -631,7 +631,7 @@
 
 - class **ADTICalculator**: compute
 
-### `algo_changelog.py` (50줄) — Calculator 알고리즘 버전 변경 이력 — ◆ 마커·재계산 캡션의 단일 소스(순수 데이터, SQL 없음).
+### `algo_changelog.py` (51줄) — Calculator 알고리즘 버전 변경 이력 — ◆ 마커·재계산 캡션의 단일 소스(순수 데이터, SQL 없음).
 
 - class **AlgoChange**: 없음
 - functions: changes_for
@@ -648,9 +648,10 @@
 - class **ConfidenceBuilder**: add_input, compute
 - functions: load_group_streams
 
-### `cirs.py` (124줄) — CIRS (Composite Injury Risk Score) — 설계서 4-4 기준.
+### `cirs.py` (138줄) — CIRS (Composite Injury Risk Score) — 설계서 4-4 기준.
 
 - class **CIRSCalculator**: compute
+- functions: acwr_risk_band
 
 ### `classifier.py` (108줄) — Workout Classifier v2 — 세그먼트(랩 구조) 기반 세션 유형 판정(REVIEW-07 r4, REVIEW-09 §3, P7-PRED-23).
 
@@ -2414,9 +2415,10 @@
 
 - functions: test_clean_root_returns_0, test_violations_masked_and_exit_1, test_show_names_flag, test_symlink_escape_flagged, test_read_only_and_missing_root
 
-### `test_cirs.py` (78줄) — CIRS (Composite Injury Risk Score) 단위 테스트 — 설계서 4-6.
+### `test_cirs.py` (83줄) — CIRS (Composite Injury Risk Score) 단위 테스트 — 설계서 4-6.
 
 - class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data, test_child_metrics_have_parent_and_correct_names
+- functions: test_acwr_risk_band
 
 ### `test_claude_queue_client.py` (60줄) — claude_queue.run_job 스레드·진행·취소 확장 (E4-a).
 
