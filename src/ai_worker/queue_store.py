@@ -157,3 +157,28 @@ def worker_available(conn: sqlite3.Connection, now: str | None = None,
         "SELECT 1 FROM ai_worker_state WHERE heartbeat_at>=? AND (paused_until IS NULL OR paused_until<=?)"
         " LIMIT 1", (_shift(ts, -fresh_sec), ts)).fetchone()
     return row is not None
+
+
+def get_session(conn: sqlite3.Connection, thread_key: str) -> dict | None:
+    row = conn.execute("SELECT * FROM ai_sessions WHERE thread_key=?", (thread_key,)).fetchone()
+    return dict(row) if row else None
+
+
+def save_session(conn: sqlite3.Connection, thread_key: str, *, session_id: str, model: str, ctx_hash: str | None,
+                 turns: int, ctx_tokens: int, state: str = "active", retired_reason: str | None = None,
+                 new_session: bool = False, now: str | None = None) -> None:
+    """thread_key 의 세션 행을 upsert 한다. new_session 이면 created_at 을 갱신한다."""
+    ts = now or now_iso()
+    conn.execute(
+        "INSERT INTO ai_sessions(thread_key, session_id, model, ctx_hash, turns, ctx_tokens, state,"
+        " retired_reason, created_at, last_used_at) VALUES (?,?,?,?,?,?,?,?,?,?)"
+        " ON CONFLICT(thread_key) DO UPDATE SET session_id=excluded.session_id, model=excluded.model,"
+        " ctx_hash=excluded.ctx_hash, turns=excluded.turns, ctx_tokens=excluded.ctx_tokens, state=excluded.state,"
+        " retired_reason=excluded.retired_reason, last_used_at=excluded.last_used_at,"
+        " created_at=CASE WHEN ? THEN excluded.created_at ELSE ai_sessions.created_at END",
+        (thread_key, session_id, model, ctx_hash, turns, ctx_tokens, state, retired_reason, ts, ts,
+         1 if new_session else 0))
+
+
+def mark_session(conn: sqlite3.Connection, thread_key: str, state: str, reason: str | None = None) -> None:
+    conn.execute("UPDATE ai_sessions SET state=?, retired_reason=? WHERE thread_key=?", (state, reason, thread_key))

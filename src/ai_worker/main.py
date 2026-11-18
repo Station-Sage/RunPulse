@@ -15,6 +15,7 @@ from pathlib import Path
 
 from src.ai_worker import cli_runner as cr
 from src.ai_worker import queue_store as qs
+from src.ai_worker.session_pool import SessionPool
 
 DEADLINE_SEC = {"coach": 120, "insight_polish": 60, "narrative": 90, "adherence": 90,
                 "plan_draft": 240, "deep_analysis": 240, "ping": 60}
@@ -39,6 +40,10 @@ class Worker:
         self.stop = threading.Event()
         self.started_at = qs.now_iso()
         self._lock = threading.Lock()
+        self.sessions = SessionPool(size=2, cwd=str(self.work_dir), env=self._env())
+
+    def _env(self) -> dict:
+        return {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(Path.home())}
 
     # --- preflight -------------------------------------------------------
     def preflight(self) -> str | None:
@@ -61,7 +66,7 @@ class Worker:
         return None
 
     # --- job 실행 --------------------------------------------------------
-    def _prepare(self, job: dict) -> tuple[list[str], str]:
+    def _prepare(self, job: dict, session: tuple[str, bool] | None = None) -> tuple[list[str], str]:
         inp = json.loads(job["input_json"] or "{}")
         sys_file = None
         if job.get("system_ctx"):
@@ -82,7 +87,9 @@ class Worker:
             allowed = [f"mcp__runpulse__{t}" for t in inp.get("allowed_tools", [])]
         argv = cr.build_argv(model=job["model"], system_prompt_file=str(sys_file) if sys_file else None,
                              mcp_config=str(mcp_file) if mcp_file else None, allowed_tools=allowed,
-                             partial=True, claude_bin=self.claude_bin)
+                             partial=True, claude_bin=self.claude_bin,
+                             session_id=session[0] if session else None, resume=bool(session and session[1]),
+                             persist=bool(session), streaming_input=bool(session))
         return argv, str(inp.get("prompt", ""))
 
     def run_job(self, job: dict) -> None:
@@ -94,7 +101,10 @@ class Worker:
             except Exception as e:  # 잘못된 입력은 재시도 없이 실패
                 qs.finish(conn, jid, "failed", error_reason=f"bad_job:{type(e).__name__}")
                 return
-            env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": str(Path.home())}
+            env = self._env()
+            if job["kind"] == "coach" and job.get("thread_key"):
+                self._run_coach(conn, job)
+                return
             res = self.runner(
                 argv, prompt=prompt, cwd=str(self.work_dir), env=env,
                 deadline_sec=DEADLINE_SEC.get(job["kind"], 90),
@@ -108,6 +118,29 @@ class Worker:
             with self._lock:
                 self.active.discard(jid)
             conn.close()
+
+    def _run_coach(self, conn, job: dict) -> None:
+        """코치 스레드 한 턴 — 상주 세션 풀로 실행하고 ai_sessions 를 갱신한다."""
+        jid, key = job["id"], job["thread_key"]
+        inp = json.loads(job["input_json"] or "{}")
+        row = qs.get_session(conn, key)
+        res, meta = self.sessions.run_turn(
+            key, argv_for=lambda sid, resume: self._prepare(job, (sid, resume))[0],
+            model=job["model"], ctx_hash=job.get("ctx_hash") or "", prompt=str(inp.get("prompt", "")),
+            session_row=row, deadline_sec=DEADLINE_SEC["coach"], history=inp.get("history") or [],
+            forced_retire=inp.get("retire"), should_cancel=lambda: qs.cancel_requested(conn, jid),
+            on_progress=lambda r: qs.update_progress(conn, jid, None, r.partial_text))
+        sid = meta.get("session_id")
+        if sid and not res.is_error:
+            fresh = meta["event"] in ("new", "broken") or row is None or row["session_id"] != sid
+            turns = 1 if fresh else (row["turns"] or 0) + 1
+            qs.save_session(conn, key, session_id=sid, model=job["model"], ctx_hash=job.get("ctx_hash"),
+                            turns=turns, ctx_tokens=res.tokens_in + res.cache_read + res.tokens_out,
+                            new_session=fresh)
+        elif row and (res.error_reason in ("no_result", "stdin_closed") or meta["event"] == "broken"):
+            qs.mark_session(conn, key, "broken", meta.get("retired_reason") or res.error_reason)
+        res.session_id = sid or res.session_id
+        self._settle(conn, job, res)
 
     def _settle(self, conn, job: dict, res: cr.RunResult) -> None:
         jid = job["id"]
@@ -181,12 +214,14 @@ class Worker:
             while not self.stop.is_set():
                 try:
                     self.tick(conn, pool)
+                    self.sessions.reap_idle()
                     if time.monotonic() - last_purge > 3600:
                         qs.purge_bodies(conn)
                         last_purge = time.monotonic()
                 except Exception as e:
                     print(f"tick error: {e}", file=sys.stderr)
                 self.stop.wait(POLL_SEC if not self.active else HEARTBEAT_SEC / 2)
+        self.sessions.close_all()
         return 0
 
 
