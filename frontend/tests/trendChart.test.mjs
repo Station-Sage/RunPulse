@@ -130,6 +130,13 @@ test('periodChange: 첫 점→끝 점 변화와 퍼센트, 점 부족·0 기준 
 	assert.equal(periodChange(S('a', [0, 3]).points).pct, null);
 });
 
+test('periodChange: 기준이 범위 대비 너무 작거나 부호가 바뀌면 % 생략(M-03)', () => {
+	assert.equal(periodChange(S('a', [1, 50, 60]).points).pct, null);
+	assert.equal(periodChange(S('a', [-5, 10]).points).pct, null);
+	assert.equal(periodChange(S('a', [-5, 10]).points).delta, 15);
+	assert.ok(periodChange(S('a', [40, 50, 60]).points).pct > 0);
+});
+
 test('monthTicks: 매월 1일, quarterly는 분기 첫 달만', async () => {
 	const { monthTicks } = await import('../src/lib/trendChart.ts');
 	assert.deepEqual(monthTicks('2026-07-15', '2026-10-05'), ['2026-08-01', '2026-09-01', '2026-10-01']);

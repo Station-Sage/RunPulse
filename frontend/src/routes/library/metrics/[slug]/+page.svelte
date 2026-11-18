@@ -75,20 +75,28 @@
 	const tile = $derived(tileBasis(points, pinned));
 	const change = $derived(periodChange(tile.upto));
 	const changeMain = $derived(
-		change ? (change.pct != null ? `${change.delta >= 0 ? '+' : '−'}${Math.abs(change.pct).toFixed(1)}%` : changeLabel(tile.upto)) : '—'
+		change ? (change.pct != null ? `${change.delta >= 0 ? '+' : '−'}${Math.abs(change.pct).toFixed(1)}%` : '—') : '—'
 	);
 	const changeSub = $derived.by(() => {
 		if (!change || !data.trend) return '';
 		const signed = data.trend.format === 'signed';
 		const v = formatMetric(data.trend, signed ? change.delta : Math.abs(change.delta));
-		return `${signed ? '' : change.delta >= 0 ? '+' : '−'}${v} ${unitText}`.trim();
+		const abs = `${signed ? '' : change.delta >= 0 ? '+' : '−'}${v} ${unitText}`.trim();
+		return change.pct == null ? `${abs} · 기준이 0 근처라 %는 생략` : abs;
 	});
 	const changeTone = $derived.by(() => {
 		const hib = data.trend?.higher_is_better;
 		if (!change || hib == null || change.delta === 0) return '';
 		return change.delta > 0 === hib ? 'text-delta-better' : 'text-delta-worse';
 	});
-	const peakDate = $derived(data.trend?.peak?.date ? mdLabel(data.trend.peak.date) : '');
+	// M-04: 좋고 나쁨이 정해진 지표는 '가장 좋은 날'(낮을수록 좋은 지표는 최저), 아니면 기존 피크(최댓값).
+	const peakTile = $derived.by(() => {
+		const t = data.trend;
+		if (!t) return { label: '피크', entry: null };
+		if (t.higher_is_better != null && t.best) return { label: '가장 좋은 날', entry: t.best };
+		return { label: '피크', entry: t.peak };
+	});
+	const peakDate = $derived(peakTile.entry?.date ? mdLabel(peakTile.entry.date) : '');
 </script>
 
 <PageHead {title} heading={null} />
@@ -134,6 +142,7 @@
 				class="min-h-11 rounded-full px-3 text-xs {data.period === p.key
 					? 'bg-fg-primary text-surface-1'
 					: 'bg-surface-2 text-fg-secondary'}"
+				aria-pressed={data.period === p.key}
 				onclick={() => selectPeriod(p.key)}
 			>
 				{p.label}
@@ -163,8 +172,8 @@
 				<span class="text-xs text-fg-muted">{changeSub || '\u00a0'}</span>
 			</div>
 			<div class="flex min-w-0 flex-col gap-0.5 rounded-xl bg-surface-2 p-3">
-				<span class="text-xs text-fg-secondary">피크</span>
-				<span class="font-mono text-xl font-bold tabular-nums">{formatMetric(data.trend, data.trend.peak?.value)}</span>
+				<span class="text-xs text-fg-secondary" data-testid="tile-peak-label">{peakTile.label}</span>
+				<span class="font-mono text-xl font-bold tabular-nums">{formatMetric(data.trend, peakTile.entry?.value)}</span>
 				<span class="text-xs text-fg-muted">{peakDate || '\u00a0'}</span>
 			</div>
 		</div>
@@ -209,7 +218,7 @@
 		<!-- 계산 분해 / Provider 비교 버튼 -->
 		<div class="flex gap-2">
 			<button
-				class="flex-1 rounded-lg border border-border-subtle bg-surface-2 py-2 text-sm text-fg-secondary"
+				class="min-h-11 flex-1 rounded-lg border border-border-subtle bg-surface-2 py-2 text-sm text-fg-secondary"
 				onclick={() => openDrill(data.slug)}
 				disabled={!latestDate}
 			>

@@ -197,6 +197,7 @@
 			class="min-h-11 shrink-0 rounded-full px-3 text-xs {selectedCategory === 'all'
 				? 'bg-fg-primary text-surface-1'
 				: 'bg-surface-2 text-fg-secondary'}"
+			aria-pressed={selectedCategory === 'all'}
 			onclick={() => pickCategory('all')}
 		>
 			전체
@@ -206,6 +207,7 @@
 				class="min-h-11 shrink-0 rounded-full px-3 text-xs {selectedCategory === cat.category
 					? 'bg-fg-primary text-surface-1'
 					: 'bg-surface-2 text-fg-secondary'}"
+				aria-pressed={selectedCategory === cat.category}
 				onclick={() => pickCategory(cat.category)}
 			>
 				{cat.label}
@@ -220,6 +222,7 @@
 				class="min-h-11 shrink-0 rounded-full px-3 text-xs {selectedProvider === 'all'
 					? 'bg-fg-primary text-surface-1'
 					: 'bg-surface-2 text-fg-secondary'}"
+				aria-pressed={selectedProvider === 'all'}
 				onclick={() => pickProvider('all')}>모든 Provider</button
 			>
 			{#each availableProviders as key}
@@ -227,6 +230,7 @@
 					class="min-h-11 shrink-0 rounded-full px-3 text-xs {selectedProvider === key
 						? 'bg-fg-primary text-surface-1'
 						: 'bg-surface-2 text-fg-secondary'}"
+					aria-pressed={selectedProvider === key}
 					onclick={() => pickProvider(key)}>{key === WELLNESS_PROVIDER ? '웰니스 기록' : providerLabel(key as ProviderKey)}</button
 				>
 			{/each}
@@ -238,7 +242,7 @@
 		{#if searching && visibleCategories.length === 0}
 			<div class="flex flex-col items-center gap-2 py-8 text-sm text-fg-muted" data-testid="search-empty">
 				<p>'{query.trim()}'와 맞는 지표가 없어요</p>
-				<button type="button" class="rounded-full bg-surface-2 px-3 py-1 text-xs text-fg-secondary" onclick={() => (query = '')}>검색 지우기</button>
+				<button type="button" class="min-h-11 rounded-full bg-surface-2 px-3 py-1 text-xs text-fg-secondary" onclick={() => (query = '')}>검색 지우기</button>
 			</div>
 		{/if}
 		{#if compact}<TrainingBalanceCard />{/if}
@@ -271,7 +275,8 @@
 						type="button"
 						class="mt-2 flex min-h-11 items-center text-xs text-semantic-teal"
 						aria-label="{cat.label} {cat.total ?? cat.metrics.length}개 모두 보기"
-						onclick={() => pickCategory(cat.category)}>모두 보기 ›</button
+						aria-pressed={selectedCategory === cat.category}
+				onclick={() => pickCategory(cat.category)}>모두 보기 ›</button
 					>
 				{/if}
 			</section>

@@ -200,7 +200,11 @@ export function periodChange(points: TrendPoint[]): { delta: number; pct: number
 	if (points.length < 2) return null;
 	const first = points[0].value;
 	const delta = points[points.length - 1].value - first;
-	return { delta, pct: first !== 0 ? (delta / Math.abs(first)) * 100 : null };
+	// 기준값이 0 근처이거나 부호가 바뀌면 %가 무의미(M-03) — 변화량만 보인다.
+	const span = Math.max(...points.map((p) => Math.abs(p.value)));
+	const last = points[points.length - 1].value;
+	const meaningful = Math.abs(first) >= span * 0.1 && !(first * last < 0);
+	return { delta, pct: meaningful ? (delta / Math.abs(first)) * 100 : null };
 }
 
 const EVENT_SYMBOL: Record<string, string> = { version_change: '◆', basis_change: '◇', race: '▲' };
