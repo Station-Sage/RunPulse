@@ -120,6 +120,9 @@
 				<a href="{base}/coach/plan?past=1" class="text-xs text-fg-muted hover:underline">지난 플랜</a>
 			</div>
 			<h1 class="text-base font-semibold">{data.plan.goal.name}</h1>
+			{#if data.plan.goal.status === 'cancelled'}
+				<span class="inline-block rounded-full bg-surface-3 px-2 py-0.5 text-xs text-fg-muted" data-testid="plan-cancelled-badge">취소된 플랜</span>
+			{/if}
 			<p class="text-sm text-fg-secondary">
 				{weekProgressLabel(data.plan.week_index, data.plan.goal.plan_weeks)}
 				{#if data.plan.goal.race_date}
@@ -163,6 +166,7 @@
 			{#if data.plan.compliance && data.plan.compliance.sessions.total > 0}
 				{@const c = data.plan.compliance}
 				<p class="mt-2 flex flex-wrap gap-x-3 text-xs text-fg-muted">
+					<span class="text-fg-muted">지금까지</span>
 					<span>세션 <span class="font-mono font-medium text-fg-secondary">{c.sessions.done}/{c.sessions.total}일</span></span>
 					{#if c.volume.pct != null}
 						<span>볼륨 <span class="font-mono font-medium text-fg-secondary">{c.volume.actual_km}/{c.volume.planned_km}km {c.volume.pct}%</span></span>

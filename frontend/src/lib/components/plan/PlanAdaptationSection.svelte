@@ -44,7 +44,7 @@
 			{#if adaptation.acwr}
 				{@const a = adaptation.acwr}
 				<li>
-					<button type="button" onclick={() => (drillAcwr = true)} class="flex w-full items-center gap-2 text-left hover:bg-surface-2">
+					<button type="button" onclick={() => (drillAcwr = true)} class="flex min-h-11 w-full items-center gap-2 text-left hover:bg-surface-2">
 						<span class="w-24 shrink-0 text-fg-secondary">ACWR</span>
 						<span class="font-mono font-medium">{a.value.toFixed(2)}</span>
 						<span class="text-xs {zoneClass(a.zone)}">● {a.zone}</span>

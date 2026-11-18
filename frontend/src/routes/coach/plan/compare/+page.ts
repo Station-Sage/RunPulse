@@ -1,5 +1,6 @@
 // 03e-coach.md 5-E — 프로그램 비교: 쿼리 파라미터로 템플릿 재조회.
-import { error } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
+import { base } from '$app/paths';
 import { getPlanTemplates } from '$lib/api/plan';
 import { parseLongRunWeekday, parseReportedLoad, parseRunWeekdays } from '$lib/planPrefill';
 import type { PlanTemplate } from '$lib/types';
@@ -18,8 +19,8 @@ export interface ComparePlanData {
 
 export async function load({ url }: { url: URL }): Promise<ComparePlanData> {
 	const distanceKm = Number(url.searchParams.get('distance_km'));
-	if (!distanceKm) {
-		throw error(400, '거리 정보가 없습니다.');
+	if (!Number.isFinite(distanceKm) || distanceKm <= 0) {
+		throw redirect(302, `${base}/coach/plan/new`);
 	}
 	const raceDateParam = url.searchParams.get('race_date');
 	const targetTimeParam = url.searchParams.get('target_time_sec');

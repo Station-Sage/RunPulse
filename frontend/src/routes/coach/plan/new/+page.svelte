@@ -162,11 +162,11 @@
 		<div>
 			<p class="mb-2 text-sm font-medium text-fg-primary">목표</p>
 			<div class="flex items-center gap-3">
-				<label class="flex items-center gap-1.5 text-sm text-fg-secondary">
+				<label class="flex min-h-11 items-center gap-1.5 text-sm text-fg-secondary">
 					<input type="radio" bind:group={isCompletion} value={false} class="accent-fg-primary" />
 					목표 시간
 				</label>
-				<label class="flex items-center gap-1.5 text-sm text-fg-secondary">
+				<label class="flex min-h-11 items-center gap-1.5 text-sm text-fg-secondary">
 					<input type="radio" bind:group={isCompletion} value={true} class="accent-fg-primary" />
 					완주
 				</label>

@@ -65,6 +65,9 @@
 				<span>/</span>
 				<span>{data.session.week_index}주차 {dayLabel(data.date)}</span>
 			</div>
+			{#if data.session.goal.status === 'cancelled'}
+				<span class="mr-1 inline-block rounded-full bg-surface-3 px-2 py-0.5 text-xs text-fg-muted" data-testid="plan-cancelled-badge">취소된 플랜</span>
+			{/if}
 			{#if data.session.adjustment?.adjusted}
 				<span class="inline-block rounded-full bg-semantic-amber/10 px-2 py-0.5 text-xs text-semantic-amber">상태 기반 조정</span>
 			{/if}
