@@ -25,5 +25,5 @@
 
 ## 남은 범위
 - B3 온보딩 `return_to`(Step1·Step3·Step4·welcome).
-- B4 화면별 적용: 빈/오류 상태를 `EmptyState`/`ErrorState` 로 통일, 체크인 QuickInput 중복·"코치에게 묻기" 중복 제거, V2-AUDIT-INDIV 흡수.
+- B4 화면별 적용: 빈/오류 상태를 `EmptyState`/`ErrorState` 로 통일, 체크인 입력은 Today 로 일원화(Coach 홈은 요약+링크, B4)·"코치에게 묻기" 중복 제거, V2-AUDIT-INDIV 흡수.
 - replan 은 PageHeader 적용(B4). 미적용: compare(‹ 새 프로그램 링크 유지), `library/[id]` 레이아웃(태그 로직 유지).

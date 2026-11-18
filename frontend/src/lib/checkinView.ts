@@ -1,4 +1,4 @@
-// 체크인 행 → QuickInput existing 표현. coach·today 공용.
+// 체크인 행 → QuickInput existing 표현(today)·Coach 요약 문구.
 import type { CheckinPayload, CheckinRow, PainLevel, QuickInputExisting } from '$lib/types';
 
 export function toQuickInputExisting(c: CheckinRow | null): QuickInputExisting | undefined {
@@ -19,4 +19,12 @@ export function checkinSavePayload(fatigue: number | undefined, pain: PainLevel 
 /** 되돌리기 페이로드 — 저장 직전 기록으로 세 값을 모두 되돌린다(없던 값은 null, T-19). */
 export function checkinUndoPayload(prev: CheckinRow | null): CheckinPayload {
 	return { fatigue: prev?.fatigue ?? null, pain: prev?.pain ?? null, note: prev?.note ?? null };
+}
+
+const PAIN_TEXT: Record<PainLevel, string> = { none: '없음', mild: '경미', moderate: '중간', severe: '심함' };
+
+/** Coach 홈 요약 한 줄 — 입력은 Today 에서 하고 여기선 보여 주기만 한다. 값이 없으면 null. */
+export function checkinSummary(c: CheckinRow | null): string | null {
+	if (!c || (c.fatigue === null && !c.pain && !c.note)) return null;
+	return `피로 ${c.fatigue ?? '—'} · 통증 ${c.pain ? PAIN_TEXT[c.pain] : '—'}`;
 }

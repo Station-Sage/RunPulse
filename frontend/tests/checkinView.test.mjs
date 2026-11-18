@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkinSavePayload, checkinUndoPayload, toQuickInputExisting } from '../src/lib/checkinView.ts';
+import { checkinSavePayload, checkinUndoPayload, toQuickInputExisting, checkinSummary } from '../src/lib/checkinView.ts';
 
 describe('toQuickInputExisting', () => {
 	it('null → undefined', () => assert.equal(toQuickInputExisting(null), undefined));
@@ -32,4 +32,14 @@ describe('checkinUndoPayload (T-19)', () => {
 		const prev = { id: 1, input_date: 'd', input_type: 'checkin', fatigue: 6, pain: 'none', note: null, activity_id: null, created_at: 't' };
 		assert.deepEqual(checkinUndoPayload(prev), { fatigue: 6, pain: 'none', note: null });
 	});
+});
+
+describe('checkinSummary', () => {
+	const row = (o) => ({ id: 1, input_date: 'd', input_type: 'x', fatigue: null, pain: null, note: null, activity_id: null, created_at: 't', ...o });
+	it('기록 없음·빈 기록 → null', () => {
+		assert.equal(checkinSummary(null), null);
+		assert.equal(checkinSummary(row({})), null);
+	});
+	it('피로·통증 요약', () => assert.equal(checkinSummary(row({ fatigue: 4, pain: 'mild' })), '피로 4 · 통증 경미'));
+	it('일부만 있으면 — 표시', () => assert.equal(checkinSummary(row({ pain: 'none' })), '피로 — · 통증 없음'));
 });

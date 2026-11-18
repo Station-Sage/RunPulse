@@ -1,33 +1,18 @@
 <script lang="ts">
-	// QuickInput 체크인 섹션 — 저장 상태·오류를 자체 소유한다.
-	import { postCheckin } from '$lib/api/today';
-	import { toQuickInputExisting } from '$lib/checkinView';
-	import type { CheckinPayload, CheckinRow } from '$lib/types';
-	import QuickInput from '$lib/components/QuickInput.svelte';
+	// 오늘 컨디션 요약 — 입력은 Today 에서만 받고(중복 입력 제거) 여기선 상태와 이동 링크만 보여 준다.
+	import { base } from '$app/paths';
+	import { checkinSummary } from '$lib/checkinView';
+	import type { CheckinRow } from '$lib/types';
 
 	let { initial }: { initial: CheckinRow | null } = $props();
 
-	let checkin = $state<CheckinRow | null>(initial);
-	let saving = $state(false);
-	let error = $state<string | null>(null);
-
-	async function handleSave(value: CheckinPayload) {
-		saving = true;
-		error = null;
-		try {
-			checkin = await postCheckin(value);
-		} catch (e) {
-			error = e instanceof Error ? e.message : '저장에 실패했습니다.';
-		} finally {
-			saving = false;
-		}
-	}
+	const summary = $derived(checkinSummary(initial));
 </script>
 
-<div class="flex flex-col gap-1 border-t border-border-subtle px-4 py-3">
-	<QuickInput compact existing={toQuickInputExisting(checkin)} {saving} onSave={handleSave} />
-	<p class="text-xs text-fg-muted">입력한 컨디션은 오늘 훈련 답변에 반영됩니다.</p>
-	{#if error}
-		<p class="text-xs text-semantic-red">{error}</p>
-	{/if}
+<div class="flex items-center justify-between gap-3 border-t border-border-subtle px-4 py-3" data-testid="coach-checkin-summary">
+	<p class="text-xs text-fg-muted">
+		{#if summary}오늘 컨디션: {summary}{:else}오늘 컨디션을 아직 입력하지 않았어요{/if}
+		— 코치 답변에 반영돼요.
+	</p>
+	<a href="{base}/today" class="inline-flex min-h-11 shrink-0 items-center text-xs text-fg-secondary underline">{summary ? '수정' : '입력'}하러 가기</a>
 </div>
