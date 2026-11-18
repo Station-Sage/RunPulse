@@ -31,6 +31,13 @@ _KEYWORDS: dict[str, tuple[str, ...]] = {
     "race_form_projection": ("레이스 아침", "테이퍼", "폼"),
     "race_days_left": ("레이스", "대회"),
 }
+# 숫자 없이 주제만 언급해도 근거로 인정하는 키워드 — 모호한 일반어(폼·레이스·대회·테이퍼)는 제외
+_TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "tsb": ("tsb", "훈련 스트레스 균형"),
+    "body_battery": ("body battery", "바디배터리", "바디 배터리"),
+    "sleep_score": ("수면",),
+    "utrs": ("utrs", "훈련 준비도"),
+}
 _WELLNESS_COLUMNS = {"body_battery": "body_battery_high", "sleep_score": "sleep_score"}
 _NUM = re.compile(r"[-+−]?\d+(?:\.\d+)?")
 
@@ -110,9 +117,25 @@ def with_current(conn: sqlite3.Connection, item: dict) -> dict:
     return out
 
 
+def _topic_cited(low: str, metric: str, value) -> bool:
+    """키워드만 언급해도 인정하되, 키워드 바로 뒤에 다른 값을 적었으면 불일치로 본다."""
+    for k in _TOPIC_KEYWORDS.get(metric, ()):
+        i = low.find(k)
+        if i < 0:
+            continue
+        m = _NUM.search(low[i + len(k): i + len(k) + 8])
+        if not m or not isinstance(value, (int, float)):
+            return True
+        if abs(abs(float(m.group().replace("−", "-"))) - abs(value)) <= (0.5 if abs(value) >= 10 else 0.06):
+            return True
+    return False
+
+
 def _cited(text: str, item: dict) -> bool:
     metric, value = item.get("metric", ""), item.get("value")
     low = text.lower()
+    if _topic_cited(low, metric, value):
+        return True
     if not any(k in low for k in _KEYWORDS.get(metric, (metric.lower(),))):
         return False
     if not isinstance(value, (int, float)):

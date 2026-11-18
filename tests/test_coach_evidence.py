@@ -44,9 +44,14 @@ class TestPureHelpers:
         item = {"metric": "tsb", "value": -10.7}
         assert ce._cited("TSB가 -10.7로 낮아요", item)
         assert ce._cited("폼이 −10.7 정도", item)
-        assert not ce._cited("TSB가 낮아요", item)
+        assert not ce._cited("폼이 좋아요", item)             # 모호한 일반어는 숫자 필요
         assert not ce._cited("오늘은 12.3km 달려요", item)
         assert not ce._cited("수면이 -10.7", item)
+
+    def test_cited_by_topic_without_number(self):
+        assert ce._cited("TSB가 낮아서 쉬는 게 좋아요", {"metric": "tsb", "value": -10.7})
+        assert ce._cited("수면이 부족했어요", {"metric": "sleep_score", "value": 40})
+        assert not ce._cited("레이스가 가까워요", {"metric": "race_days_left", "value": 20})
 
     def test_cited_rounding_tolerance(self):
         assert ce._cited("tsb -11", {"metric": "tsb", "value": -10.7})
