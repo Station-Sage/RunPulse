@@ -14,6 +14,7 @@ SECRET_VALUE_PREFIX = "enc:"
 ALWAYS_EXCLUDED = frozenset({
     "mcp_tokens", "calendar_feeds", "mcp_audit", "sync_gates", "ai_cache", "caldav_pushes", "sync_jobs",
     "weather_cache", "plan_adjustments_new", "plan_replans_new",
+    "ai_jobs", "ai_sessions", "ai_worker_state", "ai_outputs",
 })
 
 

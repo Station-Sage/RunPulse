@@ -5,9 +5,11 @@ from pathlib import Path
 
 from src.ai.tool_guide import MAX_GUIDE_CHARS, USAGE_GUIDE
 from src.ai.tools import TOOL_DECLARATIONS
+from src.ai.tool_declarations import LOCAL_TOOL_DECLARATIONS
 
 _SKILL = Path(__file__).resolve().parent.parent / ".claude" / "skills" / "runpulse-data" / "SKILL.md"
 _TOOL_NAMES = {t["name"] for t in TOOL_DECLARATIONS}
+_LOCAL_NAMES = {t["name"] for t in LOCAL_TOOL_DECLARATIONS}
 _TOOL_LIKE = re.compile(r"\b(?:get|compare)_[a-z_]+\b")
 
 # 세션마다 1회 전달되는 고정 비용 상한 (문자 수, 문자수/3 ≈ 토큰). 도구를 늘릴 때 의식적으로 올린다.
@@ -23,8 +25,8 @@ def test_guide_mentions_every_tool():
 
 
 def test_guide_and_skill_reference_only_real_tools():
-    stale = set(_TOOL_LIKE.findall(USAGE_GUIDE)) - _TOOL_NAMES
-    stale |= set(_TOOL_LIKE.findall(_SKILL.read_text(encoding="utf-8"))) - _TOOL_NAMES
+    stale = set(_TOOL_LIKE.findall(USAGE_GUIDE)) - _TOOL_NAMES - _LOCAL_NAMES
+    stale |= set(_TOOL_LIKE.findall(_SKILL.read_text(encoding="utf-8"))) - _TOOL_NAMES - _LOCAL_NAMES
     assert stale == set()
 
 

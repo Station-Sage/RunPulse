@@ -24,9 +24,9 @@ def _ok(req: dict, result: dict) -> dict:
 
 
 def _declarations(allowed: frozenset[str] | None) -> list[dict]:
-    from src.ai.tools import TOOL_DECLARATIONS
+    from src.ai.tool_declarations import LOCAL_TOOL_DECLARATIONS, TOOL_DECLARATIONS
 
-    return [d for d in TOOL_DECLARATIONS if allowed is None or d["name"] in allowed]
+    return [d for d in [*TOOL_DECLARATIONS, *LOCAL_TOOL_DECLARATIONS] if allowed is None or d["name"] in allowed]
 
 
 def _initialize(req: dict) -> dict:

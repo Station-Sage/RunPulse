@@ -20,4 +20,5 @@ USAGE_GUIDE = """RunPulse 러닝 데이터 도구 규칙 (호출 횟수·토큰 
 - km 스플릿·HR존 → get_activity_detail(id)
 - 대회 이력 → get_race_history, 두 기간 비교 → compare_periods
 - 메트릭 → get_metrics(날짜)/get_metrics_trend, 계획·프로필·날씨 → get_training_plan/get_runner_profile/get_weather
+- 원본 API 응답 → list_raw_payloads 로 id 확인 후 get_raw_payload(id, path)
 """

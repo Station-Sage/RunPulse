@@ -8,6 +8,7 @@ import pytest
 from src import mcp_server
 from src.ai.tool_guide import USAGE_GUIDE
 from src.ai.tools import TOOL_DECLARATIONS
+from src.ai.tool_declarations import LOCAL_TOOL_DECLARATIONS
 from src.db_setup import create_tables
 
 
@@ -90,7 +91,7 @@ class TestProtocol:
     def test_tools_list_matches_declarations(self, db_path):
         resp = mcp_server.handle_request(self._req("tools/list"), db_path)
         tools = resp["result"]["tools"]
-        assert [t["name"] for t in tools] == [d["name"] for d in TOOL_DECLARATIONS]
+        assert [t["name"] for t in tools] == [d["name"] for d in [*TOOL_DECLARATIONS, *LOCAL_TOOL_DECLARATIONS]]
         assert all("inputSchema" in t for t in tools)
 
     def test_notification_gets_no_response(self, db_path):

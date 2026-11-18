@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { say } from '$lib/a11y/say';
 	import { base } from '$app/paths';
-	import { patchAiSettings, testAiConnection, type AiPatch, type AiSettings } from '$lib/api/data';
+	import { getAiQueue, pingAiQueue, patchAiSettings, testAiConnection, type AiQueueStatus, type AiPatch, type AiSettings } from '$lib/api/data';
 	import { engineSummary, keyFormatError, keyStateText, providerName, usageText, usageTodayText } from '$lib/aiSettings';
 	import type { AiPageData } from './+page';
 
@@ -27,6 +28,27 @@
 			message = e instanceof Error ? e.message : '저장하지 못했어요';
 		} finally {
 			busy = false;
+		}
+	}
+
+	let q = $state<AiQueueStatus | null>(null);
+	let qResult = $state('');
+	onMount(async () => {
+		try { q = await getAiQueue(); } catch { q = null; }
+	});
+	const QUEUE_REASON: Record<string, string> = {
+		disabled: '이 계정은 Claude 큐가 꺼져 있어요',
+		worker_down: '워커가 응답하지 않아요',
+		cq_timeout: '워커가 시간 안에 잡을 가져가지 않았어요'
+	};
+	async function pingQueue() {
+		qResult = '확인 중…';
+		try {
+			const r = await pingAiQueue();
+			q = r;
+			qResult = r.ok ? `정상 · ${r.queue_ms ?? 0}ms 대기` : `실패 · ${QUEUE_REASON[r.reason ?? ''] ?? r.reason}`;
+		} catch (e) {
+			qResult = e instanceof Error ? e.message : '확인하지 못했어요';
 		}
 	}
 
@@ -57,6 +79,18 @@
 				<p class="mt-1 text-xs text-fg-secondary" data-testid="usage-today">{usageTodayText(s.usage_today)}</p>
 			{/if}
 		</section>
+
+		{#if q}
+			<section class="rounded-lg border border-border-subtle bg-surface-2 p-3" data-testid="claude-queue">
+				<h2 class="text-sm text-fg-primary">Claude 큐</h2>
+				<p class="mt-1 text-xs text-fg-secondary">
+					{q.enabled ? (q.worker_up ? '워커 연결됨' : '워커 응답 없음') : '꺼짐'}
+				</p>
+				<button class="mt-2 min-h-11 rounded border border-border-subtle px-3 text-sm disabled:opacity-40"
+					disabled={!q.enabled} onclick={pingQueue}>핑 보내기</button>
+				{#if qResult}<p class="mt-1 text-xs text-fg-secondary" use:say={{ text: qResult, level: 'polite' }}>{qResult}</p>{/if}
+			</section>
+		{/if}
 
 		<section class="flex flex-col gap-2">
 			<h2 class="text-sm text-fg-primary">AI 제공자</h2>

@@ -1,0 +1,22 @@
+# 설치: cp deploy/runpulse-ai-worker.service ~/.config/systemd/user/ && loginctl enable-linger ubuntu
+#       systemctl --user daemon-reload && systemctl --user enable --now runpulse-ai-worker
+[Unit]
+Description=RunPulse Claude queue worker
+After=network-online.target docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.local/state/runpulse-ai/work
+ExecStartPre=/usr/bin/mkdir -p %h/.local/state/runpulse-ai/work
+Environment=PYTHONPATH=/home/ubuntu/projects/RunPulse
+Environment=RUNPULSE_ROOT=/home/ubuntu/projects/RunPulse
+Environment=CQ_UIDS=pansongit@gmail.com
+Environment=CQ_CONCURRENCY=2
+ExecStart=/usr/bin/python3 -m src.ai_worker.main
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target

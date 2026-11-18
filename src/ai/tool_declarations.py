@@ -206,5 +206,37 @@ TOOL_DECLARATIONS = [
             "required": ["date"]
         }
     },
+]
 
+# 로컬 stdio(MCP)·워커 전용 — 챗 LLM 고정 비용(예산)과 원격 노출에서 제외.
+LOCAL_TOOL_DECLARATIONS = [
+    {
+        "name": "list_raw_payloads",
+        "description": "수집된 외부 API 원본(JSON) 목록. source·entity_type·entity_id·activity_id·기간으로 좁힌다. 본문은 get_raw_payload.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "source": {"type": "string", "description": "garmin / strava / intervals / runalyze 등"},
+                "entity_type": {"type": "string", "description": "activity_detail / wellness_day 등"},
+                "entity_id": {"type": "string"},
+                "activity_id": {"type": "integer", "description": "activity_summaries.id"},
+                "date_from": {"type": "string", "description": "YYYY-MM-DD"},
+                "date_to": {"type": "string", "description": "YYYY-MM-DD"},
+                "limit": {"type": "integer", "description": "기본 20, 최대 50"}
+            }
+        }
+    },
+    {
+        "name": "get_raw_payload",
+        "description": "원본 payload 한 건. 길면 잘리므로 path(점 구분, 예: summaryDTO.hrTimeInZones.0)로 하위만 조회한다.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer", "description": "list_raw_payloads 의 id"},
+                "path": {"type": "string"},
+                "max_chars": {"type": "integer", "description": "기본 6000, 최대 20000"}
+            },
+            "required": ["id"]
+        }
+    },
 ]

@@ -1,6 +1,8 @@
 services:
   runpulse:
     build: .
+    # AI 워커(호스트 ubuntu)와 같은 uid 로 DB/WAL 소유권 일치 (V2-AI-CLAUDE-QUEUE E1)
+    user: "1001:1001"
     ports:
       - "80:18080"
     volumes:

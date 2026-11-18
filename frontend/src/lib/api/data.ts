@@ -255,6 +255,12 @@ export const testAiConnection = (provider: string) =>
 	apiFetch<{ ok: boolean; reason: string | null; label: string; http_status: number | null }>(
 		'/data/settings/ai/test', { method: 'POST', body: JSON.stringify({ provider }) });
 
+export interface AiQueueStatus { enabled: boolean; worker_up: boolean; available: boolean }
+export const getAiQueue = () => apiFetch<AiQueueStatus>('/ai/queue');
+export const pingAiQueue = () =>
+	apiFetch<AiQueueStatus & { ok: boolean; reason: string | null; text?: string; queue_ms?: number | null }>(
+		'/ai/queue/ping', { method: 'POST' });
+
 export type ImportSource = 'garmin' | 'strava';
 export type ImportKind = 'strava_archive' | 'strava_csv' | 'garmin_csv' | 'files';
 

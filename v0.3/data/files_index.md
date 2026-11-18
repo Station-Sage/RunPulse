@@ -204,7 +204,7 @@
 - class **ExportError**: 없음
 - functions: check_free_space, build_archive
 
-### `export_groups.py` (99줄) — 내보내기 그룹 정의 — 허용 목록(allow-list). 목록에 없는 테이블은 절대 내보내지 않는다(data-export §2.1).
+### `export_groups.py` (100줄) — 내보내기 그룹 정의 — 허용 목록(allow-list). 목록에 없는 테이블은 절대 내보내지 않는다(data-export §2.1).
 
 - class **TableDef**: 없음
 - class **GroupDef**: 없음
@@ -1061,6 +1061,10 @@
 
 - functions: parse_hrv, parse_sleep, parse_body_battery, parse_stress, parse_hr_day, derive_summary, save_series, ingest_day, ingest_hr_day
 
+### `wellness_series_backfill.py` (37줄) — 저장된 Garmin wellness raw payload 로 wellness_series 과거분 채우기 (V2-REPAIR-BACKFILL, Garmin 호출 없음).
+
+- functions: backfill_series
+
 ## `src/sync/extractors/`
 
 > RunPulse v0.3 Extractor 모듈.
@@ -1197,6 +1201,10 @@
 
 - functions: attach_readiness, decision_lines, plan_line
 
+### `claude_queue.py` (58줄) — claude_queue 앱 측 클라이언트 — 큐에 job 을 넣고 결과를 폴링한다 (flask 의존 없음).
+
+- functions: enabled_for, status, run_job
+
 ### `coach_rule_grade.py` (55줄) — Coach 규칙 답변 — 회복 등급 → 오늘 강도 매핑 (30-coach-chat design §7.2).
 
 - class **RecoveryGrade**: parse
@@ -1239,7 +1247,11 @@
 
 - (public API 없음)
 
-### `tool_declarations.py` (210줄) — AI Function Calling 도구 선언 — Gemini function_declarations 형식.
+### `tool_cli.py` (39줄) — 도구 CLI — `python -m src.ai.tool_cli <tool> '<json args>' [--user UID] [--db PATH]` (읽기 전용, 결과 JSON 출력).
+
+- functions: main
+
+### `tool_declarations.py` (242줄) — AI Function Calling 도구 선언 — Gemini function_declarations 형식.
 
 - (public API 없음)
 
@@ -1255,6 +1267,10 @@
 
 - (public API 없음)
 
+### `tool_exec_raw.py` (74줄) — 원본 payload 조회 도구 실행기 — source_payloads 목록·본문(경로 선택·길이 제한). 로컬 전용.
+
+- (public API 없음)
+
 ### `tool_exec_summary.py` (80줄) — 기간 요약 도구 실행기 — get_training_summary (주별 볼륨·부하 + 주요 세션).
 
 - (public API 없음)
@@ -1263,11 +1279,11 @@
 
 - functions: num, columnar, span_days, resolve_granularity, week_start_of, group_by_week, weekly_activity_rows, weekly_mean, weekly_last
 
-### `tool_guide.py` (23줄) — 도구 사용 가이드 — MCP initialize의 instructions로 전달되는 호출 레시피.
+### `tool_guide.py` (24줄) — 도구 사용 가이드 — MCP initialize의 instructions로 전달되는 호출 레시피.
 
 - (public API 없음)
 
-### `tools.py` (50줄) — AI Function Calling 도구 진입점 — 선언 재노출 + 실행 디스패치.
+### `tools.py` (53줄) — AI Function Calling 도구 진입점 — 선언 재노출 + 실행 디스패치.
 
 - functions: execute_tool
 
@@ -1758,7 +1774,7 @@
 
 - functions: enabled, mcp_endpoint
 
-### `policy.py` (17줄) — 원격(HTTP) 노출 도구 정책 — 모든 도구는 REMOTE_TOOLS 또는 REMOTE_DENIED 중 하나로 분류돼야 한다.
+### `policy.py` (19줄) — 원격(HTTP) 노출 도구 정책 — 모든 도구는 REMOTE_TOOLS·REMOTE_DENIED·LOCAL_ONLY_TOOLS 중 하나로 분류돼야 한다.
 
 - functions: unclassified_tools
 
@@ -1786,6 +1802,10 @@
 > 새 비즈니스 로직 없음 — routes_*.py는 src/services/의 기존 함수를 그대로 호출한다.
 > 
 > 설계 문서: v0.3/data/phase-7-ui-renewal/05-tech-architecture.md §3
+
+### `routes_ai_queue.py` (48줄) — `/api/v1/ai/queue*` — Claude 큐 상태 조회·핑 (V2-AI-CLAUDE-QUEUE E1). 핑은 쓰기라 Origin 관문 대상.
+
+- functions: get_ai_queue, ping_ai_queue
 
 ### `routes_auth.py` (58줄) — 인증 상태 API — GET /api/v1/auth/session (공개 경로, AUTH_MODE=registry 에서 의미 있음).
 
@@ -2040,9 +2060,21 @@
 
 - functions: S, test_standalone_triggers, test_and_needs_two_members, test_missing_signal_ignored, test_intensity, test_primary_order, test_classify_roles
 
+### `test_ai_cli_runner.py` (104줄) — ai_worker.cli_runner — argv·stream-json 파싱·쿼터 감지·서브프로세스 마감/취소.
+
+- functions: test_feed_success, test_feed_quota_via_rate_limit_event, test_feed_quota_via_error_result, test_feed_non_quota_error, test_parse_line_ignores_noise, test_build_argv_isolation_and_sessions, test_build_mcp_config_pins_uid, test_run_collects_result, test_run_deadline_kills, test_run_cancel, test_run_no_result
+
 ### `test_ai_context.py` (236줄) — tests/test_ai_context.py — Phase 5-D AI 컨텍스트 빌더 테스트.
 
 - functions: conn, test_build_daily_briefing_full, test_build_daily_briefing_contains_readiness, test_build_daily_briefing_contains_fitness, test_build_daily_briefing_no_wellness, test_build_daily_briefing_race_predictions, test_build_daily_briefing_format, test_build_activity_analysis_full, test_build_activity_analysis_contains_core, test_build_activity_analysis_no_rp_metrics, test_build_ai_context_daily_only, test_build_ai_context_with_activity, test_build_context_today_activity, test_build_context_no_activity, test_build_context_fitness, test_build_context_no_data_graceful, test_format_context_text_is_string, test_format_context_text_no_data_graceful, test_format_activity_context_is_string, test_format_activity_context_missing_activity, test_rule_based_response_does_not_raise, test_rule_based_response_no_data_graceful, test_legacy_reexport_paths_identical
+
+### `test_ai_queue_api.py` (67줄) — claude_queue 클라이언트·상태/핑 API.
+
+- functions: dbp, test_enabled_for, test_status_worker_down, test_run_job_timeout_when_nobody_claims, test_run_job_done, test_ping_api_disabled_and_origin
+
+### `test_ai_queue_store.py` (161줄) — ai_worker.queue_store + db_schema_v48 — claim 경합·정체 회수·만료·일시정지·CHECK 제약.
+
+- functions: db, test_v48_idempotent_and_checks, test_claim_order_priority_then_id, test_claim_sets_running_and_attempts, test_claim_race_no_double_claim, test_claim_skips_expired_and_cancelled, test_finish_only_from_running, test_recover_stale_requeue_then_fail, test_recover_on_startup_by_worker_id, test_heartbeat_keeps_alive, test_progress_and_cancel_flag, test_pause_and_worker_available, test_purge_bodies
 
 ### `test_ai_settings.py` (97줄) — ai_settings_service + /data/settings/ai 라우트 — 키 값 비노출, PATCH 검증, 사용량, 연결 테스트.
 
@@ -2057,9 +2089,13 @@
 - class **TestWeeklyActivity**: test_totals_pace_and_long_run, test_pace_is_time_over_distance_not_mean_of_paces, test_hr_is_time_weighted, test_gap_weeks_are_filled_within_span, test_no_span_keeps_only_active_weeks
 - class **TestWeeklyAggregates**: test_mean_skips_nulls_and_counts_days, test_last_takes_final_non_null_per_column
 
-### `test_ai_tool_guide.py` (44줄) — 호출 가이드 — 도구 목록과 어긋나지 않는지, 세션 고정 비용이 상한을 넘지 않는지.
+### `test_ai_tool_guide.py` (46줄) — 호출 가이드 — 도구 목록과 어긋나지 않는지, 세션 고정 비용이 상한을 넘지 않는지.
 
 - functions: test_guide_within_length_budget, test_guide_mentions_every_tool, test_guide_and_skill_reference_only_real_tools, test_skill_mentions_every_tool, test_declaration_fixed_cost_budget, test_tool_system_text_mentions_every_tool
+
+### `test_ai_tool_raw.py` (58줄) — 원본 payload 도구·tool_cli 테스트.
+
+- functions: test_list_filters, test_get_truncates_and_path, test_local_only_policy, test_tool_cli, test_local_declarations_match_dispatch_and_stay_out_of_chat
 
 ### `test_ai_tools_compact.py` (276줄) — 토큰 최적화 도구 — 압축 응답(fields+rows), 주별 롤업, get_training_summary.
 
@@ -2078,6 +2114,10 @@
 - class **TestGetActivityLaps**: test_returns_compact_rows, test_pace_formatted, test_lap_types_counted, test_filter_active_only, test_all_null_column_dropped, test_no_laps_returns_message
 - class **TestCompareWorkoutSets**: test_sessions_sorted_recent_first, test_set_aggregates, test_positive_drift_means_slowdown, test_excludes_non_active_laps, test_name_filter, test_date_range_filter, test_limit, test_auto_lap_run_is_not_a_workout
 - class **TestActivityIdExposed**: test_get_activity_includes_id, test_get_activities_range_includes_id
+
+### `test_ai_worker_main.py` (139줄) — ai_worker.main — tick/claim/settle, 쿼터 일시정지, 연속 오류 자가정지, preflight, 취소 (가짜 runner).
+
+- functions: env, test_tick_runs_job_done, test_concurrency_limit, test_quota_pauses_and_fails_job, test_self_pause_after_consecutive_errors, test_cancel_marks_cancelled, test_bad_input_fails_without_retry, test_read_job_builds_mcp_config_with_uid, test_preflight_cli_missing, test_preflight_work_dir_must_be_empty, test_preflight_version_unsupported
 
 ### `test_algo_changelog.py` (45줄) — algo_changelog 계약 테스트 — Calculator 버전과 변경 이력의 일치를 강제.
 
@@ -2906,7 +2946,7 @@
 
 - functions: db_path, test_version_negotiation, test_initialize_echoes_supported_version, test_tools_list_filtered_by_allowed, test_disallowed_tool_looks_unknown_and_never_connects, test_generic_errors_hide_exception_text, test_unknown_method_and_notification, test_safe_conn_allows_select_blocks_writes, test_safe_conn_blocks_attach, test_safe_conn_time_limit, test_every_tool_is_classified
 
-### `test_mcp_server.py` (124줄) — MCP 서버 — DB 결정, 읽기 전용, stdio 프레임, 프로토콜 응답.
+### `test_mcp_server.py` (125줄) — MCP 서버 — DB 결정, 읽기 전용, stdio 프레임, 프로토콜 응답.
 
 - class **TestResolveDbPath**: test_requires_user_id, test_blank_user_id_is_rejected, test_path_traversal_is_rejected, test_unknown_user_raises_and_creates_no_directory, test_env_var_is_used
 - class **TestReadOnly**: test_connection_rejects_writes
@@ -3770,6 +3810,10 @@
 
 - functions: conn, kinds, test_parsers_extract_real_structures, test_parsers_tolerate_empty_and_garbage, test_derive_summary, test_ingest_day_saves_series_and_summary_idempotently, test_resave_replaces_stale_rows_of_same_kind, test_retention_drops_old_days, test_ingest_hr_day
 
+### `test_wellness_series_backfill.py` (31줄)
+
+- functions: test_backfill_fills_series_and_skips_old_and_bad
+
 ### `test_wellness_service.py` (153줄) — tests/test_wellness_service.py — Phase 5-C 서비스 레이어 테스트.
 
 - functions: conn, test_get_wellness_detail_full, test_get_wellness_detail_core, test_get_wellness_detail_metrics_by_category, test_get_wellness_detail_sleep_category, test_get_wellness_detail_hr_category, test_get_wellness_detail_body_category, test_get_wellness_detail_stress_category, test_get_wellness_detail_readiness_summary, test_get_wellness_detail_no_data, test_get_wellness_detail_default_date, test_get_wellness_trend_full, test_get_wellness_trend_includes_utrs, test_get_wellness_trend_with_gaps, test_get_wellness_trend_empty
@@ -3818,6 +3862,10 @@
 ### `backfill_stream_meta.py` (17줄) — activity_stream_meta 백필(U18e). 사용: PYTHONPATH=. python3 scripts/backfill_stream_meta.py --db <path> [--dry-run]
 
 - (public API 없음)
+
+### `backfill_wellness_series.py` (24줄) — Garmin raw payload → wellness_series 과거분 백필 CLI (Garmin 호출 없음).
+
+- functions: main
 
 ### `check_data_consistency.py` (474줄) — RunPulse 데이터 정합성 검증 v1.5
 
@@ -3888,7 +3936,7 @@
 - functions: run
 
 ---
-총 840개 파일
+총 852개 파일
 
 ## docstring 누락
 
@@ -3919,4 +3967,5 @@
 - `tests/test_sapi.py`
 - `tests/test_teroi.py`
 - `tests/test_tpdi.py`
+- `tests/test_wellness_series_backfill.py`
 - `tests/test_wlei.py`
