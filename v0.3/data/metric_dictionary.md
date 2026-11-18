@@ -549,6 +549,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `teroi` |
 | 메트릭 이름 | `teroi` |
+| 화면 표시명 | 훈련 투입 대비 체력 증가율 (TEROI) |
 | 설명 | TRIMP 투입 대비 CTL 증가율. 높을수록 효율적 훈련. |
 | 단위 | 무차원 |
 | 카테고리 | `efficiency` |
@@ -572,6 +573,7 @@ Garmin/Strava/Intervals/Runalyze
 |------|-----|
 | Calculator ID | `tpdi` |
 | 메트릭 이름 | `tpdi` |
+| 화면 표시명 | 실내외 격차 지수 (TPDI) |
 | 설명 | 실내 vs 실외 달리기 FEARP 격차. 0에 가까울수록 일관됨. |
 | 단위 | % |
 | 카테고리 | `efficiency` |

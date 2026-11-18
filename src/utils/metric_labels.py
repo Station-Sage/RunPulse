@@ -46,6 +46,8 @@ METRIC_LABELS: dict[str, MetricLabel] = {
     "monotony": MetricLabel("훈련 단조로움"),
     "training_strain": MetricLabel("훈련 스트레인"),
     "rtti": MetricLabel("달리기 내성 지수", "RTTI"),
+    "teroi": MetricLabel("훈련 투입 대비 체력 증가율", "TEROI"),
+    "tpdi": MetricLabel("실내외 격차 지수", "TPDI"),
     "running_tolerance_load": MetricLabel("Garmin 러닝 내성 부하"),
     "running_tolerance_optimal_min": MetricLabel("Garmin 러닝 내성 최적 하한"),
     "running_tolerance_optimal_max": MetricLabel("Garmin 러닝 내성 최적 상한"),

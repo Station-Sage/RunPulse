@@ -151,7 +151,7 @@
 
 - functions: model_label, reason_label, failure_history, engine_label, parse_engine, attempt_views, message_engine_view, health_summary, get_engine
 
-### `coach_evidence.py` (261줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
+### `coach_evidence.py` (284줄) — Coach 답변 근거 v2 (30-coach-chat design §4.4·§7.3) — "이 답변이 실제로 쓴 입력"만 칩으로 남긴다.
 
 - functions: is_drifted, with_current, build_answer_evidence, view_evidence
 
@@ -2322,9 +2322,9 @@
 
 - functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys, test_legacy_rule_label_single_source, test_row_status_overrides_engine_json, test_message_engine_view_lists_actual_attempts, test_failure_history_prefix_on_retry_success, test_failure_history_absent_for_plain_and_legacy_messages, test_every_status_reason_has_label
 
-### `test_coach_evidence.py` (176줄) — coach_evidence 테스트 — 답변 근거 v2 (role·스냅샷·drift·legacy).
+### `test_coach_evidence.py` (181줄) — coach_evidence 테스트 — 답변 근거 v2 (role·스냅샷·drift·legacy).
 
-- class **TestPureHelpers**: test_rest_signal, test_is_drifted_threshold_and_sign, test_cited_needs_keyword_and_number, test_cited_rounding_tolerance
+- class **TestPureHelpers**: test_rest_signal, test_is_drifted_threshold_and_sign, test_cited_needs_keyword_and_number, test_cited_by_topic_without_number, test_cited_rounding_tolerance
 - class **TestBuildAnswerEvidence**: test_rule_path_roles_and_snapshot, test_llm_path_keeps_only_cited_and_pinned, test_db_error_returns_empty, test_dedupes_by_metric
 - class **TestViewEvidence**: test_legacy_without_snapshot, test_user_message_and_empty, test_drift_detected_after_recalc, test_no_drift_when_unchanged, test_wellness_current, test_kst_date_invalid
 - functions: test_adjustment_in_effect_follows_state, test_briefing_extras_skip_items_without_metric, test_expected_source_failure_degrades_with_warning, test_code_defect_is_not_swallowed
