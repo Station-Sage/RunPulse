@@ -257,9 +257,9 @@
 
 - functions: race_date_window, check_checkin, check_plan_request, target_pace_error
 
-### `insight_polish.py` (68줄) — 능동 인사이트 문장 다듬기 (V2-REPAIR D4) — 규칙 템플릿 문장을 LLM 으로 1~2문장 다듬는다.
+### `insight_polish.py` (118줄) — 능동 인사이트 문장 다듬기 (V2-REPAIR D4) — 규칙 템플릿 문장을 LLM 으로 1~2문장 다듬는다.
 
-- functions: validate, polish_text, polish_open_events
+- functions: validate, polish_text, parse_batch, polish_open_events, polish_in_background
 
 ### `insight_rules.py` (61줄) — 능동 인사이트 규칙 평가 (V2-REPAIR D) — 신호 목록 → 사건 후보. 순수 함수(DB·외부 호출 없음).
 
@@ -348,6 +348,10 @@
 ### `milestone_service.py` (266줄) — Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
 
 - functions: detect_and_store_milestones, get_recent_milestones
+
+### `narrative_queue.py` (34줄) — Today 내러티브의 claude_queue 경로 — 워밍 스레드 전용(요청 스레드에서는 큐를 기다리지 않는다).
+
+- functions: queue_ready, validate_narrative, narrative_via_queue
 
 ### `narrative_warm.py` (96줄) — 이번 달 Today 내러티브 사전 생성(워밍) — 동기화 직후 AI 문장을 캐시에 미리 채운다 (DESIGN-U17 §3).
 
@@ -554,7 +558,7 @@
 
 - functions: race_days_left, build_week, build_briefing_state, build_race_summary, build_today_extras
 
-### `today_narrative.py` (149줄) — Today L2 성장 내러티브 — AI 우선, 규칙 기반 fallback (today_service 에서 분리, 300줄 캡).
+### `today_narrative.py` (157줄) — Today L2 성장 내러티브 — AI 우선, 규칙 기반 fallback (today_service 에서 분리, 300줄 캡).
 
 - functions: get_today_narrative
 
@@ -562,7 +566,7 @@
 
 - functions: build_readiness
 
-### `today_service.py` (238줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
+### `today_service.py` (240줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
 - functions: get_today_status, get_recent_activities, get_today_briefing, get_todays_checkin, get_today_milestones, get_today_narrative, save_checkin
 
@@ -1237,7 +1241,11 @@
 - class **Ticket**: 없음
 - functions: now_kst, limits, day_of, resets_at, scope, ensure_scope, uid_from_db, current, admit, settle, chars_of, usage_today, global_ratio, reset_for_tests
 
-### `provider_common.py` (99줄) — AI provider 공통 — 구조화 오류(ProviderError), 모델 ID 해석, 타임아웃(30-coach-chat design §4.3·§6.2).
+### `provider_claude_queue.py` (62줄) — claude_queue provider 어댑터 — 큐 가용 여부 확인과 ProviderError 매핑 (DESIGN-V2-AI-CLAUDE-QUEUE §E2).
+
+- functions: db_path_of, uid_of, available, complete, try_complete
+
+### `provider_common.py` (100줄) — AI provider 공통 — 구조화 오류(ProviderError), 모델 ID 해석, 타임아웃(30-coach-chat design §4.3·§6.2).
 
 - class **ProviderError**: 없음
 - class **RateLimitError**: 없음
@@ -3323,6 +3331,10 @@
 
 - functions: test_next_step_up_hold_down_and_clamp, test_prescription_shapes, test_service_persists_and_migration_idempotent
 
+### `test_provider_claude_queue.py` (128줄) — claude_queue 어댑터·배치 다듬기·내러티브 큐 경로 (V2-AI-CLAUDE-QUEUE E2).
+
+- functions: test_db_path_and_uid, test_available_false_on_error, test_complete_maps_failures, test_complete_ok_and_unavailable, conn, test_parse_batch, test_polish_batch_validates_each, test_polish_batch_falls_back_when_queue_fails, test_polish_skips_queue_when_unavailable, test_polish_in_background, test_validate_narrative, test_narrative_via_queue, test_warm_allows_queue_but_request_path_does_not
+
 ### `test_provider_common.py` (118줄) — provider 오류 구조화(30-coach-chat design §6.2) — HTTP 상태→reason 매핑, 모델 ID 설정화, 타임아웃.
 
 - class **_Resp**: json
@@ -3936,7 +3948,7 @@
 - functions: run
 
 ---
-총 852개 파일
+총 855개 파일
 
 ## docstring 누락
 
