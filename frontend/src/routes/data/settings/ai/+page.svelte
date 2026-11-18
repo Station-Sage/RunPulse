@@ -4,7 +4,7 @@
 	import { say } from '$lib/a11y/say';
 	import { base } from '$app/paths';
 	import { getAiQueue, pingAiQueue, patchAiSettings, testAiConnection, type AiQueueStatus, type AiPatch, type AiSettings } from '$lib/api/data';
-	import { engineSummary, keyFormatError, keyStateText, providerName, usageText, usageTodayText } from '$lib/aiSettings';
+	import { engineSummary, keyFormatError, keyStateText, providerName, queueOption, usageText, usageTodayText } from '$lib/aiSettings';
 	import type { AiPageData } from './+page';
 
 	let { data }: { data: AiPageData } = $props();
@@ -33,6 +33,7 @@
 
 	let q = $state<AiQueueStatus | null>(null);
 	let qResult = $state('');
+	const qo = $derived(queueOption(q));
 	onMount(async () => {
 		try { q = await getAiQueue(); } catch { q = null; }
 	});
@@ -99,6 +100,15 @@
 					onchange={() => save({ provider: 'rule' })} />
 				사용 안 함 (규칙 기반)
 			</label>
+			<div class="rounded-lg border border-border-subtle bg-surface-2 p-3" data-testid="provider-claude-queue">
+				<label class="flex min-h-11 items-center gap-2 text-sm text-fg-primary">
+					<input type="radio" name="prov" checked={s.provider === 'claude_queue'} disabled={busy || qo.disabled}
+						onchange={() => save({ provider: 'claude_queue' })} />
+					{providerName('claude_queue')}
+					<span class="text-xs text-fg-secondary">sonnet·haiku·opus</span>
+				</label>
+				<p class="mt-1 text-xs text-fg-secondary">{qo.note}</p>
+			</div>
 			{#each s.providers as p (p.provider)}
 				<div class="rounded-lg border border-border-subtle bg-surface-2 p-3">
 					<label class="flex min-h-11 items-center gap-2 text-sm text-fg-primary">

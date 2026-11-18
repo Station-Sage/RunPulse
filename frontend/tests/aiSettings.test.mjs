@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { engineSummary, keyStateText, usageText } from '../src/lib/aiSettings.ts';
+import { engineSummary, keyStateText, providerName, queueOption, usageText } from '../src/lib/aiSettings.ts';
 
 const base = { provider: 'gemini', mode: 'llm', chain: [{ provider: 'gemini', model: 'm' }], health: { degraded: false }, last_error_label: null };
 
@@ -25,4 +25,12 @@ test('usageTodayText: 오늘 사용량·한도 도달 안내', async () => {
 	assert.equal(usageTodayText(undefined), '');
 	assert.equal(usageTodayText(u), '오늘 AI 호출 12/200회 · 토큰 3,400/300,000');
 	assert.match(usageTodayText({ ...u, calls: 200 }), /한도 도달\(자정 초기화\)$/);
+});
+
+test('Claude 큐 선택지 — 꺼짐/미확인은 비활성, 켜짐은 선택 가능', () => {
+	assert.equal(providerName('claude_queue'), 'Claude(구독)');
+	assert.equal(queueOption(null).disabled, true);
+	assert.equal(queueOption({ enabled: false, worker_up: true }).disabled, true);
+	assert.equal(queueOption({ enabled: true, worker_up: true }).disabled, false);
+	assert.match(queueOption({ enabled: true, worker_up: false }).note, /응답하지 않아요/);
 });

@@ -17,7 +17,9 @@ const REASON_TEXT: Record<string, string> = {
 	unexpected: '예기치 못한 오류',
 	quota_user: '오늘 AI 사용 한도',
 	quota_global: 'AI 사용량 일시 제한',
-	busy: 'AI 요청 혼잡'
+	busy: 'AI 요청 혼잡',
+	cq_timeout: 'Claude 워커 응답 없음',
+	quota_sub: 'Claude 구독 한도'
 };
 
 export function reasonText(reason: string | null | undefined): string {

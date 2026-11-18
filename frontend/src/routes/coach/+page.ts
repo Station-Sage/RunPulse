@@ -1,6 +1,7 @@
 import { getThreads, getEngine, getSuggestions } from '$lib/api/coach';
 import { getActivePlan } from '$lib/api/plan';
 import { getTodayCheckin, getRaceHub, getToday } from '$lib/api/today';
+import { softLoad } from '$lib/loadTimeout';
 import { toResult, type Failure } from '$lib/loadFailure';
 import type { UnlockMap } from '$lib/unlock';
 import type { ThreadsListResponse, ActivePlan, CheckinRow, RaceHubGoal, CoachEngine, CoachChip } from '$lib/types';
@@ -21,12 +22,12 @@ export async function load({ depends }: { depends: (k: string) => void }): Promi
 	depends('app:coach-threads');
 	const [threadsResult, activePlan, checkin, hub, engine, suggested, today] = await Promise.all([
 		toResult(getThreads()),
-		getActivePlan().catch(() => null),
-		getTodayCheckin().catch(() => null),
-		getRaceHub().catch(() => null),
-		getEngine().catch(() => null),
-		getSuggestions().catch(() => null),
-		getToday().catch(() => null)
+		softLoad(getActivePlan()),
+		softLoad(getTodayCheckin()),
+		softLoad(getRaceHub()),
+		softLoad(getEngine()),
+		softLoad(getSuggestions()),
+		softLoad(getToday(), 1500)
 	]);
 	const suggestions = suggested?.suggestions ?? [];
 	const unlock = today?.unlock ?? null;

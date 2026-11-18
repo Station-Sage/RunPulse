@@ -1,7 +1,7 @@
 // AI 설정 화면 표시 헬퍼.
 import type { AiSettings, KeyState } from '$lib/api/data';
 
-const NAMES: Record<string, string> = { gemini: 'Gemini', groq: 'Groq', openai: 'OpenAI', claude: 'Claude', rule: '규칙 기반' };
+const NAMES: Record<string, string> = { gemini: 'Gemini', groq: 'Groq', openai: 'OpenAI', claude: 'Claude', claude_queue: 'Claude(구독)', rule: '규칙 기반' };
 
 export const providerName = (p: string): string => NAMES[p] ?? p;
 
@@ -40,4 +40,11 @@ export function keyFormatError(raw: string): string | null {
 	if (k.length > 256) return 'API 키는 256자 이하예요';
 	if (!/^[\x21-\x7e]+$/.test(k) || /[<>"'`]/.test(k)) return 'API 키에 공백·줄바꿈이나 쓸 수 없는 문자가 있어요. 복사한 키를 다시 확인해 주세요';
 	return null;
+}
+
+/** Claude 큐 라디오의 선택 가능 여부와 안내 문구 — 켜져 있지 않으면 선택할 수 없다. */
+export function queueOption(q: { enabled: boolean; worker_up: boolean } | null): { disabled: boolean; note: string } {
+	if (!q) return { disabled: true, note: '상태를 확인하지 못했어요' };
+	if (!q.enabled) return { disabled: true, note: '이 계정은 Claude 큐가 꺼져 있어요(서버 설정에서 켜야 해요)' };
+	return { disabled: false, note: q.worker_up ? '워커 연결됨 · 실패하면 Groq/Gemini → 규칙 순으로 대신해요' : '워커가 응답하지 않아요 · 지금은 다른 제공자로 대신해요' };
 }
