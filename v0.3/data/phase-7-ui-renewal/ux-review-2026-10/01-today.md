@@ -80,3 +80,11 @@
 - T-25 부분: CTL 없으면 추세 3건 미요청(404 제거). welcome 리다이렉트·미연결 pill 은 이미됨(4e284fad, `syncState` '기기 연결'). `coach/plan/active` 404 는 API 계약 변경이 필요해 보류.
 - T-26 처리: 활동 0건이면 AI 미호출, 미수집/미기록 구분 중립 문구.
 - T-28 부분: 차트 추세 3건을 today 응답 뒤로 미룸. 콜드 로드 시간 실측 비교는 미실시.
+
+## 처리 기록 (2026-11-18, V2-AUDIT-INDIV 화면별 1차 — Today)
+- T-05 이미됨: `run_totals`(러닝만 집계)로 분리, 수영 합산 해소.
+- T-12 처리: 노력도 버튼·표시 해제 터치 대상 44px, 대회별 `role=group` + 날짜·이름 `aria-label`, 목록 래퍼 `role=region`.
+- T-29 이미됨: r4 섀도 후보는 "검토 중 알고리즘" 접힘 안에 표시(T-09).
+- T-03 부분: 입력 오래됨은 freshness 배지로 이미 표시. UTRS confidence 는 API(`GaugeEntry`)에 없어 노출하려면 서버 응답 확장 필요 → 보류.
+- 남은 항목: T-01(HSR-1/HSR-5 결정 대기), T-21 "W2~W5만 나열" 문구(AI 출력 의존), T-25 `coach/plan/active` 404(API 계약 변경), T-28 콜드 로드 실측.
+

@@ -60,7 +60,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-2" aria-label="대회 확인">
+<div class="flex flex-col gap-2" role="region" aria-label="대회 확인">
 	<span class="text-xs text-fg-muted">대회 기록 확인 · 예측은 '전력'으로 표시한 대회만 기준으로 써요</span>
 	{#if saveError}
 		<p class="text-[11px] text-semantic-red" use:say={{ text: `저장하지 못했어요 · 다시 시도해 주세요 (${saveError})`, level: 'assertive' }}>저장하지 못했어요 · 다시 시도해 주세요 ({saveError})</p>
@@ -86,14 +86,14 @@
 							: ''}</span
 					>
 					{#if hint}<span class="text-[11px] text-semantic-amber">{hint}</span>{/if}
-					<div class="flex flex-wrap items-center gap-1">
+					<div class="flex flex-wrap items-center gap-1" role="group" aria-label="{item.date} {item.name ?? '대회'} 노력도 표시">
 						{#each EFFORTS as e (e.key)}
 							<button
 								type="button"
 								disabled={busy.has(item.activity_id)}
 								aria-pressed={item.confirmed_effort === e.key}
 								onclick={() => choose(item, e.key)}
-								class="rounded border px-2 py-0.5 text-[11px] {item.confirmed_effort === e.key
+								class="inline-flex min-h-11 min-w-11 items-center justify-center rounded border px-3 text-[11px] {item.confirmed_effort === e.key
 									? 'border-fg-primary font-semibold text-fg-primary'
 									: 'border-border-subtle text-fg-muted'}">{#if item.confirmed_effort === e.key}<span aria-hidden="true">✓ </span>{/if}{e.label}</button
 							>
@@ -101,7 +101,7 @@
 						<!-- T-14: 선택 상태를 글로도 보인다. T-13: 해제는 별도 버튼으로만. -->
 						<span class="text-[11px] text-fg-muted">{chosen ? `표시: ${chosen}` : '미표시'}</span>
 						{#if chosen}
-							<button type="button" disabled={busy.has(item.activity_id)} onclick={() => choose(item, null)} class="text-[11px] text-fg-muted underline underline-offset-2 hover:text-fg-primary">표시 해제</button>
+							<button type="button" disabled={busy.has(item.activity_id)} onclick={() => choose(item, null)} class="inline-flex min-h-11 items-center px-2 text-[11px] text-fg-muted underline underline-offset-2 hover:text-fg-primary">표시 해제</button>
 						{/if}
 					</div>
 				</li>
