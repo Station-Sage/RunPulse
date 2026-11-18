@@ -203,6 +203,10 @@
 
 - functions: set_source_enabled, auto_settings, validate_auto_patch, patch_auto
 
+### `deep_analysis.py` (158줄) — 사용자 요청 심화 분석 (V2-AI-CLAUDE-QUEUE E5-d, deep_v1) — 오늘(또는 지정) 훈련을 opus 가 도구로 조회하며 해설한다.
+
+- functions: scope_key, pick_activity_id, build_prompt, src_hash, split_output, get_cached, generate, start_background, cancel, run_state
+
 ### `export_archive.py` (207줄) — 내보내기 아카이브 zip 작성 — 그룹별 테이블 CSV/JSON·원본 jsonl·manifest·README (data-export §2.2).
 
 - class **ExportError**: 없음
@@ -381,6 +385,10 @@
 ### `plan_advisory.py` (158줄) — skip/rest 반복 경고 A1~A6 — 거부하지 않고 안내만 한다 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §3).
 
 - functions: compute, issue
+
+### `plan_draft.py` (217줄) — AI 플랜 초안 (V2-AI-CLAUDE-QUEUE E5-c, plan_draft_v1) — 규칙 계획을 baseline 으로 opus 가 이지/롱런 거리·설명을 다듬는다.
+
+- functions: build_input, src_hash, validate, latest, generate, start_background, is_running, apply_draft
 
 ### `plan_load.py` (137줄) — 계획 조정의 부하 영향 추정 — 이번 주 부하 변화율과 주말 ACWR 전/후 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §5).
 
@@ -1884,6 +1892,10 @@
 
 - functions: get_data_profile, preview_data_profile, patch_data_profile
 
+### `routes_deep_analysis.py` (55줄) — `/api/v1/coach/deep*` — 사용자 요청 심화 분석 시작·조회·취소 (V2-AI-CLAUDE-QUEUE E5-d).
+
+- functions: deep_state, deep_start, deep_cancel
+
 ### `routes_dev.py` (41줄) — 개발용 사용자 전환 API — GET /api/v1/dev/users, POST /api/v1/dev/switch-user (V1-8, SRV 2.5).
 
 - functions: get_dev_users, post_dev_switch_user
@@ -1935,6 +1947,10 @@
 ### `routes_plan_adjust.py` (186줄) — `/api/v1/coach/plan/adjustments*` — 계획 조정 수락·되돌리기·이력 (ADR-035).
 
 - functions: accept_plan_adjustment, revert_plan_adjustment, plan_workout_action, plan_workout_action_preview, list_plan_adjustments, plan_advisories
+
+### `routes_plan_draft.py` (71줄) — `/api/v1/coach/plan/draft*` — AI 플랜 초안 생성·조회·적용 (V2-AI-CLAUDE-QUEUE E5-c).
+
+- functions: plan_draft_state, plan_draft_start, plan_draft_apply
 
 ### `routes_plan_replan.py` (121줄) — `/api/v1/coach/plan/replan*` — 안전한 재계획 미리보기·적용·되돌리기 (ADR-035 부록 R).
 
@@ -2216,6 +2232,10 @@
 ### `test_api_plan_adjustments.py` (168줄) — POST/GET /api/v1/coach/plan/adjustments* — 수락·되돌리기·충돌·이력.
 
 - functions: client, test_accept_then_revert, test_rev_mismatch_is_409, test_not_found_and_bad_request, test_list, test_workout_action, test_workout_action_errors, test_workout_action_easy_and_reps, test_preview_and_load_delta_field, test_pain_levels_force_rest_and_validate, test_preview_accepts_pain_sites_csv, test_advisories_replan_with_link_and_no_record, test_advisories_suppressed_by_recent_pain_and_errors, test_advisory_replan_hidden_when_race_near
+
+### `test_api_plan_draft.py` (64줄) — /api/v1/coach/plan/draft* — 상태·시작·적용 (V2-AI-CLAUDE-QUEUE E5-c).
+
+- functions: client, test_state_none_and_availability, test_start_unavailable_409, test_start_202, test_apply_requires_anchor_and_no_draft
 
 ### `test_api_plan_r2.py` (71줄) — R2 API — 활성 플랜 교체 409 확인 흐름, 복원 라우트, 비활성 플랜 재계획 undo 차단.
 
@@ -2687,6 +2707,10 @@
 
 - class **TestDedup**: test_same_activity_different_sources, test_different_activities_not_grouped, test_same_source_not_grouped, test_distance_threshold_exceeded, test_three_sources_same_activity, test_no_distance_falls_back_to_time, test_one_sided_zero_distance_not_grouped, test_preserves_existing_groups_on_rerun, test_third_source_joins_existing_group
 - class **TestActivityGroupsUpsert**: test_assign_group_id_creates_activity_group, test_auto_group_all_creates_activity_groups, test_primary_source_priority, test_activity_groups_updated_on_rerun
+
+### `test_deep_analysis.py` (98줄) — 심화 분석 서비스·API (V2-AI-CLAUDE-QUEUE E5-d).
+
+- functions: db, test_split_output, test_pick_activity_id_prefers_latest_run, test_generate_stores_and_caches, test_generate_failures, test_background_progress_and_cancel, test_api
 
 ### `test_di_v2.py` (28줄) — P7-PRED-89: DI v2 — 랩 기반 후반 효율 유지율, 상한 없음.
 
@@ -3247,6 +3271,10 @@
 ### `test_plan_creation.py` (69줄) — 목표 대회 역산 계획 생성 — 시작·기간·볼륨 진행.
 
 - functions: test_plan_start_monday, test_recent_load_reads_history, test_created_plan_follows_periodization_and_ends_on_race, test_shorter_plan_starts_in_future_and_week_index_is_zero_before_start
+
+### `test_plan_draft.py` (123줄) — AI 플랜 초안 — 검증 게이트·캐시·적용 (V2-AI-CLAUDE-QUEUE E5-c).
+
+- functions: test_validate_gates, test_validate_merges_and_keeps_fixed_fields, test_validate_bad_format, conn, test_generate_ready_then_cached, test_generate_failure_records_reason, test_generate_retries_with_reason, test_apply_draft_passes_override, test_apply_without_draft, test_check_week_ignores_baseline_violations
 
 ### `test_plan_gates.py` (145줄)
 
@@ -4010,7 +4038,7 @@
 - functions: run
 
 ---
-총 870개 파일
+총 877개 파일
 
 ## docstring 누락
 
