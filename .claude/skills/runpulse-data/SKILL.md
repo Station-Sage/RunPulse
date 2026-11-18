@@ -28,6 +28,7 @@ user-invocable: false
 | 특정 날 메트릭 / 추세 | `get_metrics(date)` / `get_metrics_trend(name,days)` | 62일 초과 시 주 평균 |
 | 기간 비교 | `compare_periods` | |
 | 계획 · 프로필 · 날씨 | `get_training_plan` / `get_runner_profile` / `get_weather` | |
+| 계획 이행 | `get_plan_adherence` | 최근 N주 세션 완료·볼륨·퀄리티 |
 
 **전형적 흐름**: `get_training_summary` → 궁금한 세션 id → `get_activity_laps(id)`.
 날짜·id를 모른 채 `get_activities_range`를 넓게 훑지 않는다.

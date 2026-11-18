@@ -206,6 +206,14 @@ TOOL_DECLARATIONS = [
             "required": ["date"]
         }
     },
+    {
+        "name": "get_plan_adherence",
+        "description": "주별 훈련 계획 이행(세션 완료/전체, 볼륨 실제/계획, 퀄리티)과 세션별 계획 대비 결과. 최근 N주(기본 4, 최대 8).",
+        "parameters": {
+            "type": "object",
+            "properties": {"weeks": {"type": "integer", "description": "기본 4, 최대 8"}}
+        }
+    },
 ]
 
 # 로컬 stdio(MCP)·워커 전용 — 챗 LLM 고정 비용(예산)과 원격 노출에서 제외.

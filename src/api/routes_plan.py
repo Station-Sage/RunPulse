@@ -37,6 +37,20 @@ def get_active_plan_route():
     return api_ok(result)
 
 
+@api_bp.get("/coach/plan/adherence-review")
+def get_adherence_review_route():
+    """지난주 이행 리뷰(저장분만). 없으면 review=null — 화면은 기존 수치만 보여 준다."""
+    from src.services import adherence_review
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    conn = sqlite3.connect(str(dpath))
+    try:
+        return api_ok({"review": adherence_review.review_for_view(conn)})
+    finally:
+        conn.close()
+
+
 @api_bp.get("/coach/plan/restorable")
 def get_restorable_plans_route():
     dpath = db_path()

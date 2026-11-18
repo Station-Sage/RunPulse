@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AdherenceReviewCard from '$lib/components/AdherenceReviewCard.svelte';
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03e-coach.md 5-F — 플랜 상세: 진행 중인 훈련 플랜.
 	import type { PlanDetailPageData } from './+page';
@@ -187,6 +188,8 @@
 				onChange={() => invalidateAll()}
 			/>
 		{/if}
+
+		<AdherenceReviewCard />
 
 		<!-- 이번 주 워크아웃 목록 -->
 		<div class="border-b border-border-subtle px-4 py-3">

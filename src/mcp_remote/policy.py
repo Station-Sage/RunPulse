@@ -5,7 +5,7 @@ REMOTE_TOOLS: frozenset[str] = frozenset({
     "get_activity", "get_activities_range", "get_activity_detail", "get_activity_laps",
     "compare_workout_sets", "get_training_summary", "get_metrics", "get_metrics_trend",
     "get_wellness", "get_fitness", "get_race_history", "compare_periods",
-    "get_training_plan", "get_runner_profile", "get_weather",
+    "get_training_plan", "get_plan_adherence", "get_runner_profile", "get_weather",
 })
 REMOTE_DENIED: frozenset[str] = frozenset()
 # 로컬 stdio(MCP)·워커 전용 — 원본 payload 는 원격에 노출하지 않는다.

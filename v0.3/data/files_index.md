@@ -90,6 +90,10 @@
 
 - functions: get_adaptation_status
 
+### `adherence_review.py` (153줄) — 지난주 훈련 이행 리뷰 (V2-AI-CLAUDE-QUEUE E3, adherence_v1) — 규칙 수치를 근거로 LLM 이 해설한다.
+
+- functions: last_week_start, scope_key, build_input, evidence_keys, src_hash, validate, get_cached, generate, review_for_view, generate_in_background
+
 ### `adjuster_frequency.py` (67줄) — 조정 제안 빈도·수락률 감시와 v2 자동 롤백 판정 (ADR-035 개정, ADJ §3.13).
 
 - functions: weekly_counts, acceptance_drop, should_rollback, check_and_rollback
@@ -853,7 +857,7 @@
 
 - functions: scheduler_mode, start, stop, restart, status
 
-### `bg_sync.py` (580줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (582줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
@@ -1259,11 +1263,15 @@
 
 - functions: main
 
-### `tool_declarations.py` (242줄) — AI Function Calling 도구 선언 — Gemini function_declarations 형식.
+### `tool_declarations.py` (250줄) — AI Function Calling 도구 선언 — Gemini function_declarations 형식.
 
 - (public API 없음)
 
 ### `tool_exec_activity.py` (185줄) — 활동 단위 도구 실행기 — 요약, 기간 목록, 상세, 랩, 세트 비교.
+
+- (public API 없음)
+
+### `tool_exec_adherence.py` (38줄) — get_plan_adherence 도구 실행기 — 주별 계획 이행 수치(최대 8주).
 
 - (public API 없음)
 
@@ -1291,7 +1299,7 @@
 
 - (public API 없음)
 
-### `tools.py` (53줄) — AI Function Calling 도구 진입점 — 선언 재노출 + 실행 디스패치.
+### `tools.py` (55줄) — AI Function Calling 도구 진입점 — 선언 재노출 + 실행 디스패치.
 
 - functions: execute_tool
 
@@ -1907,9 +1915,9 @@
 
 - functions: get_preferences, patch_preferences
 
-### `routes_plan.py` (277줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
+### `routes_plan.py` (291줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
 
-- functions: get_active_plan_route, get_restorable_plans_route, get_plan_weeks_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan, restore_plan_route
+- functions: get_active_plan_route, get_adherence_review_route, get_restorable_plans_route, get_plan_weeks_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan, restore_plan_route
 
 ### `routes_plan_adjust.py` (186줄) — `/api/v1/coach/plan/adjustments*` — 계획 조정 수락·되돌리기·이력 (ADR-035).
 
@@ -2039,6 +2047,10 @@
 ### `test_adaptation_service.py` (121줄) — tests/test_adaptation_service.py — adaptation_service.get_adaptation_status() 단위 테스트.
 
 - functions: test_acwr_zone_boundaries, test_hrv_zone_boundaries, test_get_adaptation_status_all_none, test_get_adaptation_status_acwr_latest_before_date, test_get_adaptation_status_hrv_zone, test_get_adaptation_status_hrv_null_baseline, test_get_adaptation_status_fatigue_avg
+
+### `test_adherence_review.py` (142줄) — 지난주 이행 리뷰 — 검증·캐시·API·도구 (V2-AI-CLAUDE-QUEUE E3).
+
+- functions: conn, test_scope_and_last_week, test_evidence_keys_and_hash, test_validate, test_build_input_none_without_goal, test_generate_caches_and_skips_unavailable, test_generate_rejects_bad_output, test_tool_without_goal, test_route_returns_null_then_review, test_all_tools_classified, test_build_input_and_tool_with_real_week
 
 ### `test_adj_flag_sync.py` (32줄) — R3 — adj_accepted 가 plan_adjustments(accepted) 와 동기화된다.
 
@@ -3948,7 +3960,7 @@
 - functions: run
 
 ---
-총 855개 파일
+총 858개 파일
 
 ## docstring 누락
 
