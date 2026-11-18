@@ -52,6 +52,8 @@ def run_job(db_path, *, kind: str, model: str, prompt: str, deadline_sec: float,
                                " FROM ai_jobs WHERE id=?", (jid,)).fetchone()
             state = row["state"]
             if state == "done":
+                if on_progress and (row["progress_json"], row["partial_text"]) != seen:
+                    on_progress(row["progress_json"], row["partial_text"] or "")
                 return {"ok": True, "text": row["result_text"] or "", "reason": None, "job_id": jid,
                         "queue_ms": row["queue_ms"]}
             if state in qs.TERMINAL:

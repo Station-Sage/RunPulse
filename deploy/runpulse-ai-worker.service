@@ -1,6 +1,7 @@
 # 설치: cp deploy/runpulse-ai-worker.service ~/.config/systemd/user/ && loginctl enable-linger ubuntu
 #       mkdir -p ~/.local/state/runpulse-ai/work   # WorkingDirectory 는 ExecStartPre 전에 필요
 #       systemctl --user daemon-reload && systemctl --user enable --now runpulse-ai-worker
+# 필수: 워커가 띄우는 MCP 서버는 호스트 /usr/bin/python3 로 실행되므로 `pip install --user --break-system-packages mcp` 필요
 [Unit]
 Description=RunPulse Claude queue worker
 After=network-online.target docker.service

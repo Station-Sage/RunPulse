@@ -85,5 +85,6 @@ def complete_coach(conn, prompt: str, config, stats, on_tool, cq: dict) -> str:
         if outer is not None:
             outer(pj, partial)
     kw = {k: cq[k] for k in ("thread_key", "ctx_hash", "history", "retire", "should_cancel", "system_ctx") if cq.get(k)}
+    from src.mcp_remote.policy import LOCAL_ONLY_TOOLS, REMOTE_TOOLS
     return complete(conn, config, kind="coach", prompt=prompt, deadline_sec=cq.get("deadline_sec"),
-                    tools="read", on_progress=progress, **kw)
+                    tools="read", allowed_tools=sorted(REMOTE_TOOLS | LOCAL_ONLY_TOOLS), on_progress=progress, **kw)

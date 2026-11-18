@@ -11,6 +11,7 @@ config.json의 ai.provider 설정에 따라 다른 AI API 호출.
 from __future__ import annotations
 
 import logging
+import re
 import sqlite3
 from datetime import date
 
@@ -36,6 +37,9 @@ def get_ai_provider(config: dict | None = None) -> str:
     if not config:
         return "rule"
     return config.get("ai", {}).get("provider", "rule")
+
+
+_TRAILING_RECO = re.compile(r"\n*\[추천:[^\]]*\]\s*$")
 
 
 def _with_activity_context(conn: sqlite3.Connection, thread_id: int | None, ctx_text: str) -> str:
@@ -104,6 +108,7 @@ def chat_result(
 
     as_of = date.today().isoformat()
     if text and used:
+        text = _TRAILING_RECO.sub("", text).rstrip() or text
         return ChatResult(text, engine_for_ok(used, attempts), as_of=as_of, sent_scope=sent_scope)
     if on_event is not None:
         on_event("stage", {"key": "rule", "label": "기본 답변 준비 중", "tool": None})
