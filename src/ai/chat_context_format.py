@@ -278,6 +278,9 @@ def _format_chat_context(ctx: dict, message: str,
     if ctx.get("cirs_7d"):
         lines.append("CIRS 7일: " + ", ".join(f"{d['date'][-5:]}={d['value']}" for d in ctx["cirs_7d"]))
 
+    from .chat_context_insight import format_insight_lines
+    lines.extend(format_insight_lines(ctx))
+
     # 대화 이력
     if chat_history:
         lines.append("\n### 최근 대화")

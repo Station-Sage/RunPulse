@@ -616,7 +616,7 @@
 - class **AlgoChange**: 없음
 - functions: changes_for
 
-### `bands.py` (94줄) — 메트릭 등급 밴드 SSOT — 값 → (status, 한국어 라벨).
+### `bands.py` (120줄) — 메트릭 등급 밴드 SSOT — 값 → (status, 한국어 라벨).
 
 - functions: grade, band_ranges, with_grade
 
@@ -1122,7 +1122,7 @@
 
 - functions: build_briefing_prompt, build_chip_prompt, get_clipboard_prompt
 
-### `chat_context.py` (101줄) — AI 채팅 전용 컨텍스트 빌더 — 의도 감지 → DB 자동 수집.
+### `chat_context.py` (103줄) — AI 채팅 전용 컨텍스트 빌더 — 의도 감지 → DB 자동 수집.
 
 - functions: build_chat_context, build_chat_context_scoped
 
@@ -1134,9 +1134,13 @@
 
 - functions: build_checkin_context, format_checkin_line
 
-### `chat_context_format.py` (289줄) — AI 채팅 컨텍스트 — 포맷터 (컨텍스트 dict → 프롬프트 텍스트).
+### `chat_context_format.py` (292줄) — AI 채팅 컨텍스트 — 포맷터 (컨텍스트 dict → 프롬프트 텍스트).
 
 - (public API 없음)
+
+### `chat_context_insight.py` (123줄) — Coach 컨텍스트 해석 보강 — Lap 요약·플랜 이행·HRV 분포 (V2-REPAIR C-2).
+
+- functions: add_insight_context, format_insight_lines
 
 ### `chat_context_intent.py` (83줄) — AI 채팅 컨텍스트 — 의도 감지 모듈.
 
@@ -1146,7 +1150,7 @@
 
 - (public API 없음)
 
-### `chat_context_scope.py` (51줄) — AI 채팅 컨텍스트 — 외부 LLM으로 나가는 항목 목록(sent_scope, 30-coach-chat design §4.3).
+### `chat_context_scope.py` (54줄) — AI 채팅 컨텍스트 — 외부 LLM으로 나가는 항목 목록(sent_scope, 30-coach-chat design §4.3).
 
 - functions: describe_scope, scope_catalog
 
@@ -1585,7 +1589,7 @@
 
 - functions: get_group_for_metric, get_group_members
 
-### `metric_label_texts.py` (70줄) — 지표 한 줄 설명(description_short)·상태별 행동 힌트(action_hint) — B-4 1차 범위(기본 8 + 대표 20).
+### `metric_label_texts.py` (113줄) — 지표 한 줄 설명(description_short)·상태별 행동 힌트(action_hint) — B-4 1차 범위(기본 8 + 대표 20).
 
 - (public API 없음)
 
@@ -2244,6 +2248,10 @@
 
 - functions: test_no_checkin_returns_none, test_today_checkin_fields, test_old_checkin_ignored, test_yesterday_checkin_included, test_empty_checkin_returns_none, test_empty_checkin_note_whitespace_returns_none, test_note_truncated_at_200, test_integration_checkin_in_chat_context, test_integration_no_checkin_not_in_context
 
+### `test_chat_context_insight.py` (62줄) — Coach 컨텍스트 해석 보강(C-2) — Lap 요약·플랜 이행·HRV 분포.
+
+- functions: test_empty_db_adds_nothing, test_plan_adherence_and_hrv, test_lap_summary_fade
+
 ### `test_chat_context_intents.py` (69줄) — AI 채팅 의도별 컨텍스트 빌더 회귀 테스트 — 스키마 드리프트 방지.
 
 - functions: test_every_intent_builder_runs_on_current_schema, test_today_context_reads_todays_activity, test_today_context_without_activity_is_none, test_lookup_context_reads_target_date_activities
@@ -2870,9 +2878,9 @@
 
 - functions: client, test_issue_shows_plaintext_once_and_list_hides_it, test_label_required_and_bad_days, test_cap_returns_409, test_revoke_is_user_scoped_and_audited
 
-### `test_metric_bands.py` (46줄) — tests/test_metric_bands.py — 등급 밴드 SSOT(src/metrics/bands.py).
+### `test_metric_bands.py` (68줄) — tests/test_metric_bands.py — 등급 밴드 SSOT(src/metrics/bands.py).
 
-- functions: test_tsb_conventional_bands, test_tsb_race_phase_overrides, test_cirs_lower_is_better, test_decoupling_uses_absolute_value, test_unknown_or_missing_returns_none, test_utrs_bands_match_calculator_ranges, test_rri_bands
+- functions: test_tsb_conventional_bands, test_tsb_race_phase_overrides, test_cirs_lower_is_better, test_decoupling_uses_absolute_value, test_unknown_or_missing_returns_none, test_utrs_bands_match_calculator_ranges, test_rri_bands, test_c1_new_bands, test_c1_hints_exist_for_new_bands
 
 ### `test_metric_browse_groups.py` (64줄) — tests/test_metric_browse_groups.py — 메트릭 브라우저 8의도 그룹 매핑·정렬 단위 테스트.
 
@@ -3832,7 +3840,7 @@
 - functions: run
 
 ---
-총 826개 파일
+총 828개 파일
 
 ## docstring 누락
 

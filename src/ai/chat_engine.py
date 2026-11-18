@@ -89,7 +89,7 @@ def chat_result(
                 conn, user_message, chat_history, provider=provider, exclude_notes=exclude_notes)
             ctx_text = _with_activity_context(conn, thread_id, ctx_text)
             prompt = _build_system_prompt(ctx_text, user_message, chat_history)
-        text, used, attempts = run_chain(conn, prompt, config, chain, tools=tools_on and prompt_is_free,
+        text, used, attempts = run_chain(conn, prompt, config, chain, tools=tools_on,
                                          on_event=on_event, cancelled=cancelled)
 
     as_of = date.today().isoformat()

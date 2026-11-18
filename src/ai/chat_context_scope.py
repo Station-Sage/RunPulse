@@ -21,6 +21,9 @@ _SCOPE_ITEMS: list[tuple[str, str, str, bool]] = [
     ("race_history", "대회 기록", "전체", False),
     ("goal", "목표·레이스 허브", "현재", False),
     ("week_plan", "이번 주 훈련 계획", "이번 주", False),
+    ("lap_summary", "최근 러닝 Lap 요약", "최근 14일", False),
+    ("plan_adherence", "플랜 이행 요약", "최근 4주", False),
+    ("hrv_dist", "HRV 분포", "최근 28일", False),
     ("runner_profile", "러너 프로필", "현재", False),
 ]
 _CHECKIN = ("checkin", "오늘 컨디션 입력(피로·통증)", "오늘", False)

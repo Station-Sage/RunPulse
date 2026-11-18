@@ -17,6 +17,7 @@ from datetime import date
 from .chat_context_builders import _build_base_context, INTENT_BUILDERS
 from .chat_context_checkin import build_checkin_context
 from .chat_context_format import _format_chat_context
+from .chat_context_insight import add_insight_context
 from .chat_context_intent import detect_intent
 from .chat_context_scope import describe_scope
 from .chat_context_rich import (
@@ -91,6 +92,7 @@ def build_chat_context_scoped(conn: sqlite3.Connection, message: str,
             INTENT_BUILDERS["lookup"](conn, ctx, today)
         except Exception:
             log.warning("lookup 컨텍스트 빌드 실패", exc_info=True)
+    add_insight_context(conn, ctx, today)
     builder = INTENT_BUILDERS.get(intent)
     if builder:
         try:
