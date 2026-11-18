@@ -10,12 +10,12 @@ import sqlite3
 
 from src.ai.chat_context_scope import scope_catalog
 from src.ai.chat_engine_result import FALLBACK_ORDER, build_chain
-from src.ai.provider_common import LLM_PROVIDERS, REASON_LABELS, api_key_for, model_for
+from src.ai.provider_common import CLAUDE_QUEUE, LLM_PROVIDERS, REASON_LABELS, api_key_for, model_for
 from src.services.coach_consent import get_consent
 
 WINDOW = 20
 DEGRADED_AFTER = 3
-_PROVIDER_NAMES = {"gemini": "Gemini", "groq": "Groq", "openai": "OpenAI", "claude": "Claude"}
+_PROVIDER_NAMES = {"claude_queue": "Claude(구독)", "gemini": "Gemini", "groq": "Groq", "openai": "OpenAI", "claude": "Claude"}
 
 
 def model_label(provider: str, model: str | None) -> str:
@@ -142,19 +142,25 @@ def get_engine(conn: sqlite3.Connection, config: dict | None) -> dict:
     """GET /coach/engine 페이로드(design §7.2)."""
     selected = ((config or {}).get("ai") or {}).get("provider", "rule")
     consent = get_consent(conn)
-    if selected not in LLM_PROVIDERS:
+    cq_ok = False
+    if selected == CLAUDE_QUEUE:
+        from src.ai import provider_claude_queue as pcq
+        cq_ok = pcq.available(conn, config)
+    if selected == CLAUDE_QUEUE:
+        mode = "llm" if cq_ok or any(api_key_for(p, config) for p in LLM_PROVIDERS) else "rule_only"
+    elif selected not in LLM_PROVIDERS:
         mode = "rule_by_choice"
     elif not any(api_key_for(p, config) for p in LLM_PROVIDERS):
         mode = "rule_only"
     else:
         mode = "llm"
-    chain, _ = build_chain(selected, config, consent, True)
+    chain, _ = build_chain(selected, config, consent, True, cq_available=cq_ok)
     # C-17: 동의창에 "실패 시 재시도" 대상 제공자를 이름으로 밝힌다(호출 순서는 build_chain 그대로).
     fallback = [p for p in FALLBACK_ORDER if p != selected and api_key_for(p, config)] if selected in LLM_PROVIDERS else []
     return {
         "mode": mode,
         "selected": {"provider": selected, "model": model_for(selected, config) if selected in LLM_PROVIDERS else None},
-        "chain": [{"provider": p, "model": model_for(p, config)} for p in chain],
+        "chain": [{"provider": p, "model": None if p == CLAUDE_QUEUE else model_for(p, config)} for p in chain],
         "fallback_providers": [{"provider": p, "label": _PROVIDER_NAMES.get(p, p)} for p in fallback],
         "health": health_summary(conn),
         "consent": consent,

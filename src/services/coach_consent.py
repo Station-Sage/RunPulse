@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import sqlite3
 
-from src.ai.provider_common import LLM_PROVIDERS
+from src.ai.provider_common import CLAUDE_QUEUE, LLM_PROVIDERS
+
+CONSENT_PROVIDERS = (*LLM_PROVIDERS, CLAUDE_QUEUE)
 
 
 def get_consent(conn: sqlite3.Connection) -> dict | None:
@@ -30,7 +32,7 @@ DEFAULT_FALLBACK_ENABLED = False
 def save_consent(conn: sqlite3.Connection, provider: str, exclude_notes: bool = DEFAULT_EXCLUDE_NOTES,
                  tools_enabled: bool = True, fallback_enabled: bool = DEFAULT_FALLBACK_ENABLED) -> dict:
     """동의 저장(upsert). provider가 LLM이 아니면 ValueError. 이미 저장된 동의 행은 바꾸지 않는다(기존 사용자 유지)."""
-    if provider not in LLM_PROVIDERS:
+    if provider not in CONSENT_PROVIDERS:
         raise ValueError(f"지원하지 않는 provider: {provider}")
     conn.execute(
         "INSERT INTO coach_consent (id, provider, exclude_notes, tools_enabled, fallback_enabled)"

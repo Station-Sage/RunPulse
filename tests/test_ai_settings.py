@@ -95,3 +95,11 @@ def test_routes(monkeypatch, tmp_path, conn):
         resp = c.patch("/api/v1/data/settings/ai", json={"provider": "gemini", "keys": {"gemini": "SECRETKEY99"}})
         assert resp.status_code == 200 and "SECRETKEY99" not in resp.get_data(as_text=True)
         assert c.post("/api/v1/data/settings/ai/test", json={"provider": "nope"}).status_code == 400
+
+
+def test_claude_queue_choice_and_ping(conn):
+    out, err = svc.validate_patch({"provider": "claude_queue"})
+    assert err is None and out["provider"] == "claude_queue"
+    r = svc.test_connection("claude_queue", {"ai": {}}, conn)
+    assert r["ok"] is False and r["reason"] == "no_key"
+    assert svc.test_connection("claude_queue", {"ai": {}}, None)["ok"] is False

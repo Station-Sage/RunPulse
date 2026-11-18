@@ -8,11 +8,11 @@ from __future__ import annotations
 import re
 import sqlite3
 
-from src.ai.provider_common import LLM_PROVIDERS, ProviderError, api_key_for, model_for
+from src.ai.provider_common import CLAUDE_QUEUE, LLM_PROVIDERS, ProviderError, api_key_for, model_for
 from src.services import coach_consent, coach_engine_health
 from src.utils.config import save_config
 
-PROVIDER_CHOICES = ("rule", *LLM_PROVIDERS)
+PROVIDER_CHOICES = ("rule", CLAUDE_QUEUE, *LLM_PROVIDERS)
 _PING_PROMPT = "ping. 한 단어로 답하세요."
 
 
@@ -123,14 +123,14 @@ def apply_patch(conn: sqlite3.Connection, config: dict, user_id: str, changes: d
     save_config(config, user_id=user_id)
     provider = ai.get("provider", "rule")
     current = coach_consent.get_consent(conn) or {}
-    if provider in LLM_PROVIDERS and ({"provider", "exclude_notes", "fallback_enabled"} & set(changes) or not current):
+    if provider in coach_consent.CONSENT_PROVIDERS and ({"provider", "exclude_notes", "fallback_enabled"} & set(changes) or not current):
         coach_consent.save_consent(
             conn, provider,
             exclude_notes=changes.get("exclude_notes", current.get("exclude_notes", coach_consent.DEFAULT_EXCLUDE_NOTES)),
             tools_enabled=current.get("tools_enabled", True),
             fallback_enabled=changes.get("fallback_enabled",
                                          current.get("fallback_enabled", coach_consent.DEFAULT_FALLBACK_ENABLED)))
-    elif current and current.get("provider") in LLM_PROVIDERS and {"exclude_notes", "fallback_enabled"} & set(changes):
+    elif current and current.get("provider") in coach_consent.CONSENT_PROVIDERS and {"exclude_notes", "fallback_enabled"} & set(changes):
         coach_consent.save_consent(
             conn, current["provider"],
             exclude_notes=changes.get("exclude_notes", current["exclude_notes"]),
@@ -138,11 +138,13 @@ def apply_patch(conn: sqlite3.Connection, config: dict, user_id: str, changes: d
             fallback_enabled=changes.get("fallback_enabled", current["fallback_enabled"]))
 
 
-def test_connection(provider: str, config: dict) -> dict:
+def test_connection(provider: str, config: dict, conn: sqlite3.Connection | None = None) -> dict:
     """아주 짧은 프롬프트 1회 호출. {ok, reason, label, http_status}."""
     from src.ai import llm_budget
     from src.ai.chat_engine_providers import complete
 
+    if provider == CLAUDE_QUEUE:
+        return _test_queue(conn, config)
     if not api_key_for(provider, config):
         return {"ok": False, "reason": "no_key", "label": coach_engine_health.reason_label("no_key"), "http_status": None}
     try:
@@ -152,3 +154,11 @@ def test_connection(provider: str, config: dict) -> dict:
         return {"ok": False, "reason": exc.reason, "label": coach_engine_health.reason_label(exc.reason),
                 "http_status": exc.http_status}
     return {"ok": True, "reason": None, "label": "연결됐어요", "http_status": None}
+
+
+def _test_queue(conn: sqlite3.Connection | None, config: dict) -> dict:
+    """claude_queue 점검 — 워커 가용 여부만 본다(실제 호출은 쿼터를 쓰지 않도록 생략)."""
+    from src.ai import provider_claude_queue as pcq
+    if conn is not None and pcq.available(conn, config):
+        return {"ok": True, "reason": None, "label": "Claude 큐 워커가 연결돼 있어요", "http_status": None}
+    return {"ok": False, "reason": "no_key", "label": "Claude 큐 워커가 꺼져 있거나 허용되지 않은 계정이에요", "http_status": None}

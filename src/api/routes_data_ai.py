@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from src.ai.provider_common import LLM_PROVIDERS
+from src.ai.provider_common import CLAUDE_QUEUE, LLM_PROVIDERS
 from src.services import ai_settings_service as svc
 from src.utils.config import load_config
 from src.utils.user_context import db_path, get_current_user_id
@@ -25,7 +25,8 @@ def get_ai_settings():
     try:
         return api_ok(svc.build_view(conn, load_config(user_id=get_current_user_id())))
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 @api_bp.patch("/data/settings/ai")
@@ -45,7 +46,8 @@ def patch_ai_settings():
         svc.apply_patch(conn, config, uid, changes)
         return api_ok(svc.build_view(conn, config))
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 
 @api_bp.post("/data/settings/ai/test")
@@ -54,6 +56,11 @@ def test_ai_connection():
     if bad:
         return bad
     provider = body.get("provider")
-    if provider not in LLM_PROVIDERS:
-        return api_error("INVALID_PARAM", f"provider는 {', '.join(LLM_PROVIDERS)} 중 하나예요", 400)
-    return api_ok(svc.test_connection(provider, load_config(user_id=get_current_user_id())))
+    if provider not in (*LLM_PROVIDERS, CLAUDE_QUEUE):
+        return api_error("INVALID_PARAM", f"provider는 {', '.join((*LLM_PROVIDERS, CLAUDE_QUEUE))} 중 하나예요", 400)
+    conn = _open()
+    try:
+        return api_ok(svc.test_connection(provider, load_config(user_id=get_current_user_id()), conn))
+    finally:
+        if conn is not None:
+            conn.close()

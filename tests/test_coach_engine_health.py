@@ -125,3 +125,12 @@ def test_every_status_reason_has_label():
     for st in (400, 401, 403, 404, 413, 429, 500, 503):
         assert reason_for_status(st) in REASON_LABELS
     assert h.reason_label("http_4xx") == "요청 거부(4xx)"
+
+
+def test_consent_accepts_claude_queue_and_engine_is_llm(db_conn, monkeypatch):
+    coach_consent.save_consent(db_conn, "claude_queue")
+    assert coach_consent.get_consent(db_conn)["provider"] == "claude_queue"
+    from src.ai import provider_claude_queue as pcq
+    monkeypatch.setattr(pcq, "available", lambda conn, config: True)
+    eng = h.get_engine(db_conn, {"ai": {"provider": "claude_queue"}})
+    assert eng["mode"] == "llm"
