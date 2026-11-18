@@ -167,3 +167,28 @@ export interface GarminCleanupResult {
 export function cleanupGarmin(replanId: number): Promise<GarminCleanupResult> {
 	return apiFetch<GarminCleanupResult>(`/coach/plan/replan/${replanId}/garmin-cleanup`, { method: 'POST' });
 }
+
+export interface PlanDraftState {
+	available: boolean;
+	running: boolean;
+	state: 'none' | 'running' | 'ready' | 'failed';
+	summary: string | null;
+	reason: string | null;
+	changed: number | null;
+	anchor_monday: string | null;
+}
+
+export function getPlanDraft(): Promise<PlanDraftState> {
+	return apiFetch<PlanDraftState>('/coach/plan/draft');
+}
+
+export function startPlanDraft(params: ReplanParams): Promise<{ started: boolean; running: boolean }> {
+	return apiFetch('/coach/plan/draft', { method: 'POST', body: JSON.stringify(params) });
+}
+
+export function applyPlanDraft(expectAnchor: string): Promise<ReplanPreview> {
+	return apiFetch<ReplanPreview>('/coach/plan/draft/apply', {
+		method: 'POST',
+		body: JSON.stringify({ expect_anchor: expectAnchor })
+	});
+}

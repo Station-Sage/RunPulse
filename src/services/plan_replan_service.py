@@ -140,9 +140,9 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
             " rules_version) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (goal["id"], a_iso, start_km, user_long, start_source, target, new_version))
         replan_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-        plan, ws = [], anchor
+        plan, ws, ov = [], anchor, p.get("plan_override") or {}
         while ws <= race:
-            plan += generate_weekly_plan(conn, goal_id=goal["id"], week_start=ws)
+            plan += ov.get(ws.isoformat()) or generate_weekly_plan(conn, goal_id=goal["id"], week_start=ws)
             ws += timedelta(weeks=1)
         res = replace_range(conn, plan, a_iso, end, goal_id=goal["id"])
         after, diff = _weekly_km(conn, a_iso, end), structure_diff(rows_before, snapshot(conn, a_iso, end))
@@ -165,7 +165,7 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
         conn.commit()
         rematch_goal(conn, goal["id"])
         caldav = _sync_caldav(conn, a_iso, end)
-    return {"caldav": caldav, "replan_id": replan_id if write else None, "anchor_monday": a_iso, "start_km": start_km,
+    return {"plan_rows": plan if p.get("want_rows") else None, "caldav": caldav, "replan_id": replan_id if write else None, "anchor_monday": a_iso, "start_km": start_km,
             "start_source": start_source, "basis": basis, "goal_target_time_sec": goal.get("target_time_sec"),
             "start_long_km": user_long, "target_time_sec": target, "before": before, "after": after,
             "deleted_count": len(res["deleted"]), "preserved": res["preserved"], "external": res["external"],

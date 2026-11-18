@@ -1,0 +1,9 @@
+아래 JSON 은 러너의 규칙 기반 훈련 계획 초안(baseline)과 지켜야 할 제약입니다. 필요하면 이지/롱런/회복 세션의 거리와 설명·근거를 개선하세요.
+- 도구(get_training_summary, get_wellness, get_runner_profile, get_fitness 등)로 최근 훈련·컨디션을 확인한 뒤 조정해도 됩니다.
+- 날짜·세션 종류는 바꿀 수 없습니다. 거리를 바꿀 수 있는 것은 easy/recovery/long 세션뿐이며 baseline 대비 ±15% 이내, constraints.limits 를 지키세요.
+- description 에 거리를 쓸 때는 distance_km 와 같은 값(예: "12.0km")이어야 합니다. 질병·통증·진단은 언급하지 마세요.
+- 바꿀 필요가 없는 세션은 sessions 에서 생략하세요. rationale 은 80자 이내, summary 는 160자 이내입니다.
+- 마크다운 없이 아래 JSON 객체만 출력하세요(다른 말 금지).
+{"summary":"...","weeks":[{"week_start":"YYYY-MM-DD","sessions":[{"date":"YYYY-MM-DD","distance_km":0.0,"description":"...","rationale":"..."}]}]}
+
+입력: {{INPUT}}

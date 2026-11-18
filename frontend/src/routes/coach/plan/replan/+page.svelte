@@ -9,6 +9,7 @@
 	import GarminCleanup from '$lib/components/plan/GarminCleanup.svelte';
 	import ReplanStartCard from '$lib/components/plan/ReplanStartCard.svelte';
 	import ReplanInputs from '$lib/components/plan/ReplanInputs.svelte';
+	import ReplanDraftCard from '$lib/components/plan/ReplanDraftCard.svelte';
 	import ReplanNotices from '$lib/components/plan/ReplanNotices.svelte';
 	import ReplanWeekTable from '$lib/components/plan/ReplanWeekTable.svelte';
 	import {
@@ -161,6 +162,7 @@
 
 		{#if preview}
 			<ReplanWeekTable {rows} />
+			<ReplanDraftCard params={parsed.params} anchor={preview.anchor_monday} disabled={dirty || hasError} onApplied={(r) => { applied = r; stage = 'applied'; }} />
 			<ReplanNotices {preview} />
 			<details class="rounded-lg bg-surface-2 p-3 text-xs text-fg-secondary">
 				<summary class="min-h-11 cursor-pointer py-3">어떻게 계산했나요</summary>
