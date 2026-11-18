@@ -60,7 +60,7 @@ def test_cache_key_has_r3_suffix(db_conn):
     config = {"ai": {"provider": "gemini", "gemini_api_key": "key"}}
     with patch("src.ai.chat_engine._call_provider", return_value="AI"):
         today_service.get_today_narrative(db_conn, date="2026-09-22", config=config)
-    assert ai_cache.get_cached(db_conn, "today_narrative", "2026-09-01:2026-09-22:cur:r3") is not None
+    assert ai_cache.get_cached(db_conn, "today_narrative", "2026-09-01:2026-09-22:cur:r4") is not None
     assert ai_cache.get_cached(db_conn, "today_narrative", "2026-09-01:2026-09-22:r2") is None
 
 

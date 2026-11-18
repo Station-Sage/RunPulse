@@ -21,7 +21,8 @@ describe('activityDisplay', () => {
 	});
 	it('이동·총 시간이 다르면 짝으로', () => {
 		const c = timeCell({ ...base, times: { moving_sec: 2900, elapsed_sec: 3000 } }, 3000);
-		assert.match(c.value, / \/ /);
+		assert.equal(c.value, '48:20');
+		assert.equal(c.unit, '/ 총 50:00');
 		assert.equal(timeCell(base, 3000).value, '50:00');
 	});
 	it('근력은 있는 대체 값만 순서대로', () => {

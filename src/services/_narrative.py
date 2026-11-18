@@ -118,6 +118,7 @@ def build_narrative_prompt(
         "반드시 아래 제공된 수치만 사용하고, 데이터에 없는 수치는 절대 언급하지 마라.",
         # T-06: 앱 전체 문체(해요체)·용어 통일. 기간은 아래 '기간' 표기를 그대로 쓴다(과거 달에 '이번 달' 금지).
         f"문체는 해요체(~해요, ~였어요)로 쓰고, 기간은 '{period}'로 부른다.",
+        "주별 요약을 W1·W2…로 하나씩 나열하지 말고, 달 전체의 흐름(증가·유지·감소, 쉬어간 주)을 한 줄로 묶어 설명하라.",
         "'롱런'이라는 말 대신 '최장 러닝'을 쓰고, 괄호 안에 괄호를 겹쳐 쓰지 마라.",
         "",
     ]
@@ -170,9 +171,9 @@ def attach_drill(conn: sqlite3.Connection, evidence: list[dict], scope_date: str
 
 
 def _cache_key(month_start: str, date: str, label: str | None) -> str:
-    """r3: 해요체 프롬프트(T-06) + 기간 표기 구분 — 말일에 '이번 달'로 만든 캐시가
+    """r4: 주 나열 금지 프롬프트(T-21) / r3: 해요체 프롬프트(T-06) + 기간 표기 구분 — 말일에 '이번 달'로 만든 캐시가
     다음 달에 과거 달 조회('2026년 10월')로 재사용되지 않게 한다."""
-    return f"{month_start}:{date}:{'cur' if label is None else 'named'}:r3"
+    return f"{month_start}:{date}:{'cur' if label is None else 'named'}:r4"
 
 
 def get_narrative_cache(conn: sqlite3.Connection, month_start: str, date: str,

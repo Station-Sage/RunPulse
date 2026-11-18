@@ -23,7 +23,7 @@ export function timeCell(d: ActivityDisplay | null | undefined, durationSec: num
 	const moving = d?.times.moving_sec ?? null;
 	const elapsed = d?.times.elapsed_sec ?? durationSec;
 	if (moving != null && elapsed != null && Math.round(moving) !== Math.round(elapsed) && d?.pace?.basis !== 'elapsed') {
-		return { label: '시간 (이동/총)', value: `${formatDuration(moving)} / ${formatDuration(elapsed)}`, unit: '' };
+		return { label: '시간 (이동/총)', value: formatDuration(moving), unit: `/ 총 ${formatDuration(elapsed)}` };
 	}
 	return { label: '시간', value: elapsed != null ? formatDuration(elapsed) : '—', unit: '' };
 }

@@ -126,7 +126,7 @@
 				{#each heroCells as c (c.label)}
 					<div class="flex flex-col gap-0.5">
 						<span class="text-[11px] text-fg-muted">{c.label}</span>
-						<span class="font-mono text-xl font-bold">{c.value}{#if c.unit}<span class="text-xs font-normal text-fg-muted"> {c.unit}</span>{/if}</span>
+						<span class="font-mono text-xl font-bold">{c.value}{#if c.unit}<span class="text-xs font-normal text-fg-muted {c.unit.startsWith('/ 총') ? 'block' : ''}"> {c.unit}</span>{/if}</span>
 					</div>
 				{/each}
 			</div>
