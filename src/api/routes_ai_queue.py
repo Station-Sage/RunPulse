@@ -32,6 +32,27 @@ def get_ai_queue():
     return api_ok(st)
 
 
+@api_bp.get("/ai/queue/status")
+def get_ai_queue_status():
+    uid = get_current_user_id()
+    dpath = db_path()
+    if not dpath.exists():
+        return api_error("NOT_FOUND", "running.db 없음", 503)
+    conn = qs.connect(dpath)
+    try:
+        st = cq.status(conn, load_config(user_id=uid), uid)
+        w = conn.execute("SELECT heartbeat_at, active_jobs, cli_version, paused_until, last_error"
+                         " FROM ai_worker_state ORDER BY heartbeat_at DESC LIMIT 1").fetchone()
+        jobs = {r[0]: r[1] for r in conn.execute("SELECT state, COUNT(*) FROM ai_jobs"
+                                                 " WHERE state IN ('queued','running') GROUP BY state")}
+        last = conn.execute("SELECT kind, error_reason, finished_at FROM ai_jobs WHERE state='failed'"
+                            " ORDER BY finished_at DESC LIMIT 1").fetchone()
+    finally:
+        conn.close()
+    return api_ok({**st, "worker": dict(w) if w else None, "jobs": jobs,
+                   "last_error": dict(last) if last else None})
+
+
 @api_bp.post("/ai/queue/ping")
 def ping_ai_queue():
     uid = get_current_user_id()

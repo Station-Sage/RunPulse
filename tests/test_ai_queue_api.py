@@ -65,3 +65,23 @@ def test_ping_api_disabled_and_origin(tmp_path, monkeypatch):
     r = cl.post("/api/v1/ai/queue/ping", headers={"Origin": "http://localhost"})
     assert r.status_code == 200 and r.get_json()["data"]["reason"] == "disabled"
     assert cl.post("/api/v1/ai/queue/ping", headers={"Origin": "http://evil.example"}).status_code == 403
+
+
+def test_status_api_reports_worker_and_jobs(tmp_path, monkeypatch):
+    from src import api as _api  # noqa: F401
+    from src.api import routes_ai_queue as m
+    from src.web.app import create_app
+    p = tmp_path / "running.db"
+    c = sqlite3.connect(p)
+    ensure_v48(c)
+    c.commit()
+    c.close()
+    c = qs.connect(p)
+    qs.upsert_worker_state(c, "w1", pid=1, cli_version="9.9", active_jobs=0, started_at=qs.now_iso())
+    qs.enqueue(c, kind="ping", model="haiku", input_json="{}", system_ctx=None, tools="none", ttl_sec=60)
+    c.close()
+    monkeypatch.setattr(m, "db_path", lambda: p)
+    monkeypatch.setattr(m, "load_config", lambda user_id=None: {})
+    d = create_app().test_client().get("/api/v1/ai/queue/status").get_json()["data"]
+    assert d["worker"]["cli_version"] == "9.9" and d["jobs"] == {"queued": 1} and d["last_error"] is None
+    assert d["worker_up"] is True and d["enabled"] is False

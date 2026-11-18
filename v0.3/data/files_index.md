@@ -122,7 +122,7 @@
 
 - functions: kind_of, triggered, intensity, primary, classify
 
-### `ai_settings_service.py` (154줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
+### `ai_settings_service.py` (164줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
 
 - functions: mask_key, key_state, usage_7d, build_view, key_format_error, validate_patch, apply_patch, test_connection
 
@@ -147,11 +147,11 @@
 - class **_Run**: emit, finish
 - functions: source_text, replay_events, start, cancel, sse, stream
 
-### `coach_consent.py` (46줄) — Coach LLM 전송 동의 저장소 — coach_consent 단일 행(30-coach-chat design §4.3).
+### `coach_consent.py` (48줄) — Coach LLM 전송 동의 저장소 — coach_consent 단일 행(30-coach-chat design §4.3).
 
 - functions: get_consent, save_consent
 
-### `coach_engine_health.py` (162줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
+### `coach_engine_health.py` (168줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
 
 - functions: model_label, reason_label, failure_history, engine_label, parse_engine, attempt_views, message_engine_view, health_summary, get_engine
 
@@ -1827,9 +1827,9 @@
 > 
 > 설계 문서: v0.3/data/phase-7-ui-renewal/05-tech-architecture.md §3
 
-### `routes_ai_queue.py` (48줄) — `/api/v1/ai/queue*` — Claude 큐 상태 조회·핑 (V2-AI-CLAUDE-QUEUE E1). 핑은 쓰기라 Origin 관문 대상.
+### `routes_ai_queue.py` (69줄) — `/api/v1/ai/queue*` — Claude 큐 상태 조회·핑 (V2-AI-CLAUDE-QUEUE E1). 핑은 쓰기라 Origin 관문 대상.
 
-- functions: get_ai_queue, ping_ai_queue
+- functions: get_ai_queue, get_ai_queue_status, ping_ai_queue
 
 ### `routes_auth.py` (58줄) — 인증 상태 API — GET /api/v1/auth/session (공개 경로, AUTH_MODE=registry 에서 의미 있음).
 
@@ -1855,7 +1855,7 @@
 
 - functions: get_sync_state, post_data_sync, get_sync_estimate, cancel_sync_run, get_data_summary, get_data_sources, get_data_source, get_data_runs, patch_data_source, get_sync_auto, patch_sync_auto, post_data_recompute, get_data_job, connect_data_source, test_data_source, disconnect_data_source
 
-### `routes_data_ai.py` (59줄) — AI 설정 라우트 — GET/PATCH /data/settings/ai, POST /data/settings/ai/test (F-DATA-12).
+### `routes_data_ai.py` (66줄) — AI 설정 라우트 — GET/PATCH /data/settings/ai, POST /data/settings/ai/test (F-DATA-12).
 
 - functions: get_ai_settings, patch_ai_settings, test_ai_connection
 
@@ -2096,9 +2096,9 @@
 
 - functions: conn, test_build_daily_briefing_full, test_build_daily_briefing_contains_readiness, test_build_daily_briefing_contains_fitness, test_build_daily_briefing_no_wellness, test_build_daily_briefing_race_predictions, test_build_daily_briefing_format, test_build_activity_analysis_full, test_build_activity_analysis_contains_core, test_build_activity_analysis_no_rp_metrics, test_build_ai_context_daily_only, test_build_ai_context_with_activity, test_build_context_today_activity, test_build_context_no_activity, test_build_context_fitness, test_build_context_no_data_graceful, test_format_context_text_is_string, test_format_context_text_no_data_graceful, test_format_activity_context_is_string, test_format_activity_context_missing_activity, test_rule_based_response_does_not_raise, test_rule_based_response_no_data_graceful, test_legacy_reexport_paths_identical
 
-### `test_ai_queue_api.py` (67줄) — claude_queue 클라이언트·상태/핑 API.
+### `test_ai_queue_api.py` (87줄) — claude_queue 클라이언트·상태/핑 API.
 
-- functions: dbp, test_enabled_for, test_status_worker_down, test_run_job_timeout_when_nobody_claims, test_run_job_done, test_ping_api_disabled_and_origin
+- functions: dbp, test_enabled_for, test_status_worker_down, test_run_job_timeout_when_nobody_claims, test_run_job_done, test_ping_api_disabled_and_origin, test_status_api_reports_worker_and_jobs
 
 ### `test_ai_queue_store.py` (161줄) — ai_worker.queue_store + db_schema_v48 — claim 경합·정체 회수·만료·일시정지·CHECK 제약.
 
@@ -2108,9 +2108,9 @@
 
 - functions: argv_for, mk, turn, row, test_multi_turn_same_process, test_retire_reasons, test_seed_prompt_limits, test_retire_starts_new_session, test_resume_failure_marks_broken_and_reseeds, test_tool_cap_interrupts, test_cancel_interrupts_and_keeps_process, test_deadline_kills_process, test_pool_lru_and_idle_reap
 
-### `test_ai_settings.py` (97줄) — ai_settings_service + /data/settings/ai 라우트 — 키 값 비노출, PATCH 검증, 사용량, 연결 테스트.
+### `test_ai_settings.py` (105줄) — ai_settings_service + /data/settings/ai 라우트 — 키 값 비노출, PATCH 검증, 사용량, 연결 테스트.
 
-- functions: conn, test_mask_and_validate, test_view_never_leaks_key_and_usage, test_apply_patch_updates_config_and_consent, test_connection_test, test_routes
+- functions: conn, test_mask_and_validate, test_view_never_leaks_key_and_usage, test_apply_patch_updates_config_and_consent, test_connection_test, test_routes, test_claude_queue_choice_and_ping
 
 ### `test_ai_tool_format.py` (115줄) — 도구 응답 압축 헬퍼 — columnar, 반올림, 주별 롤업.
 
@@ -2150,6 +2150,10 @@
 ### `test_ai_worker_coach_session.py` (79줄) — ai_worker 코치 스레드 — 상주 세션 풀 연동, ai_sessions 갱신, 퇴역·복구 (가짜 CLI).
 
 - functions: env, test_multi_turn_updates_session, test_forced_retire_new_session, test_restart_resumes_active_session
+
+### `test_ai_worker_housekeeping.py` (24줄) — 워커 jsonl 정리.
+
+- functions: test_purge_transcripts_removes_only_old_jsonl, test_purge_transcripts_missing_dir
 
 ### `test_ai_worker_main.py` (139줄) — ai_worker.main — tick/claim/settle, 쿼터 일시정지, 연속 오류 자가정지, preflight, 취소 (가짜 runner).
 
@@ -2426,9 +2430,9 @@
 
 - functions: test_insight_lines_order_and_filter, test_insight_lines_missing_table, test_system_ctx_and_hash_stable, test_turn_prompt_truncates, test_build_cq, test_run_chain_picks_prompt_per_provider
 
-### `test_coach_engine_health.py` (127줄) — coach_engine_health / coach_consent — 엔진 라벨, H0 집계, 동의 upsert.
+### `test_coach_engine_health.py` (136줄) — coach_engine_health / coach_consent — 엔진 라벨, H0 집계, 동의 upsert.
 
-- functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys, test_legacy_rule_label_single_source, test_row_status_overrides_engine_json, test_message_engine_view_lists_actual_attempts, test_failure_history_prefix_on_retry_success, test_failure_history_absent_for_plain_and_legacy_messages, test_every_status_reason_has_label
+- functions: test_labels, test_health_degraded_after_three_fallbacks_and_clears_on_ok, test_health_ignores_rule_only, test_save_consent_upsert_keeps_accepted_at_for_same_provider, test_save_consent_rejects_non_llm, test_get_engine_rule_only_when_no_keys, test_legacy_rule_label_single_source, test_row_status_overrides_engine_json, test_message_engine_view_lists_actual_attempts, test_failure_history_prefix_on_retry_success, test_failure_history_absent_for_plain_and_legacy_messages, test_every_status_reason_has_label, test_consent_accepts_claude_queue_and_engine_is_llm
 
 ### `test_coach_evidence.py` (181줄) — coach_evidence 테스트 — 답변 근거 v2 (role·스냅샷·drift·legacy).
 
@@ -3992,7 +3996,7 @@
 - functions: run
 
 ---
-총 866개 파일
+총 867개 파일
 
 ## docstring 누락
 

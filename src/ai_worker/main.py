@@ -15,6 +15,7 @@ from pathlib import Path
 
 from src.ai_worker import cli_runner as cr
 from src.ai_worker import queue_store as qs
+from src.ai_worker.housekeeping import purge_transcripts
 from src.ai_worker.session_pool import SessionPool
 
 DEADLINE_SEC = {"coach": 120, "insight_polish": 60, "narrative": 90, "adherence": 90,
@@ -217,6 +218,7 @@ class Worker:
                     self.sessions.reap_idle()
                     if time.monotonic() - last_purge > 3600:
                         qs.purge_bodies(conn)
+                        purge_transcripts(self.work_dir)
                         last_purge = time.monotonic()
                 except Exception as e:
                     print(f"tick error: {e}", file=sys.stderr)
