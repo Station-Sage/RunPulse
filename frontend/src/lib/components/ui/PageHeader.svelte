@@ -28,7 +28,7 @@
 
 <header class="flex min-h-14 items-center gap-2 border-b border-border-subtle px-4">
 	{#if back}
-		<a {href} aria-label="{backLabel} 화면으로 돌아가기" data-testid="page-back" class="tap -ml-2 inline-flex items-center justify-center px-2 text-lg text-fg-secondary">{BACK_GLYPH}</a>
+		<a {href} aria-label="{backLabel} 화면으로 돌아가기" data-testid="page-back" class="tap -ml-2 inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-lg text-fg-secondary">{BACK_GLYPH}</a>
 	{/if}
 	<div class="min-w-0 flex-1"><PageHead {title} {heading} class="truncate text-base font-semibold text-fg-primary" /></div>
 	{#if actions}<div class="flex shrink-0 items-center gap-2">{@render actions()}</div>{/if}

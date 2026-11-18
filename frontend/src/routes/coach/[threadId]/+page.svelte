@@ -197,13 +197,13 @@
 		{#if data.errorMessage}
 			<p class="text-xs text-fg-muted">{data.errorMessage}</p>
 		{/if}
-		<a href="{base}/coach" class="text-sm text-fg-secondary underline">‹ Coach로</a>
+		<a href="{base}/coach" class="inline-flex min-h-11 items-center text-sm text-fg-secondary underline">‹ Coach로</a>
 	</div>
 {:else}
 <DrillPanel scopeType="daily" scopeId={localDateString()} {answerChip}>
 	<!-- 헤더 -->
 	<div class="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-		<a href={back.href} class="shrink-0 text-fg-muted" aria-label={back.label} data-testid="thread-back">‹</a>
+		<a href={back.href} class="-ml-2 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center text-fg-muted" aria-label={back.label} data-testid="thread-back">‹</a>
 		<h1 class="min-w-0 flex-1 truncate text-base font-semibold">{thread.title}</h1>
 	</div>
 
@@ -218,7 +218,7 @@
 				<!-- 사용자 말풍선 (오른쪽) -->
 				<div class="flex justify-end">
 					<div
-						class="max-w-[75%] rounded-2xl rounded-br-sm bg-fg-primary px-3 py-2 text-sm text-surface-1"
+						class="max-w-[75%] whitespace-pre-wrap [overflow-wrap:anywhere] rounded-2xl rounded-br-sm bg-fg-primary px-3 py-2 text-sm text-surface-1"
 					>
 						{msg.content}
 					</div>
@@ -241,7 +241,7 @@
 		{#if outbox}
 			<div class="flex flex-col items-end gap-1">
 				<div
-					class="max-w-[75%] rounded-2xl rounded-br-sm bg-fg-primary px-3 py-2 text-sm text-surface-1"
+					class="max-w-[75%] whitespace-pre-wrap [overflow-wrap:anywhere] rounded-2xl rounded-br-sm bg-fg-primary px-3 py-2 text-sm text-surface-1"
 					class:opacity-70={!outbox.failed}
 					data-testid="outbox-bubble"
 				>

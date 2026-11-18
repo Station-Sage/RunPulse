@@ -88,3 +88,11 @@
 - 발견 수정: 실계정 기록의 사유 `http_4xx`(400·413 등)가 라벨 사전에 없어 시트에 원시 코드로 보였다 → "요청 거부(4xx)"(백엔드 REASON_LABELS·프런트 REASON_TEXT).
 - 브라우저 확인: 실계정 DB 사본 + 임시 설정(가짜 키) + 로컬 가짜 provider(gemini 429, groq 정상/표식 시 503)로 375·1280 에서 라벨·시트·Esc 닫기 확인, 콘솔 오류 0.
 - Coach 홈 요청 실측(사본, 9회 p50): threads 7ms, plan/active 252ms(첫 호출 ~1.1s — 프로세스 첫 폭염 예보 외부 조회, 3시간 캐시), checkin 8ms, race-hub 8ms, engine 7ms, suggestions 55ms, today 453 → 138ms(아래 인덱스).
+
+## 처리 기록 (2026-11-18, C 재검증)
+- 실제 코드+375px 브라우저(합성 DB 사본, 300자 무공백+여러 줄 첫 메시지 스레드)로 재확인.
+- C-01 재현됨 → 수정: 사용자 말풍선 `whitespace-pre-wrap [overflow-wrap:anywhere]`. 가로 폭 2655 → 375, 줄바꿈 보존.
+- C-02 해결 확인: `initial_message` 숫자·객체는 400 INVALID_PARAM(JSON 엔벨로프).
+- C-03(Esc·포커스)은 `modal` 액션 적용으로 해결(S4-88에서 확인). C-06 은 `formatInstant`가 UTC→로컬 변환. C-10 목록 h1 "Coach" 확인. C-12 입력창은 `TextField` 숨김 레이블로 이름 있음.
+- 추가 수정: 스레드 헤더 `‹` 24px → 44px, 오류 화면 "‹ Coach로" 44px, 공용 PageHeader 뒤로가기 `min-h-11 min-w-11`.
+- 미해결/결정: C-18 쓰기 Origin 검증은 S3-5 ⑨ 로 전역 처리됨(이 화면 별도 없음). 전역 헤더 "기기 연결" 26px 는 공통 레이어로 이월.
