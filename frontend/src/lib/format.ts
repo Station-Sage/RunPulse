@@ -19,8 +19,8 @@ export function paceMmSs(secPerKm: number): string {
 	return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
-export function formatPace(secPerKm: number): string {
-	return `${paceMmSs(secPerKm)}/km`;
+export function formatPace(secPerKm: number, per100m = false): string {
+	return per100m ? `${paceMmSs(secPerKm / 10)}/100m` : `${paceMmSs(secPerKm)}/km`;
 }
 
 /**
@@ -50,12 +50,12 @@ export function displayUnit(unit: string | null | undefined): string {
 	return unit;
 }
 
-export function formatUnitValue(value: number, unit: string): { display: string; unit: string } {
+export function formatUnitValue(value: number, unit: string, per100m = false): { display: string; unit: string } {
 	if (unit === 'sec') {
 		return { display: formatDuration(value), unit: '' };
 	}
 	if (unit === 'sec/km') {
-		return { display: formatPace(value), unit: '' };
+		return { display: formatPace(value, per100m), unit: '' };
 	}
 	if (unit === 'm' && value >= 1000) {
 		return { display: (value / 1000).toFixed(1), unit: 'km' };

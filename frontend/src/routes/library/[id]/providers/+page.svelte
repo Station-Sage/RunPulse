@@ -20,5 +20,6 @@
 		loading={false}
 		error={data.errorMessage}
 		showPrimaryReason={true}
+		per100m={data.per100m}
 	/>
 {/if}

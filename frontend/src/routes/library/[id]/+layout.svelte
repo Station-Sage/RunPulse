@@ -61,7 +61,7 @@
 	<header class="flex h-14 items-center gap-2 border-b border-border-subtle px-4">
 		<a
 			href="{base}{backHref}"
-			class="shrink-0 text-sm text-fg-muted"
+			class="inline-flex min-h-11 shrink-0 items-center text-sm text-fg-muted"
 			onclick={onBack}
 			aria-label="{withEuro(back.label)} 돌아가기"
 			data-testid="activity-back">‹ {back.label}</a

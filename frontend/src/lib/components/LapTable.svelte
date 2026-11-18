@@ -4,7 +4,7 @@
 	import { formatDistance, formatDuration, formatPace } from '$lib/format';
 	import { classifyIntervals, divergence, lapPace } from '$lib/lapGroups';
 
-	let { laps }: { laps: ActivityLap[] } = $props();
+	let { laps, per100m = false }: { laps: ActivityLap[]; per100m?: boolean } = $props();
 
 	const paces = $derived(laps.map(lapPace));
 	const interval = $derived(classifyIntervals(laps));
@@ -36,7 +36,7 @@
 		<td class="w-8 py-2 pr-2 font-mono text-xs text-fg-muted">{i + 1}</td>
 		<td class="py-2 pr-3 text-right font-mono">{lap.distance_m != null ? formatDistance(lap.distance_m, 2) : '—'}</td>
 		{#if !hideTime}<td class="py-2 pr-3 text-right font-mono text-fg-secondary">{lap.duration_sec != null ? formatDuration(lap.duration_sec) : '—'}</td>{/if}
-		<td class="py-2 pr-3 text-right font-mono font-medium">{paces[i] != null ? formatPace(paces[i] as number) : '—'}</td>
+		<td class="py-2 pr-3 text-right font-mono font-medium">{paces[i] != null ? formatPace(paces[i] as number, per100m) : '—'}</td>
 		<td class="hidden w-40 py-2 pr-3 sm:table-cell">
 			<div class="relative h-1.5 w-40 rounded bg-surface-3" aria-hidden="true">
 				<div class="absolute inset-y-0 left-1/2 w-px bg-border-subtle"></div>
@@ -56,10 +56,10 @@
 <div class="flex flex-col gap-2">
 	{#if interval}
 		<div class="flex flex-wrap items-center gap-2 text-xs text-fg-secondary" data-testid="lap-interval-head">
-			<span>워크 평균 {formatPace(interval.workAvg)} · 회복 평균 {formatPace(interval.recoveryAvg)}</span>
+			<span>워크 평균 {formatPace(interval.workAvg, per100m)} · 회복 평균 {formatPace(interval.recoveryAvg, per100m)}</span>
 			<button
 				type="button"
-				class="ml-auto rounded border border-border-subtle px-2 py-0.5 text-fg-muted"
+				class="ml-auto inline-flex min-h-11 items-center rounded border border-border-subtle px-3 text-fg-muted"
 				aria-pressed={grouped}
 				onclick={() => (grouped = !grouped)}
 			>{grouped ? '전체 랩 보기' : '워크/회복 그룹'}</button>

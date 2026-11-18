@@ -41,7 +41,7 @@ test('weekProgressLabel — 진행 중·시작 전', () => {
 	assert.equal(weekProgressLabel(-2, 6), '시작 전 (3주 뒤)');
 });
 
-import { formatPace } from '../src/lib/format.ts';
+import { formatPace, formatUnitValue } from '../src/lib/format.ts';
 
 test('formatPace — 초를 먼저 반올림해 "5:60" 같은 표기가 나오지 않는다', () => {
 	assert.equal(formatPace(359.6), '6:00/km');
@@ -58,4 +58,10 @@ test('formatInstant: 접미사 없는 DB 시각은 UTC 로 보고 로컬로 변�
 	assert.equal(formatInstant('2026-09-25T10:51:00Z', 'date'), `${d.getMonth() + 1}/${d.getDate()}`);
 	assert.equal(formatInstant(null), '');
 	assert.equal(formatInstant('garbage'), '');
+});
+
+test('formatPace per100m — 수영 랩/소스 비교는 /100m (A-31)', () => {
+	assert.equal(formatPace(1186, true), '1:59/100m');
+	assert.equal(formatPace(350), '5:50/km');
+	assert.equal(formatUnitValue(1186, 'sec/km', true).display, '1:59/100m');
 });

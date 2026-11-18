@@ -135,7 +135,7 @@
 	<div class="px-4 py-8 text-center">
 		<p class="text-sm text-fg-muted">스트림 데이터 없음</p>
 		<p class="mt-1 text-xs text-fg-muted" data-testid="empty-reason">{note.reason}</p>
-		{#if note.action}<a href="{base}{note.action.path}" class="mt-2 inline-block text-xs text-fg-secondary underline">{note.action.label}</a>{/if}
+		{#if note.action}<a href="{base}{note.action.path}" class="mt-2 inline-flex min-h-11 items-center text-xs text-fg-secondary underline">{note.action.label}</a>{/if}
 		<a href="{base}/library/{data.activityId}" class="mt-2 block text-xs text-fg-muted underline">‹ 활동으로 돌아가기</a>
 	</div>
 {:else}
@@ -148,7 +148,7 @@
 					aria-pressed={checked[def.key]}
 					data-testid="stream-chip"
 					onclick={() => (checked[def.key] = !checked[def.key])}
-					class="h-9 rounded-full border px-3 text-sm {checked[def.key] ? 'border-fg-secondary font-medium' : 'border-border-subtle text-fg-muted'}"
+					class="min-h-11 rounded-full border px-3 text-sm {checked[def.key] ? 'border-fg-secondary font-medium' : 'border-border-subtle text-fg-muted'}"
 				><span style="color:{def.color}">●</span> {def.label}</button>
 			{/each}
 			{#if hasDistance}
@@ -165,7 +165,7 @@
 		<div class="text-xs text-fg-muted">
 			{caption}
 			<details class="inline align-baseline">
-				<summary class="inline cursor-pointer" aria-label="구현 메모">ⓘ</summary>
+				<summary class="inline-flex h-11 w-11 cursor-pointer items-center justify-center align-middle" aria-label="구현 메모">ⓘ</summary>
 				<span class="mt-1 block">
 					{#if timeAxisRescaled()}
 						시간축: 활동 총 시간 기준 등간격 환산(저장값이 샘플 인덱스로 확인됨).

@@ -23,7 +23,7 @@
 	] as const;
 </script>
 
-<nav class="flex h-11 border-b border-border-subtle bg-surface-1" aria-label="활동 상세 하위 메뉴">
+<nav class="flex h-[45px] border-b border-border-subtle bg-surface-1" aria-label="활동 상세 하위 메뉴">
 	{#each TABS as tab (tab.key)}
 		{@const none = empty.includes(tab.key)}
 		{#if tab.key === active}

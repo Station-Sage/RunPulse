@@ -152,7 +152,7 @@
 		{#if series}
 			<ActivityTimeline {series} elevGainM={(core.elevation_gain as number | null) ?? null} onCursor={(d) => selection.update((s) => ({ ...s, cursorDist: d }))} />
 		{:else}
-			<p class="text-xs text-fg-muted" data-testid="summary-no-stream">스트림 데이터 없음 · {streamNote.reason}{#if streamNote.action}{' '}<a href="{base}{streamNote.action.path}" class="underline">{streamNote.action.label}</a>{/if}</p>
+			<p class="text-xs text-fg-muted" data-testid="summary-no-stream">스트림 데이터 없음 · {streamNote.reason}{#if streamNote.action}{' '}<a href="{base}{streamNote.action.path}" class="inline-flex min-h-11 items-center underline">{streamNote.action.label}</a>{/if}</p>
 		{/if}
 
 		{#if envList.length > 0}
@@ -168,7 +168,7 @@
 		<!-- 핵심 메트릭 그리드 (최대 8개) -->
 		{#if keyMetrics.length > 0}
 			<section class="flex flex-col gap-2">
-				<div class="flex items-center justify-between"><h2 class="text-xs uppercase tracking-wide text-fg-muted">핵심 메트릭</h2><a href="{base}/library/{core.id}/metrics" class="text-xs text-fg-secondary hover:text-fg-primary">전체 메트릭 보기 →</a></div>
+				<div class="flex items-center justify-between"><h2 class="text-xs uppercase tracking-wide text-fg-muted">핵심 메트릭</h2><a href="{base}/library/{core.id}/metrics" class="inline-flex min-h-11 items-center text-xs text-fg-secondary hover:text-fg-primary">전체 메트릭 보기 →</a></div>
 				<div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
 					{#each keyMetrics as m (m.metric_name)}
 						<MetricCell
@@ -221,7 +221,7 @@
 		<div class="flex flex-wrap items-center gap-3 text-xs">
 			<ActivityMoreMenu activityId={core.id} menu={data.activity?.menu} onFeedback={() => (sheetOpen = true)} />
 			{#if sourceDiffs.length > 0}
-				<a href="{base}/library/{core.id}/providers" class="rounded-full border border-border-subtle px-3 py-1 text-fg-secondary hover:text-fg-primary" data-testid="source-diff-chip">소스 차이 {sourceDiffs.length}건</a>
+				<a href="{base}/library/{core.id}/providers" class="inline-flex min-h-11 items-center rounded-full border border-border-subtle px-3 text-fg-secondary hover:text-fg-primary" data-testid="source-diff-chip">소스 차이 {sourceDiffs.length}건</a>
 			{/if}
 			<a href="{base}/coach/new?activity={core.id}" class="hidden rounded-full border border-border-subtle px-3 py-1 text-fg-secondary hover:text-fg-primary md:inline" data-testid="ask-coach">코치에게 묻기</a>
 		</div>

@@ -13,13 +13,15 @@
 		loading = false,
 		error = null,
 		discrepancyThreshold = 5,
-		showPrimaryReason = false
+		showPrimaryReason = false,
+		per100m = false
 	}: {
 		data: ProviderComparisonData | null;
 		loading?: boolean;
 		error?: string | null;
 		discrepancyThreshold?: number;
 		showPrimaryReason?: boolean;
+		per100m?: boolean;
 		ondrill?: (slug: string) => void;
 	} = $props();
 
@@ -51,7 +53,7 @@
 			if (row.slug.startsWith('elevation')) return formatElevation(v).display;
 			const effectiveUnit =
 				row.unit === 'sec/km' || row.slug.includes('pace') ? 'sec/km' : (row.unit ?? '');
-			return formatUnitValue(v, effectiveUnit).display;
+			return formatUnitValue(v, effectiveUnit, per100m).display;
 		}
 		return String(v) || '—';
 	}
@@ -140,7 +142,7 @@
 								<div class="flex items-center gap-1.5">
 									<span class="text-sm">{row.label}{#if rowDisplayUnit(row)}<span class="ml-1 text-[10px] text-fg-muted">{rowDisplayUnit(row)}</span>{/if}</span>
 									{#if row.compare === 'scale'}
-										<a href="{base}/library/providers/{row.slug}" class="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-fg-secondary" onclick={(e) => e.stopPropagation()} data-testid="scale-chip">척도 다름 ›</a>
+										<a href="{base}/library/providers/{row.slug}" class="inline-flex min-h-11 items-center rounded bg-surface-2 px-2 text-[10px] text-fg-secondary" onclick={(e) => e.stopPropagation()} data-testid="scale-chip">척도 다름 ›</a>
 									{/if}
 									{#if hasDiscrepancy(row)}
 										<span class="text-semantic-amber" title="불일치 {row.discrepancy?.maxDiffPct?.toFixed(1)}%"><Icon name="warning" class="h-3.5 w-3.5" /></span>

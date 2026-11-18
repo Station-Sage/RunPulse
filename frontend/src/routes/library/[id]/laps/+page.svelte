@@ -17,6 +17,7 @@
 	const fastest = $derived(fastestLap(data.laps));
 	const basisNote = $derived(lapPaceBasisDiffers(data.laps));
 	const note = $derived(emptyDataNote('laps', data.activity));
+	const per100m = $derived(data.activity?.display?.pace?.unit === '/100m');
 	const source = $derived(data.laps.length > 0 ? data.laps[0].source : null);
 </script>
 
@@ -37,9 +38,9 @@
 			{#if source}
 				<span class="rounded px-1.5 py-0.5 text-[10px] {providerBadgeClass(source as ProviderKey)}">{providerLabel(source as ProviderKey)}</span>
 			{/if}
-			<span>{data.laps.length}개 랩{#if fastest}{' · '}가장 빠른 랩 {formatPace(fastest.pace)} (#{fastest.index + 1}){/if}</span>
+			<span>{data.laps.length}개 랩{#if fastest}{' · '}가장 빠른 랩 {formatPace(fastest.pace, per100m)} (#{fastest.index + 1}){/if}</span>
 		</div>
-		<LapTable laps={data.laps} />
+		<LapTable laps={data.laps} {per100m} />
 		{#if basisNote}<p class="text-xs text-fg-muted" data-testid="lap-basis-note">시간은 랩 전체 시간, 페이스는 이동 시간 기준이라 1~2초 다를 수 있어요.</p>{/if}
 	</div>
 {/if}
