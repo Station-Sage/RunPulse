@@ -1199,7 +1199,7 @@
 
 - functions: get_ai_provider, chat_result, chat
 
-### `chat_engine_providers.py` (279줄) — AI 채팅 — 외부 API provider 호출 모듈.
+### `chat_engine_providers.py` (280줄) — AI 채팅 — 외부 API provider 호출 모듈.
 
 - functions: complete, call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
 

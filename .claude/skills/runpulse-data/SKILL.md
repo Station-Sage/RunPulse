@@ -29,6 +29,7 @@ user-invocable: false
 | 기간 비교 | `compare_periods` | |
 | 계획 · 프로필 · 날씨 | `get_training_plan` / `get_runner_profile` / `get_weather` | |
 | 계획 이행 | `get_plan_adherence` | 최근 N주 세션 완료·볼륨·퀄리티 |
+| 계획 제약 | `get_plan_constraints` | 초안이 지킬 선호·게이트 한계값 |
 | 웰니스 일별 추세 | `get_wellness_series(kind,days)` | 최대 120일, 7/28일 기준선 |
 | 열린 알림 | `get_insights` | 능동 인사이트 사건 |
 | 체크인·RPE | `get_checkins(days)` | 최대 28일, 질병 문구 동의 전 일반화 |

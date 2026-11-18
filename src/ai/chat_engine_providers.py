@@ -53,6 +53,7 @@ _TOOL_SYSTEM_TEXT = (
     "- 기간별 비교 → compare_periods\n"
     "- 훈련 계획 → get_training_plan\n"
     "- 계획 이행(주별 완료/볼륨) → get_plan_adherence\n"
+    "- 계획 제약(선호·게이트 한계) → get_plan_constraints\n"
     "- 러너 프로필 → get_runner_profile\n"
     "- 훈련 기간·블록·대회 이후 요약 → get_training_summary (기간 질문의 첫 호출)\n"
     "- 인터벌·크루즈 세트별 랩 데이터 → get_activity_laps (activity_id는 정수)\n"
