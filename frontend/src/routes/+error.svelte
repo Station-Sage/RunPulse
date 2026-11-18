@@ -34,7 +34,7 @@
 		{#if is404}
 			<a
 				href={parentPath}
-				class="rounded-full bg-surface-3 px-4 py-2 text-sm font-medium text-fg-primary hover:bg-surface-3/70"
+				class="inline-flex min-h-11 items-center rounded-full bg-surface-3 px-4 py-2 text-sm font-medium text-fg-primary hover:bg-surface-3/70"
 			>
 				이전 화면으로
 			</a>
@@ -42,12 +42,12 @@
 			<button
 				type="button"
 				onclick={() => location.reload()}
-				class="rounded-full bg-surface-3 px-4 py-2 text-sm font-medium text-fg-primary hover:bg-surface-3/70"
+				class="inline-flex min-h-11 items-center rounded-full bg-surface-3 px-4 py-2 text-sm font-medium text-fg-primary hover:bg-surface-3/70"
 			>
 				다시 시도
 			</button>
 		{/if}
-		<a href="{base}/today" class="text-sm text-fg-secondary hover:text-fg-primary">Today로</a>
+		<a href="{base}/today" class="inline-flex min-h-11 items-center px-2 text-sm text-fg-secondary hover:text-fg-primary">Today로</a>
 	</div>
 	<p class="mt-4 text-xs text-fg-muted">{page.status}</p>
 </div>

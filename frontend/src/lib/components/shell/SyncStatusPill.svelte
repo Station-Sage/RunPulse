@@ -48,7 +48,7 @@
 		aria-haspopup="dialog"
 		aria-expanded={syncStore.panelOpen}
 		aria-label={pillAriaLabel(view)}
-		class="flex max-w-[60vw] items-center gap-1.5 truncate rounded-full border border-border-subtle px-2.5 py-1 text-xs {toneClass[view.tone]}"
+		class="flex max-w-[60vw] min-h-11 items-center gap-1.5 truncate rounded-full border border-border-subtle px-2.5 py-1 text-xs {toneClass[view.tone]}"
 	>
 		<span aria-hidden="true" class:animate-spin={view.tone === 'running'}>{view.glyph}</span>
 		<span class="truncate">{view.text}</span>
