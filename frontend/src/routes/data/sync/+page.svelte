@@ -56,7 +56,7 @@
 			{@const action = rowAction(src)}
 			<div class="flex items-center justify-between rounded-lg border border-border-subtle bg-surface-2 p-3">
 				<div class="min-w-0">
-					<a href="{base}/data/sources/{src.provider}" class="text-sm font-medium text-fg-primary">
+					<a href="{base}/data/sources/{src.provider}" class="inline-flex min-h-11 items-center text-sm font-medium text-fg-primary">
 						{syncProviderName(src.provider)}
 					</a>
 					<div class="text-xs text-fg-secondary"><span aria-hidden="true">{line.glyph}</span> {line.text}</div>
@@ -64,7 +64,7 @@
 				{#if action && !src.running}
 					<button
 						type="button"
-						class="rounded border border-border-subtle px-2 py-1 text-xs"
+						class="min-h-11 rounded border border-border-subtle px-3 text-xs"
 						disabled={toggling === src.provider}
 						onclick={() => toggle(src.provider, action.enable, !action.enable)}>{action.label}</button
 					>
@@ -72,7 +72,7 @@
 				{#if src.running}
 					<button
 						type="button"
-						class="rounded border border-border-subtle px-2 py-1 text-xs"
+						class="min-h-11 rounded border border-border-subtle px-3 text-xs"
 						disabled={syncStore.cancelling.includes(src.provider)}
 						onclick={() => src.running && cancelRun(src.provider, src.running.job_id)}>중지</button
 					>

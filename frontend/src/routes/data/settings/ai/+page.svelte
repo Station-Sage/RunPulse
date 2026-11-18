@@ -60,14 +60,14 @@
 
 		<section class="flex flex-col gap-2">
 			<h2 class="text-sm text-fg-primary">AI 제공자</h2>
-			<label class="flex items-center gap-2 text-sm text-fg-primary">
+			<label class="flex min-h-11 items-center gap-2 text-sm text-fg-primary">
 				<input type="radio" name="prov" checked={s.provider === 'rule'} disabled={busy}
 					onchange={() => save({ provider: 'rule' })} />
 				사용 안 함 (규칙 기반)
 			</label>
 			{#each s.providers as p (p.provider)}
 				<div class="rounded-lg border border-border-subtle bg-surface-2 p-3">
-					<label class="flex items-center gap-2 text-sm text-fg-primary">
+					<label class="flex min-h-11 items-center gap-2 text-sm text-fg-primary">
 						<input type="radio" name="prov" checked={s.provider === p.provider}
 							disabled={busy || p.key_state === 'missing'} onchange={() => save({ provider: p.provider })} />
 						{providerName(p.provider)}
@@ -89,7 +89,7 @@
 					{#if results[p.provider]}<p class="mt-1 text-xs text-fg-secondary">{results[p.provider]}</p>{/if}
 				</div>
 			{/each}
-			<label class="flex items-center gap-2 text-sm text-fg-primary">
+			<label class="flex min-h-11 items-center gap-2 text-sm text-fg-primary">
 				<input type="checkbox" checked={s.fallback_enabled} disabled={busy || s.provider === 'rule'}
 					onchange={(e) => save({ fallback_enabled: e.currentTarget.checked })} />
 				선택한 제공자가 실패하면 키가 있는 다른 제공자로 대신 답하기
@@ -101,12 +101,12 @@
 			<p class="text-xs text-fg-secondary">GPS 경로와 원본 위치 기록은 보내지 않아요.</p>
 			<ul class="flex flex-col gap-1">
 				{#each s.scope as it (it.item)}
-					<li class="flex items-center gap-2 text-sm text-fg-primary">
+					<li class="flex min-h-11 items-center gap-2 text-sm text-fg-primary">
 						{#if it.optional}
-							<input type="checkbox" checked={it.enabled} disabled={busy || s.provider === 'rule'}
+							<input type="checkbox" aria-label="{it.item} 보내기" checked={it.enabled} disabled={busy || s.provider === 'rule'}
 								onchange={(e) => save({ exclude_notes: !e.currentTarget.checked })} />
 						{:else}
-							<input type="checkbox" checked disabled />
+							<input type="checkbox" aria-label="{it.item} (항상 보냄)" checked disabled />
 						{/if}
 						<span>{it.item}</span>
 						<span class="text-xs text-fg-secondary">{it.period}</span>

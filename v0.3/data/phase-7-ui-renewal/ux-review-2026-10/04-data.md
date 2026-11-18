@@ -96,3 +96,9 @@
 ## 처리 기록 (2026-11-11, V2-AUDIT-INDIV 묶음 G — 보류 항목 추천안, S4-85)
 - D-32 처리(보류 해제): 소스 표시 이름을 "Intervals.icu" 로 통일 — 프런트 이름표(provider·syncState·providerMatrix·streamAxis·shoeView·랜딩 문구)와 서버 이름표(`data_connect_service._NAMES`, `metrics_version_events._PROV`, `provider_matrix_collect.PROVIDER_LABELS`, 소스 비교 정의 문구, 지표 이름 `Intervals.icu FTP`·`W'`·`체감 (Intervals.icu Feel)`). 내부 키(`intervals`)·로그·CLI 문구는 그대로. 합성 DB `/data/sources/intervals` 에서 "Intervals.icu" 확인.
 - D-21 확장: `validation.json_object()` 를 `get_json(silent=True) or {}` 로 읽던 쓰기 라우트에 적용 — 세션 메모·플랜 복원·조정 수락/되돌리기·행 액션·다시 맞추기·답변 다시 생성·동의·대회 확정·초대 코드. 배열·깨진 JSON 은 400 INVALID_PARAM. `parse_body` 로 이미 검증하는 라우트(플랜 생성·신발·체크인·대회 캘린더)는 그대로, 기기 간 동기화 `routes_v1_sync`(기계 대 기계, 파일 418줄)는 손대지 않음.
+
+## 처리 기록 (2026-11-18, V2-AUDIT-INDIV D- 묶음 재점검)
+- D-01·D-03·D-22·D-25·D-26·D-27(비밀번호·서버 주소 복사) 해결됨 확인: 링크 `{base}` 적용, 개요 활동 수 `activity_counts`, Origin 관문(`app.py`), 연결 해제 확인은 `inlineConfirm` 그룹, 라우트마다 `h1`, 입력 `aria-label`.
+- D-27 처리: AI 설정 데이터 범위 체크박스에 접근 가능한 이름(`{항목} 보내기`·`(항상 보냄)`).
+- D-28 처리: AI 설정 라벨 행, 동기화 소스 행 버튼·링크, 프로필 기준값 저장/취소/적용 버튼 최소 높이 44px.
+- D-06·D-18·D-24·D-32 부분은 기존 기록 유지(재현 불가·설계 필요).

@@ -114,8 +114,8 @@
 				bind:value={input}
 				placeholder={row.key === 'threshold_pace' ? '5:05' : '숫자'}
 			/>
-			<button type="button" class="text-xs text-fg-primary" disabled={busy} onclick={saveManual}>저장</button>
-			<button type="button" class="text-xs text-fg-muted" onclick={() => (editing = false)}>취소</button>
+			<button type="button" class="min-h-11 px-2 text-xs text-fg-primary" disabled={busy} onclick={saveManual}>저장</button>
+			<button type="button" class="min-h-11 px-2 text-xs text-fg-muted" onclick={() => (editing = false)}>취소</button>
 		</div>
 	{:else}
 		<button
@@ -137,9 +137,9 @@
 			<p>HR 존 상한(1~4존): {zonesText(pending.preview.zones_before)} → <b class="text-fg-primary">{zonesText(pending.preview.zones_after)}</b></p>
 			<p class="mt-1">최근 90일 {pending.preview.affected_days}일 활동의 {pending.preview.affected_metrics.join(', ')}이(가) 달라질 수 있어요.</p>
 			<div class="mt-2 flex gap-3">
-				<button type="button" class="text-fg-primary" disabled={busy} onclick={() => pending && apply(pending.changes, '90d')}>적용하고 재계산</button>
-				<button type="button" disabled={busy} onclick={() => pending && apply(pending.changes, 'none')}>적용만</button>
-				<button type="button" class="text-fg-muted" onclick={() => (pending = null)}>취소</button>
+				<button type="button" class="min-h-11 px-2 text-fg-primary" disabled={busy} onclick={() => pending && apply(pending.changes, '90d')}>적용하고 재계산</button>
+				<button type="button" class="min-h-11 px-2 " disabled={busy} onclick={() => pending && apply(pending.changes, 'none')}>적용만</button>
+				<button type="button" class="min-h-11 px-2 text-fg-muted" onclick={() => (pending = null)}>취소</button>
 			</div>
 		</div>
 	{/if}
