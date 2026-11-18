@@ -1186,7 +1186,7 @@
 
 - functions: seconds_to_pace
 
-### `chat_engine.py` (255줄) — AI 채팅 엔진 — 교체 가능 구조.
+### `chat_engine.py` (260줄) — AI 채팅 엔진 — 교체 가능 구조.
 
 - functions: get_ai_provider, chat_result, chat
 
@@ -1209,7 +1209,7 @@
 
 - functions: attach_readiness, decision_lines, plan_line
 
-### `claude_queue.py` (76줄) — claude_queue 앱 측 클라이언트 — 큐에 job 을 넣고 결과를 폴링한다 (flask 의존 없음).
+### `claude_queue.py` (78줄) — claude_queue 앱 측 클라이언트 — 큐에 job 을 넣고 결과를 폴링한다 (flask 의존 없음).
 
 - functions: enabled_for, status, run_job
 
@@ -1249,7 +1249,7 @@
 - class **Ticket**: 없음
 - functions: now_kst, limits, day_of, resets_at, scope, ensure_scope, uid_from_db, current, admit, settle, chars_of, usage_today, global_ratio, reset_for_tests
 
-### `provider_claude_queue.py` (89줄) — claude_queue provider 어댑터 — 큐 가용 여부 확인과 ProviderError 매핑 (DESIGN-V2-AI-CLAUDE-QUEUE §E2).
+### `provider_claude_queue.py` (90줄) — claude_queue provider 어댑터 — 큐 가용 여부 확인과 ProviderError 매핑 (DESIGN-V2-AI-CLAUDE-QUEUE §E2).
 
 - functions: db_path_of, uid_of, available, complete, try_complete, complete_coach
 
@@ -2379,6 +2379,10 @@
 - class **TestRaceHistoryFromTextValue**: test_race_included_without_name_keyword, test_race_not_included_when_only_numeric_value
 - class **TestTodayDetailWorkoutType**: test_today_detail_has_workout_type, test_today_detail_no_classification_key_absent
 - class **TestSimilarActivities**: test_similar_activities_populated, test_no_similar_activities_without_classification
+
+### `test_chat_engine_cq.py` (14줄)
+
+- functions: test_trailing_reco_line_stripped, test_complete_coach_passes_allowed_tools
 
 ### `test_chat_engine_events.py` (52줄) — chat_result on_event/cancelled 훅 — 비동기 답변 단계 이벤트(30-coach-chat design §6.2).
 
@@ -3996,11 +4000,12 @@
 - functions: run
 
 ---
-총 867개 파일
+총 868개 파일
 
 ## docstring 누락
 
 - `tests/__init__.py`
+- `tests/test_chat_engine_cq.py`
 - `tests/test_coach_cq_context.py`
 - `tests/test_constraints.py`
 - `tests/test_critical_power.py`
