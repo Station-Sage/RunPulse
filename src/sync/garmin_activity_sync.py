@@ -129,7 +129,7 @@ def sync(
     return result
 
 
-def _sync_single(conn, api, extractor, limiter, result, raw, include_streams) -> bool:
+def _sync_single(conn, api, extractor, limiter, result, raw, include_streams, force=False) -> bool:
     source_id = str(raw.get("activityId", ""))
     at = raw.get("activityType")
     act_type = at.get("typeKey", "unknown") if isinstance(at, dict) else str(at or "")
@@ -165,7 +165,7 @@ def _sync_single(conn, api, extractor, limiter, result, raw, include_streams) ->
     }
     has_detail = "activity_detail" in stored
     streams_ok = (not include_streams) or "activity_streams" in stored
-    if not is_new and has_detail and "activity_splits" in stored and streams_ok:
+    if not force and not is_new and has_detail and "activity_splits" in stored and streams_ok:
         # 부가(심박존·날씨)만 빠졌으면 그것만 보충
         if {"activity_hr_zones", "activity_weather"} <= stored:
             log.debug("[garmin/activity] skip: %s", source_id)

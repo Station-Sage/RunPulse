@@ -894,6 +894,10 @@
 
 - functions: backfill_from_zip
 
+### `garmin_backfill_job.py` (80줄) — Garmin 활동 강제 재수집 백필 잡 — 이미 받은 활동의 detail·심박존·날씨·splits·스트림을 다시 받아 A1~A3 수정을 반영.
+
+- functions: pending_ids, run_backfill
+
 ### `garmin_bg_extensions.py` (85줄) — 웹 bg_sync 용 Garmin 일별 확장 동기화 — 훈련 상태·일중 HR(안정시 HR)·레이스 예측·젖산역치.
 
 - class **_RateLimitGuard**: 없음
@@ -2680,6 +2684,10 @@
 - class **TestSaveZipMetrics**: test_routes_metric_fields_to_metric_store, test_skips_none_values
 - class **TestBackfillFromZip**: test_insert_new_stores_raw_payload, test_insert_new_no_operationalerror_on_nondll_columns, test_insert_new_routes_metrics, test_update_filters_nondll_columns, test_update_links_raw_payload_to_activity
 
+### `test_garmin_backfill_job.py` (45줄) — Garmin 강제 재수집 백필 잡 — 완료 활동 재처리·이어하기·종목 필터·429 중단.
+
+- functions: test_pending_filters_sport_and_done, test_backfill_refetches_completed_activity_and_resumes, test_backfill_stops_on_rate_limit
+
 ### `test_garmin_bg_extensions.py` (70줄) — 웹 bg_sync 확장 동기화 — 호출 구성·최근 N일 제한·429 전파.
 
 - class **_TooMany**: 없음
@@ -3799,6 +3807,10 @@
 
 - functions: backfill, main
 
+### `backfill_garmin_activities.py` (28줄) — Garmin 활동 강제 재수집(V2-REPAIR-BACKFILL). 컨테이너에서 실행(자격증명 복호화).
+
+- (public API 없음)
+
 ### `backfill_garmin_vo2max.py` (34줄) — Garmin VO2max 정밀값 과거 백필(GARMIN-VO2MAX-PRECISE T8). 기본은 dry-run(조회만, DB 미수정).
 
 - (public API 없음)
@@ -3876,7 +3888,7 @@
 - functions: run
 
 ---
-총 837개 파일
+총 840개 파일
 
 ## docstring 누락
 
