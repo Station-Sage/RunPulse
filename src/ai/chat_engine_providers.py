@@ -11,6 +11,7 @@ import logging
 import sqlite3
 
 from .provider_common import (
+    CLAUDE_QUEUE,
     ENDPOINTS, ProviderError, RateLimitError, api_key_for, check_response, model_for,
     timeout_for, wrap_transport_error,
 )
@@ -95,11 +96,14 @@ def _non_empty(text, provider: str) -> str:
 
 def complete(provider: str, prompt: str, config: dict | None, *, conn: sqlite3.Connection | None = None,
              tools: bool = False, deadline: float | None = None, stats: dict | None = None,
-             on_tool=None) -> str:
+             on_tool=None, cq: dict | None = None) -> str:
     """provider 1곳 호출. tools=True면 함수 호출 루프(conn 필요). 실패는 ProviderError.
 
     stats['tool_calls']에 조회 횟수를 세고, on_tool(tool_name)을 조회마다 부른다(진행 단계 표시용).
     """
+    if provider == CLAUDE_QUEUE:
+        from . import provider_claude_queue as pcq
+        return pcq.complete_coach(conn, prompt, config, stats, on_tool, cq or {})
     key = api_key_for(provider, config)
     if provider not in ENDPOINTS or not key:
         raise ProviderError("no_key")

@@ -109,7 +109,7 @@ class Worker:
                 argv, prompt=prompt, cwd=str(self.work_dir), env=env,
                 deadline_sec=DEADLINE_SEC.get(job["kind"], 90),
                 should_cancel=lambda: qs.cancel_requested(conn, jid),
-                on_progress=lambda r: qs.update_progress(conn, jid, None, r.partial_text))
+                on_progress=lambda r: qs.update_progress(conn, jid, json.dumps({"tools": r.tool_names}), r.partial_text))
             self._settle(conn, job, res)
         except Exception as e:
             qs.finish(conn, jid, "failed", error_reason=f"worker_exc:{type(e).__name__}")
@@ -129,7 +129,7 @@ class Worker:
             model=job["model"], ctx_hash=job.get("ctx_hash") or "", prompt=str(inp.get("prompt", "")),
             session_row=row, deadline_sec=DEADLINE_SEC["coach"], history=inp.get("history") or [],
             forced_retire=inp.get("retire"), should_cancel=lambda: qs.cancel_requested(conn, jid),
-            on_progress=lambda r: qs.update_progress(conn, jid, None, r.partial_text))
+            on_progress=lambda r: qs.update_progress(conn, jid, json.dumps({"tools": r.tool_names}), r.partial_text))
         sid = meta.get("session_id")
         if sid and not res.is_error:
             fresh = meta["event"] in ("new", "broken") or row is None or row["session_id"] != sid

@@ -13,12 +13,13 @@ from dataclasses import asdict, dataclass, field
 from .chat_engine_providers import complete
 from .llm_budget import BUDGET_REASONS, QUOTA_REASONS, resets_at
 from .provider_common import (
-    LLM_PROVIDERS, TOTAL_BUDGET, ProviderError, api_key_for, model_for,
+    CLAUDE_QUEUE, CQ_COACH_DEADLINE, LLM_PROVIDERS, TOTAL_BUDGET, ProviderError, api_key_for, model_for,
 )
 
 log = logging.getLogger(__name__)
 
 FALLBACK_ORDER = ("gemini", "groq")
+MODEL_COACH_LABEL = "claude-sonnet"
 
 
 @dataclass
@@ -57,14 +58,22 @@ class ChatResult:
 
 
 def build_chain(selected: str, config: dict | None, consent: dict | None,
-                require_consent: bool) -> tuple[list[str], str | None]:
+                require_consent: bool, *, cq_available: bool = False) -> tuple[list[str], str | None]:
     """(시도할 provider 목록, 체인이 비었을 때 사유 no_key/no_consent/None).
 
     require_consent=False(v1 /ai-coach)는 기존 동작 — 선택 provider → 키가 있는 gemini/groq.
+    selected=claude_queue 는 키 없이 큐 가용 여부(cq_available)로 선두를 정하고, 동의의 fallback_enabled 일 때만 키 provider 를 잇는다.
     """
+    keyed = [p for p in LLM_PROVIDERS if api_key_for(p, config)]
+    if selected == CLAUDE_QUEUE:
+        if require_consent and (not consent or consent.get("provider") != CLAUDE_QUEUE):
+            return [], "no_consent"
+        chain = [CLAUDE_QUEUE] if cq_available else []
+        if not require_consent or (consent or {}).get("fallback_enabled"):
+            chain += [p for p in FALLBACK_ORDER if p in keyed]
+        return chain, (None if chain else "no_key")
     if selected not in LLM_PROVIDERS:
         return [], None
-    keyed = [p for p in LLM_PROVIDERS if api_key_for(p, config)]
     if not keyed:
         return [], "no_key"
     if not require_consent:
@@ -83,7 +92,7 @@ def build_chain(selected: str, config: dict | None, consent: dict | None,
 
 def run_chain(conn: sqlite3.Connection, prompt: str, config: dict | None, chain: list[str],
               *, tools: bool, on_event=None,
-              cancelled=None) -> tuple[str | None, str | None, list[Attempt]]:
+              cancelled=None, cq: dict | None = None) -> tuple[str | None, str | None, list[Attempt]]:
     """체인을 순서대로 호출. (텍스트, 응답한 provider, attempts). 전부 실패하면 (None, None, attempts).
 
     on_event("stage", {...})를 provider 호출 전·조회 도구마다 보낸다. cancelled()가 True면 다음 호출 전에 멈춘다.
@@ -93,13 +102,19 @@ def run_chain(conn: sqlite3.Connection, prompt: str, config: dict | None, chain:
     for prov in chain:
         if cancelled is not None and cancelled():
             break
+        if prov == CLAUDE_QUEUE:
+            cq = {**(cq or {}), "deadline_sec": (cq or {}).get("deadline_sec") or CQ_COACH_DEADLINE,
+                  "should_cancel": cancelled}
+        elif attempts and attempts[-1].provider == CLAUDE_QUEUE:
+            deadline = time.monotonic() + TOTAL_BUDGET   # 큐 대기가 폴백 예산을 갉아먹지 않게 재시작
         stats: dict = {}
         if on_event is not None:
             on_event("stage", {"key": "model", "label": "답변 작성 중", "tool": None, "provider": prov})
         started = time.monotonic()
-        attempt = Attempt(provider=prov, model=model_for(prov, config), ok=False)
+        attempt = Attempt(provider=prov, ok=False,
+                          model=(MODEL_COACH_LABEL if prov == CLAUDE_QUEUE else model_for(prov, config)))
         try:
-            text = complete(prov, prompt, config, conn=conn, tools=tools, deadline=deadline, stats=stats,
+            text = complete(prov, prompt, config, conn=conn, tools=tools, deadline=deadline, stats=stats, **({"cq": cq} if prov == CLAUDE_QUEUE else {}),
                             on_tool=(lambda name: on_event("stage", {
                                 "key": "tool", "label": f"데이터 확인 중: {name}", "tool": name}))
                             if on_event is not None else None)
@@ -129,7 +144,7 @@ def engine_for_rule(selected: str, config: dict | None, empty_reason: str | None
         reason = next((a.reason for a in attempts if a.reason in BUDGET_REASONS), attempts[0].reason)
         resets = resets_at() if reason in QUOTA_REASONS else None
         return EngineInfo("fallback", "rule", None, attempts, reason, resets_at=resets)
-    if selected == "rule" or selected not in LLM_PROVIDERS:
+    if selected == "rule" or (selected not in LLM_PROVIDERS and selected != CLAUDE_QUEUE):
         return EngineInfo("rule_by_choice")
     return EngineInfo("rule_only", fallback_reason=empty_reason or "no_key")
 

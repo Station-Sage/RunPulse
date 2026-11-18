@@ -61,6 +61,7 @@ class RunResult:
     tokens_out: int = 0
     cache_read: int = 0
     tool_calls: int = 0
+    tool_names: list = field(default_factory=list)
     partial_text: str = ""
     got_result: bool = False
     events: int = 0
@@ -104,6 +105,7 @@ def feed(res: RunResult, ev: dict) -> None:
         for b in (ev.get("message") or {}).get("content") or []:
             if isinstance(b, dict) and b.get("type") == "tool_use":
                 res.tool_calls += 1
+                res.tool_names.append(str(b.get("name", "")).removeprefix("mcp__runpulse__"))
     elif t == "rate_limit_event":
         info = ev.get("rate_limit_info") or {}
         if info.get("status") not in (None, "allowed", "allowed_warning"):

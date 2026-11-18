@@ -1,10 +1,11 @@
 """claude_queue provider 어댑터 — 큐 가용 여부 확인과 ProviderError 매핑 (DESIGN-V2-AI-CLAUDE-QUEUE §E2).
 
-전역 LLM_PROVIDERS 에는 넣지 않는다(키 기반 체인과 별개). 호출자가 `available` 로 확인한 뒤 `complete` 를 먼저 시도하고,
-실패(ProviderError)면 기존 Groq/Gemini → 규칙 체인으로 내려간다. 요청 스레드에서는 쓰지 않는다.
+전역 LLM_PROVIDERS 에는 넣지 않는다(키 기반 체인과 별개). 코치 체인은 CLAUDE_QUEUE 를 선두 특수 원소로 다루고(`complete_coach`),
+실패(ProviderError)면 기존 Groq/Gemini → 규칙 체인으로 내려간다. 요청 스레드에서 기다리지 않는다(백그라운드 스레드 전용).
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 
 from src.ai import claude_queue, llm_budget
@@ -60,3 +61,29 @@ def try_complete(conn: sqlite3.Connection, config: dict | None, **kw) -> str | N
         return complete(conn, config, **kw)
     except ProviderError:
         return None
+
+
+def complete_coach(conn, prompt: str, config, stats, on_tool, cq: dict) -> str:
+    """코치 한 턴. cq: thread_key/ctx_hash/history/retire/should_cancel/on_progress/deadline_sec/system_ctx."""
+    if conn is None:
+        raise ProviderError("no_key")
+    n_seen = 0
+    outer = cq.get("on_progress")
+
+    def progress(pj, partial):
+        nonlocal n_seen
+        try:
+            names = list((json.loads(pj) or {}).get("tools", [])) if pj else []
+        except (ValueError, AttributeError):
+            names = []
+        for n in names[n_seen:]:
+            if on_tool is not None:
+                on_tool(n)
+        n_seen = max(n_seen, len(names))
+        if stats is not None:
+            stats["tool_calls"] = max(stats.get("tool_calls", 0), n_seen)
+        if outer is not None:
+            outer(pj, partial)
+    kw = {k: cq[k] for k in ("thread_key", "ctx_hash", "history", "retire", "should_cancel", "system_ctx") if cq.get(k)}
+    return complete(conn, config, kind="coach", prompt=prompt, deadline_sec=cq.get("deadline_sec"),
+                    tools="read", on_progress=progress, **kw)

@@ -20,6 +20,8 @@ ENDPOINTS = {
 }
 KEY_FIELDS = {p: f"{p}_api_key" for p in DEFAULT_MODELS}
 LLM_PROVIDERS = tuple(DEFAULT_MODELS)
+CLAUDE_QUEUE = "claude_queue"   # 키 없는 특수 provider — LLM_PROVIDERS 에 넣지 않는다
+CQ_COACH_DEADLINE = 120.0
 
 CONNECT_TIMEOUT = 10.0
 READ_TIMEOUT = 30.0

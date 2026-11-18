@@ -1190,11 +1190,11 @@
 
 - functions: get_ai_provider, chat_result, chat
 
-### `chat_engine_providers.py` (275줄) — AI 채팅 — 외부 API provider 호출 모듈.
+### `chat_engine_providers.py` (279줄) — AI 채팅 — 외부 API provider 호출 모듈.
 
 - functions: complete, call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
 
-### `chat_engine_result.py` (143줄) — 채팅 엔진 결과 모델 + provider 체인 실행 (30-coach-chat design §4.1·§4.3·§6.2).
+### `chat_engine_result.py` (158줄) — 채팅 엔진 결과 모델 + provider 체인 실행 (30-coach-chat design §4.1·§4.3·§6.2).
 
 - class **Attempt**: 없음
 - class **EngineInfo**: 없음
@@ -1209,7 +1209,7 @@
 
 - functions: attach_readiness, decision_lines, plan_line
 
-### `claude_queue.py` (58줄) — claude_queue 앱 측 클라이언트 — 큐에 job 을 넣고 결과를 폴링한다 (flask 의존 없음).
+### `claude_queue.py` (76줄) — claude_queue 앱 측 클라이언트 — 큐에 job 을 넣고 결과를 폴링한다 (flask 의존 없음).
 
 - functions: enabled_for, status, run_job
 
@@ -1245,11 +1245,11 @@
 - class **Ticket**: 없음
 - functions: now_kst, limits, day_of, resets_at, scope, ensure_scope, uid_from_db, current, admit, settle, chars_of, usage_today, global_ratio, reset_for_tests
 
-### `provider_claude_queue.py` (62줄) — claude_queue provider 어댑터 — 큐 가용 여부 확인과 ProviderError 매핑 (DESIGN-V2-AI-CLAUDE-QUEUE §E2).
+### `provider_claude_queue.py` (89줄) — claude_queue provider 어댑터 — 큐 가용 여부 확인과 ProviderError 매핑 (DESIGN-V2-AI-CLAUDE-QUEUE §E2).
 
-- functions: db_path_of, uid_of, available, complete, try_complete
+- functions: db_path_of, uid_of, available, complete, try_complete, complete_coach
 
-### `provider_common.py` (100줄) — AI provider 공통 — 구조화 오류(ProviderError), 모델 ID 해석, 타임아웃(30-coach-chat design §4.3·§6.2).
+### `provider_common.py` (102줄) — AI provider 공통 — 구조화 오류(ProviderError), 모델 ID 해석, 타임아웃(30-coach-chat design §4.3·§6.2).
 
 - class **ProviderError**: 없음
 - class **RateLimitError**: 없음
@@ -2100,6 +2100,10 @@
 
 - functions: db, test_v48_idempotent_and_checks, test_claim_order_priority_then_id, test_claim_sets_running_and_attempts, test_claim_race_no_double_claim, test_claim_skips_expired_and_cancelled, test_finish_only_from_running, test_recover_stale_requeue_then_fail, test_recover_on_startup_by_worker_id, test_heartbeat_keeps_alive, test_progress_and_cancel_flag, test_pause_and_worker_available, test_purge_bodies
 
+### `test_ai_session_pool.py` (118줄) — session_pool — 상주 세션 다중 턴·재개·퇴역·취소·툴 상한 (가짜 CLI).
+
+- functions: argv_for, mk, turn, row, test_multi_turn_same_process, test_retire_reasons, test_seed_prompt_limits, test_retire_starts_new_session, test_resume_failure_marks_broken_and_reseeds, test_tool_cap_interrupts, test_cancel_interrupts_and_keeps_process, test_deadline_kills_process, test_pool_lru_and_idle_reap
+
 ### `test_ai_settings.py` (97줄) — ai_settings_service + /data/settings/ai 라우트 — 키 값 비노출, PATCH 검증, 사용량, 연결 테스트.
 
 - functions: conn, test_mask_and_validate, test_view_never_leaks_key_and_usage, test_apply_patch_updates_config_and_consent, test_connection_test, test_routes
@@ -2138,6 +2142,10 @@
 - class **TestGetActivityLaps**: test_returns_compact_rows, test_pace_formatted, test_lap_types_counted, test_filter_active_only, test_all_null_column_dropped, test_no_laps_returns_message
 - class **TestCompareWorkoutSets**: test_sessions_sorted_recent_first, test_set_aggregates, test_positive_drift_means_slowdown, test_excludes_non_active_laps, test_name_filter, test_date_range_filter, test_limit, test_auto_lap_run_is_not_a_workout
 - class **TestActivityIdExposed**: test_get_activity_includes_id, test_get_activities_range_includes_id
+
+### `test_ai_worker_coach_session.py` (79줄) — ai_worker 코치 스레드 — 상주 세션 풀 연동, ai_sessions 갱신, 퇴역·복구 (가짜 CLI).
+
+- functions: env, test_multi_turn_updates_session, test_forced_retire_new_session, test_restart_resumes_active_session
 
 ### `test_ai_worker_main.py` (139줄) — ai_worker.main — tick/claim/settle, 쿼터 일시정지, 연속 오류 자가정지, preflight, 취소 (가짜 runner).
 
@@ -2398,6 +2406,10 @@
 
 - class **TestCIRS**: test_high_acwr_means_high_cirs, test_optimal_acwr_means_low_cirs, test_confidence_present, test_category_is_readiness, test_no_data, test_child_metrics_have_parent_and_correct_names
 
+### `test_claude_queue_client.py` (60줄) — claude_queue.run_job 스레드·진행·취소 확장 (E4-a).
+
+- functions: test_thread_fields_and_progress, test_should_cancel_queued
+
 ### `test_coach_activity_context.py` (72줄) — tests/test_coach_activity_context.py — Coach 활동 컨텍스트(근거 카드·추천 질문·프롬프트 요약).
 
 - functions: test_suggested_questions_by_class, test_activity_context_card, test_activity_context_missing, test_prompt_summary_and_thread_injection, test_prompt_summary_includes_feedback_and_respects_note_consent, test_list_rows_carry_rpe
@@ -2478,6 +2490,10 @@
 ### `test_context_runs.py` (66줄) — P7-PRED-14: RunHistoryMixin.get_runs / get_active_goal / get_race_results / canonical 시리즈.
 
 - functions: test_get_runs_twin_hr_and_race, test_get_runs_excludes_end_day_and_laps, test_tempo_name_not_race, test_perf_time_uses_elapsed_when_close, test_active_goal_and_race_results, test_metric_series_canonical_only
+
+### `test_cq_coach_chain.py` (50줄) — 코치 체인의 claude_queue 선두 처리·진행 콜백·tool_names 수집 테스트.
+
+- functions: test_chain_cq_leads_with_fallback, test_chain_cq_unavailable_no_fallback_is_empty, test_chain_cq_requires_consent, test_complete_coach_maps_progress, test_complete_coach_no_conn, test_feed_collects_tool_names
 
 ### `test_credential_store.py` (195줄) — credential_store.py 테스트 — Fernet 암호화/복호화 라운드트립.
 
@@ -3968,7 +3984,7 @@
 - functions: run
 
 ---
-총 860개 파일
+총 864개 파일
 
 ## docstring 누락
 
