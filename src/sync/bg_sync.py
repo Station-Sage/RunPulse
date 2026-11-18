@@ -268,6 +268,13 @@ class BgSyncThread(threading.Thread):
                     record_snapshots(conn, _date.today().isoformat())
                 except Exception as snap_exc:  # noqa: BLE001
                     update_job(self.job_id, last_error=f"예측 스냅샷 실패: {str(snap_exc)[:150]}")
+                try:
+                    from src.services import insight_service
+                    insight_service.refresh(conn, _date.today().isoformat())
+                    from src.services.insight_polish import polish_open_events
+                    polish_open_events(conn, self.config)
+                except Exception as ins_exc:  # noqa: BLE001
+                    update_job(self.job_id, last_error=f"인사이트 갱신 실패: {str(ins_exc)[:150]}")
                 # 스키마 마이그레이션 후 재동기화 플래그 해제
                 from src.db_setup import clear_needs_resync
                 clear_needs_resync(conn)

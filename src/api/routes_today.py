@@ -163,6 +163,11 @@ def post_today_checkin():
             note=body["note"],
             fields=fields,
         )
+        try:
+            from src.services import insight_service
+            insight_service.refresh(conn, date.today().isoformat())
+        except Exception:  # noqa: BLE001 — 인사이트 실패가 체크인 저장을 막지 않는다
+            pass
     finally:
         conn.close()
 

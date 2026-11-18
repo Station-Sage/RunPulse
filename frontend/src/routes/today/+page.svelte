@@ -1,4 +1,5 @@
 <script lang="ts">
+	import InsightBanner from '$lib/components/InsightBanner.svelte';
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { say } from '$lib/a11y/say';
 	// 10-today design §2 — B1 히어로 → B2 체크인 → B3 게이지 → B4 다음 세션 → B6 최근 활동 → B7 차트/내러티브.
@@ -124,6 +125,7 @@
 <DrillPanel scopeType="daily" scopeId={todayDate} fromTag="today">
 	<div class="flex flex-col gap-6 px-4 py-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
 		<section class="flex flex-col gap-3 lg:col-start-1 lg:row-start-1">
+			<InsightBanner />
 			{#if !$demoActive && loadCoverageNotice(data.today.data_health)}
 				<p class="rounded-lg border border-semantic-amber/40 bg-semantic-amber/10 px-3 py-2 text-xs text-fg-secondary" role="note">{loadCoverageNotice(data.today.data_health)}</p>
 			{/if}

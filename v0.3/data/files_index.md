@@ -204,7 +204,7 @@
 - class **ExportError**: 없음
 - functions: check_free_space, build_archive
 
-### `export_groups.py` (98줄) — 내보내기 그룹 정의 — 허용 목록(allow-list). 목록에 없는 테이블은 절대 내보내지 않는다(data-export §2.1).
+### `export_groups.py` (99줄) — 내보내기 그룹 정의 — 허용 목록(allow-list). 목록에 없는 테이블은 절대 내보내지 않는다(data-export §2.1).
 
 - class **TableDef**: 없음
 - class **GroupDef**: 없음
@@ -256,6 +256,18 @@
 ### `input_limits.py` (70줄) — 쓰기 API 입력의 범위·열거값 상수 — 요청 경계 검증의 SSOT (SRV D4, ADR-048).
 
 - functions: race_date_window, check_checkin, check_plan_request, target_pace_error
+
+### `insight_polish.py` (68줄) — 능동 인사이트 문장 다듬기 (V2-REPAIR D4) — 규칙 템플릿 문장을 LLM 으로 1~2문장 다듬는다.
+
+- functions: validate, polish_text, polish_open_events
+
+### `insight_rules.py` (61줄) — 능동 인사이트 규칙 평가 (V2-REPAIR D) — 신호 목록 → 사건 후보. 순수 함수(DB·외부 호출 없음).
+
+- functions: evaluate_signal_rules, evaluate_data_gap
+
+### `insight_service.py` (107줄) — 능동 인사이트 사건 저장·갱신·조회 (V2-REPAIR D) — 규칙은 insight_rules, 여기는 upsert·해소·억제만.
+
+- functions: refresh, list_events, mark_seen, dismiss
 
 ### `metric_browse_groups.py` (101줄) — 메트릭 브라우저 표시 분류·정렬 — 8의도 그룹 slug 매핑 + 당일 주목도(salience) 정렬.
 
@@ -837,7 +849,7 @@
 
 - functions: scheduler_mode, start, stop, restart, status
 
-### `bg_sync.py` (573줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (580줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
@@ -1138,7 +1150,7 @@
 
 - (public API 없음)
 
-### `chat_context_insight.py` (123줄) — Coach 컨텍스트 해석 보강 — Lap 요약·플랜 이행·HRV 분포 (V2-REPAIR C-2).
+### `chat_context_insight.py` (134줄) — Coach 컨텍스트 해석 보강 — Lap 요약·플랜 이행·HRV 분포 (V2-REPAIR C-2).
 
 - functions: add_insight_context, format_insight_lines
 
@@ -1601,7 +1613,7 @@
 
 - (public API 없음)
 
-### `metric_labels.py` (132줄) — 메트릭 표시 이름 SSOT — 레지스트리 canonical name → (name_ko, abbr). ADR-018.
+### `metric_labels.py` (134줄) — 메트릭 표시 이름 SSOT — 레지스트리 canonical name → (name_ko, abbr). ADR-018.
 
 - class **MetricLabel**: 없음
 - functions: label_for
@@ -1827,6 +1839,10 @@
 
 - functions: garmin_local_sync
 
+### `routes_insights.py` (52줄) — `/api/v1/insights*` — 능동 인사이트 사건 조회·확인·닫기 (V2-REPAIR D2).
+
+- functions: get_insights, post_insight_dismiss, post_insight_seen
+
 ### `routes_library.py` (300줄) — GET /api/v1/library/activities(+:id, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b.
 
 - functions: get_library_activities, get_library_activity_detail, get_library_metric_breakdown, get_library_activity_providers, get_library_metrics_browser, get_library_metric_trend, get_library_wellness, get_library_providers_status, get_library_providers_coverage, get_library_providers_matrix, get_library_providers_pairs, get_library_wellness_trend, get_library_archive
@@ -1887,7 +1903,7 @@
 
 - functions: get_story
 
-### `routes_today.py` (169줄) — GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
+### `routes_today.py` (174줄) — GET /api/v1/today, GET /api/v1/today/checkin, POST /api/v1/today/checkin,
 
 - functions: get_today, get_today_checkin, get_today_milestones, get_today_narrative, get_today_race_hub, post_today_checkin
 
@@ -2091,6 +2107,10 @@
 ### `test_api_input_contracts.py` (287줄) — tests/test_api_input_contracts.py — SRV 1차 적용 4개 라우트 입력 계약 (T-15·P-04·P-05·C-02, ADR-048).
 
 - functions: ctx, test_checkin_rejects_bad_fatigue, test_checkin_rejects_bad_pain_and_long_note, test_checkin_boundaries_accepted, test_checkin_non_json_is_415_and_broken_json_400, test_save_checkin_service_keeps_minimal_invariant, test_templates_rejects, test_templates_rejects_race_date_past_5_years, test_templates_today_race_date_and_optional_fields_ok, test_plan_create_rejects, test_plan_create_missing_required_fields, test_plan_create_non_json_415, test_plan_create_string_numbers_accepted, test_plan_create_weeks_adjusted_returns_meta_warning, test_plan_create_race_date_today_ok, test_plan_service_keeps_minimal_invariant, test_coach_create_thread_rejects_non_string_message, test_coach_rejects_long_message_and_bad_ids, test_coach_message_boundaries_and_whitespace, test_coach_context_and_client_msg_id_pass_through, test_coach_non_json_415, test_unvalidated_route_exception_is_json_500
+
+### `test_api_insights.py` (61줄) — GET/POST /api/v1/insights* + 체크인 훅 (V2-REPAIR D2).
+
+- functions: ctx, test_list_open, test_invalid_state, test_seen_then_dismiss, test_checkin_hook_creates_pain_event
 
 ### `test_api_library.py` (448줄) — tests/test_api_library.py — GET /api/v1/library/activities(+:id, +:id/streams, /metrics/:slug) 테스트.
 
@@ -2783,6 +2803,14 @@
 ### `test_index_ui_default.py` (46줄) — `/` 진입 분기 — 사용자 ui_default → 전역값 → v2(/v2/today).
 
 - functions: make_client, test_default_goes_to_v2, test_global_v1_still_goes_to_v2, test_global_v2, test_stored_v1_falls_back_to_v2
+
+### `test_insight_polish.py` (72줄) — 능동 인사이트 문장 다듬기·Coach 컨텍스트 블록 (V2-REPAIR D4).
+
+- functions: conn, test_validate, test_polish_stores_and_exposes, test_fallback_on_bad_output, test_fallback_on_exception_and_no_provider, test_stale_polish_invalidated_when_rule_text_changes, test_coach_context_block, test_coach_context_empty_has_no_block
+
+### `test_insight_service.py` (114줄) — 능동 인사이트 규칙·사건 수명주기 (V2-REPAIR D1).
+
+- functions: sig, conn, kinds, test_load_spike_boundaries, test_recovery_low_needs_two_members, test_missing_signal_ignored, test_pain_flag_hides_illness, test_data_gap_boundaries, test_refresh_dedupes_and_updates, test_refresh_resolves_when_cleared, test_dismiss_suppresses_for_seven_days, test_order_and_seen, test_rule_failure_keeps_open_events
 
 ### `test_integration_realdb.py` (1024줄) — 실 데이터(pansongit@gmail.com) 기반 통합 테스트.
 
@@ -3848,7 +3876,7 @@
 - functions: run
 
 ---
-총 830개 파일
+총 837개 파일
 
 ## docstring 누락
 

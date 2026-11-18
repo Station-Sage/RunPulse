@@ -88,6 +88,13 @@ def _hrv_dist(conn: sqlite3.Connection, today: str) -> dict | None:
 
 def add_insight_context(conn: sqlite3.Connection, ctx: dict, today: str) -> None:
     """Lap 요약·플랜 이행·HRV 분포를 ctx 에 추가한다. 각 항목은 독립적으로 실패를 삼킨다."""
+    try:
+        from src.services import insight_service
+        ev = insight_service.list_events(conn, "open", 3)
+        if ev:
+            ctx["insight_events"] = [{"severity": e["severity"], "as_of": e["as_of"], "text": e["text"]} for e in ev]
+    except sqlite3.Error:
+        pass
     for key, fn in (("lap_summary", _lap_summary), ("plan_adherence", _plan_adherence),
                     ("hrv_dist", _hrv_dist)):
         try:
@@ -120,4 +127,8 @@ def format_insight_lines(ctx: dict) -> list[str]:
         lines.append("\n### HRV 분포(최근 28일)")
         lines.append(f"- 평균 {hd['mean']}ms(표준편차 {hd['sd']}), 범위 {hd['min']}~{hd['max']}, "
                      f"최근 {hd['latest']}ms(평균 대비 z={hd['z']})")
+    ie = ctx.get("insight_events")
+    if ie:
+        lines.append("\n### 앱이 사용자에게 띄운 열린 알림(질문 없이도 참고)")
+        lines.extend(f"- [{e['severity']}] {e['as_of']} {e['text']}" for e in ie)
     return lines

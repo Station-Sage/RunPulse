@@ -1,7 +1,6 @@
 # V2-REPAIR D — 능동 인사이트 (v3) 설계안
 
-상태: **설계안, 구현 미승인.** 근거: `REVIEW-10`, 분석·코치·플랜 감사(2026-11-17) "능동 인사이트 경로 없음".
-구현 착수는 사용자 승인 후에만 한다.
+상태: **D1~D4 구현 완료(2026-11-18, §10 참고).** 근거: `REVIEW-10`, 분석·코치·플랜 감사(2026-11-17) "능동 인사이트 경로 없음".
 
 ## 1. 문제
 지금 앱은 사용자가 화면을 열거나 질문해야만 해석을 보여 준다. 몸 상태·부하가 임계를 넘어도 "알려 주는" 경로가 없다.
@@ -70,3 +69,10 @@
 2. 사건 종류 7개 전부 vs `load_spike`·`recovery_low`·`pain_flag`·`data_gap` 4개로 시작(권장: 4개 먼저).
 3. Today 배너 위치(상단 고정 vs 브리핑 카드 내부).
 4. dismiss 억제 기간 7일 적정성.
+
+## 10. 구현 결과 (2026-11-18)
+승인 결정: 푸시·이메일 제외 / 사건 4종(`load_spike`·`recovery_low`·`pain_flag`·`data_gap`) / Today 상단 배너 / dismiss 7일.
+- D1 `db_schema_v47.py`·`insight_rules.py`·`insight_service.py`, D2 `routes_insights.py` + bg_sync·체크인 훅, D3 `InsightBanner.svelte`·Coach 최근 알림.
+- D4 `chat_context_insight.py`(열린 사건 상위 3건을 Coach 컨텍스트에 추가), `insight_polish.py` + `prompt_templates/insight_polish.txt`.
+- 설계 §6 과 다른 점: `briefing.py`·`briefing.txt` 는 교체하지 않고 새 템플릿을 추가했다(`get_clipboard_prompt`·`tests/test_briefing.py` 가 기존 것을 계속 사용).
+- 다듬은 문장은 `text_ai`·`text_src` 컬럼에 저장하고, `text_src == text`(규칙 문장 불변)일 때만 노출한다. 검증(새 숫자 금지·120자·마크다운 금지) 실패·예산 거절·예외 시 규칙 문장 그대로.

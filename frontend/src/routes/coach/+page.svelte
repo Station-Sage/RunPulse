@@ -1,4 +1,5 @@
 <script lang="ts">
+	import InsightBanner from '$lib/components/InsightBanner.svelte';
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	// 03e-coach.md 5-A — Coach 홈: 최근 대화 목록 + 새 대화 시작 + 플랜 섹션 + QuickInput.
 	import type { CoachPageData } from './+page';
@@ -124,6 +125,8 @@
 		</div>
 		<CoachStartChips {todos} {chips} {limitNotice} {sending} {errorMessage} onStart={start} />
 	{/if}
+
+	<div class="flex flex-col gap-2 px-4 pb-2 empty:hidden"><InsightBanner limit={3} /></div>
 
 	<div class="border-b border-border-subtle px-4 py-3">
 		<h2 class="text-xs uppercase tracking-wide text-fg-muted">최근 대화</h2>

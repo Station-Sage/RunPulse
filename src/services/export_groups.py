@@ -58,7 +58,8 @@ EXPORT_GROUPS: tuple[GroupDef, ...] = (
              default=True, sensitive=True),
     GroupDef("races", "대회 일정·결과", (
         _t("race_calendar", "race_date", optional=True), _t("race_results", fk=True)), default=True),
-    GroupDef("coach", "Coach 대화·피드백", (_t("chat_threads"), _t("chat_messages"), _t("ai_feedback")),
+    GroupDef("coach", "Coach 대화·피드백", (_t("chat_threads"), _t("chat_messages"), _t("ai_feedback"),
+                    _t("insight_events", "as_of", optional=True)),
              sensitive=True),
     GroupDef("profile", "프로필·설정·동의", (
         _t("athlete_profile"), _t("athlete_stats"), _t("user_settings"), _t("coach_consent"),
