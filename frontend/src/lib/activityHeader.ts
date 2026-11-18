@@ -41,7 +41,12 @@ const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
 /** 헤더 날짜 — 올해면 '10/19(토)', 다른 해면 '2024. 10/19(토)'(A-07, wall-clock 날짜). */
 export function headerDate(isoDate: string, now: Date = new Date()): string {
-	const d = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`);
+	// Z·오프셋이 붙은 시각(Strava UTC)은 로컬 달력 날짜로 환산 — 앞 10자 절단은 자정 경계에서 하루 어긋난다(S-17).
+	const inst = /(Z|[+-]\d{2}:?\d{2})$/.test(isoDate) && isoDate.length > 10 ? new Date(isoDate) : null;
+	const ymd = inst && !Number.isNaN(inst.getTime())
+		? `${inst.getFullYear()}-${String(inst.getMonth() + 1).padStart(2, '0')}-${String(inst.getDate()).padStart(2, '0')}`
+		: isoDate.slice(0, 10);
+	const d = new Date(`${ymd}T00:00:00Z`);
 	const md = `${d.getUTCMonth() + 1}/${d.getUTCDate()}(${WEEKDAY_KO[d.getUTCDay()]})`;
 	return d.getUTCFullYear() === now.getFullYear() ? md : `${d.getUTCFullYear()}. ${md}`;
 }

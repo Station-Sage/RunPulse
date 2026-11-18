@@ -61,3 +61,8 @@
 - S-20 처리: E-25 와 같이 `?step=` 이력 — 합성 빈 DB 에서 1→2단계 후 뒤로가기 = `?step=1` 확인.
 - S-22 처리: 루트 레이아웃 마운트 시 `/library`·`/coach` 경로면 같은 판정(`redirectToWelcomeIfNew`, 데모 제외)으로 `/welcome` 이동(`onboarding.welcomeGuardApplies`). `/data` 는 소스를 연결하는 곳이라 제외(빈 DB 에서 `/data` 그대로 확인). config 소스 연결 시 `connected_count` 가 3 이 되는 판정 기준 자체는 그대로.
 - 확인 방법: 프런트 `coachAuditE.test.mjs`(stepHref·welcomeGuardApplies·checkProfileInput), 합성 빈 DB 사본 375/1280 브라우저: `/library`·`/coach` → `/welcome?step=…`, `/data` 유지, 999·abc 오류·저장 비활성, 185·5:10 저장 "저장했어요". 이 저장은 서버 `profile_service.apply_changes` 가 작업 디렉터리의 git 무시 `config.json` 에 `profile.overrides`(hrmax 185·threshold_pace 310)를 써 둠 — 운영 DB·저장소 파일 아님.
+
+## 처리 기록 (2026-11-18, S 재검증)
+- 해결됨(코드 확인): S-04 일부(코치 대화 목록 `ErrorState`+다시 시도 존재), S-07/S-08(`modal` 액션), S-10(해제 확인은 `inlineConfirm` 인라인 그룹, 포커스·Esc 처리), S-11 오류 토스트는 자동 닫힘 없음(`toastPolicy`)+닫기 버튼.
+- 이번 수정: S-11 호버·포커스 중 자동 닫힘 일시정지(`Toast.svelte`), S-17 `headerDate` 가 Z·오프셋 시각을 로컬 달력 날짜로 환산(활동 1327: 6/30 → 7/1, 375px 브라우저 확인, 단위 테스트 추가).
+- 보류(사용자 결정): S-12/S-13 대비 토큰, S-18 데이터. 미확인·미착수: S-15 skip 링크/데스크톱 포커스 순서, S-21 welcome 동기화 배지, S-04 활동 목록 재시도.

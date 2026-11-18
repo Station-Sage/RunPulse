@@ -66,6 +66,13 @@ test('headerDate: 다른 해만 연도(A-07)', () => {
 	assert.equal(headerDate('2024-10-19T06:00:00', now), '2024. 10/19(토)');
 });
 
+test('headerDate: Z 시각은 로컬 달력 날짜로 환산(S-17)', () => {
+	const now = new Date('2024-12-01T12:00:00');
+	const d = new Date('2024-06-30T18:57:34Z');
+	const days = ['일', '월', '화', '수', '목', '금', '토'];
+	assert.equal(headerDate('2024-06-30T18:57:34Z', now), `${d.getMonth() + 1}/${d.getDate()}(${days[d.getDay()]})`);
+});
+
 test('withEuro: 받침·ㄹ받침·영문(E-28)', () => {
 	assert.equal(withEuro('활동'), '활동으로');
 	assert.equal(withEuro('코치'), '코치로');
