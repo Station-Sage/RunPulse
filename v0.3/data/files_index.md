@@ -1190,7 +1190,7 @@
 
 - functions: get_ai_provider, chat_result, chat
 
-### `chat_engine_providers.py` (271줄) — AI 채팅 — 외부 API provider 호출 모듈.
+### `chat_engine_providers.py` (275줄) — AI 채팅 — 외부 API provider 호출 모듈.
 
 - functions: complete, call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
 
@@ -1263,7 +1263,7 @@
 
 - functions: main
 
-### `tool_declarations.py` (250줄) — AI Function Calling 도구 선언 — Gemini function_declarations 형식.
+### `tool_declarations.py` (282줄) — AI Function Calling 도구 선언 — Gemini function_declarations 형식.
 
 - (public API 없음)
 
@@ -1287,6 +1287,10 @@
 
 - (public API 없음)
 
+### `tool_exec_series.py` (140줄) — 시계열·인사이트·체크인·예측 조회 도구 실행기 — get_wellness_series/get_activity_stream/get_insights/get_checkins/get_predictions.
+
+- (public API 없음)
+
 ### `tool_exec_summary.py` (80줄) — 기간 요약 도구 실행기 — get_training_summary (주별 볼륨·부하 + 주요 세션).
 
 - (public API 없음)
@@ -1295,11 +1299,11 @@
 
 - functions: num, columnar, span_days, resolve_granularity, week_start_of, group_by_week, weekly_activity_rows, weekly_mean, weekly_last
 
-### `tool_guide.py` (24줄) — 도구 사용 가이드 — MCP initialize의 instructions로 전달되는 호출 레시피.
+### `tool_guide.py` (26줄) — 도구 사용 가이드 — MCP initialize의 instructions로 전달되는 호출 레시피.
 
 - (public API 없음)
 
-### `tools.py` (55줄) — AI Function Calling 도구 진입점 — 선언 재노출 + 실행 디스패치.
+### `tools.py` (61줄) — AI Function Calling 도구 진입점 — 선언 재노출 + 실행 디스패치.
 
 - functions: execute_tool
 
@@ -1790,7 +1794,7 @@
 
 - functions: enabled, mcp_endpoint
 
-### `policy.py` (19줄) — 원격(HTTP) 노출 도구 정책 — 모든 도구는 REMOTE_TOOLS·REMOTE_DENIED·LOCAL_ONLY_TOOLS 중 하나로 분류돼야 한다.
+### `policy.py` (20줄) — 원격(HTTP) 노출 도구 정책 — 모든 도구는 REMOTE_TOOLS·REMOTE_DENIED·LOCAL_ONLY_TOOLS 중 하나로 분류돼야 한다.
 
 - functions: unclassified_tools
 
@@ -3700,6 +3704,10 @@
 - class **TestSaveCheckin**: test_save_and_return, test_upsert_same_day, test_defaults_to_today_date
 - functions: test_productive_load_tsb_is_not_rest
 
+### `test_tool_exec_series.py` (101줄) — 시계열·인사이트·체크인·예측 조회 도구 (V2-AI-CLAUDE-QUEUE E4).
+
+- functions: conn, test_registered_and_classified, test_wellness_series_kinds_and_values, test_wellness_series_caps_range, test_activity_stream_resample_and_cap, test_activity_stream_errors, test_insights_order_and_state, test_checkins_redact_without_consent, test_checkins_with_consent, test_predictions_sections
+
 ### `test_tpdi.py` (117줄)
 
 - class **TestTPDI**: test_with_indoor_outdoor, test_json_has_counts, test_no_indoor
@@ -3960,7 +3968,7 @@
 - functions: run
 
 ---
-총 858개 파일
+총 860개 파일
 
 ## docstring 누락
 

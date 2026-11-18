@@ -29,6 +29,11 @@ user-invocable: false
 | 기간 비교 | `compare_periods` | |
 | 계획 · 프로필 · 날씨 | `get_training_plan` / `get_runner_profile` / `get_weather` | |
 | 계획 이행 | `get_plan_adherence` | 최근 N주 세션 완료·볼륨·퀄리티 |
+| 웰니스 일별 추세 | `get_wellness_series(kind,days)` | 최대 120일, 7/28일 기준선 |
+| 열린 알림 | `get_insights` | 능동 인사이트 사건 |
+| 체크인·RPE | `get_checkins(days)` | 최대 28일, 질병 문구 동의 전 일반화 |
+| 예측·PB | `get_predictions` | 스냅샷·베스트 에포트·대회 |
+| 구간 곡선(로컬 전용) | `get_activity_stream(id,channel,from_sec,to_sec)` | 30초 리샘플 ≤300점 |
 
 **전형적 흐름**: `get_training_summary` → 궁금한 세션 id → `get_activity_laps(id)`.
 날짜·id를 모른 채 `get_activities_range`를 넓게 훑지 않는다.

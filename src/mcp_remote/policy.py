@@ -6,10 +6,11 @@ REMOTE_TOOLS: frozenset[str] = frozenset({
     "compare_workout_sets", "get_training_summary", "get_metrics", "get_metrics_trend",
     "get_wellness", "get_fitness", "get_race_history", "compare_periods",
     "get_training_plan", "get_plan_adherence", "get_runner_profile", "get_weather",
+    "get_wellness_series", "get_insights", "get_checkins", "get_predictions",
 })
 REMOTE_DENIED: frozenset[str] = frozenset()
 # 로컬 stdio(MCP)·워커 전용 — 원본 payload 는 원격에 노출하지 않는다.
-LOCAL_ONLY_TOOLS: frozenset[str] = frozenset({"list_raw_payloads", "get_raw_payload"})
+LOCAL_ONLY_TOOLS: frozenset[str] = frozenset({"list_raw_payloads", "get_raw_payload", "get_activity_stream"})
 
 
 def unclassified_tools() -> set[str]:

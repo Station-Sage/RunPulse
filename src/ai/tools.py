@@ -16,6 +16,7 @@ from src.ai import tool_exec_laps as _laps
 from src.ai import tool_exec_summary as _summary
 from src.ai import tool_exec_context as _ctx
 from src.ai import tool_exec_raw as _raw
+from src.ai import tool_exec_series as _series
 from src.ai.tool_exec_adherence import _exec_get_plan_adherence
 
 log = logging.getLogger(__name__)
@@ -37,6 +38,11 @@ _DISPATCH = {
     "get_plan_adherence": _exec_get_plan_adherence,
     "get_runner_profile": _ctx._exec_get_runner_profile,
     "get_weather": _ctx._exec_get_weather,
+    "get_wellness_series": _series._exec_get_wellness_series,
+    "get_activity_stream": _series._exec_get_activity_stream,
+    "get_insights": _series._exec_get_insights,
+    "get_checkins": _series._exec_get_checkins,
+    "get_predictions": _series._exec_get_predictions,
     "list_raw_payloads": _raw._exec_list_raw_payloads,
     "get_raw_payload": _raw._exec_get_raw_payload,
 }

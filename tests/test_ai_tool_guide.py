@@ -13,7 +13,7 @@ _LOCAL_NAMES = {t["name"] for t in LOCAL_TOOL_DECLARATIONS}
 _TOOL_LIKE = re.compile(r"\b(?:get|compare)_[a-z_]+\b")
 
 # 세션마다 1회 전달되는 고정 비용 상한 (문자 수, 문자수/3 ≈ 토큰). 도구를 늘릴 때 의식적으로 올린다.
-_MAX_DECLARATION_CHARS = 5000
+_MAX_DECLARATION_CHARS = 6500
 
 
 def test_guide_within_length_budget():

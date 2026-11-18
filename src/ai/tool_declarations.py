@@ -214,10 +214,42 @@ TOOL_DECLARATIONS = [
             "properties": {"weeks": {"type": "integer", "description": "기본 4, 최대 8"}}
         }
     },
+    {
+        "name": "get_wellness_series",
+        "description": "웰니스 시계열의 일별 요약(평균·최소·최대)과 7/28일 기준선. kind 생략 시 존재하는 kind 목록. 최대 120일.",
+        "parameters": {"type": "object", "properties": {
+            "kind": {"type": "string"}, "days": {"type": "integer"},
+            "date_from": {"type": "string"}, "date_to": {"type": "string"}}}
+    },
+    {
+        "name": "get_insights",
+        "description": "능동 인사이트 사건(부하 급증·회복 저하·통증·데이터 공백). 기본 열린 것 최대 10건.",
+        "parameters": {"type": "object", "properties": {
+            "state": {"type": "string", "description": "open(기본)/dismissed/resolved"}, "limit": {"type": "integer"}}}
+    },
+    {
+        "name": "get_checkins",
+        "description": "체크인(피로·통증·기분)과 활동 피드백(RPE·통증). 최대 28일.",
+        "parameters": {"type": "object", "properties": {
+            "days": {"type": "integer"}, "date_from": {"type": "string"}, "date_to": {"type": "string"}}}
+    },
+    {
+        "name": "get_predictions",
+        "description": "최근 레이스 예측 스냅샷, 거리별 베스트 에포트, 대회 기록.",
+        "parameters": {"type": "object", "properties": {"limit": {"type": "integer"}}}
+    },
 ]
 
 # 로컬 stdio(MCP)·워커 전용 — 챗 LLM 고정 비용(예산)과 원격 노출에서 제외.
 LOCAL_TOOL_DECLARATIONS = [
+    {
+        "name": "get_activity_stream",
+        "description": "활동 스트림 채널(heart_rate/cadence/power_watts/altitude_m/speed_ms/grade_pct)을 30초로 리샘플한 최대 300점과 통계. from_sec/to_sec 로 구간 지정.",
+        "parameters": {"type": "object", "properties": {
+            "activity_id": {"type": "integer"}, "channel": {"type": "string"},
+            "from_sec": {"type": "integer"}, "to_sec": {"type": "integer"}, "resample_sec": {"type": "integer"}},
+            "required": ["activity_id"]}
+    },
     {
         "name": "list_raw_payloads",
         "description": "수집된 외부 API 원본(JSON) 목록. source·entity_type·entity_id·activity_id·기간으로 좁힌다. 본문은 get_raw_payload.",
