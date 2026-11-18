@@ -27,7 +27,7 @@
 	<span class="relative inline-block align-middle">
 		<button
 			type="button"
-			class="ml-0.5 inline-flex h-5 w-5 items-center justify-center text-xs text-fg-muted"
+			class="relative ml-0.5 inline-flex h-5 w-5 items-center justify-center text-xs text-fg-muted after:absolute after:-inset-3 after:content-['']"
 			aria-label="{label} 설명 보기"
 			aria-expanded={open}
 			onclick={toggle}>ⓘ</button

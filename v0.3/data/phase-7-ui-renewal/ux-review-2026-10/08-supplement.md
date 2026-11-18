@@ -66,3 +66,8 @@
 - 해결됨(코드 확인): S-04 일부(코치 대화 목록 `ErrorState`+다시 시도 존재), S-07/S-08(`modal` 액션), S-10(해제 확인은 `inlineConfirm` 인라인 그룹, 포커스·Esc 처리), S-11 오류 토스트는 자동 닫힘 없음(`toastPolicy`)+닫기 버튼.
 - 이번 수정: S-11 호버·포커스 중 자동 닫힘 일시정지(`Toast.svelte`), S-17 `headerDate` 가 Z·오프셋 시각을 로컬 달력 날짜로 환산(활동 1327: 6/30 → 7/1, 375px 브라우저 확인, 단위 테스트 추가).
 - 보류(사용자 결정): S-12/S-13 대비 토큰, S-18 데이터. 미확인·미착수: S-15 skip 링크/데스크톱 포커스 순서, S-21 welcome 동기화 배지, S-04 활동 목록 재시도.
+
+### 처리 기록 (2026-11-18, 전체 재점검)
+- 코드 확인: S-15 skip 링크("본문 바로가기", `+layout.svelte`, Tab→Enter 시 `#main` 포커스) 이미 구현됨, S-21 welcome 동기화 배지 `hideSyncPill` 로 숨김됨, S-04 활동 목록은 `ErrorState` 재시도 있음, S-01~03 오류 상태는 `ErrorState`/`missingActivityView` 로 처리됨 — 위 "미확인" 표기는 해소.
+- MetricTerm ⓘ 히트 영역 확대(after:-inset-3), Library 최고기록 "전체 ›" 44px.
+- 잔여(결정/서버): S-12/13·E-15 대비 토큰, E-20 초대 mailto, S-18 데이터, T-03/T-21/T-25.

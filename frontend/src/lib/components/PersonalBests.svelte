@@ -11,7 +11,7 @@
 	<section class="flex flex-col gap-2" aria-label="개인 최고 기록">
 		<div class="flex items-center justify-between">
 			<h2 class="text-xs uppercase tracking-wide text-fg-muted">개인 최고 기록</h2>
-			<a href="{base}/library/activities?type=race" class="text-xs text-fg-muted hover:text-fg-secondary">전체 ›</a>
+			<a href="{base}/library/activities?type=race" class="inline-flex min-h-11 items-center text-xs text-fg-muted hover:text-fg-secondary">전체 ›</a>
 		</div>
 		<div class="grid grid-cols-3 gap-2">
 			{#each pbs as p (p.key)}
