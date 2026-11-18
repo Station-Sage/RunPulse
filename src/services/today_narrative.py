@@ -7,6 +7,8 @@ from __future__ import annotations
 import datetime as _dt
 import sqlite3
 
+from src.services.narrative_queue import narrative_via_queue, queue_ready as _queue_ready
+
 
 def get_today_narrative(
     conn: sqlite3.Connection,
@@ -14,6 +16,7 @@ def get_today_narrative(
     config: dict | None = None,
     year: int | None = None,
     month: int | None = None,
+    allow_queue: bool = False,
 ) -> dict:
     """Today L2 성장 내러티브 — AI 우선, 전체 실패 시 규칙 기반 fallback.
 
@@ -107,14 +110,19 @@ def get_today_narrative(
     # 그 달 활동이 0건이면 AI 를 부르지 않는다 — 데이터 없음을 '훈련 안 함'으로 평가하는 허구 서술 방지(T-26·T-21).
     empty_month = month_count == 0 and not month_other
     chain = [] if empty_month else _build_chat_provider_chain(provider, config)
-    if chain:
+    use_queue = allow_queue and not empty_month and _queue_ready(conn, config)
+    if chain or use_queue:
         prompt = build_narrative_prompt(
             date, ctl_now, ctl_start, month_dist_km, month_count,
             sleep_recent, sleep_prev, month_label=month_label, weeks=weeks,
             other_line=other_line(month_other),
         )
+        if use_queue:
+            text = narrative_via_queue(conn, config, prompt)
+            if text:
+                source = "ai"
         with llm_budget.ensure_scope("narrative") as sc:
-            for prov in chain:
+            for prov in ([] if text else chain):
                 ai_result = _call_provider(prov, prompt, config)
                 if ai_result:
                     text = ai_result

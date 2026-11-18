@@ -31,6 +31,7 @@ REASON_LABELS = {
     "no_consent": "동의 필요", "network": "네트워크 오류", "http_5xx": "서버 오류(5xx)",
     "http_4xx": "요청 거부(4xx)",   # S4-88: 400·413 등 — 실계정 기록에 원시 코드로 보이던 사유
     "unexpected": "예기치 못한 오류",
+    "cq_timeout": "Claude 큐 대기 초과", "quota_sub": "Claude 구독 한도",
     "quota_user": "오늘 AI 사용 한도", "quota_global": "AI 사용량 일시 제한", "busy": "AI 요청 혼잡",
 }
 

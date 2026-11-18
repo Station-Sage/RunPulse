@@ -271,8 +271,8 @@ class BgSyncThread(threading.Thread):
                 try:
                     from src.services import insight_service
                     insight_service.refresh(conn, _date.today().isoformat())
-                    from src.services.insight_polish import polish_open_events
-                    polish_open_events(conn, self.config)
+                    from src.services.insight_polish import polish_in_background
+                    polish_in_background(str(get_db_path(self.user_id)), self.config)
                 except Exception as ins_exc:  # noqa: BLE001
                     update_job(self.job_id, last_error=f"인사이트 갱신 실패: {str(ins_exc)[:150]}")
                 # 스키마 마이그레이션 후 재동기화 플래그 해제

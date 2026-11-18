@@ -186,11 +186,13 @@ def get_today_narrative(
     config: dict | None = None,
     year: int | None = None,
     month: int | None = None,
+    allow_queue: bool = False,
 ) -> dict:
     """Today L2 성장 내러티브 — 구현은 today_narrative.get_today_narrative."""
     from src.services import today_narrative
 
-    return today_narrative.get_today_narrative(conn, date=date, config=config, year=year, month=month)
+    return today_narrative.get_today_narrative(conn, date=date, config=config, year=year, month=month,
+                                              allow_queue=allow_queue)
 
 
 _CHECKIN_COLS = ("fatigue", "pain", "note", "activity_id")

@@ -73,7 +73,7 @@ def warm_month_narrative(conn: sqlite3.Connection, today: str, *, consent_ok: bo
         try:
             from src.services import today_service
             with llm_budget.scope(user_id, "warm"):
-                result = today_service.get_today_narrative(conn, date=today, config=config)
+                result = today_service.get_today_narrative(conn, date=today, config=config, allow_queue=True)
         except Exception as exc:  # noqa: BLE001
             logger.warning("내러티브 워밍 실패: %s", exc)
             return "failed"
