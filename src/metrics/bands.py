@@ -31,6 +31,32 @@ BANDS: dict[str, _Band] = {
     # acwr.py ranges
     "acwr": ([(0.8, "caution", "저부하"), (1.3, "good", "적정"), (1.5, "caution", "주의")],
              ("poor", "위험")),
+    # Garmin 수면 점수 척도(0~100)
+    "sleep_score": ([(60, "poor", "나쁨"), (80, "caution", "보통"), (90, "good", "좋음")],
+                    ("excellent", "매우 좋음")),
+    # Garmin 훈련 준비도 척도(0~100)
+    "training_readiness_score": ([(25, "poor", "매우 낮음"), (50, "caution", "낮음"),
+                                  (75, "neutral", "보통"), (95, "good", "높음")],
+                                 ("excellent", "최상")),
+    # Garmin 바디배터리 최고치(0~100)
+    "body_battery_high": ([(26, "poor", "충전 부족"), (51, "caution", "낮음"), (76, "neutral", "보통")],
+                          ("good", "충분")),
+    # Garmin 스트레스 척도 — 낮을수록 좋음(휴식 0~25 / 낮음 26~50 / 보통 51~75 / 높음 76~)
+    "avg_stress": ([(26, "excellent", "휴식"), (51, "good", "낮음"), (76, "caution", "보통")],
+                   ("poor", "높음")),
+    # 수면 시간(초) — 6h/7h/9h
+    "sleep_duration_sec": ([(21600, "poor", "부족"), (25200, "caution", "다소 부족"),
+                            (32400, "good", "적정")], ("neutral", "긴 편")),
+    # monotony.py ranges(varied/moderate/monotonous) — 낮을수록 좋음
+    "monotony": ([(1.5, "good", "다양함"), (2.0, "neutral", "보통")], ("caution", "단조로움")),
+    # rtti.py ranges(under/optimal/overload/danger)
+    "rtti": ([(70, "caution", "저부하"), (100, "good", "적정"), (130, "caution", "과부하")],
+             ("poor", "위험")),
+    # lsi.py ranges(normal/elevated/spike) — 낮을수록 좋음
+    "lsi": ([(1.3, "good", "정상"), (1.5, "caution", "상승")], ("poor", "급증")),
+    # marathon_shape.py ranges(low/building/adequate/high)
+    "marathon_shape": ([(60, "caution", "부족"), (85, "neutral", "형성 중"), (110, "good", "충분")],
+                       ("excellent", "높음")),
     # Garmin TE 척도: 0~0.9 없음 / 1~1.9 미미 / 2~2.9 유지 / 3~3.9 향상 / 4~4.9 크게 향상 / 5.0 과도
     "training_effect_aerobic": ([(1, "neutral", "효과 없음"), (2, "neutral", "효과 미미"),
                                  (3, "neutral", "유지"), (4, "good", "향상"),

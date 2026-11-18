@@ -44,3 +44,25 @@ def test_utrs_bands_match_calculator_ranges():
 ])
 def test_rri_bands(value, status, label):
     assert grade("rri", value) == {"status": status, "label": label}
+
+
+@pytest.mark.parametrize("name,value,status", [
+    ("sleep_score", 55, "poor"), ("sleep_score", 85, "good"), ("sleep_score", 95, "excellent"),
+    ("training_readiness_score", 20, "poor"), ("training_readiness_score", 80, "good"),
+    ("body_battery_high", 20, "poor"), ("body_battery_high", 90, "good"),
+    ("avg_stress", 20, "excellent"), ("avg_stress", 80, "poor"),
+    ("sleep_duration_sec", 5 * 3600, "poor"), ("sleep_duration_sec", 8 * 3600, "good"),
+    ("monotony", 1.0, "good"), ("monotony", 2.5, "caution"),
+    ("rtti", 85, "good"), ("rtti", 140, "poor"),
+    ("lsi", 1.0, "good"), ("lsi", 1.6, "poor"),
+    ("marathon_shape", 50, "caution"), ("marathon_shape", 120, "excellent"),
+])
+def test_c1_new_bands(name, value, status):
+    assert grade(name, value)["status"] == status
+
+
+def test_c1_hints_exist_for_new_bands():
+    from src.services.metric_display import action_hint
+    for name in ("sleep_score", "avg_stress", "rtti", "lsi", "monotony", "marathon_shape"):
+        status = grade(name, 1.0 if name in ("lsi", "monotony") else 50)["status"]
+        assert action_hint(name, status), (name, status)

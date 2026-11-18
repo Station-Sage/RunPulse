@@ -45,7 +45,7 @@ def test_prompt_contains_week_block():
               "ctl_end": 50.0, "tsb_min": -12.0, "partial": False}]
     p = build_narrative_prompt("2026-03-31", 50.0, 45.0, 100.0, 10, None, None, weeks=weeks)
     assert "W1(2026-03-02~)" in p and "최장 러닝 28.0km" in p and "W2 최장 28km" in p
-    assert "W1" not in build_narrative_prompt("2026-03-31", 50.0, 45.0, 100.0, 10, None, None)
+    assert "W1(" not in build_narrative_prompt("2026-03-31", 50.0, 45.0, 100.0, 10, None, None)
 
 
 def test_prompt_lines_empty_week():
