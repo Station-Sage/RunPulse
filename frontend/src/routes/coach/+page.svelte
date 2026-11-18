@@ -13,6 +13,7 @@
 	import NewThreadForm from '$lib/components/coach/NewThreadForm.svelte';
 	import CoachStartChips from '$lib/components/coach/CoachStartChips.svelte';
 	import CoachPlanCard from '$lib/components/coach/CoachPlanCard.svelte';
+	import DeepAnalysisCard from '$lib/components/coach/DeepAnalysisCard.svelte';
 	import CoachCheckin from '$lib/components/coach/CoachCheckin.svelte';
 	import ScopeSheet from '$lib/components/coach/ScopeSheet.svelte';
 	import { needsConsent } from '$lib/coachEngine';
@@ -123,6 +124,7 @@
 				+ 새 대화 시작
 			</button>
 		</div>
+		<DeepAnalysisCard onAsk={start} />
 		<CoachStartChips {todos} {chips} {limitNotice} {sending} {errorMessage} onStart={start} />
 	{/if}
 
