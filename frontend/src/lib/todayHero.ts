@@ -46,7 +46,11 @@ function sessionSub(b: BriefingStateFields): string {
 	if (s.distance_m) parts.push(formatDistance(s.distance_m));
 	const pace = formatPaceRange(s.pace_min, s.pace_max);
 	if (pace) parts.push(pace);
-	if (s.zone != null && s.zone !== '') parts.push(`Z${String(s.zone).replace(/^Z/i, '')}`);
+	if (s.zone != null && s.zone !== '') {
+		const z = `Z${String(s.zone).replace(/^Z/i, '')}`;
+		const zb = s.zone_bpm;
+		parts.push(zb ? `${z} ${zb.lo}${zb.hi ? `~${zb.hi}` : '+'}bpm` : z);
+	}
 	return parts.join(' · ');
 }
 

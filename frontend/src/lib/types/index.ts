@@ -752,6 +752,7 @@ export interface BriefingSession {
 	pace_min: number | null;
 	pace_max: number | null;
 	zone: string | number | null;
+	zone_bpm?: ZoneBpm | null;
 }
 
 export interface BriefingCaveat {
@@ -1115,6 +1116,9 @@ export interface WellnessTrendData {
 
 // ── Coach Plan (5-F — /api/v1/coach/plan/:id) ────────────────────────────────
 
+export type { ZoneBpm } from './zoneBpm';
+import type { ZoneBpm } from './zoneBpm';
+
 export interface PlannedWorkout {
 	id: number;
 	date: string;
@@ -1123,6 +1127,7 @@ export interface PlannedWorkout {
 	target_pace_min: number | null;
 	target_pace_max: number | null;
 	target_hr_zone: string | null;
+	zone_bpm?: ZoneBpm | null;
 	description: string | null;
 	rationale: string | null;
 	completed: number; // 0 or 1

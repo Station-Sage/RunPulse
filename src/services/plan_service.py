@@ -213,6 +213,8 @@ def get_session_detail(
     week_index = _week_index_for_date(goal, sd)
     adjustment = todays_adjustment_with_hold(conn, session_date)
     note = get_session_note(conn, session_date)
+    from src.training.hr_zone_bpm import zone_bpm
+    workout = {**workout, "zone_bpm": zone_bpm(conn, workout.get("target_hr_zone"))}
 
     return {
         "goal": {

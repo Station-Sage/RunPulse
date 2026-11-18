@@ -86,9 +86,16 @@
 				{#if formatPaceRange(data.session.workout.target_pace_min, data.session.workout.target_pace_max)}
 					<span>{formatPaceRange(data.session.workout.target_pace_min, data.session.workout.target_pace_max)}</span>
 				{/if}
+				{#if data.session.workout.target_hr_zone}
+					{@const zb = data.session.workout.zone_bpm}
+					<span>Z{data.session.workout.target_hr_zone}{zb ? ` ${zb.lo}${zb.hi ? `~${zb.hi}` : '+'}bpm` : ''}</span>
+				{/if}
 			</div>
 			{#if data.session.workout.description}
 				<p class="mt-1.5 text-xs text-fg-secondary">{data.session.workout.description}</p>
+			{/if}
+			{#if data.session.workout.rationale}
+				<p class="mt-1.5 text-xs text-fg-muted">왜 이 세션? {data.session.workout.rationale}</p>
 			{/if}
 		</div>
 

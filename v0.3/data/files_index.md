@@ -396,7 +396,7 @@
 - class **RestoreError**: 없음
 - functions: list_restorable, restore_plan
 
-### `plan_service.py` (256줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
+### `plan_service.py` (258줄) — Phase 7b 서비스 레이어 - 훈련 플랜 조회 (진행 중 플랜 + 오늘 조정).
 
 - functions: ctl_scale, get_active_plan, todays_adjustment_with_hold, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
@@ -538,7 +538,7 @@
 - class **TriggerResult**: 없음
 - functions: connection_skip, days_since_last_sync, plan_incremental, trigger_incremental
 
-### `today_hero.py` (205줄) — Today 히어로·주간 스트립 데이터 — briefing.state 판정, 세션·조정·결손 caveat, week_compliance.
+### `today_hero.py` (213줄) — Today 히어로·주간 스트립 데이터 — briefing.state 판정, 세션·조정·결손 caveat, week_compliance.
 
 - functions: race_days_left, build_week, build_briefing_state, build_race_summary, build_today_extras
 
@@ -1340,6 +1340,10 @@
 ### `goals.py` (223줄) — 훈련 목표 CRUD.
 
 - functions: get_rules_version, effective_rules_version, set_rules_version, set_reported_load, get_reported_load, add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
+
+### `hr_zone_bpm.py` (30줄) — 플랜 심박존 번호 → 러너 본인 LTHR 기준 bpm 구간 (Friel 5존, physio.zones_lthr).
+
+- functions: latest_lthr, zone_bpm
 
 ### `interval_calc.py` (221줄) — 인터벌 트레이닝 처방 계산.
 
@@ -2768,6 +2772,10 @@
 
 - functions: test_second_part_hr, test_self_profile_from_race, test_fallback_and_ref
 
+### `test_hr_zone_bpm.py` (36줄) — tests/test_hr_zone_bpm.py — 플랜 심박존 → LTHR 기준 bpm 구간.
+
+- functions: test_no_lthr_returns_none, test_zone_ranges_from_lthr, test_invalid_zone
+
 ### `test_import_service.py` (143줄) — import_service — 종류 감지, 사본 미리보기(원본 불변), 실행 결과, API 라우트.
 
 - functions: udb, test_detect_kind, test_preview_does_not_touch_original, test_apply_then_duplicates, test_safe_extract_rejects_traversal, test_routes, test_run_job_records_result, test_reimport_updates_changed_distance
@@ -2882,9 +2890,9 @@
 
 - functions: test_tsb_conventional_bands, test_tsb_race_phase_overrides, test_cirs_lower_is_better, test_decoupling_uses_absolute_value, test_unknown_or_missing_returns_none, test_utrs_bands_match_calculator_ranges, test_rri_bands, test_c1_new_bands, test_c1_hints_exist_for_new_bands
 
-### `test_metric_browse_groups.py` (64줄) — tests/test_metric_browse_groups.py — 메트릭 브라우저 8의도 그룹 매핑·정렬 단위 테스트.
+### `test_metric_browse_groups.py` (69줄) — tests/test_metric_browse_groups.py — 메트릭 브라우저 8의도 그룹 매핑·정렬 단위 테스트.
 
-- functions: test_every_daily_slug_is_mapped, test_no_mapping_key_outside_daily, test_groups_are_known, test_unknown_slug_goes_to_other_detail, test_baseline_z_null_under_7_days, test_baseline_z_null_when_not_fresh, test_baseline_z_sd_zero_uses_floor, test_fresh_before_stale, test_caution_before_big_z_neutral, test_z_null_goes_last_among_same_status, test_tie_then_tier_then_registry
+- functions: test_every_daily_slug_is_mapped, test_no_mapping_key_outside_daily, test_groups_are_known, test_unknown_slug_goes_to_other_detail, test_baseline_z_null_under_7_days, test_baseline_z_null_when_not_fresh, test_baseline_z_sd_zero_uses_floor, test_fresh_before_stale, test_caution_before_big_z_neutral, test_z_null_goes_last_among_same_status, test_tie_then_tier_then_registry, test_teroi_tpdi_exposed_in_ability_detail
 
 ### `test_metric_display.py` (21줄) — metric_display.action_hint — CRS 힌트의 신선도·BOOST hold 처리 (FRS F3).
 
@@ -3840,7 +3848,7 @@
 - functions: run
 
 ---
-총 828개 파일
+총 830개 파일
 
 ## docstring 누락
 

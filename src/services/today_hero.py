@@ -38,7 +38,14 @@ def _has_active_goal(conn: sqlite3.Connection) -> bool:
     return get_active_goal(conn) is not None
 
 
-def _session(workout: dict, adjusted_type: str | None = None) -> dict:
+def _zone_bpm(conn, zone) -> dict | None:
+    if conn is None or zone is None:
+        return None
+    from src.training.hr_zone_bpm import zone_bpm
+    return zone_bpm(conn, zone)
+
+
+def _session(workout: dict, adjusted_type: str | None = None, conn=None) -> dict:
     wtype = adjusted_type or workout["workout_type"]
     km = workout.get("distance_km")
     return {
@@ -50,6 +57,7 @@ def _session(workout: dict, adjusted_type: str | None = None) -> dict:
         "pace_min": workout.get("target_pace_min"),
         "pace_max": workout.get("target_pace_max"),
         "zone": workout.get("target_hr_zone"),
+        "zone_bpm": _zone_bpm(conn, workout.get("target_hr_zone")),
     }
 
 
@@ -142,7 +150,7 @@ def build_briefing_state(conn: sqlite3.Connection, day: str, week: dict,
 
     adj = todays_adjustment_with_hold(conn, day)
     if adj and out["state"] in ("pre", "race_week", "race_day"):
-        out["session"] = _session(adj, adj["adjusted_type"])
+        out["session"] = _session(adj, adj["adjusted_type"], conn)
         if adj["adjusted"]:
             out["verdict"] = "down"
             out["adjustment"] = {"reason": adj["adjustment_reason"],
