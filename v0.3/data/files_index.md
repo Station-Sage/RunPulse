@@ -159,7 +159,7 @@
 
 - functions: is_drifted, with_current, build_answer_evidence, view_evidence
 
-### `coach_service.py` (278줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
+### `coach_service.py` (281줄) — Phase 7 서비스 레이어 - Coach 스레드 CRUD + AI 호출 래핑.
 
 - functions: get_thread, create_thread, add_message, generate_reply, get_message, regenerate
 
@@ -1186,7 +1186,7 @@
 
 - functions: seconds_to_pace
 
-### `chat_engine.py` (245줄) — AI 채팅 엔진 — 교체 가능 구조.
+### `chat_engine.py` (255줄) — AI 채팅 엔진 — 교체 가능 구조.
 
 - functions: get_ai_provider, chat_result, chat
 
@@ -1212,6 +1212,10 @@
 ### `claude_queue.py` (76줄) — claude_queue 앱 측 클라이언트 — 큐에 job 을 넣고 결과를 폴링한다 (flask 의존 없음).
 
 - functions: enabled_for, status, run_job
+
+### `coach_cq_context.py` (66줄) — 코치 claude_queue 컨텍스트 — 상주 세션용 고정 시스템 컨텍스트와 턴별 짧은 프롬프트를 만든다.
+
+- functions: build_system_ctx, ctx_hash_of, build_turn_prompt, build_cq
 
 ### `coach_rule_grade.py` (55줄) — Coach 규칙 답변 — 회복 등급 → 오늘 강도 매핑 (30-coach-chat design §7.2).
 
@@ -2417,6 +2421,10 @@
 ### `test_coach_async.py` (153줄) — coach_async 테스트 — 워커 실행·이벤트 로그·SSE 복원·취소 (INLINE 모드로 결정적 실행).
 
 - functions: db_file, test_start_runs_and_streams_events, test_stream_honors_last_event_id, test_stream_restores_from_db_when_log_is_gone, test_duplicate_start_while_running_is_rejected, test_start_unknown_message_returns_false, test_rule_mode_skips_ai, test_worker_exception_emits_error, test_cancel_running_sets_flag, test_cancel_orphan_pending_marks_row, test_orphan_pending_stream_becomes_error, test_source_text_follows_regenerate_chain
+
+### `test_coach_cq_context.py` (55줄)
+
+- functions: test_insight_lines_order_and_filter, test_insight_lines_missing_table, test_system_ctx_and_hash_stable, test_turn_prompt_truncates, test_build_cq, test_run_chain_picks_prompt_per_provider
 
 ### `test_coach_engine_health.py` (127줄) — coach_engine_health / coach_consent — 엔진 라벨, H0 집계, 동의 upsert.
 
@@ -3984,11 +3992,12 @@
 - functions: run
 
 ---
-총 864개 파일
+총 866개 파일
 
 ## docstring 누락
 
 - `tests/__init__.py`
+- `tests/test_coach_cq_context.py`
 - `tests/test_constraints.py`
 - `tests/test_critical_power.py`
 - `tests/test_crs.py`

@@ -106,13 +106,13 @@ def get_thread(conn: sqlite3.Connection, thread_id: int) -> dict | None:
 
 
 def _generate(conn: sqlite3.Connection, thread_id: int, user_text: str, config: dict | None,
-              chip_id: str | None = None, on_event=None, cancelled=None):
+              chip_id: str | None = None, on_event=None, cancelled=None, retire: str | None = None):
     """동의 저장소의 설정으로 엔진을 호출한다 — 동의가 없으면 외부 호출 0회(design §4.3)."""
     from src.ai import chat_engine
     from src.services.coach_consent import get_consent
     return chat_engine.chat_result(conn, user_text, config=config, chip_id=chip_id, thread_id=thread_id,
                                    consent=get_consent(conn), require_consent=True,
-                                   on_event=on_event, cancelled=cancelled)
+                                   on_event=on_event, cancelled=cancelled, **({"retire": retire} if retire else {}))
 
 
 def _row_view(conn: sqlite3.Connection, message_id: int) -> dict:
@@ -235,8 +235,11 @@ def generate_reply(conn: sqlite3.Connection, thread_id: int, assistant_id: int, 
     """pending assistant 행의 답변을 동기적으로 생성·저장한다. status: done | fallback | cancelled | error."""
     conn.execute("UPDATE chat_messages SET status = 'working' WHERE id = ? AND status = 'pending'", (assistant_id,))
     conn.commit()
+    parent = conn.execute("SELECT p.role FROM chat_messages m JOIN chat_messages p ON p.id = m.parent_message_id"
+                          " WHERE m.id = ?", (assistant_id,)).fetchone()
     try:
-        result = _generate(conn, thread_id, user_text, config, chip_id, on_event, cancelled)
+        result = _generate(conn, thread_id, user_text, config, chip_id, on_event, cancelled,
+                           retire="regenerate" if parent and parent[0] == "assistant" else None)
     except Exception as exc:
         log.warning("coach 답변 생성 실패 thread=%s: %s", thread_id, exc, exc_info=True)
         conn.execute("UPDATE chat_messages SET status = 'error', content = '' WHERE id = ?", (assistant_id,))

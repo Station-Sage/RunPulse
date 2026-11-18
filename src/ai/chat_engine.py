@@ -17,6 +17,8 @@ from datetime import date
 from .chat_engine_result import (
     ChatResult, build_chain, engine_for_ok, engine_for_rule, run_chain,
 )
+from . import provider_claude_queue as pcq
+from .provider_common import CLAUDE_QUEUE
 from .chat_engine_rules import rule_based_response
 
 from .chat_engine_providers import (
@@ -59,6 +61,7 @@ def chat_result(
     require_consent: bool = False,
     on_event=None,
     cancelled=None,
+    retire: str | None = None,
 ) -> ChatResult:
     """응답 + 엔진 상태(design §4.1). 동의된 provider만 호출하고, 실패하면 규칙 답변으로 끝낸다.
 
@@ -70,13 +73,15 @@ def chat_result(
     consent_on = require_consent
     exclude_notes = bool(consent and consent.get("exclude_notes")) if consent_on else False
     tools_on = bool(consent.get("tools_enabled")) if consent_on and consent else True
-    chain, empty_reason = build_chain(provider, config, consent, consent_on)
+    cq_ok = provider == CLAUDE_QUEUE and pcq.available(conn, config)
+    chain, empty_reason = build_chain(provider, config, consent, consent_on, cq_available=cq_ok)
 
     chat_history = _load_recent_chat(conn, limit=6, thread_id=thread_id)
     sent_scope: list | None = None
     text: str | None = None
     used: str | None = None
     attempts: list = []
+    cq: dict | None = None
     if chain:
         from .suggestions import CHIP_REGISTRY
         prompt_is_free = not (chip_id and chip_id in CHIP_REGISTRY)
@@ -89,8 +94,13 @@ def chat_result(
                 conn, user_message, chat_history, provider=provider, exclude_notes=exclude_notes)
             ctx_text = _with_activity_context(conn, thread_id, ctx_text)
             prompt = _build_system_prompt(ctx_text, user_message, chat_history)
+            if CLAUDE_QUEUE in chain:
+                from .coach_cq_context import build_cq
+                cq, cq_prompt = build_cq(conn, system_prompt=_SYSTEM_PROMPT, thread_id=thread_id, today_ctx=ctx_text,
+                                         user_message=user_message, history=chat_history, retire=retire)
+                prompt = (cq_prompt, prompt)
         text, used, attempts = run_chain(conn, prompt, config, chain, tools=tools_on,
-                                         on_event=on_event, cancelled=cancelled)
+                                         on_event=on_event, cancelled=cancelled, cq=cq)
 
     as_of = date.today().isoformat()
     if text and used:

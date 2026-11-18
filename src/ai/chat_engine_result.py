@@ -93,7 +93,7 @@ def build_chain(selected: str, config: dict | None, consent: dict | None,
 def run_chain(conn: sqlite3.Connection, prompt: str, config: dict | None, chain: list[str],
               *, tools: bool, on_event=None,
               cancelled=None, cq: dict | None = None) -> tuple[str | None, str | None, list[Attempt]]:
-    """체인을 순서대로 호출. (텍스트, 응답한 provider, attempts). 전부 실패하면 (None, None, attempts).
+    """체인을 순서대로 호출. prompt 가 (cq용, 폴백용) 튜플이면 provider 별로 골라 쓴다. (텍스트, 응답한 provider, attempts). 전부 실패하면 (None, None, attempts).
 
     on_event("stage", {...})를 provider 호출 전·조회 도구마다 보낸다. cancelled()가 True면 다음 호출 전에 멈춘다.
     """
@@ -114,7 +114,7 @@ def run_chain(conn: sqlite3.Connection, prompt: str, config: dict | None, chain:
         attempt = Attempt(provider=prov, ok=False,
                           model=(MODEL_COACH_LABEL if prov == CLAUDE_QUEUE else model_for(prov, config)))
         try:
-            text = complete(prov, prompt, config, conn=conn, tools=tools, deadline=deadline, stats=stats, **({"cq": cq} if prov == CLAUDE_QUEUE else {}),
+            text = complete(prov, (prompt[0] if prov == CLAUDE_QUEUE else prompt[1]) if isinstance(prompt, tuple) else prompt, config, conn=conn, tools=tools, deadline=deadline, stats=stats, **({"cq": cq} if prov == CLAUDE_QUEUE else {}),
                             on_tool=(lambda name: on_event("stage", {
                                 "key": "tool", "label": f"데이터 확인 중: {name}", "tool": name}))
                             if on_event is not None else None)
