@@ -39,7 +39,7 @@ _SPEC: dict[str, tuple[str, str, str]] = {
         "race_pred_vdot vdot_adj marathon_shape",
         "",
     ),
-    "ability": ("vo2max rec critical_power eftp", "garmin_ftp lt_speed_ref sapi", ""),
+    "ability": ("vo2max rec critical_power eftp", "garmin_ftp lt_speed_ref sapi teroi tpdi", ""),
     "sleep": (
         "sleep_score sleep_duration_sec sleep_deep_sec sleep_rem_sec",
         "sleep_light_sec sleep_awake_sec sleep_avg_hr sleep_body_battery_change",

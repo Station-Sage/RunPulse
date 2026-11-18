@@ -62,3 +62,8 @@ def test_z_null_goes_last_among_same_status():
 def test_tie_then_tier_then_registry():
     assert salience_key(_e(z=1.01, tier="detail"), 0) > salience_key(_e(z=1.04), 9)
     assert salience_key(_e(z=1.0), 1) < salience_key(_e(z=1.0), 2)
+
+
+def test_teroi_tpdi_exposed_in_ability_detail():
+    assert classify("teroi") == ("ability", "detail")
+    assert classify("tpdi") == ("ability", "detail")

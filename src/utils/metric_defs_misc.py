@@ -14,8 +14,8 @@ MISC_DEFS: list[MetricDef] = [
               aliases={"intervals": "pace_variation"}),
     MetricDef("aerobic_decoupling_rp", "efficiency", "metric", "%", "RunPulse 유산소 분리"),
     MetricDef("efficiency_factor_rp", "efficiency", "metric", "", "RunPulse 효율 계수 (EF)"),
-    MetricDef("teroi", "efficiency", "metric", "", "TEROI (훈련 효과 ROI)"),
-    MetricDef("tpdi", "efficiency", "metric", "%", "TPDI (실내/실외 격차 지수)"),
+    MetricDef("teroi", "efficiency", "metric", "", "TEROI (훈련 효과 ROI)", scope="daily"),
+    MetricDef("tpdi", "efficiency", "metric", "%", "TPDI (실내/실외 격차 지수)", scope="daily"),
     MetricDef("rec", "efficiency", "metric", "", "REC (통합 러닝 효율성)", scope="daily"),
 
     # ── capacity (체력/역량) ──
