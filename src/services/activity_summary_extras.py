@@ -77,11 +77,12 @@ def build_hr_zones(conn: sqlite3.Connection, ids: list[int]) -> dict | None:
             pass
     secs = []
     for z in range(1, 6):
-        m = _metric(conn, ids, f"hr_zone_time_{z}", ("garmin",))
+        m = (_metric(conn, ids, f"hr_zone_{z}_sec", ("garmin", "intervals", "strava"))
+             or _metric(conn, ids, f"hr_zone_time_{z}", ("garmin",)))   # 추출기 저장명은 hr_zone_N_sec
         if not m or m["numeric"] is None:
             return None
         secs.append(int(m["numeric"]))
-    return {"provider": "garmin", "basis": "device_zones", "sec": secs}
+    return {"provider": m["provider"], "basis": "device_zones", "sec": secs}
 
 
 def build_source_diffs(source_comparison: dict) -> list[dict]:

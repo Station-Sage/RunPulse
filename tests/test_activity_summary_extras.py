@@ -89,3 +89,10 @@ def test_verdict_strength_hr_only():
     core = {"activity_type": "strength_training", "avg_hr": 100, "duration_sec": 1800}
     v = ex.build_verdict(core, _wc(), [], None, build_display(core))
     assert v["text"].startswith("근력 · 평균 심박 100")
+
+
+def test_hr_zones_from_extractor_names():
+    c = _conn()
+    for z in range(1, 6):
+        c.execute("INSERT INTO metric_store VALUES ('activity','1',?, 'garmin',?,NULL,NULL)", (f"hr_zone_{z}_sec", z * 60))
+    assert ex.build_hr_zones(c, [1])["sec"] == [60, 120, 180, 240, 300]

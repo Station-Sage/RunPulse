@@ -10,7 +10,7 @@ get_recent_milestones(): 읽기 전용, today_service / routes_today 에서 호�
 from __future__ import annotations
 
 import sqlite3
-from datetime import date as _date
+from datetime import date as _date, timedelta
 
 
 # ── 레이스 거리 버킷 ──────────────────────────────────────────────
@@ -46,7 +46,9 @@ def detect_and_store_milestones(
     from src.services import milestone_events, milestone_running
     inserted: list[dict] = []
     inserted += _detect_distance_thresholds(conn, start_date, end_date)
-    inserted += _detect_pb(conn, start_date, end_date)
+    # PB 는 레이스 태그(event_type 등)가 동기화 뒤에 붙을 수 있어 최근 60일을 다시 훑는다(멱등)
+    pb_start = min(start_date, (_date.fromisoformat(end_date) - timedelta(days=60)).isoformat())
+    inserted += _detect_pb(conn, pb_start, end_date)
     # 최장거리·연속 주는 전 기간 재탐지(멱등, 날짜 = 사건일) + 출처 잃은 사건 마일스톤 정리(ADR-057)
     inserted += milestone_running.detect_longest_runs(conn)
     inserted += milestone_running.detect_streaks(conn, milestone_events.today_local(conn))

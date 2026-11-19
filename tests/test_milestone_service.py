@@ -133,6 +133,16 @@ class TestPB:
 
         assert any(m["title"] == "10K PB" for m in result)
 
+    def test_pb_found_when_sync_window_missed_race_day(self, tmp_path):
+        """레이스 태그가 늦게 붙어 당일 창을 놓쳐도 최근 60일 재탐지로 PB 를 남긴다."""
+        conn = _make_conn(tmp_path)
+        self._make_race(conn, "old", "2026-01-01 08:00:00", 10000, 360)
+        self._make_race(conn, "new", "2026-06-01 08:00:00", 10000, 330, elapsed=3300, name="10K Race")
+        conn.commit()
+
+        result = detect_and_store_milestones(conn, "2026-06-20", "2026-06-25")
+        assert any(m["title"] == "10K PB" and m["date"] == "2026-06-01" for m in result)
+
     def test_no_pb_when_slower(self, tmp_path):
         """이전 기록보다 느리면 PB 미생성."""
         conn = _make_conn(tmp_path)
