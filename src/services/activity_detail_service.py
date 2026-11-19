@@ -52,9 +52,11 @@ def _tz_estimated(conn: sqlite3.Connection, core: dict) -> bool:
     return False
 
 
-def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_streams: bool = False) -> dict:
+def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_streams: bool = False,
+                        config: dict | None = None) -> dict:
     """활동 상세: core + metrics_by_category + source_comparison + semantic_groups
     + streams(include_streams=True 일 때만 최대 500포인트 다운샘플, 기본 None — 전체는 get_activity_streams) + laps + best_efforts.
+    impact 에는 규칙 줄(lines)·AI 요약(wording) 이 붙는다 — config 를 주면(화면 요청) 낡은 AI 요약의 생성을 예약한다.
     """
     conn.row_factory = sqlite3.Row
 
@@ -146,6 +148,9 @@ def get_activity_detail(conn: sqlite3.Connection, activity_id: int, include_stre
         impact = get_activity_impact(conn, activity_id)
     except Exception:
         impact = None
+    if impact is not None:
+        from src.services import activity_impact_wording
+        impact = activity_impact_wording.attach(conn, activity_id, impact, config, schedule=config is not None)
 
     has_gps = conn.execute(
         f"SELECT COUNT(*) FROM activity_streams WHERE latitude IS NOT NULL AND activity_id IN "

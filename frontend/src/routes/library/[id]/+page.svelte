@@ -22,7 +22,8 @@
 	import ActivityVerdict from '$lib/components/ActivityVerdict.svelte';
 	import SplitBars from '$lib/components/SplitBars.svelte';
 	import ActivityTimeline from '$lib/components/ActivityTimeline.svelte';
-	import { impactLines } from '$lib/activityImpact';
+	import { impactView } from '$lib/activityImpact';
+	import AiMark from '$lib/components/AiMark.svelte';
 	import { page } from '$app/state';
 	import { replaceState } from '$app/navigation';
 	import { parseSeg } from '$lib/activityUrlState';
@@ -53,7 +54,7 @@
 	const zones = $derived(data.activity?.hr_zones ?? null);
 	const sourceDiffs = $derived((data.activity?.source_diffs ?? []).filter((d) => d.significant));
 	const keyMetrics = $derived(pickKeyMetrics(metricsByCategory));
-	const impactList = $derived(data.activity?.impact ? impactLines(data.activity.impact) : []);
+	const impact = $derived(impactView(data.activity?.impact));
 
 	let feedback = $state<ActivityFeedback | null>(data.activity?.feedback ?? null);
 	let sheetOpen = $state(false);
@@ -163,7 +164,7 @@
 		{/if}
 
 		<!-- 이 러닝의 의미 -->
-		{#if impactList.length > 0}<section class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3"><h2 class="text-xs uppercase tracking-wide text-fg-muted">이 러닝의 의미</h2>{#each impactList as line}<p class="text-sm text-fg-primary">{line}</p>{/each}</section>{/if}
+		{#if impact.lines.length > 0}<section class="flex flex-col gap-1 rounded-lg border border-border-subtle bg-surface-2 p-3" data-testid="activity-impact"><h2 class="text-xs uppercase tracking-wide text-fg-muted">이 러닝의 의미{#if impact.ai}<span class="ml-1"><AiMark source="ai" prefix /></span>{/if}</h2>{#if impact.ai}<p class="text-sm leading-relaxed text-fg-primary" data-testid="impact-ai">{impact.ai}</p>{/if}{#each impact.lines as line}<p class="text-sm {impact.ai ? 'text-fg-secondary' : 'text-fg-primary'}">{line}</p>{/each}</section>{/if}
 
 		<!-- 핵심 메트릭 그리드 (최대 8개) -->
 		{#if keyMetrics.length > 0}
