@@ -677,14 +677,8 @@ export interface PredictionEvidence {
 
 // ── /api/v1/today/narrative 실제 응답 ─────────────────────────────────────
 
-export interface MilestoneEntry {
-	id: number;
-	type: 'distance_threshold' | 'pb' | 'metric_recompute';
-	date: string;
-	title: string;
-	detail: string | null;
-	activity_id: number | null;
-}
+import type { MilestoneEntry } from './milestone';
+export type { MilestoneEntry, MilestoneType } from './milestone';
 
 export interface NarrativeHighlights {
 	total_distance_km: number;

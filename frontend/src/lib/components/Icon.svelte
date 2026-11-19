@@ -88,5 +88,18 @@
 	{:else if name === 'shoe'}
 		<path d="M3 16v-5l3-1 2 2c2 1 4 1 6 0l1.5 2.5L21 16v2H3v-2z" />
 		<path d="M8 12l1.5-1.5M11 12.6l1.2-1.5" />
+	{:else if name === 'medal'}
+		<path d="M8 3l2.5 6M16 3l-2.5 6" />
+		<circle cx="12" cy="15" r="5" />
+		<path d="M12 13v4" />
+	{:else if name === 'flag'}
+		<path d="M5 21V4M5 4h11l-2 4 2 4H5" />
+	{:else if name === 'calendar'}
+		<rect x="4" y="5" width="16" height="15" rx="2" />
+		<path d="M4 10h16M9 3v4M15 3v4" />
+	{:else if name === 'heart'}
+		<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />
+	{:else if name === 'flame'}
+		<path d="M12 21a6 6 0 0 0 6-6c0-4-3-6-4-10-2 2-3 4-3 6-1-1-2-2-2-4-2 2-3 4.5-3 8a6 6 0 0 0 6 6z" />
 	{/if}
 </svg>

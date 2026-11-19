@@ -7,6 +7,8 @@
 	import { goto } from '$app/navigation';
 	import type { StoryData } from '$lib/api/story';
 	import { deltaPctText, isoWeekId, riskPeakText, storyScope, thisMonthId } from '$lib/storyPeriod';
+	import Icon from '$lib/components/Icon.svelte';
+	import { milestoneIconName } from '$lib/milestoneIcon';
 
 	let { data }: { data: { story: StoryData } } = $props();
 	const s = $derived(data.story);
@@ -137,12 +139,18 @@
 
 	{#if s.milestones.length}
 		<section>
-			<h3 class="mb-2 text-sm font-semibold text-fg-secondary">마일스톤</h3>
+			<div class="mb-2 flex items-center justify-between">
+				<h3 class="text-sm font-semibold text-fg-secondary">마일스톤</h3>
+				<a href="{base}/library/milestones" class="inline-flex min-h-11 items-center text-xs text-semantic-teal" data-testid="story-milestones-all">전체 보기 ›</a>
+			</div>
 			<ul class="flex flex-col gap-2">
 				{#each s.milestones as m, i (m.id ?? i)}
-					<li class="rounded bg-surface-2 p-3 text-sm">
-						<span class="font-semibold">◆ {m.title ?? m.label}</span>
-						<span class="block text-fg-muted">{m.achieved_date ?? m.date}</span>
+					<li class="flex items-start gap-2 rounded bg-surface-2 p-3 text-sm">
+						<Icon name={milestoneIconName(m.type ?? '')} class="mt-0.5 h-4 w-4 shrink-0 text-fg-muted" />
+						<span class="min-w-0">
+							<span class="font-semibold">{m.title ?? m.label}</span>
+							<span class="block text-fg-muted">{[m.achieved_date ?? m.date, m.detail].filter(Boolean).join(' · ')}</span>
+						</span>
 					</li>
 				{/each}
 			</ul>

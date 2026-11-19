@@ -30,7 +30,7 @@ export interface StoryData {
 	intensity: StoryIntensity | null;
 	key_sessions: { id: number; name: string; date: string; distance_km: number }[];
 	risk_peak: { slug: string; value: number; date: string; status?: string | null; status_label?: string | null } | null;
-	milestones: { id?: number; title?: string; label?: string; achieved_date?: string; date?: string }[];
+	milestones: { id?: number; type?: string; title?: string; label?: string; achieved_date?: string; date?: string; detail?: string | null }[];
 }
 
 export const getStory = (period: string) =>

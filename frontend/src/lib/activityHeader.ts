@@ -29,7 +29,8 @@ const FROM_LABELS: Record<string, { label: string; path: string }> = {
 	pb: { label: 'Library', path: '/library' },
 	heatmap: { label: 'Library', path: '/library' },
 	month: { label: '월별 활동', path: '/library/activities' },
-	providers: { label: '소스 비교', path: '/library/providers' }
+	providers: { label: '소스 비교', path: '/library/providers' },
+	milestones: { label: '마일스톤', path: '/library/milestones' }
 };
 
 /** ?from= 값 → 뒤로가기 링크. 알 수 없으면 활동 목록. */

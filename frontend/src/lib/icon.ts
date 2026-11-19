@@ -20,4 +20,9 @@ export type IconName =
 	| 'info'
 	| 'search'
 	| 'source-primary'
-	| 'shoe';
+	| 'shoe'
+	| 'medal'
+	| 'flag'
+	| 'calendar'
+	| 'heart'
+	| 'flame';
