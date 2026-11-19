@@ -457,3 +457,18 @@
 - D3 유지: Strava OAuth `oauth-start`·`callback`(redirect URI 불변, `views_strava_oauth.py` 로 분리 — 결과는 return_to 또는 `/v2/data/sources/strava?connected=1|connect_error=1`), `/api/garmin/local-sync`(외부 `scripts/garmin_local_sync.py`, `routes_garmin_local_sync.py` 로 분리, URL·응답 불변), `/training/export.ics`·`/mcp`·`/feeds/cal`. **`/connect/garmin*`(views_settings_garmin)도 유지** — `/connect/garmin/cf-settings` 가 서버 CF Service Token(`cf.service_client_*`, local-sync sync_key·v2 local-kit .env 가 사용)을 넣는 유일한 화면이고 v2 대체가 없으며, V2-GARMIN-CONNECT 후속 ①(운영 실계정 연결 확인)이 미완이다. 퇴역은 CF 설정의 v2/관리 경로 결정 뒤.
 - D4: 남은 v1 HTML(Garmin 화면)의 셸은 `base.html`+`stylesheet` 만 — 하단 v1 nav·동기화 JS·echarts·`helpers` HTML 조립/포맷터·`helpers_svg`·`templates/macros` 삭제(`helpers.py` → `v1_shell_style.py`, `_CSS` 만).
 - D5 삭제: `routes_v1_pages`·`v1_pages_helpers`·`views_export`·`manual_sync_service`(수동 동기화 subprocess 경로 — `src/sync.py` CLI 자체는 유지)·`helpers_svg` 및 그것만 검사하던 테스트. 함수 단위로 남은 테스트 전용 심볼(`bg_sync.pause_job`·`resume_job`·`get_status`, `ledger.fail_run`)은 4단계 정리 후보.
+
+## ADR-057: 사용자 의미 마일스톤 정의 — 사건·날짜·삭제 규칙 (2026-11-19)
+- 배경: MILESTONE-HIDE-RECOMPUTE 후속. 누적 거리·PB 만 있던 마일스톤을 사용자 사건으로 확장(사용자 결정 1~10, 2026-11-19). 표시 필터는 블랙리스트 유지(`milestone_query.visible_clauses` — algo/metric_recompute·검토 중 provider 만 제외).
+- D1 종류: 기존 `distance_threshold`·`pb`(탐지 불변) + 사건 `race_finish`·`goal_set`·`goal_changed`·`plan_replan`·`race_registered`·`illness_start`·`injury_start`·`recovery` + 기록 `longest_run`·`streak_weeks`.
+- D2 날짜 = 사건이 일어난 날: 대회 완주=대회(활동)일, 대회 등록=등록일(대회일 아님, 가져오기·목표 생성 자동 등록 포함), 목표 설정·수정·재계획=한 날(현지, `reference_today`), 질병/부상=시작일·종료일(회복), 최장거리=그 러닝 날, 연속 주=단계에 도달한 주의 토요일(토요일 전에는 보류). 백필은 created_at(UTC)을 활동 기반 오프셋으로 현지 날짜로 바꾼다.
+- D3 출처 연결: nullable `milestones.source_ref TEXT`('race_result:<activity_id>'·'goal:<id>'·'race:<id>'·'episode:<id>'·'replan:<id>', v49). metric_name 재사용은 메트릭 의미와 섞여 기각. 중복은 기존 UNIQUE(type,date,title), 같은 (type, source_ref)는 갱신(재확인·수정 반영). goal_changed 는 하루 1건으로 병합(같은 날 설정한 목표면 goal_set 을 갱신).
+- D4 삭제: 출처 삭제·취소·기각·되돌림이면 같은 source_ref 행 삭제 — 대회 결과 삭제, 목표 사용자 취소(대회 취소와 함께 포함), 대회 취소, 에피소드 기각·삭제, 재계획 되돌리기. **새 목표로 교체돼 자동 취소된 이전 목표의 설정 기록은 유지**(플랜 복원으로 되살아날 수 있는 교체). 대회 복원 시 등록 기록을 원래 등록일로 되살린다. 동기화 때 `prune_orphans` 가 출처 잃은 행을 정리(안전망).
+- D5 훅: `milestone_hooks`(출처별)·`milestone_events`(record/remove) — 호출자 트랜잭션, commit 없음, 예외는 로그 후 삼킴(본 API 실패 금지).
+- D6 DNF: '{거리} 도전 (DNF)'(기록 시간 생략). 거리 라벨 5K·10K·하프마라톤·풀마라톤, 그 외 '{x}km'.
+- D7 최장거리: 러닝 군만, 이전 모든 러닝 최장 + 0.5km 이상, 15km 이상, 이전 러닝 10회 이상, 2:30/km 보다 빠른 기록 제외. 제목 '최장거리 {x}km'.
+- D8 연속 주: 일요일 시작 주(Story·MCP 주별 집계와 같은 규칙), 주 2회 이상 러닝, 4·8·12·26·52주(이후 52주마다), 제목 '{N}주 연속 훈련'. 최장거리·연속 주는 매 동기화 전 기간 재탐지(INSERT OR IGNORE, 멱등).
+- D9 질병·부상: 확정된 것만, 제목은 일반 문구('질병 시작'·'부상 발생'·'질병에서 회복'·'부상에서 회복', 자유 입력 부위 미포함). 마일스톤은 AI 프롬프트에 들어가지 않는다. 내보내기는 기존 metrics 그룹 그대로(확대 없음).
+- D10 부상 에피소드: context_episodes.kind 에 'injury'(v50 재생성). 정도·부위 입력은 질병과 같은 경로, 부위 목록은 부상 전용. 조정 신호·AI 로 보내는 경로가 없어 AI 동의 질문은 질병만 — 부상을 AI·조정에 쓰게 되면 `illness_consent` 와 같은 동의·익명화를 먼저 붙인다.
+- D11 화면: `/library/milestones`(종류 칩·월별·커서, `GET /api/v1/library/milestones`). Story 는 종류별 2건·최대 8건, 월 내러티브는 종류별 2건·5건 — 단순 상한 확대는 같은 종류가 다시 채우므로 종류 상한으로 누적 거리·PB 가 밀리지 않게.
+- D12 백필: `scripts/backfill_milestones.py (--db|--all-users) [--apply]`(기본 dry-run, apply 시 DB별 백업). goal_changed 는 이력이 없어 백필 안 함, 취소 목표는 뒤에 새 목표가 있는 경우(교체)만 포함(사용자 취소와 구분 불가 — 근사).

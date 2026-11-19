@@ -16,7 +16,8 @@
 > 파일: context_episodes·illness_consent·context_episode_delete·context_autodetect·context_today·adjustment_signals_context(S5-13 컨텍스트 신호: 질병·이동·고지대, ADR-035 v3) / activity_service·dashboard_service·wellness_service(Phase 5, 구현 완료) /
 > today_service·coach_service(Phase 7a, 구현 완료) / metrics_service·plan_service·
 > data_service(Phase 7b~7d 스텁). story_service(+story_period·story_stats): 월·주·블록 Story
-> (REVIEW-03, 00-diagnostic-and-direction.md §5.1).
+> (REVIEW-03, 00-diagnostic-and-direction.md §5.1). milestone_service(조회·동기화 탐지)·milestone_events(기록·삭제 원시)·
+> milestone_hooks(출처별 훅: 대회 결과·목표·대회 등록·재계획·질병/부상) — 사용자 사건 마일스톤(ADR-057).
 > 
 > 설계 문서: v0.3/data/phase-5-impl/01-service-layer.md,
 > v0.3/data/phase-7-ui-renewal/06-data-layer-extensions.md (D5)
@@ -171,11 +172,11 @@
 
 - functions: detect_travel, detect_altitude, rhr_hrv_question, run
 
-### `context_episode_delete.py` (87줄) — 컨텍스트 에피소드 삭제 연쇄 (NEW-18·28) — 한 트랜잭션, commit 은 호출자.
+### `context_episode_delete.py` (89줄) — 컨텍스트 에피소드 삭제 연쇄 (NEW-18·28) — 한 트랜잭션, commit 은 호출자.
 
 - functions: delete_episode
 
-### `context_episodes.py` (102줄) — 컨텍스트 에피소드(질병·여행·고도) 저장/조회 (NEW-1~3·9·13·19·22) — '오늘' = reference_today.
+### `context_episodes.py` (111줄) — 컨텍스트 에피소드(질병·부상·여행·고도) 저장/조회 (NEW-1~3·9·13·19·22) — '오늘' = reference_today.
 
 - functions: open_episode, confirm, dismiss, close, expire_candidates, list_active, list_all, illness_reconfirm
 
@@ -357,7 +358,27 @@
 
 - functions: version_change_events, recompute_note
 
-### `milestone_service.py` (265줄) — Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
+### `milestone_backfill.py` (68줄) — 사용자 사건·러닝 기록 마일스톤 1회 백필 (ADR-057) — 기존 출처 행에서 다시 만든다. 멱등(재실행 안전).
+
+- functions: backfill, run_backfill
+
+### `milestone_events.py` (141줄) — 사용자 사건 마일스톤 기록·삭제 원시 함수 (ADR-057) — 호출자 트랜잭션 안에서 실행, commit 하지 않는다.
+
+- functions: ref, today_local, local_date_of, user_offset, record_event, find_event, remove_event, prune_orphans
+
+### `milestone_hooks.py` (216줄) — 출처별 마일스톤 훅 (ADR-057) — 대회 결과·목표·대회 등록·재계획·질병/부상 에피소드.
+
+- functions: dist_label, fmt_time, on_race_result, on_race_result_removed, goal_detail, on_goal_set, on_goal_changed, on_goal_removed, on_race_registered, on_race_cancelled, on_replan, on_replan_undone, on_episode, on_episode_removed
+
+### `milestone_query.py` (83줄) — 마일스톤 조회 — 표시 필터(블랙리스트)·전체 이력 페이지네이션·종류별 상한 (ADR-057).
+
+- functions: visible_clauses, parse_types, parse_cursor, list_milestones, diversify
+
+### `milestone_running.py` (92줄) — 러닝 기록 마일스톤 탐지 — 최장거리(longest_run)·연속 훈련 주(streak_weeks) (ADR-057).
+
+- functions: detect_longest_runs, week_start, streak_tiers, detect_streaks
+
+### `milestone_service.py` (272줄) — Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
 
 - functions: detect_and_store_milestones, get_recent_milestones
 
@@ -418,7 +439,7 @@
 
 - functions: snapshot, structure_diff
 
-### `plan_replan_service.py` (269줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
+### `plan_replan_service.py` (273줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
 
 - class **ReplanError**: 없음
 - functions: upgrade_enabled, next_monday, replan_anchor, preview, apply, last_undoable, entry_state, undo
@@ -482,11 +503,11 @@
 - class **RaceError**: 없음
 - functions: row_dict, get, require, is_needs_review, lazy_done, active_goal_race_id, is_goal_race, find_other_a, a_conflict, check_duplicate, list_zones
 
-### `race_calendar_service.py` (94줄) — 대회 캘린더 쓰기 서비스 (RC §2.3·2.4) — 등록·수정·취소. 복원·되돌리기는 race_calendar_state, 조회는 race_calendar_query.
+### `race_calendar_service.py` (112줄) — 대회 캘린더 쓰기 서비스 (RC §2.3·2.4) — 등록·수정·취소. 복원·되돌리기는 race_calendar_state, 조회는 race_calendar_query.
 
 - functions: add, update, cancel
 
-### `race_calendar_state.py` (99줄) — 대회 상태 전이 — 복원(restore, §2.12)·되돌리기(reopen, §2.13).
+### `race_calendar_state.py` (108줄) — 대회 상태 전이 — 복원(restore, §2.12)·되돌리기(reopen, §2.13).
 
 - functions: restore, reopen
 
@@ -506,7 +527,7 @@
 
 - functions: project_race_form
 
-### `race_result_service.py` (83줄) — 대회 확인(race_results, P7-PRED-53) — 사용자가 대회 여부·전력 여부·공식 기록을 확정한다.
+### `race_result_service.py` (87줄) — 대회 확인(race_results, P7-PRED-53) — 사용자가 대회 여부·전력 여부·공식 기록을 확정한다.
 
 - functions: confirm, remove, get, candidates
 
@@ -544,7 +565,7 @@
 
 - functions: iso_weeks_in_year, week_neighbors
 
-### `story_service.py` (232줄) — Phase 7 Story 서비스 — 월/주/블록 단위 훈련 내러티브 조회.
+### `story_service.py` (233줄) — Phase 7 Story 서비스 — 월/주/블록 단위 훈련 내러티브 조회.
 
 - functions: get_story
 
@@ -574,7 +595,7 @@
 
 - functions: race_days_left, build_week, build_briefing_state, build_race_summary, build_today_extras
 
-### `today_narrative.py` (157줄) — Today L2 성장 내러티브 — AI 우선, 규칙 기반 fallback (today_service 에서 분리, 300줄 캡).
+### `today_narrative.py` (161줄) — Today L2 성장 내러티브 — AI 우선, 규칙 기반 fallback (today_service 에서 분리, 300줄 캡).
 
 - functions: get_today_narrative
 
@@ -1410,7 +1431,7 @@
 
 - functions: push_workout_to_garmin
 
-### `goals.py` (223줄) — 훈련 목표 CRUD.
+### `goals.py` (231줄) — 훈련 목표 CRUD.
 
 - functions: get_rules_version, effective_rules_version, set_rules_version, set_reported_load, get_reported_load, add_goal, list_goals, get_goal, get_active_goal, update_goal, complete_goal, cancel_goal
 
@@ -1860,7 +1881,7 @@
 
 - functions: get_coach_suggestions, get_coach_activity_context, get_coach_threads, post_coach_threads, get_coach_thread_detail, post_coach_thread_messages, get_coach_message, get_coach_message_stream, post_coach_cancel, post_coach_regenerate, get_coach_engine, put_coach_consent
 
-### `routes_context.py` (171줄) — `/api/context-episodes*` — 질병·여행·고도 컨텍스트 에피소드와 AI 동의 (NEW-40, ADR-035 v3).
+### `routes_context.py` (172줄) — `/api/context-episodes*` — 질병·부상·여행·고도 컨텍스트 에피소드와 AI 동의 (NEW-40, ADR-035 v3).
 
 - functions: list_episodes, create_episode, confirm_episode, dismiss_episode, close_episode, remove_episode, get_consent, post_consent
 
@@ -1931,6 +1952,10 @@
 ### `routes_library_feedback.py` (63줄) — 활동 피드백(RPE·통증·메모) GET/PUT/DELETE — /api/v1/library/activities/<id>/feedback (ADR-022).
 
 - functions: get_activity_feedback, put_activity_feedback, delete_activity_feedback
+
+### `routes_library_milestones.py` (34줄) — GET /api/v1/library/milestones — 마일스톤 전체 이력(최신순, 커서 페이지네이션·종류 필터, ADR-057).
+
+- functions: get_library_milestones
 
 ### `routes_library_streams.py` (57줄) — GET /api/v1/library/activities/:id/streams + 활동 하위 경로의 잘못된 id JSON 봉투 (UX 리뷰 A-20·A-22).
 
@@ -2201,9 +2226,9 @@
 
 - functions: mini_app, test_list_threads_empty, test_create_thread, test_create_thread_missing_message, test_get_thread_detail, test_get_thread_detail_not_found, test_add_message, test_add_message_thread_not_found, test_add_message_missing_content, test_engine_rule_by_choice_without_consent, test_consent_roundtrip_builds_chain, test_consent_rejects_bad_provider, test_suggestions_are_handler_backed, test_create_thread_by_chip_id, test_unknown_chip_or_empty_body_rejected, test_stream_returns_sse_events_and_headers, test_stream_resumes_with_last_event_id, test_get_message_poll, test_client_msg_id_makes_resend_idempotent, test_cancel_route, test_regenerate_ai_and_rule_modes, test_activity_context_endpoint, test_create_thread_with_activity_context, test_get_thread_returns_context
 
-### `test_api_context_episodes.py` (83줄) — /api/context-episodes* — 목록·생성·확정·종료·삭제·동의 + 봉투 오류.
+### `test_api_context_episodes.py` (99줄) — /api/context-episodes* — 목록·생성·확정·종료·삭제·동의 + 봉투 오류.
 
-- functions: client, test_create_list_close_illness, test_validation_errors_are_envelopes, test_dismiss_only_candidates_and_confirm, test_delete_with_chat_threads_and_404, test_consent_roundtrip, test_today_context_block_and_forged_origin
+- functions: client, test_create_list_close_illness, test_validation_errors_are_envelopes, test_dismiss_only_candidates_and_confirm, test_delete_with_chat_threads_and_404, test_consent_roundtrip, test_today_context_block_and_forged_origin, test_create_injury_no_consent_prompt_and_milestones
 
 ### `test_api_data_sync.py` (115줄) — POST /api/v1/data/sync — 상태코드 매핑·입력 검증, api_error details.
 
@@ -2702,6 +2727,14 @@
 
 - functions: test_schema_version, test_migration_preserves_rows_and_is_idempotent, test_fresh_db_has_sample_idx, test_same_second_samples_are_kept, test_extractor_assigns_sample_idx
 
+### `test_db_schema_v49.py` (22줄) — 스키마 v49 — milestones.source_ref 추가(멱등, 기존 행 보존).
+
+- functions: test_adds_source_ref_idempotent, test_no_table_is_noop
+
+### `test_db_schema_v50.py` (31줄) — 스키마 v50 — context_episodes.kind CHECK 에 injury 추가(재생성, 행·id·인덱스 보존, 멱등).
+
+- functions: test_rebuild_preserves_rows_and_indexes, test_fresh_db_has_injury
+
 ### `test_db_setup.py` (234줄) — db_setup 테스트.
 
 - class **TestPhase1Schema**: setup_db, test_schema_version_is_20, test_pipeline_tables_count, test_app_tables_exist, test_canonical_view_exists, test_activity_summaries_38_columns
@@ -3139,6 +3172,22 @@
 
 - functions: test_mixed_versions_give_one_event, test_provider_switch_gives_one_event, test_single_version_and_no_data, test_recompute_note_present_and_absent
 
+### `test_milestone_backfill.py` (68줄) — milestone_backfill — 기존 출처에서 마일스톤 재구성(날짜 규칙·멱등·dry-run 롤백) + 스크립트.
+
+- functions: test_backfill_dates_and_idempotent, test_run_backfill_dry_run_rolls_back, test_script_main_dry_run_and_apply
+
+### `test_milestone_hooks.py` (171줄) — milestone_events·milestone_hooks — 출처별 마일스톤 기록·병합·삭제 (ADR-057).
+
+- functions: today, test_record_event_upsert_by_source_ref, test_record_event_unique_ignored_and_per_day, test_record_and_remove_swallow_errors, test_local_date_of_offset, test_dist_label_and_fmt, test_race_result_finish_dnf_and_remove, test_goal_set_change_merge_and_cancel, test_goal_supersede_keeps_previous, test_goal_with_race_registers_both, test_race_registered_update_cancel_restore, test_linked_race_update_records_goal_changed, test_replan_record_and_undo, test_illness_start_recovery_delete, test_travel_has_no_milestone_and_dismiss_removes, test_prune_orphans
+
+### `test_milestone_query.py` (86줄) — milestone_query + GET /api/v1/library/milestones — 필터·커서·종류 수·상한 (ADR-057).
+
+- functions: test_parse_helpers, test_list_pages_hidden_and_counts, test_diversify_per_type_cap, client, test_route_ok_and_validation, test_route_no_db
+
+### `test_milestone_running.py` (82줄) — milestone_running — 최장거리·연속 훈련 주 탐지(날짜 = 사건일, 멱등, 러닝만).
+
+- functions: test_longest_run_needs_history_min_km_and_margin, test_longest_run_skips_vehicle_pace, test_week_start_sunday, test_streak_tiers, test_streak_weeks_dates_and_reset, test_streak_not_before_week_end, test_no_runs, test_sync_detection_includes_running_and_prunes
+
 ### `test_milestone_service.py` (338줄) — tests/test_milestone_service.py — milestone_service 단위 테스트.
 
 - class **TestDistanceThreshold**: test_100km_created_on_crossing, test_multiple_thresholds_crossed, test_no_duplicate_on_second_call
@@ -3337,7 +3386,7 @@
 
 - functions: conn, test_replaces_unprotected_and_keeps_outside_range, test_protected_rows_survive_and_block_same_date, test_proposed_adjustment_removed_with_row_and_external_reported, test_manual_rows_untouched_and_no_commit
 
-### `test_plan_replan_service.py` (166줄) — plan_replan_service — preview 쓰기 없음, apply 보호 행 보존, undo 조건(ADR-035 부록 R).
+### `test_plan_replan_service.py` (169줄) — plan_replan_service — preview 쓰기 없음, apply 보호 행 보존, undo 조건(ADR-035 부록 R).
 
 - functions: c, test_preview_writes_nothing, test_apply_conflict_and_errors, test_apply_protects_history_and_keeps_past, test_undo_restores_and_locks, test_undo_locked_after_start_or_new_history, test_last_undoable, future, test_replan_anchor_is_plan_start_when_plan_not_started, test_preview_future_plan_does_not_add_pre_plan_week, test_apply_future_plan_rejects_next_monday_anchor, test_preview_holds_write_lock_so_concurrent_commit_cannot_break_it
 
@@ -3668,9 +3717,9 @@
 
 - functions: test_migrate_alone_fails_on_empty_db, test_create_tables_then_migrate_on_empty_db
 
-### `test_story_service.py` (133줄) — story_service — 기간 파싱, 월/주 Story 조회, 강도 분포 부족 처리, API 라우트.
+### `test_story_service.py` (142줄) — story_service — 기간 파싱, 월/주 Story 조회, 강도 분포 부족 처리, API 라우트.
 
-- functions: conn, test_parse_period, test_date_ranges, test_month_story, test_empty_month_does_not_raise, test_intensity_insufficient_without_zones, test_block_without_active_plan_raises, test_block_dates_follow_phase_weeks, test_route, test_week_story_does_not_raise, test_week_neighbors_cross_iso_year, test_week_story_year_boundary_and_future_next
+- functions: conn, test_parse_period, test_date_ranges, test_month_story, test_empty_month_does_not_raise, test_intensity_insufficient_without_zones, test_block_without_active_plan_raises, test_block_dates_follow_phase_weeks, test_route, test_week_story_does_not_raise, test_week_neighbors_cross_iso_year, test_week_story_year_boundary_and_future_next, test_month_milestones_capped_per_type
 
 ### `test_strava_403_ledger.py` (48줄) — Strava 403(구독 필요)이 원장에 subscription_required로 남는지.
 
@@ -3977,6 +4026,10 @@
 
 - (public API 없음)
 
+### `backfill_milestones.py` (45줄) — 마일스톤 1회 백필(ADR-057). 사용: PYTHONPATH=. python3 scripts/backfill_milestones.py (--db <path> | --all-users) [--apply]
+
+- functions: main
+
 ### `backfill_stream_meta.py` (17줄) — activity_stream_meta 백필(U18e). 사용: PYTHONPATH=. python3 scripts/backfill_stream_meta.py --db <path> [--dry-run]
 
 - (public API 없음)
@@ -4054,7 +4107,7 @@
 - functions: run
 
 ---
-총 881개 파일
+총 894개 파일
 
 ## docstring 누락
 
