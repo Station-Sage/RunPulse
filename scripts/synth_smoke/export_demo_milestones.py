@@ -28,7 +28,7 @@ KEY = "/library/milestones"
 
 # (오늘로부터 며칠 전, 종류, 제목, 상세) — 최근 30일(시드 활동 구간)보다 앞선 지난 1년의 이야기
 PAST_EVENTS = [
-    (40, "streak_weeks", "8주 연속 훈련", "주 3회 이상 러닝"),
+    (40, "streak_weeks", "8주 연속 훈련", "주 2회 이상 러닝"),
     (52, "recovery", "질병에서 회복", "6일 만"),
     (58, "illness_start", "질병 시작", None),
     (75, "distance_threshold", "누적 300km 돌파", None),
