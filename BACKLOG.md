@@ -76,6 +76,7 @@
 - **[USER-DECISION]** (해소됨 2026-10-08) AUDIT-V-CANONICAL→G6와 함께, SYNC-SOURCE-TOGGLE T3~T5 승인·완료, Phase 7c는 `plan_adjustments` 테이블 방식(A)으로 승인 — 구현·배포 완료(아래 NEXT).
 
 ## DONE (recent)
+- **[LAP-STEP-GROUP]** 랩 탭이 가민과 달랐던 문제(11/04 인터벌) 수정(2026-11-19). 원인은 저장 랩이 아니라 프론트의 페이스 중간값 기반 work/recovery 분류. `activity_laps.lap_kind`(워치 단계) 기준 묶음 `groupByStep`(워밍업·인터벌 n·회복·쿨다운)과 소계(합산 시간÷합산 거리)로 교체, lap_kind 없으면 기존 방식 폴백. 운영 반영 대기.
 - **[BALANCE-RADAR]** Training Balance Radar(07 §7d) T1~T8 완료(2026-11-06). 설계 `v0.3/data/phase-7-ui-renewal/design-2026-11-features/balance-radar.md`(D1 6축 재정의·D2 기본 목표 [가정] 출시·D3 A4 레이스 분리 후속·D4 배정, 추천안 확정). 서비스 레이어 계산(새 Calculator 없음), `GET /api/v1/library/metrics/training-balance`, 메트릭 브라우저 상단 카드 + `/library/balance`(레이더 아래 표 상시 노출).
 - **[MARATHON-LOG-LAPS]** 9/4·9/10·9/17 세션 랩을 일일 로그 및 W13·W14·W15 주간 로그에 반영(2026-10-08, 로그는 gitignore). 9/4는 랩 구분이 계획 3×2k와 불일치해 세트 해석 보류로 기재.
 - **[MCP-CLIENT-VERIFY]** 실클라이언트(Claude Code 세션)에서 `mcp__runpulse__get_training_summary` 호출 성공(2026-10-08, 주별 요약·notable 정상 반환) — ADR-016 stdio 프레임 수정 검증 완료. 로컬 `.mcp.json`의 `sqlite`(default DB) 항목 정정은 로컬 설정이라 미수행.
