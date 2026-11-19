@@ -469,6 +469,14 @@
 - D7 최장거리: 러닝 군만, 이전 모든 러닝 최장 + 0.5km 이상, 15km 이상, 이전 러닝 10회 이상, 2:30/km 보다 빠른 기록 제외. 제목 '최장거리 {x}km'.
 - D8 연속 주: 일요일 시작 주(Story·MCP 주별 집계와 같은 규칙), 주 2회 이상 러닝, 4·8·12·26·52주(이후 52주마다), 제목 '{N}주 연속 훈련'. 최장거리·연속 주는 매 동기화 전 기간 재탐지(INSERT OR IGNORE, 멱등).
 - D9 질병·부상: 확정된 것만, 제목은 일반 문구('질병 시작'·'부상 발생'·'질병에서 회복'·'부상에서 회복', 자유 입력 부위 미포함). 마일스톤은 AI 프롬프트에 들어가지 않는다. 내보내기는 기존 metrics 그룹 그대로(확대 없음).
-- D10 부상 에피소드: context_episodes.kind 에 'injury'(v50 재생성). 정도·부위 입력은 질병과 같은 경로, 부위 목록은 부상 전용. 조정 신호·AI 로 보내는 경로가 없어 AI 동의 질문은 질병만 — 부상을 AI·조정에 쓰게 되면 `illness_consent` 와 같은 동의·익명화를 먼저 붙인다.
+- D10 부상 에피소드: context_episodes.kind 에 'injury'(v50 재생성). 정도·부위 입력은 질병과 같은 경로, 부위 목록은 부상 전용. 조정 신호·AI 로 보내는 경로가 없어 AI 동의 질문은 질병만 — 부상을 AI·조정에 쓰게 되면 `illness_consent` 와 같은 동의·익명화를 먼저 붙인다. → ADR-058 에서 조정 트리거로 쓰고 AI 에는 항상 일반화.
 - D11 화면: `/library/milestones`(종류 칩·월별·커서, `GET /api/v1/library/milestones`). Story 는 종류별 2건·최대 8건, 월 내러티브는 종류별 2건·5건 — 단순 상한 확대는 같은 종류가 다시 채우므로 종류 상한으로 누적 거리·PB 가 밀리지 않게.
 - D12 백필: `scripts/backfill_milestones.py (--db|--all-users) [--apply]`(기본 dry-run, apply 시 DB별 백업). goal_changed 는 이력이 없어 백필 안 함, 취소 목표는 뒤에 새 목표가 있는 경우(교체)만 포함(사용자 취소와 구분 불가 — 근사).
+
+## ADR-058: 부상 에피소드를 조정 단독 트리거로 — AI 에는 항상 일반화 (2026-11-19)
+- 배경: ADR-057 D10 후속. 체크인 '다쳤어요'(context_episodes kind='injury')가 오늘 훈련 조정에 반영되지 않았다. 질병(illness)·통증(pain) 경로는 그대로 둔다.
+- D1 신호: `adjustment_signals_context.collect_injury` — 확정 부상 진행 중(종료일 당일 포함) = phase active, 종료 후 1~3일(`INJURY_RETURN_DAYS`) = phase return, 둘 다 값 = severity(없으면 1). 그 뒤는 값 False. 부위는 신호에 싣지 않는다. 기존 `pain`(행 액션 통증 기록 직후 2일)에 합치지 않고 별도 신호 — 출처(에피소드)·기간·삭제 연쇄가 달라서.
+- D2 트리거: `injury` 를 STANDALONE 에 추가. 강도 = 진행 중 + '많이 아파요'(severity>=2) → rest, 가벼운 부상·복귀 구간 → reduce(품질 → 이지, 이지는 그대로). 종류(kind_of)·`plan_adjustments.source` 는 **pain** 으로 묶는다 — source CHECK(v37) 스키마를 바꾸지 않고, 우선순위·통증 조정 제외 규칙(plan_advisory)을 그대로 따르게.
+- D3 표시·AI: 칩 라벨 '부상 기록'(adjustment_labels·프론트 CHIP). 사유 문구(adjustment_reason, AI 채팅에도 실림)는 질병과 같은 일반 문구 '컨디션 이상'. AI 근거(`coach_evidence._trigger_items`)는 `redact_health_for_ai` 가 injury 를 **동의와 무관하게 항상** '컨디션 신호'(condition, 값·detail 제거)로 바꾼다 — 질병 동의를 받은 사용자에게도 부상 상세는 안 보낸다. 능동 인사이트는 기존 pain_flag 문구('몸 상태 이상 신호')를 쓰고 근거 스냅샷에서 injury 를 뺀다(get_insights 도구). 추가 동의 질문 없음.
+- D4 삭제: 부상 에피소드 삭제 시 plan_adjustments 의 injury 신호를 condition 으로 익명화하고, 트리거가 부상뿐인 proposed 는 철회. AI 에 원문을 보낸 적이 없어 ai_cache·대화는 건드리지 않는다.
+- 미결(사용자 확인): 복귀 구간 3일·가벼운 부상 reduce(휴식 아님)·source=pain 묶음. 주간 적응(`weekly_adapt.injury_flag`)에는 아직 연결하지 않음.

@@ -99,7 +99,7 @@
 
 - functions: weekly_counts, acceptance_drop, should_rollback, check_and_rollback
 
-### `adjuster_v3.py` (58줄) — 조정 제안 v3 (ADR-035 개정, ADJ §3.7) — 신호 수집 → 트리거 판정 → adjust_todays_plan 형식 제안 dict.
+### `adjuster_v3.py` (64줄) — 조정 제안 v3 (ADR-035 개정, ADJ §3.7) — 신호 수집 → 트리거 판정 → adjust_todays_plan 형식 제안 dict.
 
 - functions: propose
 
@@ -111,15 +111,15 @@
 
 - functions: collect, evaluate
 
-### `adjustment_signals_context.py` (107줄) — 컨텍스트 신호 illness·travel·altitude 수집 (NEW-3·9·19·33·34) — context_episodes(confirmed) 읽기 전용.
+### `adjustment_signals_context.py` (126줄) — 컨텍스트 신호 illness·injury·travel·altitude 수집 (NEW-3·9·19·33·34, ADR-058) — context_episodes(confirmed) 읽기 전용.
 
-- functions: travel_window_days, return_window_days, collect_illness, collect_travel, collect_altitude, collect_context
+- functions: travel_window_days, return_window_days, collect_illness, collect_injury, collect_travel, collect_altitude, collect_context
 
 ### `adjustment_signals_race.py` (59줄) — 대회 신호 race_plan 수집 (ADJ §3.4) — race_calendar 의 -14..+21일 대회를 단계(phase)로 정규화한다. 읽기 전용.
 
 - functions: windows_for, phase_of, collect_race
 
-### `adjustment_triggers_v3.py` (78줄) — adjuster_v3 트리거 판정 (ADR-035 개정, ADJ) — 신호 목록 → 단독 OR / 2개 이상 AND 판정. 순수 함수(DB 접근 없음).
+### `adjustment_triggers_v3.py` (88줄) — adjuster_v3 트리거 판정 (ADR-035 개정, ADJ) — 신호 목록 → 단독 OR / 2개 이상 AND 판정. 순수 함수(DB 접근 없음).
 
 - functions: kind_of, triggered, intensity, primary, classify
 
@@ -172,7 +172,7 @@
 
 - functions: detect_travel, detect_altitude, rhr_hrv_question, run
 
-### `context_episode_delete.py` (89줄) — 컨텍스트 에피소드 삭제 연쇄 (NEW-18·28) — 한 트랜잭션, commit 은 호출자.
+### `context_episode_delete.py` (115줄) — 컨텍스트 에피소드 삭제 연쇄 (NEW-18·28) — 한 트랜잭션, commit 은 호출자.
 
 - functions: delete_episode
 
@@ -254,9 +254,9 @@
 
 - functions: cache_key, clear_cache, home_coords, morning_temps, heat_pcts, forecast_heat_pct
 
-### `illness_consent.py` (44줄) — 질병 정보 AI 코치 전송 동의 (NEW-12·14~17) — illness_consent_events 추가 전용 기록, 현재 상태 = 최신 행.
+### `illness_consent.py` (47줄) — 질병 정보 AI 코치 전송 동의 (NEW-12·14~17) — illness_consent_events 추가 전용 기록, 현재 상태 = 최신 행.
 
-- functions: record, current_action, has_consent, needs_first_prompt, redact_illness_for_ai
+- functions: record, current_action, has_consent, needs_first_prompt, redact_health_for_ai
 
 ### `import_detect.py` (87줄) — 가져오기 업로드 판별 — CSV 머리글·ZIP 경로·소스 일치 검사 (V2-AUDIT D-11~D-14).
 
@@ -274,7 +274,7 @@
 
 - functions: validate, polish_text, parse_batch, polish_open_events, polish_in_background
 
-### `insight_rules.py` (61줄) — 능동 인사이트 규칙 평가 (V2-REPAIR D) — 신호 목록 → 사건 후보. 순수 함수(DB·외부 호출 없음).
+### `insight_rules.py` (62줄) — 능동 인사이트 규칙 평가 (V2-REPAIR D) — 신호 목록 → 사건 후보. 순수 함수(DB·외부 호출 없음).
 
 - functions: evaluate_signal_rules, evaluate_data_gap
 
@@ -2785,6 +2785,10 @@
 
 - functions: conn, test_manifest_and_readme, test_sensitive_groups_listed, test_dismissed_episodes_excluded_by_default, test_optional_table_missing_is_skipped, test_required_table_missing_fails_and_cleans_up, test_secret_value_aborts, test_disk_full, test_check_free_space_ok, test_purge_all_runs_per_user
 
+### `test_export_demo_milestones.py` (36줄) — scripts/synth_smoke/export_demo_milestones — /demo 마일스톤 전체 이력 스냅샷(ADR-057).
+
+- functions: test_shift_dates_moves_items_and_cursor, test_build_history_anchors_to_snapshot_day_and_hides_internal, test_main_writes_key_preserving_other_keys
+
 ### `test_export_groups.py` (50줄) — export_groups — 허용목록이 실제 스키마를 빠짐없이 덮고, 비밀 컬럼/값을 막는다.
 
 - functions: real_conn, test_every_real_table_is_grouped_or_excluded, test_no_secret_columns_in_exported_tables, test_secret_column_rejected, test_secret_value_detected, test_defaults_and_sensitive
@@ -2978,6 +2982,10 @@
 ### `test_index_ui_default.py` (46줄) — `/` 진입 분기 — 사용자 ui_default → 전역값 → v2(/v2/today).
 
 - functions: make_client, test_default_goes_to_v2, test_global_v1_still_goes_to_v2, test_global_v2, test_stored_v1_falls_back_to_v2
+
+### `test_injury_adjustment.py` (144줄) — 부상 에피소드 → 조정 단독 트리거·AI 일반화·삭제 연쇄 (ADR-058).
+
+- functions: c, test_active_injury_is_standalone_trigger, test_mild_active_injury_reduces, test_return_window_triggers_reduce_then_ends, test_unconfirmed_or_future_injury_ignored, test_illness_and_pain_unchanged, test_propose_uses_generic_reason, test_injury_always_redacted_for_ai, test_insight_hides_injury_signal, test_delete_injury_withdraws_injury_only_proposal
 
 ### `test_insight_polish.py` (72줄) — 능동 인사이트 문장 다듬기·Coach 컨텍스트 블록 (V2-REPAIR D4).
 
@@ -4107,7 +4115,7 @@
 - functions: run
 
 ---
-총 894개 파일
+총 896개 파일
 
 ## docstring 누락
 
