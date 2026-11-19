@@ -1,5 +1,6 @@
 """능동 인사이트 다듬기 근거(facts) — 사건의 비건강 신호 + 같은 날 계산 지표(ADR-059 2단계).
 
+회복 사건(recovery_low)에는 웰니스 원값(수면·스트레스·안정시 심박·HRV 와 본인 평균, D15)도 준다.
 통증·질병·부상 신호(pain·checkin_pain·illness·injury)는 넣지 않고, pain_flag 사건은 근거 없이 일반 문구만 쓴다
 (ADR-057/058). 다듬기 자체가 coach 동의(`ai_wording._consent_ok`, 단일 기준)가 있을 때만 일어나고, 동의가 없으면
 화면도 저장된 다듬은 문장 대신 규칙 문장을 쓴다. 유효 키(text_src)는 원문+facts 해시라 근거가 바뀌면 규칙 문장으로 돌아간다.
@@ -13,10 +14,12 @@ import sqlite3
 from src.services import ai_wording as aw
 
 SEP = "␟"
-# 사건 종류별 함께 줄 계산 지표 — 부하·준비도(웰니스 원값 제외)
+# 사건 종류별 함께 줄 계산 지표 — 부하·준비도
 _CONTEXT_METRICS = {"load_spike": ("ctl", "atl", "tsb", "cirs"), "recovery_low": ("tsb", "utrs", "acwr")}
 _SIGNAL_KEYS = {"acwr": "acwr", "crs": "crs_level", "checkin_fatigue": "fatigue_checkin"}
 _NO_FACTS_KINDS = ("pain_flag",)
+# 웰니스 원값(그날 값·본인 7·90일 평균, ADR-059 D15)을 함께 주는 종류 — 회복 신호 사건만
+_WELLNESS_KINDS = ("recovery_low",)
 
 
 def _crs_label(level) -> str | None:
@@ -50,6 +53,9 @@ def evidence_facts(conn: sqlite3.Connection, kind: str, signals: list[dict], as_
     for name in _CONTEXT_METRICS.get(kind, ()):
         if name not in facts and (v := _metric(conn, name, as_of)) is not None:
             facts[name] = v
+    if kind in _WELLNESS_KINDS:
+        from src.services.wellness_facts import wellness_facts
+        facts.update({k: v for k, v in wellness_facts(conn, as_of).items() if k not in facts})
     return {k: (aw.redact_health_text(v) if isinstance(v, str) else v) for k, v in facts.items()}
 
 

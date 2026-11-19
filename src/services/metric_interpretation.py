@@ -1,8 +1,9 @@
 """지표 해석 AI 다듬기 표면(ADR-059 2단계) — 분해 v2 화면의 규칙 해석 문장을 개인 추세·다른 지표·대회/계획 맥락으로 엮는다.
 
 규칙 문장(밴드 so_what → 행동 힌트 → 90일 대비 personal 순)이 기본값이고, 동기화 뒤 백그라운드에서 다듬은 문장만
-`meaning.interpretation={text, source}` 로 덧붙인다(요청 스레드는 캐시만 읽음). AI 로 보내는 facts 는 계산된 비건강
-수치뿐이다 — 웰니스 원값(수면·HRV·스트레스)·체크인·메모·대회 이름은 넣지 않고, 문자열은 redact_health_text 를 거친다.
+`meaning.interpretation={text, source}` 로 덧붙인다(요청 스레드는 캐시만 읽음). AI 로 보내는 facts 는 계산 지표와
+회복 계열 지표(WELLNESS_SLUGS)의 웰니스 원값(수면·스트레스·안정시 심박·HRV·Body Battery, 그날 값과 본인 7·90일 평균,
+ADR-059 D15)이다. 체크인·메모·대회 이름은 넣지 않고, 문자열은 redact_health_text 를 거친다.
 """
 from __future__ import annotations
 
@@ -15,14 +16,18 @@ _GUIDE = (
     "- 지표 해석 문장입니다. text 는 규칙이 내린 해석이고 facts 는 이 러너의 같은 날 계산값입니다.\n"
     "- 현재 값(value)을 본인 기준(avg_7d·avg_90d·value_28d_ago)과 비교하거나, 다른 지표(ctl·atl·tsb·acwr·utrs·cirs)와의"
     " 관계, 다가오는 대회(days_to_race)·오늘 계획(planned_today)과 엮어 원문에 없는 정보를 하나 이상 더합니다.\n"
+    "- 웰니스 값(sleep_hours·sleep_score·stress·resting_hr·hrv·body_battery_max)이 있으면 본인 평균(_avg_7d·_avg_90d)과"
+    " 비교해 '평소보다 짧은 수면'처럼 말할 수 있습니다. 진단·질병·부상 추정은 하지 않습니다.\n"
     "- 원문의 권장 방향은 유지합니다. 더할 정보가 없으면 원문 그대로 둡니다. 지표 이름은 facts.metric 을 씁니다."
 )
 SURFACE = aw.register(aw.Surface(name="metric_interp", guide=_GUIDE, max_chars=160))
 
 SLUGS = ("tsb", "ctl", "atl", "utrs", "cirs", "rri",
          "race_pred_5k_sec", "race_pred_10k_sec", "race_pred_half_sec", "race_pred_marathon_sec")
-# 함께 보여 줄 계산 지표(훈련 부하·종합 점수) — 웰니스 원값은 넣지 않는다.
+# 함께 보여 줄 계산 지표(훈련 부하·종합 점수)
 RELATED = ("ctl", "atl", "tsb", "acwr", "utrs", "cirs")
+# 웰니스 원값을 근거로 함께 주는 회복·피로 계열 지표(부하 누적·예측 지표는 웰니스와 직접 관계가 약해 제외)
+WELLNESS_SLUGS = ("tsb", "atl", "utrs", "cirs")
 RACE_LOOKAHEAD_DAYS = 120
 _RACE_LABEL = {5.0: "5K", 10.0: "10K", 21.1: "하프", 42.2: "풀마라톤"}
 
@@ -115,6 +120,9 @@ def build_facts(conn: sqlite3.Connection, explain: dict) -> dict:
     facts.update(_related(conn, slug, day))
     facts.update(_race(conn, day))
     facts.update(_plan(conn, day))
+    if slug in WELLNESS_SLUGS:
+        from src.services.wellness_facts import wellness_facts
+        facts.update(wellness_facts(conn, day))
     return {k: (aw.redact_health_text(v) if isinstance(v, str) else v) for k, v in facts.items()}
 
 
