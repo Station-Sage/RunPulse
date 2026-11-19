@@ -131,3 +131,12 @@ def test_week_story_year_boundary_and_future_next(conn):
     r = ss.get_story(conn, "2027-W01")
     assert r["period"]["prev"] == "2026-W53"
     assert r["period"]["next"] is None  # 아직 오지 않은 주는 링크 없음
+
+
+def test_month_milestones_capped_per_type(conn):
+    for d in range(1, 7):
+        conn.execute("INSERT INTO milestones(type, date, title) VALUES ('goal_changed', ?, '목표 수정: A')",
+                     (f"2026-09-{20 + d:02d}",))
+    conn.execute("INSERT INTO milestones(type, date, title) VALUES ('distance_threshold', '2026-09-02', '누적 100km 돌파')")
+    types = [m["type"] for m in ss.get_story(conn, "2026-09")["milestones"]]
+    assert types == ["goal_changed", "goal_changed", "distance_threshold"]   # 종류별 2건 상한(ADR-057)

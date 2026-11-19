@@ -66,10 +66,10 @@ def get_recent_milestones(
     아니라 그 달 기준으로 스코프하기 위함 — 둘 다 없으면 기존과 동일하게 전체
     기간에서 최신순).
     """
+    from src.services.milestone_query import visible_clauses
     conn.row_factory = sqlite3.Row
     # 지표 재계산(알고리즘 변경·값 갱신)은 사용자 이야기가 아니라 내부 사건 — 저장만 하고 마일스톤에는 보여 주지 않는다
-    clauses = ["type NOT IN ('algo_recompute', 'metric_recompute')",
-               "(provider IS NULL OR (provider NOT LIKE '%:shadow%' AND provider NOT LIKE '%:ref\\_%' ESCAPE '\\'))"]
+    clauses = visible_clauses()
     params: list = []
     if date_from:
         clauses.append("date >= ?")

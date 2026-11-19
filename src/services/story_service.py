@@ -207,9 +207,10 @@ def get_story(
 
     # ── 마일스톤 (조회 중인 기간 내) ─────────────────────────────────────
     from src.services import milestone_service
-    milestones = milestone_service.get_recent_milestones(
-        conn, limit=5, date_from=start_date, date_to=end_date
-    )
+    from src.services.milestone_query import diversify
+    # 종류별 2건·최대 8건 — 목표 수정·대회 등록이 몰려도 누적 거리·PB 가 밀려나지 않게(ADR-057). 전체는 /library/milestones
+    milestones = diversify(milestone_service.get_recent_milestones(
+        conn, limit=50, date_from=start_date, date_to=end_date), per_type=2, total=8)
 
     return {
         "period": {

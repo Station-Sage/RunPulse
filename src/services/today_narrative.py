@@ -28,7 +28,6 @@ def get_today_narrative(
 
     반환: {date, text, source("ai"|"rule"), evidence, milestones, highlights}
     """
-    from src.services import milestone_service
     from src.services.today_service import get_today_status
     from src.services.run_totals import other_line, other_totals, run_totals
     from src.services.week_digest import week_digests
@@ -58,8 +57,7 @@ def get_today_narrative(
     if cached is not None:
         # 마일스톤은 캐시(내러티브 문장)와 별개로 항상 최신 규칙으로 다시 조회한다
         cached["weeks"] = week_digests(conn, month_start, date)
-        cached["milestones"] = milestone_service.get_recent_milestones(
-            conn, limit=5, date_from=month_start, date_to=date)
+        cached["milestones"] = _month_milestones(conn, month_start, date)
         return cached
 
     training = status["training_status"]
@@ -79,9 +77,7 @@ def get_today_narrative(
 
     # ── 최근 마일스톤 (조회 중인 달로 스코프 — 과거 달 조회 시 오늘 기준
     #    "최근" 마일스톤이 뜨지 않게) ────────────────────────────────────────
-    milestones = milestone_service.get_recent_milestones(
-        conn, limit=5, date_from=month_start, date_to=date,
-    )
+    milestones = _month_milestones(conn, month_start, date)
 
     # ── evidence 조립 (데이터 있는 항목만) ────────────────────────────────
     period_label = month_label or "이번 달"
@@ -155,3 +151,11 @@ def get_today_narrative(
     if source == "ai":
         set_narrative_cache(conn, month_start, date, out, month_label)
     return out
+
+
+def _month_milestones(conn: sqlite3.Connection, month_start: str, date: str) -> list[dict]:
+    """그 달 마일스톤 5건 — 종류별 2건 상한(새 사건 종류가 누적 거리·PB 를 밀어내지 않게, ADR-057)."""
+    from src.services import milestone_service
+    from src.services.milestone_query import diversify
+    return diversify(milestone_service.get_recent_milestones(conn, limit=50, date_from=month_start, date_to=date),
+                     per_type=2, total=5)
