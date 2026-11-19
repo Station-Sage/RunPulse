@@ -97,6 +97,11 @@ def validate(inp: dict, out: str | None) -> dict | None:
     return {"summary": summary, "points": clean, "next_focus": nxt}
 
 
+def _consent_ok(conn: sqlite3.Connection) -> bool:
+    from src.services.ai_wording import _consent_ok as ok   # 단일 동의 기준(ADR-059)
+    return ok(conn)
+
+
 def get_cached(conn: sqlite3.Connection, week_start: date) -> dict | None:
     r = conn.execute("SELECT body_json FROM ai_outputs WHERE kind=? AND scope_key=?",
                      (KIND, scope_key(week_start))).fetchone()
@@ -114,8 +119,8 @@ def generate(conn: sqlite3.Connection, config: dict | None, week_start: date) ->
                        (KIND, sk)).fetchone()
     if row and row[0] == h:
         return json.loads(row[1])
-    if not pcq.available(conn, config):
-        return None
+    if not _consent_ok(conn) or not pcq.available(conn, config):
+        return None   # 동의 없음 → AI 호출 없음(사용자 결정 2026-11-19)
     prompt = (_TEMPLATE.read_text(encoding="utf-8").replace("{{KEYS}}", ", ".join(sorted(evidence_keys(inp))))
               .replace("{{INPUT}}", json.dumps(inp, ensure_ascii=False)))
     body = validate(inp, pcq.try_complete(conn, config, kind="adherence", prompt=prompt))
@@ -132,7 +137,7 @@ def generate(conn: sqlite3.Connection, config: dict | None, week_start: date) ->
 def review_for_view(conn: sqlite3.Connection, week_start: date | None = None) -> dict | None:
     """화면용 — 저장된 리뷰에 근거 요약(evidence 라벨)을 붙여 반환. 없으면 None."""
     ws = week_start or last_week_start()
-    body = get_cached(conn, ws)
+    body = get_cached(conn, ws) if _consent_ok(conn) else None   # 동의 없으면 저장된 AI 리뷰도 숨김
     if body is None:
         return None
     return {"week": scope_key(ws), "week_start": ws.isoformat(), **body}

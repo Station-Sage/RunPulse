@@ -32,6 +32,8 @@ def conn(tmp_path):
     c = sqlite3.connect(str(tmp_path / "running.db"))
     create_tables(c)
     migrate_db(c)
+    c.execute("INSERT OR REPLACE INTO coach_consent(id, provider, accepted_at, exclude_notes, tools_enabled,"
+              " fallback_enabled) VALUES (1, 'claude_queue', 't', 1, 0, 0)")
     return c
 
 
@@ -83,6 +85,19 @@ def test_generate_rejects_bad_output(conn, monkeypatch):
     assert AR.review_for_view(conn, WS) is None
 
 
+def test_no_consent_no_call_and_hidden(conn, monkeypatch):
+    """동의 없음 → 큐 호출 없음, 저장된 리뷰도 화면에 안 보임(사용자 결정 2026-11-19)."""
+    monkeypatch.setattr(AR, "build_input", lambda c, w: INP)
+    monkeypatch.setattr(pcq, "available", lambda *a: True)
+    monkeypatch.setattr(pcq, "try_complete", lambda *a, **k: GOOD)
+    assert AR.generate(conn, {}, WS) is not None
+    conn.execute("DELETE FROM coach_consent")
+    assert AR.review_for_view(conn, WS) is None
+    conn.execute("DELETE FROM ai_outputs")
+    monkeypatch.setattr(pcq, "try_complete", lambda *a, **k: pytest.fail("called"))
+    assert AR.generate(conn, {}, WS) is None
+
+
 def test_tool_without_goal(conn):
     assert _exec_get_plan_adherence(conn, {})["weeks"] == []
 
@@ -92,6 +107,9 @@ def test_route_returns_null_then_review(tmp_path, monkeypatch):
     c = sqlite3.connect(str(db_file))
     create_tables(c)
     migrate_db(c)
+    c.execute("INSERT OR REPLACE INTO coach_consent(id, provider, accepted_at, exclude_notes, tools_enabled,"
+              " fallback_enabled) VALUES (1, 'claude_queue', 't', 1, 0, 0)")
+    c.commit()
     c.close()
     import src.api.routes_plan as rp
     import src.utils.user_context as uc

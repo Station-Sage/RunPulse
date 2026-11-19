@@ -83,3 +83,15 @@ Today 조정·보류 사유(`today_reason`), '이 러닝의 의미'(`activity_im
 1. §2 A~C: 요청 스레드 동기 LLM 호출 제거(캐시 전용화)와 insight polish·adherence 에 동의 관문 추가 — 동의 없는 사용자는 AI 문구가 사라진다.
 2. 공통 계층 동의 기준을 "claude_queue 동의"로 엄격히 둘지(현재 구현), narrative warm 처럼 "아무 동의"로 둘지.
 3. metric_note 를 2단계 지표 해석이 나오면 끄는 것(drop) 승인.
+
+## 7. 2단계 결과 (2026-11-19, ADR-059 D10~D14)
+
+- metric_note: **drop 완료** — `metric_notes.py`·`metric_note.txt` 삭제, `action_hint` 는 규칙 문구만. 대체는 아래 지표 해석.
+- 지표 해석(`metric_interpretation`, w:metric_interp): 분해 v2 일별 10종. 규칙 so_what 이 기본값이고, AI 는 본인 7·90일 평균·28일 전 값,
+  같은 날 다른 계산 지표(ctl·atl·tsb·acwr·utrs·cirs), 다가오는 대회 거리·D-day, 오늘 계획을 facts 로 받아 원문에 없는 연결을 하나 이상 더한다.
+  웰니스 원값·체크인·메모·대회 이름은 보내지 않는다. 동기화 뒤 `wording_warm_hooks.after_sync` 로 생성, 화면은 캐시만.
+- insight polish: **improve 완료** — 동의(claude_queue) 사용자에게만 비건강 근거(acwr·CRS 게이트·피로 체크인·sync 지연 + 같은 날 tsb/utrs 등)를
+  facts 로 보내고, 공통 템플릿·검증(건강 용어 거부)을 쓴다. 프런트 InsightBanner 가 `source==='ai'` 일 때 AiMark 를 붙인다.
+- 사용자 결정(2026-11-19): insight polish·adherence 에 동의 관문 추가(적용 — 동의 없으면 규칙 문장만), metric_note drop 승인(적용),
+  `/today/narrative` 키 기반 호출 현행 유지, 동의 기준을 '아무 AI 동의'로 확대(미적용 — 병합 시 `_consent_ok` 에서).
+- 남은 사용자 확인: 웰니스 지표(수면·스트레스 등) 해석을 AI 대상에서 계속 뺄지.

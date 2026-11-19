@@ -18,3 +18,8 @@ export const SEVERITY_TONE = {
 	watch: 'border-semantic-amber/40 bg-semantic-amber/10',
 	info: 'border-border-subtle bg-surface-2'
 } as const;
+
+/** 표시 출처 — 서버 source 우선, 구버전 응답은 polished 로 판정(ADR-059). */
+export function insightSource(e: Pick<InsightEvent, 'source' | 'polished'>): 'ai' | 'rule' {
+	return e.source ?? (e.polished ? 'ai' : 'rule');
+}

@@ -96,7 +96,7 @@
 
 - functions: get_adaptation_status
 
-### `adherence_review.py` (149줄) — 지난주 훈련 이행 리뷰 (V2-AI-CLAUDE-QUEUE E3, adherence_v1) — 규칙 수치를 근거로 LLM 이 해설한다.
+### `adherence_review.py` (154줄) — 지난주 훈련 이행 리뷰 (V2-AI-CLAUDE-QUEUE E3, adherence_v1) — 규칙 수치를 근거로 LLM 이 해설한다.
 
 - functions: last_week_start, scope_key, build_input, evidence_keys, src_hash, validate, get_cached, generate, review_for_view, generate_in_background
 
@@ -285,15 +285,19 @@
 
 - functions: race_date_window, check_checkin, check_plan_request, target_pace_error
 
-### `insight_polish.py` (118줄) — 능동 인사이트 문장 다듬기 (V2-REPAIR D4) — 규칙 템플릿 문장을 LLM 으로 1~2문장 다듬는다.
+### `insight_evidence.py` (66줄) — 능동 인사이트 다듬기 근거(facts) — 사건의 비건강 신호 + 같은 날 계산 지표(ADR-059 2단계).
 
-- functions: validate, polish_text, parse_batch, polish_open_events, polish_in_background
+- functions: evidence_facts, facts_enabled, polish_key
+
+### `insight_polish.py` (139줄) — 능동 인사이트 문장 다듬기 (V2-REPAIR D4, ADR-059 2단계) — 규칙 템플릿 문장을 LLM 으로 1~2문장 다듬는다.
+
+- functions: validate, polish_text, parse_batch, pending, polish_open_events, polish_in_background
 
 ### `insight_rules.py` (62줄) — 능동 인사이트 규칙 평가 (V2-REPAIR D) — 신호 목록 → 사건 후보. 순수 함수(DB·외부 호출 없음).
 
 - functions: evaluate_signal_rules, evaluate_data_gap
 
-### `insight_service.py` (107줄) — 능동 인사이트 사건 저장·갱신·조회 (V2-REPAIR D) — 규칙은 insight_rules, 여기는 upsert·해소·억제만.
+### `insight_service.py` (114줄) — 능동 인사이트 사건 저장·갱신·조회 (V2-REPAIR D) — 규칙은 insight_rules, 여기는 upsert·해소·억제만.
 
 - functions: refresh, list_events, mark_seen, dismiss
 
@@ -301,7 +305,7 @@
 
 - functions: classify, baseline_z, salience_key
 
-### `metric_display.py` (103줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
+### `metric_display.py` (99줄) — 메트릭 표시 메타 — API가 내려주는 format·decimal_places·higher_is_better (21 design §7.2).
 
 - functions: display_name, band_key, action_hint, min_span, display_meta
 
@@ -313,9 +317,9 @@
 
 - (public API 없음)
 
-### `metric_notes.py` (84줄) — 지표 안내 문구 사전 생성 (Claude 큐) — 규칙 힌트를 haiku 로 미리 다듬어 ai_outputs(kind='metric_note')에 캐시한다.
+### `metric_interpretation.py` (152줄) — 지표 해석 AI 다듬기 표면(ADR-059 2단계) — 분해 v2 화면의 규칙 해석 문장을 개인 추세·다른 지표·대회/계획 맥락으로 엮는다.
 
-- functions: cached_note, warm, warm_in_background
+- functions: rule_text, build_facts, build_item, interpretation, collect
 
 ### `metric_unlock_service.py` (32줄) — 지표 해금 진행도 — 핵심 게이지(CTL·TSB·CIRS·UTRS)가 열리기까지 모은 일수 (REVIEW03 §2.5, D-L7).
 
@@ -333,7 +337,7 @@
 
 - functions: changelog_events, version_events, recompute_caption
 
-### `metrics_explain.py` (253줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
+### `metrics_explain.py` (259줄) — Phase 7 UX 리뷰 2-5 — 메트릭 분해 v2(`explain=1`, §C3.2).
 
 - functions: personal_text, get_metric_explain
 
@@ -665,6 +669,10 @@
 ### `wellness_service.py` (148줄) — Phase 5 서비스 레이어 - 웰니스 데이터 조회.
 
 - functions: get_wellness_detail, get_wellness_trend
+
+### `wording_warm_hooks.py` (20줄) — 동기화 뒤 AI 다듬기 warm 훅(ADR-059 2단계 표면) — bg_sync 가 부르는 단일 진입점, 전부 백그라운드 스레드.
+
+- functions: after_sync
 
 ## `src/metrics/`
 
@@ -2129,9 +2137,9 @@
 
 - functions: test_acwr_zone_boundaries, test_hrv_zone_boundaries, test_get_adaptation_status_all_none, test_get_adaptation_status_acwr_latest_before_date, test_get_adaptation_status_hrv_zone, test_get_adaptation_status_hrv_null_baseline, test_get_adaptation_status_fatigue_avg
 
-### `test_adherence_review.py` (153줄) — 지난주 이행 리뷰 — 검증·캐시·API·도구 (V2-AI-CLAUDE-QUEUE E3).
+### `test_adherence_review.py` (171줄) — 지난주 이행 리뷰 — 검증·캐시·API·도구 (V2-AI-CLAUDE-QUEUE E3).
 
-- functions: conn, test_scope_and_last_week, test_evidence_keys_and_hash, test_validate, test_build_input_none_without_goal, test_generate_caches_and_skips_unavailable, test_generate_rejects_bad_output, test_tool_without_goal, test_route_returns_null_then_review, test_all_tools_classified, test_build_input_and_tool_with_real_week, test_prompt_lists_evidence_keys_and_rounding_ok
+- functions: conn, test_scope_and_last_week, test_evidence_keys_and_hash, test_validate, test_build_input_none_without_goal, test_generate_caches_and_skips_unavailable, test_generate_rejects_bad_output, test_no_consent_no_call_and_hidden, test_tool_without_goal, test_route_returns_null_then_review, test_all_tools_classified, test_build_input_and_tool_with_real_week, test_prompt_lists_evidence_keys_and_rounding_ok
 
 ### `test_adj_flag_sync.py` (32줄) — R3 — adj_accepted 가 plan_adjustments(accepted) 와 동기화된다.
 
@@ -3018,9 +3026,13 @@
 
 - functions: c, test_active_injury_is_standalone_trigger, test_mild_active_injury_reduces, test_return_window_triggers_reduce_then_ends, test_unconfirmed_or_future_injury_ignored, test_illness_and_pain_unchanged, test_propose_uses_generic_reason, test_injury_always_redacted_for_ai, test_insight_hides_injury_signal, test_delete_injury_withdraws_injury_only_proposal
 
-### `test_insight_polish.py` (72줄) — 능동 인사이트 문장 다듬기·Coach 컨텍스트 블록 (V2-REPAIR D4).
+### `test_insight_evidence.py` (112줄) — 능동 인사이트 다듬기 근거(insight_evidence) + facts 포함 큐 다듬기(ADR-059 2단계).
 
-- functions: conn, test_validate, test_polish_stores_and_exposes, test_fallback_on_bad_output, test_fallback_on_exception_and_no_provider, test_stale_polish_invalidated_when_rule_text_changes, test_coach_context_block, test_coach_context_empty_has_no_block
+- functions: queue, test_evidence_facts_non_health_only, test_polish_key_changes_with_facts, test_queue_polish_with_facts_hit_then_invalidated, test_queue_polish_rejects_numbers_outside_facts_and_health, test_no_consent_never_calls_queue, test_consent_revoked_hides_fact_based_polish, test_key_chain_skipped_for_fact_rows
+
+### `test_insight_polish.py` (88줄) — 능동 인사이트 문장 다듬기·Coach 컨텍스트 블록 (V2-REPAIR D4).
+
+- functions: conn, test_validate, test_polish_stores_and_exposes, test_fallback_on_bad_output, test_fallback_on_exception_and_no_provider, test_stale_polish_invalidated_when_rule_text_changes, test_coach_context_block, test_coach_context_empty_has_no_block, test_no_consent_no_polish_and_rule_text
 
 ### `test_insight_service.py` (114줄) — 능동 인사이트 규칙·사건 수명주기 (V2-REPAIR D1).
 
@@ -3128,6 +3140,10 @@
 
 - functions: client, test_issue_shows_plaintext_once_and_list_hides_it, test_label_required_and_bad_days, test_cap_returns_409, test_revoke_is_user_scoped_and_audited
 
+### `test_metric_action_hint.py` (23줄) — 지표 행동 힌트(규칙) + ACWR 저부하·휴식기 밴드. 정적 힌트의 AI 다듬기(metric_note)는 폐지(ADR-059 2단계).
+
+- functions: test_band_key_acwr_low_and_layoff, test_action_hint_layoff_text_differs_from_overload, test_action_hint_is_rule_only
+
 ### `test_metric_bands.py` (68줄) — tests/test_metric_bands.py — 등급 밴드 SSOT(src/metrics/bands.py).
 
 - functions: test_tsb_conventional_bands, test_tsb_race_phase_overrides, test_cirs_lower_is_better, test_decoupling_uses_absolute_value, test_unknown_or_missing_returns_none, test_utrs_bands_match_calculator_ranges, test_rri_bands, test_c1_new_bands, test_c1_hints_exist_for_new_bands
@@ -3144,6 +3160,10 @@
 
 - functions: test_missing_row, test_fresh, test_stale_by_age, test_one_day_old_is_still_fresh, test_partial_low_confidence_and_missing_inputs, test_metric_missing_makes_partial, test_rtti_modifier_never_stale_by_age, test_rtti_empty_wellness_used_is_partial, test_old_version_coverage_unknown, test_crs_fresh, test_crs_gate_unknown_when_signal_null, test_crs_upstream_worse_wins, test_assess_many_fixed_query_count, test_boost_hold_fresh_releases, test_boost_hold_missing_crs, test_boost_hold_stale, test_boost_hold_short_hrv_history, test_boost_hold_old_row_without_key_is_hold, test_boost_hold_text, test_spec_shape, test_hedge_evidence
 
+### `test_metric_interpretation.py` (124줄) — 지표 해석 AI 다듬기 표면(metric_interpretation, ADR-059 2단계) — 규칙 기본값·캐시 적중/미스·해시 변경·익명화·폴백.
+
+- functions: upsert_metric, queue, test_facts_connect_trend_other_metrics_race_and_plan, test_rule_text_is_default_without_cache, test_warm_hit_then_hash_change_falls_back, test_warm_rejects_invented_numbers_and_health_terms, test_no_consent_never_calls_queue, test_prompt_redacts_health_and_omits_race_name, test_activity_scope_has_no_interpretation, test_after_sync_hook_swallows_errors
+
 ### `test_metric_labels.py` (100줄) — metric_labels SSOT 일관성 + 지표가 이름 때문에 사라지지 않음 검증 (ADR-018).
 
 - functions: test_keys_subset_of_registry, test_all_daily_metrics_registered, test_label_shape, test_no_duplicate_name_ko_within_category, test_core_terms_pinned, test_fallback_strips_parent_and_uses_name_last, test_every_registry_metric_has_displayable_name, test_first_batch_has_description_short, test_texts_within_40_chars, test_action_hint_keys_are_five_level_status, test_action_hint_picks_current_status_only, test_crs_hint_uses_gate_level_not_score_status, test_marathon_shape_label_and_new_texts
@@ -3151,10 +3171,6 @@
 ### `test_metric_naming.py` (59줄) — 메트릭 이름 충돌 방지 검증 테스트 (보강 #9).
 
 - class **TestMetricNaming**: test_no_calculator_uses_activity_summary_column_name, test_no_duplicate_produces_across_calculators, test_all_produces_are_non_empty, test_all_names_are_unique
-
-### `test_metric_notes.py` (63줄) — 지표 안내 문구 사전 생성(metric_notes) + ACWR 저부하·휴식기 밴드.
-
-- functions: test_band_key_acwr_low_and_layoff, test_action_hint_layoff_text_differs_from_overload, test_cached_note_used_only_when_rule_unchanged, test_warm_stores_valid_and_rejects_numbers, test_warm_noop_when_queue_unavailable, test_warm_keeps_source_numbers
 
 ### `test_metric_priority.py` (100줄) — metric_priority.py 단위 테스트 — Phase 1 조건 7
 
@@ -3517,7 +3533,7 @@
 
 - functions: test_next_step_up_hold_down_and_clamp, test_prescription_shapes, test_service_persists_and_migration_idempotent
 
-### `test_provider_claude_queue.py` (128줄) — claude_queue 어댑터·배치 다듬기·내러티브 큐 경로 (V2-AI-CLAUDE-QUEUE E2).
+### `test_provider_claude_queue.py` (131줄) — claude_queue 어댑터·배치 다듬기·내러티브 큐 경로 (V2-AI-CLAUDE-QUEUE E2).
 
 - functions: test_db_path_and_uid, test_available_false_on_error, test_complete_maps_failures, test_complete_ok_and_unavailable, conn, test_parse_batch, test_polish_batch_validates_each, test_polish_batch_falls_back_when_queue_fails, test_polish_skips_queue_when_unavailable, test_polish_in_background, test_validate_narrative, test_narrative_via_queue, test_warm_allows_queue_but_request_path_does_not
 
@@ -4146,7 +4162,7 @@
 - functions: run
 
 ---
-총 903개 파일
+총 907개 파일
 
 ## docstring 누락
 

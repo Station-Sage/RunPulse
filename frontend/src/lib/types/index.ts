@@ -644,6 +644,8 @@ export interface MetricExplainData {
 		baseline: { avg_7d: number | null; delta_1d: number | null; avg_90d?: number | null };
 		personal?: string | null;
 		so_what: string;
+		/** 개인화 해석(ADR-059 2단계) — source==='ai' 면 so_what 대신 표시, 'rule' 이면 so_what 그대로. */
+		interpretation?: { text: string; source: 'ai' | 'rule' };
 	};
 	formula: {
 		text: string;
