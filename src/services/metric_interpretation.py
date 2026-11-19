@@ -18,6 +18,8 @@ _GUIDE = (
     " 관계, 다가오는 대회(days_to_race)·오늘 계획(planned_today)과 엮어 원문에 없는 정보를 하나 이상 더합니다.\n"
     "- 웰니스 값(sleep_hours·sleep_score·stress·resting_hr·hrv·body_battery_max)이 있으면 본인 평균(_avg_7d·_avg_90d)과"
     " 비교해 '평소보다 짧은 수면'처럼 말할 수 있습니다. 진단·질병·부상 추정은 하지 않습니다.\n"
+    "- 예측 기록이면 range_fast~range_slow(모델 범위)·confidence·limiting(신뢰 제한 요인)·main_signal(주 신호)·"
+    "gap_to_target(목표 격차)으로 왜 이 예측인지, 무엇이 불확실한지 설명합니다. 예측을 새로 고치거나 약속하지 않습니다.\n"
     "- 원문의 권장 방향은 유지합니다. 더할 정보가 없으면 원문 그대로 둡니다. 지표 이름은 facts.metric 을 씁니다."
 )
 SURFACE = aw.register(aw.Surface(name="metric_interp", guide=_GUIDE, max_chars=160))
@@ -89,11 +91,12 @@ def _plan(conn: sqlite3.Connection, day: str) -> dict:
 
 
 def rule_text(explain: dict) -> str | None:
-    """규칙 해석 문장 — so_what(밴드) → 행동 힌트 → personal(90일 대비). 없으면 None."""
+    """규칙 해석 문장 — so_what(밴드) → 행동 힌트 → personal(90일 대비) → 예측 범위·신뢰도(D18). 없으면 None."""
     from src.services.metric_display import action_hint
+    from src.services.prediction_facts import rule_text as prediction_rule
     m = explain.get("meaning") or {}
     return (m.get("so_what") or action_hint(explain["slug"], explain.get("status"), value=explain.get("value"))
-            or m.get("personal") or None)
+            or m.get("personal") or prediction_rule(explain) or None)
 
 
 def build_facts(conn: sqlite3.Connection, explain: dict) -> dict:
@@ -120,6 +123,8 @@ def build_facts(conn: sqlite3.Connection, explain: dict) -> dict:
     facts.update(_related(conn, slug, day))
     facts.update(_race(conn, day))
     facts.update(_plan(conn, day))
+    from src.services.prediction_facts import prediction_facts
+    facts.update(prediction_facts(conn, explain))
     if slug in WELLNESS_SLUGS:
         from src.services.wellness_facts import wellness_facts
         facts.update(wellness_facts(conn, day))
