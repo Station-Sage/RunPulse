@@ -40,23 +40,19 @@ def band_key(name: str, status: str | None, value: float | None = None) -> str |
 
 
 def action_hint(name: str, status: str | None, level: int | None = None,
-                assertive: bool = True, boost_hold: bool = False, value: float | None = None,
-                conn=None) -> str | None:
+                assertive: bool = True, boost_hold: bool = False, value: float | None = None) -> str | None:
     """현재 status(crs는 게이트 level)에 맞는 행동 힌트 1문장. 문구가 없으면 None.
 
     crs 는 신선도가 단정 불가(assertive=False)면 힌트를 내지 않고, BOOST 보류(boost_hold)면
-    level 4(부스트)를 level 3 문구로 낮춘다.
+    level 4(부스트)를 level 3 문구로 낮춘다. 정적 힌트의 AI 다듬기(metric_note)는 폐지 — 개인화 해석은
+    분해 화면의 `metric_interpretation`(ADR-059 2단계)이 맡는다.
     """
     hints = label_for(name).action_hint
     if not hints:
         return None
     if name != "crs":
         key = band_key(name, status, value)
-        rule = hints.get(key) if key else None
-        if rule and conn is not None:
-            from src.services.metric_notes import cached_note
-            return cached_note(conn, name, key, rule) or rule
-        return rule
+        return hints.get(key) if key else None
     if level is None or not assertive:
         return None
     if boost_hold and level >= 4:
