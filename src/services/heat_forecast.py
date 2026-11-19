@@ -17,7 +17,7 @@ from src.weather import provider as om
 
 MORNING_HOURS = (6, 7, 8)
 CACHE_TTL_SEC = 3 * 3600
-_cache: dict[tuple, tuple[float, dict[str, float]]] = {}
+_cache: dict[tuple, tuple[float, dict[str, float]]] = {}   # 값 = 날짜별 아침 기온
 _cache_lock = threading.Lock()
 
 
@@ -55,6 +55,12 @@ def heat_pcts(temps: dict[str, float], coef: float = DEFAULT_HEAT) -> dict[str, 
 
 def forecast_heat_pct(conn: sqlite3.Connection, getter: Callable[..., Any], today: date | None = None,
                       monotonic: Callable[[], float] = time.monotonic) -> dict[str, float]:
+    return heat_pcts(forecast_morning_temps(conn, getter, today, monotonic))
+
+
+def forecast_morning_temps(conn: sqlite3.Connection, getter: Callable[..., Any], today: date | None = None,
+                           monotonic: Callable[[], float] = time.monotonic) -> dict[str, float]:
+    """{날짜: 아침 6~8시 평균 예보 기온}. 계획 행 폭염 꼬리표에 기온을 함께 적기 위해 보정 % 대신 기온을 캐시한다."""
     today = today or date.today()
     xy = home_coords(conn)
     if not xy:
@@ -73,7 +79,7 @@ def forecast_heat_pct(conn: sqlite3.Connection, getter: Callable[..., Any], toda
     h = raw.get("hourly") if isinstance(raw, dict) else None
     if not h:
         return {}
-    out = heat_pcts(morning_temps(h))
+    out = morning_temps(h)
     with _cache_lock:
         if len(_cache) > 2000:
             _cache.clear()

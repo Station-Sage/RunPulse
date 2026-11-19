@@ -51,3 +51,12 @@ def test_forecast_failure_not_cached():
     assert H.forecast_heat_pct(conn, bad, date(2026, 11, 6)) == {}
     assert len(calls) == 2
     assert H.cache_key(37.566, 126.978, date(2026, 11, 6)) == (37.57, 126.98, "2026-11-06")
+
+
+def test_forecast_morning_temps_cached_and_pct_derived():
+    from datetime import date
+    H.clear_cache()
+    raw = {"hourly": {"time": ["2026-11-06T07:00"], "temperature_2m": [25]}}
+    conn = _coords_conn()
+    assert H.forecast_morning_temps(conn, lambda u, params=None: raw, date(2026, 11, 6)) == {"2026-11-06": 25.0}
+    assert H.forecast_heat_pct(conn, lambda u, params=None: {}, date(2026, 11, 6)) == H.heat_pcts({"2026-11-06": 25.0})

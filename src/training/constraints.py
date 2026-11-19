@@ -19,8 +19,16 @@ def _km(r: dict) -> float:
     return float(r.get("distance_km") or 0.0)
 
 
-def heat_adjust(rows: list[dict], heat_pct: dict[str, float], swap: bool = True) -> list[dict]:
-    """날짜별 폭염 보정(%) > 2 이면 거리는 두고 페이스 범위만 늦춘다. swap 이면 퀄리티가 더 더운 날에 가장 선선한 이지 날과 맞바꾼다."""
+def heat_tag(pct: float, temp_c: float | None = None) -> str:
+    """계획 행 rationale 꼬리표 — 예보 기온이 있으면 함께 적는다(사용자 결정 2026-11-20, ADR-059 D20)."""
+    temp = f"아침 예보 {round(temp_c)}℃ · " if temp_c is not None else ""
+    return f"[폭염 보정 +{pct:.1f}%: {temp}페이스만 완화]"
+
+
+def heat_adjust(rows: list[dict], heat_pct: dict[str, float], swap: bool = True,
+                temps: dict[str, float] | None = None) -> list[dict]:
+    """날짜별 폭염 보정(%) > 2 이면 거리는 두고 페이스 범위만 늦춘다. swap 이면 퀄리티가 더 더운 날에 가장 선선한 이지 날과 맞바꾼다.
+    temps(날짜별 아침 예보 기온)가 있으면 꼬리표에 기온을 적는다."""
     out = [dict(r) for r in rows]
     runs = [r for r in out if r["workout_type"] not in _SKIP]
     for q in [r for r in runs if swap and r["workout_type"] in _QUAL]:
@@ -36,7 +44,7 @@ def heat_adjust(rows: list[dict], heat_pct: dict[str, float], swap: bool = True)
         for k in ("target_pace_min", "target_pace_max"):
             if r.get(k):
                 r[k] = round(r[k] * (1 + pct / 100.0), 1)
-        r["rationale"] = f"{r.get('rationale') or ''} [폭염 보정 +{pct:.1f}%: 페이스만 완화]".strip()
+        r["rationale"] = f"{r.get('rationale') or ''} {heat_tag(pct, (temps or {}).get(r['date']))}".strip()
     return sorted(out, key=lambda r: r["date"])
 
 

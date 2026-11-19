@@ -6,7 +6,7 @@ import logging
 import sqlite3
 from datetime import date, timedelta
 
-from src.services.heat_forecast import forecast_heat_pct
+from src.services.heat_forecast import forecast_morning_temps, heat_pcts
 from src.training.constraints import heat_adjust
 from src.training.goals import effective_rules_version, get_active_goal
 from src.training.planner import WeekdaysRequired, generate_weekly_plan, get_vdot_adj, resolve_distance_label, save_weekly_plan
@@ -56,7 +56,8 @@ def run(conn: sqlite3.Connection, today: date | None = None, getter=None) -> int
     adapted = adapt_plan(conn, goal, base, ws, dlabel, get_vdot_adj(conn))
     if getter is None:
         from src.utils.api import get as getter
-    adapted = heat_adjust(adapted, forecast_heat_pct(conn, getter, today), swap=False)
+    temps = forecast_morning_temps(conn, getter, today)
+    adapted = heat_adjust(adapted, heat_pcts(temps), swap=False, temps=temps)
     by_date = {a["date"]: a for a in adapted}
     changed = []
     for b in base:

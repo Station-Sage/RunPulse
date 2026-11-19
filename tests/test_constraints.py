@@ -19,6 +19,13 @@ def test_heat_moves_quality_and_keeps_km():
     assert WEEK[6]["target_pace_min"] == 370
 
 
+def test_heat_tag_includes_forecast_temp():
+    long = lambda out: next(r for r in out if r["workout_type"] == "long")  # noqa: E731
+    with_t = C.heat_adjust(WEEK, {"2026-10-11": 5.0}, temps={"2026-10-11": 24.6})
+    assert long(with_t)["rationale"] == "[폭염 보정 +5.0%: 아침 예보 25℃ · 페이스만 완화]"
+    assert long(C.heat_adjust(WEEK, {"2026-10-11": 5.0}))["rationale"] == "[폭염 보정 +5.0%: 페이스만 완화]"
+
+
 def test_heat_below_threshold_noop():
     assert C.heat_adjust(WEEK, {"2026-10-05": 1.5}) == sorted(WEEK, key=lambda r: r["date"])
 
