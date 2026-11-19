@@ -59,3 +59,22 @@ test('trackPct·deltaText', () => {
 	assert.equal(deltaText(0), '±0');
 	assert.equal(deltaText(null), '');
 });
+
+test('heroView: 사유 AI 문장(source=ai)만 대체·표시, rule 이면 규칙 조립', () => {
+	const adj = { ...base, session: { id: 3, title: '이지런' }, verdict: 'down', adjustment: { reason: 'TSB 낮음', from: '템포', to: '이지런' } };
+	const rule = heroView({ ...adj, reason_wording: { text: '규칙 문장', source: 'rule' } });
+	assert.equal(rule.adjustment, '⚠ TSB 낮음 → 템포를 이지런으로');
+	assert.equal(rule.aiWorded, false);
+	const ai = heroView({ ...adj, reason_wording: { text: 'TSB 가 낮아 오늘 템포 대신 이지런으로 가요.', source: 'ai' } });
+	assert.equal(ai.adjustment, '⚠ TSB 가 낮아 오늘 템포 대신 이지런으로 가요.');
+	assert.equal(ai.aiWorded, true);
+	const hold = { ...base, hold_reason: [{ code: 'crs_stale', text: '컨디션 입력이 오래돼 증량은 보류했어요' }] };
+	assert.equal(heroView(hold).hold, '컨디션 입력이 오래돼 증량은 보류했어요');
+	assert.equal(heroView(hold).aiWorded, false);
+	const holdAi = heroView({ ...hold, reason_wording: { text: '회복 신호가 오래돼 오늘은 계획대로만 가요.', source: 'ai' } });
+	assert.equal(holdAi.hold, '회복 신호가 오래돼 오늘은 계획대로만 가요.');
+	assert.equal(holdAi.aiWorded, true);
+	// 완료 상태에선 사유 줄이 없으니 AI 표시도 없다
+	assert.equal(heroView({ ...adj, state: 'done', today_result: { activity_id: 1, distance_m: 5000 },
+		reason_wording: { text: 'x', source: 'ai' } }).aiWorded, false);
+});

@@ -203,6 +203,10 @@ export interface ActivityImpact {
 		load_pct_vs_median: number | null;
 	} | null;
 	race: { name: string; days_left: number } | null;
+	/** '이 러닝의 의미' 규칙 줄(서버 생성, ADR-059) */
+	lines?: string[];
+	/** AI 요약 — source==='ai' 일 때만 AI 문장 */
+	wording?: { text: string; source: 'ai' | 'rule' } | null;
 }
 
 // ── 활동 상세 3-6: 서버 계산 스플릿·시계열·환경·존·소스 차이·판정 ──
@@ -777,6 +781,8 @@ export interface BriefingStateFields {
 	session: BriefingSession | null;
 	adjustment: { reason: string | null; from: string; to: string } | null;
 	hold_reason?: HoldReason[] | null;
+	/** 조정·보류 사유 문장(ADR-059) — source==='ai' 면 AI 가 다듬은 문장, 'rule' 이면 화면이 규칙 문구를 조립. */
+	reason_wording?: { text: string; source: 'ai' | 'rule' } | null;
 	caveats: BriefingCaveat[];
 }
 

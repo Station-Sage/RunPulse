@@ -2,6 +2,7 @@
 // 판정·등급은 서버(bands.py / readiness_decision)가 내려준 값만 쓴다. 여기서는 임계값을 두지 않는다.
 import type { BriefingCaveat, BriefingStateFields } from './types/index';
 import { holdText } from './freshness.ts';
+import { isAiWorded } from './aiWording.ts';
 import { formatDistance, formatPaceRange } from './format.ts';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -35,6 +36,8 @@ export interface HeroView {
 	sub: string;
 	adjustment: string | null;
 	hold: string | null;
+	/** adjustment/hold 줄이 AI 다듬은 문장인지(AiMark 표시). */
+	aiWorded: boolean;
 	tone: 'neutral' | 'caution' | 'done';
 	cta: 'plan_new' | 'session' | 'activity' | null;
 }
@@ -56,9 +59,25 @@ function sessionSub(b: BriefingStateFields): string {
 
 /** briefing.state → 히어로 문구. 완료 비율은 신뢰 가능할 때만(서버가 null이면 생략). */
 export function heroView(b: BriefingStateFields): HeroView {
+	const v = reasonView(b);
+	const base = heroBase(b, v.adjustment, v.hold);
+	return { ...base, aiWorded: v.aiWorded && !!(base.adjustment || base.hold) };
+}
+
+/** 조정·보류 줄 — AI 문장(source==='ai')이 있으면 그 문장, 아니면 규칙 조립. */
+function reasonView(b: BriefingStateFields): { adjustment: string | null; hold: string | null; aiWorded: boolean } {
 	const adj = b.adjustment;
-	const adjustment = adj ? `⚠ ${adj.reason ? `${adj.reason} → ` : ''}${eulReul(adj.from)} ${euroRo(adj.to)}` : null;
-	const hold = adj ? null : holdText(b.hold_reason);
+	const ai = isAiWorded(b.reason_wording) ? (b.reason_wording?.text ?? null) : null;
+	if (adj) {
+		const rule = `⚠ ${adj.reason ? `${adj.reason} → ` : ''}${eulReul(adj.from)} ${euroRo(adj.to)}`;
+		return { adjustment: ai ? `⚠ ${ai}` : rule, hold: null, aiWorded: !!ai };
+	}
+	const rule = holdText(b.hold_reason);
+	return { adjustment: null, hold: rule && ai ? ai : rule, aiWorded: !!(rule && ai) };
+}
+
+function heroBase(b: BriefingStateFields, adjustment: string | null, hold: string | null): Omit<HeroView, 'aiWorded'> {
+	const adj = b.adjustment;
 	const km = b.today_result ? formatDistance(b.today_result.distance_m) : '';
 	switch (b.state) {
 		case 'pre':

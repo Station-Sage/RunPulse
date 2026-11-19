@@ -121,7 +121,21 @@ def _caveats(conn: sqlite3.Connection, config: dict | None) -> list[dict]:
 
 def build_briefing_state(conn: sqlite3.Connection, day: str, week: dict,
                          config: dict | None = None) -> dict:
-    """{state, target_date, verdict, today_result, session, adjustment, caveats}."""
+    """{state, target_date, verdict, today_result, session, adjustment, hold_reason, reason_wording, caveats}.
+
+    reason_wording: 조정·보류 사유가 있으면 {text, source:'ai'|'rule'} (ADR-059) — 캐시만 읽고, 낡았으면
+    백그라운드 생성을 예약한다. 조정 판정 자체는 briefing_core(규칙)가 정한다.
+    """
+    from src.services import ai_wording_live, today_reason_wording as trw
+    out, adj = briefing_core(conn, day, week, config)
+    it = trw.item(conn, day, out, adj, week, race_days_left(conn, day))
+    out["reason_wording"] = ai_wording_live.present_or_warm(conn, config, trw.SURFACE, it)
+    return out
+
+
+def briefing_core(conn: sqlite3.Connection, day: str, week: dict,
+                  config: dict | None = None) -> tuple[dict, dict | None]:
+    """규칙 판정만 — (briefing_state, 오늘 조정 결과 dict 또는 None). AI 문구 없음."""
     out: dict = {"state": "no_plan", "target_date": day, "verdict": "as_planned",
                  "today_result": None, "session": None, "adjustment": None, "hold_reason": None,
                  "caveats": _caveats(conn, config)}
@@ -166,7 +180,7 @@ def build_briefing_state(conn: sqlite3.Connection, day: str, week: dict,
             out["session"] = {"id": nxt["session_id"], "date": nxt["date"], "workout_type": nxt["workout_type"],
                               "title": nxt["title"], "distance_m": round(nxt["planned_km"] * 1000) if nxt["planned_km"] else None,
                               "pace_min": None, "pace_max": None, "zone": None}
-    return out
+    return out, adj
 
 
 def build_race_summary(conn: sqlite3.Connection, day: str, hub: dict | None = None) -> dict | None:

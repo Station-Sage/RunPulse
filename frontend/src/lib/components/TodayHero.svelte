@@ -4,6 +4,7 @@
 	import type { TodayBriefing, BriefingStateFields, RaceHubGoal, ProviderKey } from '$lib/types';
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
 	import ErrorState from '$lib/components/ErrorState.svelte';
+	import AiMark from '$lib/components/AiMark.svelte';
 	import { heroView, caveatText } from '$lib/todayHero';
 	import { providerLabel } from '$lib/provider';
 	import { planNewHref } from '$lib/planPrefill';
@@ -38,10 +39,10 @@
 		<h1 class="text-xl font-semibold leading-snug">{view.headline}</h1>
 		{#if view.sub}<p class="text-sm text-fg-secondary">{view.sub}</p>{/if}
 		{#if view.adjustment}
-			<p class="rounded-md bg-semantic-amber/10 px-2.5 py-1.5 text-sm text-semantic-amber" data-testid="hero-adjustment">{view.adjustment}</p>
+			<p class="rounded-md bg-semantic-amber/10 px-2.5 py-1.5 text-sm text-semantic-amber" data-testid="hero-adjustment">{view.adjustment}{#if view.aiWorded}<span class="ml-1"><AiMark source="ai" prefix /></span>{/if}</p>
 		{/if}
 		{#if view.hold}
-			<p class="rounded-md bg-surface-3 px-2.5 py-1.5 text-sm text-fg-muted" data-testid="hero-hold">{view.hold}</p>
+			<p class="rounded-md bg-surface-3 px-2.5 py-1.5 text-sm text-fg-muted" data-testid="hero-hold">{view.hold}{#if view.aiWorded}<span class="ml-1"><AiMark source="ai" prefix /></span>{/if}</p>
 		{/if}
 		{#if view.cta === 'plan_new'}
 			<a href={planHref} class="inline-flex min-h-11 items-center self-start rounded-md bg-surface-3 px-3 text-sm font-medium hover:bg-border-subtle">계획 만들기 ›</a>
