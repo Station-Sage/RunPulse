@@ -273,8 +273,8 @@ class BgSyncThread(threading.Thread):
                     insight_service.refresh(conn, _date.today().isoformat())
                     from src.services.insight_polish import polish_in_background
                     polish_in_background(str(get_db_path(self.user_id)), self.config)
-                    from src.services.metric_notes import warm_in_background
-                    warm_in_background(str(get_db_path(self.user_id)), self.config)
+                    from src.services.wording_warm_hooks import after_sync
+                    after_sync(str(get_db_path(self.user_id)), self.config, _date.today().isoformat())
                     from src.services.adherence_review import generate_in_background
                     generate_in_background(str(get_db_path(self.user_id)), self.config)
                 except Exception as ins_exc:  # noqa: BLE001

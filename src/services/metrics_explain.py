@@ -215,7 +215,7 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
     name_ko, abbr = display_name(slug, _metric_label(slug))
     what_if = _what_if(conn, scope_type, scope_id, slug, terms)
 
-    return {
+    result = {
         "slug": slug,
         "name_ko": name_ko,
         "abbr": abbr,
@@ -251,3 +251,9 @@ def get_metric_explain(conn: sqlite3.Connection, scope_type: str, scope_id: str,
         **({"conclusion": conclusion} if conclusion else {}),
         **({"what_if": what_if} if what_if else {}),
     }
+    # 개인화 해석(ADR-059 2단계) — 캐시만 읽는다. 규칙 문장이 기본값, AI 문장이 있으면 source='ai'.
+    from src.services.metric_interpretation import interpretation
+    interp = interpretation(conn, result) if scope_type == "daily" else None
+    if interp:
+        result["meaning"]["interpretation"] = interp
+    return result

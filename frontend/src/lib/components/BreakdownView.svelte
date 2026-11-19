@@ -8,6 +8,8 @@
 	import PredictionEvidence from '$lib/components/PredictionEvidence.svelte';
 	import { metricCoachHref } from '$lib/coachMetricPrefill';
 	import Icon from '$lib/components/Icon.svelte';
+	import AiMark from '$lib/components/AiMark.svelte';
+	import { isAiWorded } from '$lib/aiWording';
 
 	let {
 		data,
@@ -111,8 +113,13 @@
 			<p class="text-sm text-fg-secondary" data-testid="breakdown-personal">{data.meaning.personal}</p>
 		{/if}
 
-		{#if data.meaning.so_what}
-			<p class="text-sm font-medium">{data.meaning.so_what}</p>
+		<!-- 해석: AI 가 개인 추세·다른 지표·대회 맥락으로 다듬은 문장이 있으면 그것, 없으면 규칙 so_what(ADR-059) -->
+		{#if isAiWorded(data.meaning.interpretation)}
+			<p class="text-sm font-medium" data-testid="breakdown-interpretation">
+				{data.meaning.interpretation?.text} <AiMark source={data.meaning.interpretation?.source} />
+			</p>
+		{:else if data.meaning.so_what}
+			<p class="text-sm font-medium" data-testid="breakdown-so-what">{data.meaning.so_what}</p>
 		{/if}
 	</section>
 
