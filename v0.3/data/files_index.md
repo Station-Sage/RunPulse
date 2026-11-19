@@ -18,6 +18,7 @@
 > data_service(Phase 7b~7d 스텁). story_service(+story_period·story_stats): 월·주·블록 Story
 > (REVIEW-03, 00-diagnostic-and-direction.md §5.1). milestone_service(조회·동기화 탐지)·milestone_events(기록·삭제 원시)·
 > milestone_hooks(출처별 훅: 대회 결과·목표·대회 등록·재계획·질병/부상) — 사용자 사건 마일스톤(ADR-057).
+> ai_wording: 규칙 문구 AI 다듬기 공통 계층(표면 선언·캐시 조회·백그라운드 생성·건강 익명화, ADR-059).
 > 
 > 설계 문서: v0.3/data/phase-5-impl/01-service-layer.md,
 > v0.3/data/phase-7-ui-renewal/06-data-layer-extensions.md (D5)
@@ -91,7 +92,7 @@
 
 - functions: get_adaptation_status
 
-### `adherence_review.py` (153줄) — 지난주 훈련 이행 리뷰 (V2-AI-CLAUDE-QUEUE E3, adherence_v1) — 규칙 수치를 근거로 LLM 이 해설한다.
+### `adherence_review.py` (149줄) — 지난주 훈련 이행 리뷰 (V2-AI-CLAUDE-QUEUE E3, adherence_v1) — 규칙 수치를 근거로 LLM 이 해설한다.
 
 - functions: last_week_start, scope_key, build_input, evidence_keys, src_hash, validate, get_cached, generate, review_for_view, generate_in_background
 
@@ -126,6 +127,12 @@
 ### `ai_settings_service.py` (182줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
 
 - functions: mask_key, key_state, usage_7d, build_view, key_format_error, validate_patch, apply_patch, test_connection
+
+### `ai_wording.py` (281줄) — 규칙 문구 AI 다듬기 공통 계층 (ADR-059) — 표면(surface)을 선언하면 캐시 조회·백그라운드 생성·검증·건강 익명화를 공통으로 쓴다.
+
+- class **Surface**: kind
+- class **Item**: 없음
+- functions: register, get_surface, redact_health_text, numbers_ok, validate, src_hash, get_cached, present, gate, build_prompt, parse_items, warm, warm_in_background
 
 ### `archive_service.py` (121줄) — 러닝 아카이브 — 누적 통계·월별 거리·365일 히트맵·개인 최고 기록(읽기 전용).
 
@@ -298,7 +305,7 @@
 
 - (public API 없음)
 
-### `metric_notes.py` (85줄) — 지표 안내 문구 사전 생성 (Claude 큐) — 규칙 힌트를 haiku 로 미리 다듬어 ai_outputs(kind='metric_note')에 캐시한다.
+### `metric_notes.py` (84줄) — 지표 안내 문구 사전 생성 (Claude 큐) — 규칙 힌트를 haiku 로 미리 다듬어 ai_outputs(kind='metric_note')에 캐시한다.
 
 - functions: cached_note, warm, warm_in_background
 
@@ -382,7 +389,7 @@
 
 - functions: detect_and_store_milestones, get_recent_milestones
 
-### `narrative_queue.py` (34줄) — Today 내러티브의 claude_queue 경로 — 워밍 스레드 전용(요청 스레드에서는 큐를 기다리지 않는다).
+### `narrative_queue.py` (30줄) — Today 내러티브의 claude_queue 경로 — 워밍 스레드 전용(요청 스레드에서는 큐를 기다리지 않는다).
 
 - functions: queue_ready, validate_narrative, narrative_via_queue
 
@@ -595,7 +602,7 @@
 
 - functions: race_days_left, build_week, build_briefing_state, build_race_summary, build_today_extras
 
-### `today_narrative.py` (161줄) — Today L2 성장 내러티브 — AI 우선, 규칙 기반 fallback (today_service 에서 분리, 300줄 캡).
+### `today_narrative.py` (162줄) — Today L2 성장 내러티브 — AI 우선, 규칙 기반 fallback (today_service 에서 분리, 300줄 캡).
 
 - functions: get_today_narrative
 
@@ -2106,9 +2113,9 @@
 
 - functions: test_acwr_zone_boundaries, test_hrv_zone_boundaries, test_get_adaptation_status_all_none, test_get_adaptation_status_acwr_latest_before_date, test_get_adaptation_status_hrv_zone, test_get_adaptation_status_hrv_null_baseline, test_get_adaptation_status_fatigue_avg
 
-### `test_adherence_review.py` (142줄) — 지난주 이행 리뷰 — 검증·캐시·API·도구 (V2-AI-CLAUDE-QUEUE E3).
+### `test_adherence_review.py` (153줄) — 지난주 이행 리뷰 — 검증·캐시·API·도구 (V2-AI-CLAUDE-QUEUE E3).
 
-- functions: conn, test_scope_and_last_week, test_evidence_keys_and_hash, test_validate, test_build_input_none_without_goal, test_generate_caches_and_skips_unavailable, test_generate_rejects_bad_output, test_tool_without_goal, test_route_returns_null_then_review, test_all_tools_classified, test_build_input_and_tool_with_real_week
+- functions: conn, test_scope_and_last_week, test_evidence_keys_and_hash, test_validate, test_build_input_none_without_goal, test_generate_caches_and_skips_unavailable, test_generate_rejects_bad_output, test_tool_without_goal, test_route_returns_null_then_review, test_all_tools_classified, test_build_input_and_tool_with_real_week, test_prompt_lists_evidence_keys_and_rounding_ok
 
 ### `test_adj_flag_sync.py` (32줄) — R3 — adj_accepted 가 plan_adjustments(accepted) 와 동기화된다.
 
@@ -2196,6 +2203,10 @@
 - class **TestGetActivityLaps**: test_returns_compact_rows, test_pace_formatted, test_lap_types_counted, test_filter_active_only, test_all_null_column_dropped, test_no_laps_returns_message
 - class **TestCompareWorkoutSets**: test_sessions_sorted_recent_first, test_set_aggregates, test_positive_drift_means_slowdown, test_excludes_non_active_laps, test_name_filter, test_date_range_filter, test_limit, test_auto_lap_run_is_not_a_workout
 - class **TestActivityIdExposed**: test_get_activity_includes_id, test_get_activities_range_includes_id
+
+### `test_ai_wording.py` (137줄) — 규칙 문구 AI 다듬기 공통 계층(ai_wording, ADR-059).
+
+- functions: queue, test_numbers_ok, test_redact_health_text_sentence_level, test_validate, test_present_rule_then_ai_then_stale, test_warm_rejects_invalid_and_unchanged_is_not_ai, test_id_numbers_are_not_evidence, test_health_is_redacted_before_prompt, test_gate_requires_queue_consent, test_gate_static_surface_skips_consent_but_not_budget, test_register_conflict_and_missing_template, test_get_cached_without_table_is_none, test_queue_failure_stores_nothing
 
 ### `test_ai_worker_coach_session.py` (79줄) — ai_worker 코치 스레드 — 상주 세션 풀 연동, ai_sessions 갱신, 퇴역·복구 (가짜 CLI).
 
@@ -3121,9 +3132,9 @@
 
 - class **TestMetricNaming**: test_no_calculator_uses_activity_summary_column_name, test_no_duplicate_produces_across_calculators, test_all_produces_are_non_empty, test_all_names_are_unique
 
-### `test_metric_notes.py` (54줄) — 지표 안내 문구 사전 생성(metric_notes) + ACWR 저부하·휴식기 밴드.
+### `test_metric_notes.py` (63줄) — 지표 안내 문구 사전 생성(metric_notes) + ACWR 저부하·휴식기 밴드.
 
-- functions: test_band_key_acwr_low_and_layoff, test_action_hint_layoff_text_differs_from_overload, test_cached_note_used_only_when_rule_unchanged, test_warm_stores_valid_and_rejects_numbers, test_warm_noop_when_queue_unavailable
+- functions: test_band_key_acwr_low_and_layoff, test_action_hint_layoff_text_differs_from_overload, test_cached_note_used_only_when_rule_unchanged, test_warm_stores_valid_and_rejects_numbers, test_warm_noop_when_queue_unavailable, test_warm_keeps_source_numbers
 
 ### `test_metric_priority.py` (100줄) — metric_priority.py 단위 테스트 — Phase 1 조건 7
 
@@ -3826,9 +3837,9 @@
 
 - functions: conn, test_no_goal_is_no_plan, test_planned_session_not_run_is_pre, test_run_on_planned_day_is_done_with_ratio, test_run_on_rest_day_is_extra, test_rest_day_without_run, test_race_week_and_race_day_take_precedence, test_week_summary_km_and_key_sessions, test_readiness_delta_and_missing, test_race_summary_none_without_goal, test_race_summary_without_prediction, test_race_summary_uses_self_row_range, test_extras_include_race_summary
 
-### `test_today_narrative.py` (80줄) — today_narrative 테스트 — 위임 경로, 비러닝 별도 한 줄(ADR-051), 규칙 fallback.
+### `test_today_narrative.py` (89줄) — today_narrative 테스트 — 위임 경로, 비러닝 별도 한 줄(ADR-051), 규칙 fallback.
 
-- functions: test_service_delegates_to_narrative_module, test_highlights_other_carries_non_running, test_prompt_includes_other_line, test_rule_fallback_source_and_no_other, test_cache_key_has_r3_suffix, test_empty_month_skips_ai_and_is_neutral, test_empty_month_with_other_data_names_period
+- functions: test_service_delegates_to_narrative_module, test_highlights_other_carries_non_running, test_prompt_includes_other_line, test_rule_fallback_source_and_no_other, test_cache_key_has_r3_suffix, test_empty_month_skips_ai_and_is_neutral, test_empty_month_with_other_data_names_period, test_chain_output_validated_like_queue
 
 ### `test_today_service.py` (445줄) — today_service 테스트 — Phase 7a D5 + Phase 7b L2 내러티브.
 
@@ -4115,7 +4126,7 @@
 - functions: run
 
 ---
-총 896개 파일
+총 898개 파일
 
 ## docstring 누락
 

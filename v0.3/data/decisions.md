@@ -480,3 +480,14 @@
 - D3 표시·AI: 칩 라벨 '부상 기록'(adjustment_labels·프론트 CHIP). 사유 문구(adjustment_reason, AI 채팅에도 실림)는 질병과 같은 일반 문구 '컨디션 이상'. AI 근거(`coach_evidence._trigger_items`)는 `redact_health_for_ai` 가 injury 를 **동의와 무관하게 항상** '컨디션 신호'(condition, 값·detail 제거)로 바꾼다 — 질병 동의를 받은 사용자에게도 부상 상세는 안 보낸다. 능동 인사이트는 기존 pain_flag 문구('몸 상태 이상 신호')를 쓰고 근거 스냅샷에서 injury 를 뺀다(get_insights 도구). 추가 동의 질문 없음.
 - D4 삭제: 부상 에피소드 삭제 시 plan_adjustments 의 injury 신호를 condition 으로 익명화하고, 트리거가 부상뿐인 proposed 는 철회. AI 에 원문을 보낸 적이 없어 ai_cache·대화는 건드리지 않는다.
 - 미결(사용자 확인): 복귀 구간 3일·가벼운 부상 reduce(휴식 아님)·source=pain 묶음. 주간 적응(`weekly_adapt.injury_flag`)에는 아직 연결하지 않음.
+
+## ADR-059: 규칙 문구 AI 다듬기 공통 계층 — 규칙이 기본값, 캐시 전용 조회 (2026-11-19)
+- 배경: 사용자 결정 — AI 연결이 있으면 규칙 기반 사용자 문구를 AI 가 다듬는다(1~3단계 전부 승인). 기존 표면(metric_note·narrative·adherence·insight polish)이 각자 캐시·검증·관문을 따로 구현해 표면마다 같은 코드를 다시 쓰게 됐다. 점검 결과는 `phase-7-ui-renewal/REVIEW-AI-WORDING.md`.
+- D1 계층: `src/services/ai_wording.py` — `Surface`(name·guide·max_chars·forbidden·needs_consent·model=haiku·version) 선언 → `present(conn, surface, scope_key, rule_text, facts)` 가 {text, source:'ai'|'rule'}. 요청 스레드는 캐시만 읽고 큐·LLM 을 부르지 않는다. 생성은 `warm`/`warm_in_background`(동기화 뒤).
+- D2 저장: 기존 `ai_outputs` 재사용, kind=`w:<name>`, src_hash=(version, guide, max_chars, 원문, facts). job kind 는 haiku `insight_polish` 재사용 — 새 AI_JOB_KINDS·DEADLINE·마이그레이션 없음. 원문과 같은 응답은 `unchanged` 로 저장(재요청 없음, 화면은 규칙 문구).
+- D3 관문: needs_consent 표면은 coach_consent.provider='claude_queue' 일 때만(다른 제공자 동의는 이 경로에 쓰지 않음, ADR-055), 전역 사용량 warm_stop_ratio 미만, 큐 가용, 표면·DB 별 비차단 락. 정적 문구만 보내는 표면은 needs_consent=False.
+- D4 검증: 숫자 ⊆ 근거(text+facts, id 제외, 반올림 0·1자리 허용 `numbers_ok` — 기존 4종 검증도 이 함수로 통일), 길이·마크다운·표면 금지어·건강 용어 금지. 실패는 저장하지 않는다.
+- D5 건강: AI 로 보내기 전 원문·facts 문자열의 건강 용어(질병·통증·부상·부위·진단) 문장은 '몸 상태 이상 신호가 있어요.' 로 일반화(ADR-057/058 와 같은 원칙). facts 에 메모·자유 입력 금지.
+- D6 표시: 프런트 `AiMark`(`$lib/aiWording.isAiWorded`) 는 source==='ai' 일 때만 'AI 해설'. '규칙 기반 요약' 라벨은 폐지(규칙 문구가 기본값).
+- D7 표면 정책: metric_note 는 2단계 개인화 지표 해석으로 대체 후 drop(사용자 확인), narrative·adherence 유지, insight polish 는 비건강 근거 신호를 facts 로 주도록 개선. 새 표면은 이 계층으로만 추가한다.
+- 미결(사용자 확인): 요청 스레드의 narrative 동기 LLM 호출 제거, insight polish·adherence 동의 관문 추가, 동의 기준(claude_queue 한정 vs 아무 동의).
