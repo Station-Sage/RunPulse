@@ -2,17 +2,21 @@
 	// 랩 표 — 고정 열 + 발산 막대(160px), 인터벌이면 워크/회복 그룹 뷰가 기본(20 §2-6).
 	import type { ActivityLap } from '$lib/types';
 	import { formatDistance, formatDuration, formatPace } from '$lib/format';
-	import { classifyIntervals, divergence, lapPace } from '$lib/lapGroups';
+	import { classifyIntervals, divergence, groupByStep, lapPace } from '$lib/lapGroups';
 
 	let { laps, per100m = false }: { laps: ActivityLap[]; per100m?: boolean } = $props();
 
 	const paces = $derived(laps.map(lapPace));
+	const steps = $derived(groupByStep(laps));
 	const interval = $derived(classifyIntervals(laps));
 	let grouped = $state(true);
-	const showGroups = $derived(interval != null && grouped);
+	const showGroups = $derived((steps != null || interval != null) && grouped);
 	const validPaces = $derived(paces.filter((p): p is number => p != null));
+	const workLaps = $derived(steps ? steps.filter((b) => b.kind === 'ACTIVE') : []);
 	const basePace = $derived(
-		interval ? interval.workAvg : validPaces.length ? validPaces.reduce((a, b) => a + b, 0) / validPaces.length : null
+		steps && workLaps.length
+			? workLaps.reduce((a, b) => a + b.duration, 0) / (workLaps.reduce((a, b) => a + b.distance, 0) / 1000)
+			: interval ? interval.workAvg : validPaces.length ? validPaces.reduce((a, b) => a + b, 0) / validPaces.length : null
 	);
 	const hideTime = $derived(laps.every((l) => l.lap_trigger === 'distance'));
 
@@ -54,9 +58,10 @@
 {/snippet}
 
 <div class="flex flex-col gap-2">
-	{#if interval}
+	{#if steps || interval}
 		<div class="flex flex-wrap items-center gap-2 text-xs text-fg-secondary" data-testid="lap-interval-head">
-			<span>워크 평균 {formatPace(interval.workAvg, per100m)} · 회복 평균 {formatPace(interval.recoveryAvg, per100m)}</span>
+			{#if steps}<span>워치 단계 기준 묶음 · 소계는 합산 시간 ÷ 합산 거리</span>
+			{:else if interval}<span>워크 평균 {formatPace(interval.workAvg, per100m)} · 회복 평균 {formatPace(interval.recoveryAvg, per100m)}</span>{/if}
 			<button
 				type="button"
 				class="ml-auto inline-flex min-h-11 items-center rounded border border-border-subtle px-3 text-fg-muted"
@@ -80,7 +85,18 @@
 					<th class="py-1.5 text-right font-normal">상승</th>
 				</tr>
 			</thead>
-			{#if showGroups}
+			{#if showGroups && steps}
+				{#each steps as b, bi (bi)}
+					<tbody data-testid="lap-group" data-role={b.kind}>
+						<tr class="text-xs" data-testid="lap-group-head">
+							<th colspan="9" class="pt-3 pb-1 text-left font-normal text-fg-secondary">
+								{b.label} · {b.idx.length}개 · {formatDistance(b.distance, 2)} · {formatDuration(Math.round(b.duration))}{b.pace != null ? ` · ${formatPace(b.pace, per100m)}` : ''}
+							</th>
+						</tr>
+						{#each b.idx as i (i)}{@render row(i)}{/each}
+					</tbody>
+				{/each}
+			{:else if showGroups}
 				{#each blocks as b, bi (bi)}
 					<tbody data-testid="lap-group" data-role={b.role}>
 						<tr>

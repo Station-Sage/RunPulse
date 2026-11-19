@@ -181,7 +181,7 @@ export interface ActivityLap {
 	max_power: number | null;
 	elevation_gain: number | null;
 	calories: number | null;
-	lap_trigger: string | null;
+	lap_trigger: string | null; lap_kind?: string | null;
 }
 
 export interface ActivityImpact {

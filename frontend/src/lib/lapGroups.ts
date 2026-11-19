@@ -74,3 +74,37 @@ export function lapPaceBasisDiffers(laps: ActivityLap[]): boolean {
 		return Math.abs(l.duration_sec / (l.distance_m / 1000) - l.avg_pace_sec_km) >= 1;
 	});
 }
+
+export interface StepBlock {
+	kind: string;
+	label: string;
+	idx: number[];
+	distance: number;
+	duration: number;
+	pace: number | null;
+}
+
+const KIND_LABEL: Record<string, string> = { WARMUP: '워밍업', RECOVERY: '회복', COOLDOWN: '쿨다운', REST: '휴식' };
+
+/** 워치가 기록한 랩 단계(lap_kind)로 연속 구간을 묶고 소계(거리·시간·합산 페이스)를 낸다. 단계가 2종 미만이면 null. */
+export function groupByStep(laps: ActivityLap[]): StepBlock[] | null {
+	const kinds = new Set(laps.map((l) => l.lap_kind).filter((k): k is string => !!k));
+	if (kinds.size < 2 || laps.some((l) => !l.lap_kind)) return null;
+	const out: StepBlock[] = [];
+	let sets = 0;
+	laps.forEach((l, i) => {
+		const k = l.lap_kind as string;
+		let b = out[out.length - 1];
+		if (!b || b.kind !== k) {
+			if (k === 'ACTIVE') sets++;
+			b = { kind: k, label: k === 'ACTIVE' ? `인터벌 ${sets}` : (KIND_LABEL[k] ?? k), idx: [], distance: 0, duration: 0, pace: null };
+			out.push(b);
+		}
+		b.idx.push(i);
+		b.distance += l.distance_m ?? 0;
+		b.duration += l.duration_sec ?? 0;
+	});
+	for (const b of out) b.pace = b.distance > 0 && b.duration > 0 ? b.duration / (b.distance / 1000) : null;
+	if (sets === 1) for (const b of out) if (b.kind === 'ACTIVE') b.label = '인터벌';
+	return out;
+}
