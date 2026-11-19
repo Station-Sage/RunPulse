@@ -53,3 +53,11 @@ export function triggerChips(adj: PlanAdjustment): string[] {
 		.filter((s) => s.role === 'trigger' && CHIP[s.signal])
 		.map((s) => CHIP[s.signal](s.value));
 }
+
+/** 사유 표시 — 오늘 조정에 Today '오늘 이유' AI 문장이 있으면 그것을 요약 줄(key 'summary') 대신 쓴다(ADR-059 D20). */
+export function adjustmentReasonView(adj: PlanAdjustment): { aiText: string | null; labels: string[] } {
+	const w = adj.reason_wording;
+	const aiText = w && w.source === 'ai' && w.text ? w.text : null;
+	const labels = adj.reasons.filter((r) => r.label && !(aiText && r.key === 'summary')).map((r) => r.label);
+	return { aiText, labels };
+}

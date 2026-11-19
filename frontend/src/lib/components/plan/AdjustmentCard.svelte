@@ -5,10 +5,12 @@
 	import { acceptAdjustment, getTodaysAdjustment, revertAdjustment } from '$lib/api/plan';
 	import { workoutLabel } from '$lib/format';
 	import Icon from '$lib/components/Icon.svelte';
+	import AiMark from '$lib/components/AiMark.svelte';
 	import {
 		adjustmentActions,
 		adjustmentDelta,
 		adjustmentHeadline,
+		adjustmentReasonView,
 		adjustmentStateText,
 		triggerChips
 	} from '$lib/adjustmentView';
@@ -52,7 +54,8 @@
 		error = null;
 		try {
 			const r = await fn();
-			adj = r.adjustment;
+			// 수락·되돌리기 응답엔 AI 사유 문장이 없다 — 같은 조정이면 직전 문장을 유지한다
+			adj = { ...r.adjustment, reason_wording: r.adjustment.reason_wording ?? (adj?.id === r.adjustment.id ? adj?.reason_wording : null) };
 			cur = r.adjustment.state;
 			onChange?.();
 		} catch (e) {
@@ -71,6 +74,7 @@
 	const actions = $derived(adjustmentActions(cur));
 	const headline = $derived(adjustmentHeadline(cur));
 	const note = $derived(adjustmentStateText(cur));
+	const reasonView = $derived(adj ? adjustmentReasonView(adj) : { aiText: null, labels: [] });
 </script>
 
 {#if adj && (headline || note)}
@@ -84,8 +88,14 @@
 			{#each triggerChips(adj) as chip (chip)}
 				<span class="mr-1 mt-1 inline-block rounded bg-surface-1 px-1.5 py-0.5 text-xs text-fg-secondary" data-testid="adj-trigger-chip">{chip}</span>
 			{/each}
-			{#each adj.reasons.filter((r) => r.label) as r (r.label)}
-				<p class="mt-0.5 text-xs text-fg-muted">{r.label}</p>
+			<!-- 오늘 조정이면 Today '오늘 이유'의 AI 문장을 요약 줄 대신 쓴다(ADR-059 D20). 나머지 사유 줄은 그대로 -->
+			{#if reasonView.aiText}
+				<p class="mt-0.5 text-xs text-fg-secondary" data-testid="adj-reason-wording">
+					{reasonView.aiText} <AiMark source="ai" />
+				</p>
+			{/if}
+			{#each reasonView.labels as label (label)}
+				<p class="mt-0.5 text-xs text-fg-muted">{label}</p>
 			{/each}
 		{:else if note}
 			<p class="text-xs text-fg-muted">{note}</p>

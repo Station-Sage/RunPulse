@@ -98,3 +98,20 @@ def collect(conn: sqlite3.Connection, day: str | None = None) -> list[aw.Item]:
     state, adj = today_hero.briefing_core(conn, day, week)
     it = item(conn, day, state, adj, week, today_hero.race_days_left(conn, day))
     return [it] if it else []
+
+
+def ai_view_for_adjustment(conn: sqlite3.Connection, day: str) -> dict | None:
+    """계획 조정 카드용 — 그날 Today '오늘 이유'의 AI 문장({text, source:'ai'})을 재사용한다(사용자 결정 2026-11-20, D20).
+
+    캐시만 읽고 생성을 예약하지 않는다(생성은 Today·동기화 경로). 조정(adjust) 사유가 아니거나 캐시가 낡았거나
+    AI 문장이 없으면 None — 카드는 규칙 사유 줄을 그대로 쓴다.
+    """
+    try:
+        items = collect(conn, day)
+    except Exception:  # noqa: BLE001 — 카드 조회를 실패시키지 않는다(규칙 사유로 계속)
+        return None
+    if not items or items[0].facts.get("kind") != "adjust":
+        return None
+    it = items[0]
+    view = aw.present(conn, SURFACE, it.scope_key, it.rule_text, it.facts, it.basis)
+    return view if view["source"] == "ai" else None

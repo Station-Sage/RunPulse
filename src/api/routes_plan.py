@@ -88,6 +88,9 @@ def get_plan_adjustment():
         result = plan_service.get_todays_adjustment(conn)
         day = plan_adjustment_service.get_day_adjustment(conn, date.today().isoformat())
         user_adj = plan_adjustment_service.get_user_adjustment(conn, date.today().isoformat())
+        if day["adjustment"] and day["state"] in ("proposed", "accepted"):
+            from src.services.today_reason_wording import ai_view_for_adjustment
+            day["adjustment"]["reason_wording"] = ai_view_for_adjustment(conn, date.today().isoformat())
     finally:
         conn.close()
     base = result if result is not None else {"adjusted": False, "adjustment_reason": None}

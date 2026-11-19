@@ -781,8 +781,7 @@ export interface BriefingStateFields {
 	session: BriefingSession | null;
 	adjustment: { reason: string | null; from: string; to: string } | null;
 	hold_reason?: HoldReason[] | null;
-	/** 조정·보류 사유 문장(ADR-059) — source==='ai' 면 AI 가 다듬은 문장, 'rule' 이면 화면이 규칙 문구를 조립. */
-	reason_wording?: { text: string; source: 'ai' | 'rule' } | null;
+	reason_wording?: { text: string; source: 'ai' | 'rule' } | null; // 조정·보류 사유 문장(ADR-059) — 'ai' 면 AI 문장, 'rule' 이면 화면이 규칙 문구 조립
 	caveats: BriefingCaveat[];
 }
 
@@ -1321,6 +1320,7 @@ export interface PlanAdjustment {
 	decision: 'proposed' | 'accepted' | 'reverted';
 	rev: number;
 	state: AdjustmentState;
+	reason_wording?: { text: string; source: 'ai' | 'rule' } | null; // 오늘 조정이면 Today '오늘 이유' AI 문장 재사용(ADR-059 D20)
 }
 
 export type WorkoutActionResult = AdjustmentDecisionResult;

@@ -4,6 +4,7 @@ import {
 	adjustmentActions,
 	adjustmentDelta,
 	adjustmentHeadline,
+	adjustmentReasonView,
 	adjustmentStateText
 } from '../src/lib/adjustmentView.ts';
 
@@ -46,4 +47,14 @@ test('triggerChips: trigger 역할 신호만 칩으로, v2(신호 없음)는 빈
 	);
 	// 부상 단독 트리거(ADR-058) — 정도·단계는 칩에 드러내지 않는다
 	assert.deepEqual(triggerChips({ signals: [{ signal: 'injury', role: 'trigger', value: 2 }] }), ['부상 기록']);
+});
+
+test('adjustmentReasonView: AI 사유 문장이 있으면 요약 줄 대신, 없으면 규칙 줄 그대로', () => {
+	const reasons = [{ key: 'summary', label: 'TSB 낮음' }, { key: 'readiness', label: '수면 짧음' }];
+	const base = { ...adj(side('tempo', 10), side('easy', 6)), reasons };
+	assert.deepEqual(adjustmentReasonView(base), { aiText: null, labels: ['TSB 낮음', '수면 짧음'] });
+	const ai = { ...base, reason_wording: { text: '피로가 쌓여 오늘은 이지로 바꿔요.', source: 'ai' } };
+	assert.deepEqual(adjustmentReasonView(ai), { aiText: '피로가 쌓여 오늘은 이지로 바꿔요.', labels: ['수면 짧음'] });
+	const rule = { ...base, reason_wording: { text: 'x', source: 'rule' } };
+	assert.equal(adjustmentReasonView(rule).aiText, null);
 });
