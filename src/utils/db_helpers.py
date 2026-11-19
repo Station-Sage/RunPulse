@@ -230,7 +230,7 @@ def upsert_metric(
     scope_id_str = str(scope_id)
 
     # allow-list 메트릭만 재계산 감지 (전체에 걸면 sync 성능 저하). provider 무관 — 검토 중 알고리즘·참조값도
-    # 저장해 A/B 비교에 쓰고, 표시는 milestone_present 가 골라낸다.
+    # 저장해 A/B 비교에 쓰고, 조회(milestone_service)가 표시에서 제외한다.
     if metric_name in _MILESTONE_TRACKED_METRICS and numeric_value is not None:
         existing = conn.execute(
             "SELECT numeric_value, algorithm_version FROM metric_store "

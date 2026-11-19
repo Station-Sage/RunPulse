@@ -357,11 +357,7 @@
 
 - functions: version_change_events, recompute_note
 
-### `milestone_present.py` (51줄) — 마일스톤 표시용 가공(순수) — 갱신(같은 알고리즘 안의 값 변화) 항목의 내부 메트릭 키를 사람이 읽는 이름으로 바꾸고, 같은 날 예측 갱신은 한 줄로 묶는다.
-
-- functions: present_milestones
-
-### `milestone_service.py` (266줄) — Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
+### `milestone_service.py` (265줄) — Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
 
 - functions: detect_and_store_milestones, get_recent_milestones
 
@@ -3143,13 +3139,13 @@
 
 - functions: test_mixed_versions_give_one_event, test_provider_switch_gives_one_event, test_single_version_and_no_data, test_recompute_note_present_and_absent
 
-### `test_milestone_service.py` (355줄) — tests/test_milestone_service.py — milestone_service 단위 테스트.
+### `test_milestone_service.py` (338줄) — tests/test_milestone_service.py — milestone_service 단위 테스트.
 
 - class **TestDistanceThreshold**: test_100km_created_on_crossing, test_multiple_thresholds_crossed, test_no_duplicate_on_second_call
 - class **TestPB**: test_pb_created_when_faster, test_no_pb_when_slower, test_no_pb_for_first_race, test_pb_no_duplicate, test_pb_race_keyword_detection
 - class **TestMetricRecompute**: test_recompute_milestone_created_on_version_change, test_no_recompute_below_threshold, test_no_recompute_for_non_allowlist_metric
 - class **TestGetRecentMilestones**: test_returns_empty_when_no_milestones, test_returns_ordered_by_date_desc, test_limit_respected, test_date_range_filters, test_no_date_range_returns_all
-- functions: test_present_merges_prediction_updates_and_humanizes, test_recompute_kinds_are_stored_for_ab_but_only_data_changes_are_shown, test_v22_reclassifies_old_version_change_rows
+- functions: test_recompute_kinds_are_stored_but_never_shown, test_v22_reclassifies_old_version_change_rows
 
 ### `test_mock_calcs.py` (127줄) — MockCalcContext를 활용한 calculator 단위 테스트 (보강 #5).
 
@@ -4058,7 +4054,7 @@
 - functions: run
 
 ---
-총 882개 파일
+총 881개 파일
 
 ## docstring 누락
 

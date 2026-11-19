@@ -60,8 +60,8 @@ def get_recent_milestones(
     기간에서 최신순).
     """
     conn.row_factory = sqlite3.Row
-    # 알고리즘 변경으로 인한 재계산·검토 중/참조 provider 값은 저장만 하고(A/B 기록) 보여 주지 않는다
-    clauses = ["type != 'algo_recompute'",
+    # 지표 재계산(알고리즘 변경·값 갱신)은 사용자 이야기가 아니라 내부 사건 — 저장만 하고 마일스톤에는 보여 주지 않는다
+    clauses = ["type NOT IN ('algo_recompute', 'metric_recompute')",
                "(provider IS NULL OR (provider NOT LIKE '%:shadow%' AND provider NOT LIKE '%:ref\\_%' ESCAPE '\\'))"]
     params: list = []
     if date_from:
@@ -73,10 +73,9 @@ def get_recent_milestones(
     where = f"WHERE {' AND '.join(clauses)} " if clauses else ""
     rows = conn.execute(
         f"SELECT * FROM milestones {where}ORDER BY date DESC, id DESC LIMIT ?",
-        (*params, limit * 5),          # 같은 날 예측 재계산이 한 줄로 합쳐지므로 넉넉히 읽고 자른다
+        (*params, limit),
     ).fetchall()
-    from src.services.milestone_present import present_milestones
-    return present_milestones([dict(r) for r in rows])[:limit]
+    return [dict(r) for r in rows]
 
 
 # ── 내부 헬퍼 ─────────────────────────────────────────────────────

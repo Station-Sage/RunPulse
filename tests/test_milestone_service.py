@@ -299,23 +299,6 @@ class TestGetRecentMilestones:
         assert len(result) == 1
 
 
-def test_present_merges_prediction_updates_and_humanizes():
-    from src.services.milestone_present import present_milestones
-    rows = [
-        {"id": 4, "type": "metric_recompute", "date": "2026-09-26", "title": "race_pred_marathon_sec 재계산",
-         "detail": "2.0→2.0 적용", "metric_name": "race_pred_marathon_sec", "old_value": 13491.0, "new_value": 13300.0},
-        {"id": 3, "type": "metric_recompute", "date": "2026-09-26", "title": "race_pred_5k_sec 재계산",
-         "detail": "2.0→2.0 적용", "metric_name": "race_pred_5k_sec", "old_value": 1400.0, "new_value": 1330.0},
-        {"id": 2, "type": "metric_recompute", "date": "2026-09-26", "title": "ctl 재계산",
-         "detail": "2.0→2.0 적용", "metric_name": "ctl", "old_value": 60.0, "new_value": 74.2},
-        {"id": 1, "type": "pb", "date": "2026-05-09", "title": "10K PB", "detail": None, "metric_name": None},
-    ]
-    out = present_milestones(rows)
-    assert [r["title"] for r in out] == ["예측 기록 갱신", "체력(CTL) 갱신", "10K PB"]
-    assert out[0]["detail"] == "5K 23:20→22:10 · 마라톤 3:44:51→3:41:40"
-    assert out[1]["detail"] == "60.0→74.2"
-
-
 def _conn_with_milestones():
     import sqlite3
     from src.db_setup import create_tables
@@ -330,7 +313,7 @@ def _upsert_twice(c, prov, v1, v2, ver1, ver2, name="race_pred_marathon_sec"):
     upsert_metric(c, "daily", "2026-09-26", name, prov, numeric_value=v2, algorithm_version=ver2)
 
 
-def test_recompute_kinds_are_stored_for_ab_but_only_data_changes_are_shown():
+def test_recompute_kinds_are_stored_but_never_shown():
     from src.services.milestone_service import get_recent_milestones
     c = _conn_with_milestones()
     _upsert_twice(c, "runpulse:formula_v1", 16000.0, 13000.0, "1.0", "2.0")          # 알고리즘 변경 — 저장만
@@ -340,7 +323,7 @@ def test_recompute_kinds_are_stored_for_ab_but_only_data_changes_are_shown():
     assert stored == {("algo_recompute", "runpulse:formula_v1"), ("metric_recompute", "runpulse:shadow_r4"),
                       ("metric_recompute", "runpulse:formula_v1")}
     shown = get_recent_milestones(c, limit=10)
-    assert [m["title"] for m in shown] == ["예측 기록 갱신"]
+    assert shown == []
 
 
 def test_v22_reclassifies_old_version_change_rows():
