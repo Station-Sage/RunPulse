@@ -72,6 +72,12 @@ aw.warm_in_background(db_path, config, REASON, collect=lambda c: [aw.Item(day, r
 캐시·검증 가능), Story 월·주 문단(`story_service`). 2단계: 지표 해석 전반(`metrics_explain_*`, metric_note 대체) + insight `polished`
 프런트 연결. 3단계: 예측 설명·마일스톤 문구·플랜 조정/weekly_adapt·더위 예보. 각 표면은 Surface 선언 + collect 함수 + 응답 `source` 만 추가한다.
 
+## 5-1. 1단계 적용 결과 (2026-11-19)
+
+Today 조정·보류 사유(`today_reason`), '이 러닝의 의미'(`activity_impact`, 문장 조립 서버 이전), Story 월·주 문단(`story_paragraph`)을
+공통 계층에 올렸다(ADR-059 D8·D9). 각 표면 facts 는 §4 기준대로 규칙 문장에 없는 연결 근거(대회까지 남은 일수·이번 주 진행·그날 계획 세션·
+이전 기간 대비·강도 분포·마일스톤)를 준다. 테스트 `tests/test_ai_wording_surfaces.py`.
+
 ## 6. 사용자 확인 필요
 
 1. §2 A~C: 요청 스레드 동기 LLM 호출 제거(캐시 전용화)와 insight polish·adherence 에 동의 관문 추가 — 동의 없는 사용자는 AI 문구가 사라진다.

@@ -491,3 +491,5 @@
 - D6 표시: 프런트 `AiMark`(`$lib/aiWording.isAiWorded`) 는 source==='ai' 일 때만 'AI 해설'. '규칙 기반 요약' 라벨은 폐지(규칙 문구가 기본값).
 - D7 표면 정책: metric_note 는 2단계 개인화 지표 해석으로 대체 후 drop(사용자 확인), narrative·adherence 유지, insight polish 는 비건강 근거 신호를 facts 로 주도록 개선. 새 표면은 이 계층으로만 추가한다.
 - 미결(사용자 확인): 요청 스레드의 narrative 동기 LLM 호출 제거, insight polish·adherence 동의 관문 추가, 동의 기준(claude_queue 한정 vs 아무 동의).
+- D8 1단계 표면(2026-11-19 추가): `today_reason`(Today 히어로 조정·보류 사유, scope=날짜, `today_reason_wording`), `activity_impact`('이 러닝의 의미', scope=활동 id, `activity_impact_wording` — 문장 조립을 프런트 `impactLines` 에서 서버 `impact_lines` 로 옮겨 응답 `impact.lines`·`impact.wording`), `story_paragraph`(/library/story 월·주 문단, scope=기간 id, `story_wording`, 블록·미래·기록 없음 제외). 판정(조정 여부·종류)은 규칙 그대로이고 AI 에는 비건강 신호·계획 맥락만 facts 로 준다(활동 이름·메모·목표 외 자유 입력 제외). 칩은 규칙 그대로.
+- D9 요청 경로 예약: `ai_wording_live.present_or_warm` — 캐시만 읽고, 낡았으면 (DB, 표면, 항목, src_hash) 당 30분 쿨다운으로 한 번만 백그라운드 생성을 예약(대기 없음). 검증 실패로 저장되지 않은 항목이 화면을 열 때마다 재호출되는 것을 막는다(프로세스 메모리, 워커별). 동기화 직후 `warm_after_sync` 가 세 표면(Today 오늘·Story 이번 달/주·최근 러닝 3건)을 한 스레드에서 워밍한다. 동의 기준은 `ai_wording._consent_ok` 한 함수에만 있다(미결 결정 시 그 함수만 바꾼다).

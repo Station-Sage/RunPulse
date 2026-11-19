@@ -34,7 +34,7 @@
 
 - functions: activity_counts
 
-### `activity_detail_service.py` (255줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
+### `activity_detail_service.py` (260줄) — Phase 5 서비스 레이어 - 활동 상세 조회.
 
 - functions: get_activity_detail
 
@@ -55,6 +55,10 @@
 ### `activity_impact_service.py` (137줄) — 활동 상세 임팩트 — CTL Δ·유사 활동 비교·레이스 맥락.
 
 - functions: get_activity_impact
+
+### `activity_impact_wording.py` (133줄) — 활동 상세 '이 러닝의 의미' 문장 — 규칙 줄(서버 생성)과 AI 요약 표면 (ADR-059 1단계).
+
+- functions: impact_lines, facts, item, attach, collect
 
 ### `activity_list_filters.py` (128줄) — 활동 목록 필터·정렬 SQL 조립 (UX 리뷰 20 §7-2 ④, B-3 공용).
 
@@ -128,11 +132,15 @@
 
 - functions: mask_key, key_state, usage_7d, build_view, key_format_error, validate_patch, apply_patch, test_connection
 
-### `ai_wording.py` (281줄) — 규칙 문구 AI 다듬기 공통 계층 (ADR-059) — 표면(surface)을 선언하면 캐시 조회·백그라운드 생성·검증·건강 익명화를 공통으로 쓴다.
+### `ai_wording.py` (286줄) — 규칙 문구 AI 다듬기 공통 계층 (ADR-059) — 표면(surface)을 선언하면 캐시 조회·백그라운드 생성·검증·건강 익명화를 공통으로 쓴다.
 
 - class **Surface**: kind
 - class **Item**: 없음
-- functions: register, get_surface, redact_health_text, numbers_ok, validate, src_hash, get_cached, present, gate, build_prompt, parse_items, warm, warm_in_background
+- functions: register, get_surface, redact_health_text, numbers_ok, validate, src_hash, is_fresh, get_cached, present, gate, build_prompt, parse_items, warm, warm_in_background
+
+### `ai_wording_live.py` (89줄) — AI 다듬기 요청 경로 연결 (ADR-059) — 캐시를 읽어 응답하고, 낡았으면 기다리지 않고 백그라운드 생성을 예약한다.
+
+- functions: reset_cooldown, present_or_warm, warm_after_sync
 
 ### `archive_service.py` (121줄) — 러닝 아카이브 — 누적 통계·월별 거리·365일 히트맵·개인 최고 기록(읽기 전용).
 
@@ -572,13 +580,17 @@
 
 - functions: iso_weeks_in_year, week_neighbors
 
-### `story_service.py` (233줄) — Phase 7 Story 서비스 — 월/주/블록 단위 훈련 내러티브 조회.
+### `story_service.py` (241줄) — Phase 7 Story 서비스 — 월/주/블록 단위 훈련 내러티브 조회.
 
-- functions: get_story
+- functions: get_story, build_story
 
 ### `story_stats.py` (215줄) — Story 기간 통계 조회 — 거리·CTL·강도 분포·위험 피크·핵심 세션 (story_service 하위 모듈).
 
 - (public API 없음)
+
+### `story_wording.py` (81줄) — /library/story 월·주 문단의 AI 다듬기 표면 (ADR-059 1단계) — 규칙 문단 + 기간 근거를 엮은 한 문단.
+
+- functions: facts, item, current_periods, collect
 
 ### `stream_downsample.py` (43줄) — 스트림 다운샘플(A-36 후속) — 소스별 균등 간격 추리기, 첫·끝 점 보존. 요청 시에만 적용(기본은 전체 해상도).
 
@@ -598,9 +610,9 @@
 - class **TriggerResult**: 없음
 - functions: connection_skip, days_since_last_sync, plan_incremental, trigger_incremental
 
-### `today_hero.py` (213줄) — Today 히어로·주간 스트립 데이터 — briefing.state 판정, 세션·조정·결손 caveat, week_compliance.
+### `today_hero.py` (227줄) — Today 히어로·주간 스트립 데이터 — briefing.state 판정, 세션·조정·결손 caveat, week_compliance.
 
-- functions: race_days_left, build_week, build_briefing_state, build_race_summary, build_today_extras
+- functions: race_days_left, build_week, build_briefing_state, briefing_core, build_race_summary, build_today_extras
 
 ### `today_narrative.py` (162줄) — Today L2 성장 내러티브 — AI 우선, 규칙 기반 fallback (today_service 에서 분리, 300줄 캡).
 
@@ -609,6 +621,10 @@
 ### `today_readiness.py` (59줄) — Today 게이지 데이터 — UTRS/CIRS/TSB의 값·전일 대비·서버 등급(status/status_label)·provider.
 
 - functions: build_readiness
+
+### `today_reason_wording.py` (100줄) — Today 히어로 조정·보류 사유의 AI 다듬기 표면 (ADR-059 1단계) — 판정은 규칙 그대로, 문장만 원인과 오늘 세션을 잇는다.
+
+- functions: rule_text, facts, item, collect
 
 ### `today_service.py` (240줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
@@ -898,7 +914,7 @@
 
 - functions: scheduler_mode, start, stop, restart, status
 
-### `bg_sync.py` (584줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
+### `bg_sync.py` (586줄) — 백그라운드 기간 동기화 실행기 — 서비스별 Thread + pause/stop 제어.
 
 - class **_Starting**: is_alive
 - class **BgSyncThread**: pause, resume, stop, cancel, run
@@ -1940,7 +1956,7 @@
 
 - functions: get_insights, post_insight_dismiss, post_insight_seen
 
-### `routes_library.py` (300줄) — GET /api/v1/library/activities(+:id, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b.
+### `routes_library.py` (303줄) — GET /api/v1/library/activities(+:id, +:id/providers) + /archive + /metrics/:slug + /wellness — Phase 7a/7b.
 
 - functions: get_library_activities, get_library_activity_detail, get_library_metric_breakdown, get_library_activity_providers, get_library_metrics_browser, get_library_metric_trend, get_library_wellness, get_library_providers_status, get_library_providers_coverage, get_library_providers_matrix, get_library_providers_pairs, get_library_wellness_trend, get_library_archive
 
@@ -2207,6 +2223,10 @@
 ### `test_ai_wording.py` (137줄) — 규칙 문구 AI 다듬기 공통 계층(ai_wording, ADR-059).
 
 - functions: queue, test_numbers_ok, test_redact_health_text_sentence_level, test_validate, test_present_rule_then_ai_then_stale, test_warm_rejects_invalid_and_unchanged_is_not_ai, test_id_numbers_are_not_evidence, test_health_is_redacted_before_prompt, test_gate_requires_queue_consent, test_gate_static_surface_skips_consent_but_not_budget, test_register_conflict_and_missing_template, test_get_cached_without_table_is_none, test_queue_failure_stores_nothing
+
+### `test_ai_wording_surfaces.py` (253줄) — ADR-059 1단계 표면 — Today 조정·보류 사유, '이 러닝의 의미', Story 문단 (캐시 적중·미스·해시 변경·익명화·폴백).
+
+- functions: conn, test_present_or_warm_schedules_once_and_not_on_hit, test_present_or_warm_memory_db_never_schedules, test_today_adjust_rule_then_ai, test_today_reason_ai_cached_and_stale_on_fact_change, test_today_hold_reason_item, test_today_health_reason_redacted_for_ai, test_today_no_reason_no_wording, test_impact_lines_parity_with_old_frontend, test_impact_attach_rule_ai_and_hash, test_impact_attach_none, test_story_rule_then_ai_then_stale, test_story_no_records_and_future_have_no_item, test_story_current_periods, test_collectors_run_on_db, test_warm_after_sync_runs_all_surfaces, test_story_warm_end_to_end_and_invalid_falls_back
 
 ### `test_ai_worker_coach_session.py` (79줄) — ai_worker 코치 스레드 — 상주 세션 풀 연동, ai_sessions 갱신, 퇴역·복구 (가짜 CLI).
 
@@ -4126,7 +4146,7 @@
 - functions: run
 
 ---
-총 898개 파일
+총 903개 파일
 
 ## docstring 누락
 
