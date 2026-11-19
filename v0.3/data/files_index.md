@@ -265,13 +265,13 @@
 - class **PendingMfa**: 없음
 - functions: sweep, put, get, claim, release, record_failure, remaining_s, discard, reset, set_multi_worker, is_available
 
-### `goal_service.py` (48줄) — 목표+대회 생성 (RC §2.3) — 대회를 A 로 만들거나 올린 뒤 add_goal(race_id=…). commit 은 호출자.
+### `goal_service.py` (50줄) — 목표+대회 생성 (RC §2.3) — 대회를 A 로 만들거나 올린 뒤 add_goal(race_id=…). commit 은 호출자.
 
 - functions: create_goal_with_race
 
-### `heat_forecast.py` (81줄) — 예보 기온 → 날짜별 폭염 보정(%) (E10) — 최근 러닝 시작 좌표의 7일 예보(아침 6~8시 평균)로 페이스 완화 폭을 구한다.
+### `heat_forecast.py` (87줄) — 예보 기온 → 날짜별 폭염 보정(%) (E10) — 최근 러닝 시작 좌표의 7일 예보(아침 6~8시 평균)로 페이스 완화 폭을 구한다.
 
-- functions: cache_key, clear_cache, home_coords, morning_temps, heat_pcts, forecast_heat_pct
+- functions: cache_key, clear_cache, home_coords, morning_temps, heat_pcts, forecast_heat_pct, forecast_morning_temps
 
 ### `illness_consent.py` (47줄) — 질병 정보 AI 코치 전송 동의 (NEW-12·14~17) — illness_consent_events 추가 전용 기록, 현재 상태 = 최신 행.
 
@@ -381,7 +381,7 @@
 
 - functions: version_change_events, recompute_note
 
-### `milestone_backfill.py` (68줄) — 사용자 사건·러닝 기록 마일스톤 1회 백필 (ADR-057) — 기존 출처 행에서 다시 만든다. 멱등(재실행 안전).
+### `milestone_backfill.py` (66줄) — 사용자 사건·러닝 기록 마일스톤 1회 백필 (ADR-057) — 기존 출처 행에서 다시 만든다. 멱등(재실행 안전).
 
 - functions: backfill, run_backfill
 
@@ -634,9 +634,9 @@
 
 - functions: build_readiness
 
-### `today_reason_wording.py` (100줄) — Today 히어로 조정·보류 사유의 AI 다듬기 표면 (ADR-059 1단계) — 판정은 규칙 그대로, 문장만 원인과 오늘 세션을 잇는다.
+### `today_reason_wording.py` (117줄) — Today 히어로 조정·보류 사유의 AI 다듬기 표면 (ADR-059 1단계) — 판정은 규칙 그대로, 문장만 원인과 오늘 세션을 잇는다.
 
-- functions: rule_text, facts, item, collect
+- functions: rule_text, facts, item, collect, ai_view_for_adjustment
 
 ### `today_service.py` (240줄) — Phase 7 서비스 레이어 - Today(관여 계층 L0~L2) 데이터 조회 + 체크인 저장.
 
@@ -662,7 +662,7 @@
 
 - functions: week_start_of, weeks_overlapping, week_digest, week_digests, digest_prompt_lines
 
-### `weekly_adapt_job.py` (73줄) — 주간 적응 잡 — 계획 조회 때 지난주 결과(적응)와 예보 폭염(페이스만, E10)으로 이번 주 남은 planner 행을 갱신한다(v2 목표만, 멱등).
+### `weekly_adapt_job.py` (74줄) — 주간 적응 잡 — 계획 조회 때 지난주 결과(적응)와 예보 폭염(페이스만, E10)으로 이번 주 남은 planner 행을 갱신한다(v2 목표만, 멱등).
 
 - functions: run
 
@@ -1466,9 +1466,9 @@
 - class **CalDavUnavailable**: 없음
 - functions: push_range, sync_after_replan, test_connection
 
-### `constraints.py` (113줄) — 주간 제약 규칙(순수) — 폭염 보정·차단일 재분배·B 레이스 미니 테이퍼·교차훈련 대체 (DESIGN-U16 §3.5).
+### `constraints.py` (121줄) — 주간 제약 규칙(순수) — 폭염 보정·차단일 재분배·B 레이스 미니 테이퍼·교차훈련 대체 (DESIGN-U16 §3.5).
 
-- functions: heat_adjust, redistribute_blocked, b_race_week, race_impact, cross_substituted
+- functions: heat_tag, heat_adjust, redistribute_blocked, b_race_week, race_impact, cross_substituted
 
 ### `fatigue.py` (168줄) — 공용 피로도·컨디션 판정 — wellness(Body Battery/수면/스트레스) + TSB 결합.
 
@@ -2016,7 +2016,7 @@
 
 - functions: get_preferences, patch_preferences
 
-### `routes_plan.py` (291줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
+### `routes_plan.py` (294줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
 
 - functions: get_active_plan_route, get_adherence_review_route, get_restorable_plans_route, get_plan_weeks_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan, restore_plan_route
 
@@ -2172,6 +2172,10 @@
 ### `test_adjuster_v3_proposal.py` (129줄) — adjuster_v3 제안·signals_json 저장·rev 규칙 (ADR-035 개정).
 
 - functions: test_and_trigger_proposes_replace_with_signals, test_single_signal_does_not_trigger, test_rest_and_race_rows_excluded, test_ensure_proposal_v3_stores_signals_and_rev_rule, test_default_version_is_v2, test_get_day_adjustment_exposes_signals_and_evidence_items, test_trigger_items_empty_for_manual_or_none, test_trigger_label, test_weekly_job_rolls_back_v3, test_trigger_items_redact_illness_without_consent, test_trigger_items_keep_illness_with_consent
+
+### `test_adjustment_reason_wording.py` (97줄) — 계획 조정 카드의 Today '오늘 이유' AI 문장 재사용(ADR-059 D20) — 캐시만, adjust 사유만, 실패는 None.
+
+- functions: conn, test_rule_only_returns_none, test_same_ai_sentence_as_today, test_hold_reason_is_not_adjustment, test_errors_fall_back_to_none, test_route_attaches_only_for_live_proposal
 
 ### `test_adjustment_signals.py` (72줄) — 조정 신호 수집(adjustment_signals, _race) 단위 테스트.
 
@@ -2588,9 +2592,9 @@
 
 - functions: tmp_config, test_save_config_creates_file, test_save_config_roundtrip, test_save_config_overwrites, test_update_service_config_creates_file, test_update_service_config_partial_update, test_update_service_config_new_service, test_redact_masks_password, test_redact_masks_token, test_redact_does_not_mutate_original, test_redact_empty_value_unchanged
 
-### `test_constraints.py` (58줄)
+### `test_constraints.py` (65줄)
 
-- functions: test_heat_moves_quality_and_keeps_km, test_heat_below_threshold_noop, test_blocked_redistribute_cap, test_b_race_week, test_cross_substituted, test_race_impact_windows_and_protection, test_race_impact_empty_outside_window
+- functions: test_heat_moves_quality_and_keeps_km, test_heat_tag_includes_forecast_temp, test_heat_below_threshold_noop, test_blocked_redistribute_cap, test_b_race_week, test_cross_substituted, test_race_impact_windows_and_protection, test_race_impact_empty_outside_window
 
 ### `test_consumer_migration.py` (257줄) — Phase 5-J consumer migration 검증 테스트.
 
@@ -3018,9 +3022,9 @@
 
 - functions: test_copy_id_is_computed_on_canonical_only, test_stale_copy_rows_pruned, test_group_streams_and_metric_filled_from_sibling
 
-### `test_heat_forecast.py` (53줄) — 예보 기온 → 폭염 보정(E10) 순수 변환.
+### `test_heat_forecast.py` (62줄) — 예보 기온 → 폭염 보정(E10) 순수 변환.
 
-- functions: test_morning_temps_and_pct, test_forecast_cache_hit_skips_getter, test_forecast_failure_not_cached
+- functions: test_morning_temps_and_pct, test_forecast_cache_hit_skips_getter, test_forecast_failure_not_cached, test_forecast_morning_temps_cached_and_pct_derived
 
 ### `test_heat_model.py` (25줄) — P7-PRED-33: 기온 계수 적합 + 수축.
 
@@ -3247,9 +3251,9 @@
 
 - functions: test_mixed_versions_give_one_event, test_provider_switch_gives_one_event, test_single_version_and_no_data, test_recompute_note_present_and_absent
 
-### `test_milestone_backfill.py` (68줄) — milestone_backfill — 기존 출처에서 마일스톤 재구성(날짜 규칙·멱등·dry-run 롤백) + 스크립트.
+### `test_milestone_backfill.py` (80줄) — milestone_backfill — 기존 출처에서 마일스톤 재구성(날짜 규칙·멱등·dry-run 롤백) + 스크립트.
 
-- functions: test_backfill_dates_and_idempotent, test_run_backfill_dry_run_rolls_back, test_script_main_dry_run_and_apply
+- functions: test_backfill_dates_and_idempotent, test_run_backfill_dry_run_rolls_back, test_script_main_dry_run_and_apply, test_replaced_goal_milestone_removed
 
 ### `test_milestone_hooks.py` (171줄) — milestone_events·milestone_hooks — 출처별 마일스톤 기록·병합·삭제 (ADR-057).
 
@@ -4190,7 +4194,7 @@
 - functions: run
 
 ---
-총 914개 파일
+총 915개 파일
 
 ## docstring 누락
 
