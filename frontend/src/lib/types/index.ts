@@ -203,10 +203,8 @@ export interface ActivityImpact {
 		load_pct_vs_median: number | null;
 	} | null;
 	race: { name: string; days_left: number } | null;
-	/** '이 러닝의 의미' 규칙 줄(서버 생성, ADR-059) */
-	lines?: string[];
-	/** AI 요약 — source==='ai' 일 때만 AI 문장 */
-	wording?: { text: string; source: 'ai' | 'rule' } | null;
+	lines?: string[]; // '이 러닝의 의미' 규칙 줄(서버 생성, ADR-059)
+	wording?: { text: string; source: 'ai' | 'rule' } | null; // AI 요약 — source==='ai' 일 때만 AI 문장
 }
 
 // ── 활동 상세 3-6: 서버 계산 스플릿·시계열·환경·존·소스 차이·판정 ──

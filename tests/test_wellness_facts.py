@@ -1,4 +1,4 @@
-"""웰니스 원값 근거(wellness_facts, ADR-059 D15) — 지표 해석·회복 인사이트 facts 포함, 건강 일반화 유지."""
+"""웰니스 원값 근거(wellness_facts, ADR-059 D18) — 지표 해석·회복 인사이트 facts 포함, 건강 일반화 유지."""
 from __future__ import annotations
 
 import json

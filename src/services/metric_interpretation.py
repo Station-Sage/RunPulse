@@ -3,7 +3,7 @@
 규칙 문장(밴드 so_what → 행동 힌트 → 90일 대비 personal 순)이 기본값이고, 동기화 뒤 백그라운드에서 다듬은 문장만
 `meaning.interpretation={text, source}` 로 덧붙인다(요청 스레드는 캐시만 읽음). AI 로 보내는 facts 는 계산 지표와
 회복 계열 지표(WELLNESS_SLUGS)의 웰니스 원값(수면·스트레스·안정시 심박·HRV·Body Battery, 그날 값과 본인 7·90일 평균,
-ADR-059 D15)이다. 체크인·메모·대회 이름은 넣지 않고, 문자열은 redact_health_text 를 거친다.
+ADR-059 D18)이다. 체크인·메모·대회 이름은 넣지 않고, 문자열은 redact_health_text 를 거친다.
 """
 from __future__ import annotations
 

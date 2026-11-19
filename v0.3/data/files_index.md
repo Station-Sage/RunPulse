@@ -56,9 +56,9 @@
 
 - functions: get_activity_impact
 
-### `activity_impact_wording.py` (133줄) — 활동 상세 '이 러닝의 의미' 문장 — 규칙 줄(서버 생성)과 AI 요약 표면 (ADR-059 1단계).
+### `activity_impact_wording.py` (157줄) — 활동 상세 '이 러닝의 의미' 문장 — 규칙 줄(서버 생성)과 AI 요약 표면 (ADR-059 1단계).
 
-- functions: impact_lines, facts, item, attach, collect
+- functions: impact_lines, facts, snapshot_basis, item, attach, collect
 
 ### `activity_list_filters.py` (128줄) — 활동 목록 필터·정렬 SQL 조립 (UX 리뷰 20 §7-2 ④, B-3 공용).
 
@@ -76,7 +76,7 @@
 
 - functions: get_activity_list, activity_exists, get_activity_streams, get_activity_streams_meta, get_activity_trend
 
-### `activity_similar.py` (95줄) — 활동 상세 '비슷한 활동' 비교 — 같은 코스 → 같은 유형 → 비슷한 거리 순으로 기준을 고른다.
+### `activity_similar.py` (97줄) — 활동 상세 '비슷한 활동' 비교 — 같은 코스 → 같은 유형 → 비슷한 거리 순으로 기준을 고른다.
 
 - functions: find_similar
 
@@ -88,7 +88,7 @@
 
 - functions: cumulative_distance, stopped_flags, compute_splits, series_step_m, build_series
 
-### `activity_summary_extras.py` (147줄) — 활동 상세 S1 부가 필드 — workout_class·environment·hr_zones·source_diffs·verdict.
+### `activity_summary_extras.py` (148줄) — 활동 상세 S1 부가 필드 — workout_class·environment·hr_zones·source_diffs·verdict.
 
 - functions: pace_cv, build_workout_class, build_environment, build_hr_zones, build_source_diffs, build_verdict
 
@@ -132,11 +132,15 @@
 
 - functions: mask_key, key_state, usage_7d, build_view, key_format_error, validate_patch, apply_patch, test_connection
 
-### `ai_wording.py` (286줄) — 규칙 문구 AI 다듬기 공통 계층 (ADR-059) — 표면(surface)을 선언하면 캐시 조회·백그라운드 생성·검증·건강 익명화를 공통으로 쓴다.
+### `ai_wording.py` (292줄) — 규칙 문구 AI 다듬기 공통 계층 (ADR-059) — 표면(surface)을 선언하면 캐시 조회·백그라운드 생성·검증·건강 익명화를 공통으로 쓴다.
 
 - class **Surface**: kind
 - class **Item**: 없음
 - functions: register, get_surface, redact_health_text, numbers_ok, validate, src_hash, is_fresh, get_cached, present, gate, build_prompt, parse_items, warm, warm_in_background
+
+### `ai_wording_basis.py` (85줄) — AI 다듬기 재생성 기준(src_hash 근거) — 항목이 선언한 사실만, 반올림해서 해시한다 (ADR-059 D15~D17).
+
+- functions: quantize_value, quantize, default_basis
 
 ### `ai_wording_live.py` (89줄) — AI 다듬기 요청 경로 연결 (ADR-059) — 캐시를 읽어 응답하고, 낡았으면 기다리지 않고 백그라운드 생성을 예약한다.
 
@@ -285,7 +289,7 @@
 
 - functions: race_date_window, check_checkin, check_plan_request, target_pace_error
 
-### `insight_evidence.py` (66줄) — 능동 인사이트 다듬기 근거(facts) — 사건의 비건강 신호 + 같은 날 계산 지표(ADR-059 2단계).
+### `insight_evidence.py` (72줄) — 능동 인사이트 다듬기 근거(facts) — 사건의 비건강 신호 + 같은 날 계산 지표(ADR-059 2단계).
 
 - functions: evidence_facts, facts_enabled, polish_key
 
@@ -317,7 +321,7 @@
 
 - (public API 없음)
 
-### `metric_interpretation.py` (152줄) — 지표 해석 AI 다듬기 표면(ADR-059 2단계) — 분해 v2 화면의 규칙 해석 문장을 개인 추세·다른 지표·대회/계획 맥락으로 엮는다.
+### `metric_interpretation.py` (170줄) — 지표 해석 AI 다듬기 표면(ADR-059 2단계) — 분해 v2 화면의 규칙 해석 문장을 개인 추세·다른 지표·대회/계획 맥락으로 엮는다.
 
 - functions: rule_text, build_facts, build_item, interpretation, collect
 
@@ -397,7 +401,7 @@
 
 - functions: detect_longest_runs, week_start, streak_tiers, detect_streaks
 
-### `milestone_service.py` (272줄) — Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
+### `milestone_service.py` (274줄) — Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
 
 - functions: detect_and_store_milestones, get_recent_milestones
 
@@ -480,6 +484,10 @@
 ### `prediction_compare_service.py` (89줄) — 레이스 예측 3경로 비교(P7-PRED-71) — (a) Garmin 예측, (b) RunPulse·기기 심박 기준, (c) RunPulse·자체 추정(기본, r3)
 
 - functions: compare, profile
+
+### `prediction_facts.py` (79줄) — 레이스 예측 설명 근거 — 지표 해석(metric_interp) 표면의 race_pred_* facts 보강 (ADR-059 D18, 3단계 ①).
+
+- functions: confidence_label, rule_text, prediction_facts
 
 ### `prediction_snapshot_service.py` (115줄) — 예측 스냅샷·전향 평가(P7-PRED-63) — 모델별(r3 기본·기기·r4 섀도·Garmin) 예측을 그날 값 그대로 보존하고,
 
@@ -592,7 +600,7 @@
 
 - (public API 없음)
 
-### `story_wording.py` (81줄) — /library/story 월·주 문단의 AI 다듬기 표면 (ADR-059 1단계) — 규칙 문단 + 기간 근거를 엮은 한 문단.
+### `story_wording.py` (89줄) — /library/story 월·주 문단의 AI 다듬기 표면 (ADR-059 1단계) — 규칙 문단 + 기간 근거를 엮은 한 문단.
 
 - functions: facts, item, current_periods, collect
 
@@ -666,9 +674,17 @@
 
 - functions: percentile_band, build_day
 
+### `wellness_facts.py` (49줄) — AI 다듬기 근거용 웰니스 원값 — 그날 값과 본인 7·90일 평균(당일 제외) (ADR-059 D18, 사용자 결정 2026-11-20).
+
+- functions: wellness_facts
+
 ### `wellness_service.py` (148줄) — Phase 5 서비스 레이어 - 웰니스 데이터 조회.
 
 - functions: get_wellness_detail, get_wellness_trend
+
+### `wording_deps.py` (61줄) — AI 다듬기 교차 의존 서명 — 활동 자신의 데이터를 반올림해 해시 근거로 쓴다 (ADR-059 D16).
+
+- functions: activity_signature, period_signature
 
 ### `wording_warm_hooks.py` (20줄) — 동기화 뒤 AI 다듬기 warm 훅(ADR-059 2단계 표면) — bg_sync 가 부르는 단일 진입점, 전부 백그라운드 스레드.
 
@@ -2124,9 +2140,9 @@
 
 - functions: test_splits_even_pace, test_splits_stop_excluded_from_pace, test_splits_partial_and_short, test_cumulative_distance_integrates_speed_when_missing, test_series_bounded_and_aligned, test_series_none_without_distance, test_detail_includes_splits_series_siblings
 
-### `test_activity_summary_extras.py` (91줄) — activity_summary_extras 단위 테스트.
+### `test_activity_summary_extras.py` (98줄) — activity_summary_extras 단위 테스트.
 
-- functions: test_pace_cv_needs_three_splits, test_workout_class_and_environment, test_hr_zones_from_detail_and_device, test_source_diffs_threshold, test_verdict_text_and_none, test_verdict_running_unchanged_with_display, test_verdict_swimming_uses_label_and_100m_without_running_chips, test_verdict_strength_hr_only
+- functions: test_pace_cv_needs_three_splits, test_workout_class_and_environment, test_hr_zones_from_detail_and_device, test_source_diffs_threshold, test_verdict_text_and_none, test_verdict_running_unchanged_with_display, test_verdict_swimming_uses_label_and_100m_without_running_chips, test_verdict_strength_hr_only, test_hr_zones_from_extractor_names
 
 ### `test_activity_types.py` (82줄) — activity_types.py 단위 테스트.
 
@@ -2228,11 +2244,15 @@
 - class **TestCompareWorkoutSets**: test_sessions_sorted_recent_first, test_set_aggregates, test_positive_drift_means_slowdown, test_excludes_non_active_laps, test_name_filter, test_date_range_filter, test_limit, test_auto_lap_run_is_not_a_workout
 - class **TestActivityIdExposed**: test_get_activity_includes_id, test_get_activities_range_includes_id
 
-### `test_ai_wording.py` (137줄) — 규칙 문구 AI 다듬기 공통 계층(ai_wording, ADR-059).
+### `test_ai_wording.py` (143줄) — 규칙 문구 AI 다듬기 공통 계층(ai_wording, ADR-059).
 
-- functions: queue, test_numbers_ok, test_redact_health_text_sentence_level, test_validate, test_present_rule_then_ai_then_stale, test_warm_rejects_invalid_and_unchanged_is_not_ai, test_id_numbers_are_not_evidence, test_health_is_redacted_before_prompt, test_gate_requires_queue_consent, test_gate_static_surface_skips_consent_but_not_budget, test_register_conflict_and_missing_template, test_get_cached_without_table_is_none, test_queue_failure_stores_nothing
+- functions: queue, test_numbers_ok, test_redact_health_text_sentence_level, test_validate, test_present_rule_then_ai_then_stale, test_warm_rejects_invalid_and_unchanged_is_not_ai, test_id_numbers_are_not_evidence, test_health_is_redacted_before_prompt, test_gate_requires_consent, test_gate_static_surface_skips_consent_but_not_budget, test_register_conflict_and_missing_template, test_get_cached_without_table_is_none, test_queue_failure_stores_nothing, test_consent_any_provider
 
-### `test_ai_wording_surfaces.py` (253줄) — ADR-059 1단계 표면 — Today 조정·보류 사유, '이 러닝의 의미', Story 문단 (캐시 적중·미스·해시 변경·익명화·폴백).
+### `test_ai_wording_regen.py` (172줄) — AI 다듬기 재생성 기준(ADR-059 D15~D17) — 반올림 해시, 스냅샷형 활동 문구, 교차 의존, 생성 범위.
+
+- functions: conn, test_quantize_steps, test_small_change_same_hash_big_change_regenerates, test_default_basis_masks_only_covered_numbers, test_snapshot_ignores_later_ctl_tsb_and_new_activities, test_snapshot_regenerates_on_own_data, test_snapshot_tiny_own_change_is_ignored, test_relative_compare_only_direct_previous_target, test_edit_and_rematch_invalidate_month_and_week_story, test_milestone_create_delete_invalidates_month_story_and_activity, test_rematch_invalidates_that_day_metric_interp_only, test_sync_warm_covers_last_14_days_only, test_old_activity_generates_once_on_open
+
+### `test_ai_wording_surfaces.py` (256줄) — ADR-059 1단계 표면 — Today 조정·보류 사유, '이 러닝의 의미', Story 문단 (캐시 적중·미스·해시 변경·익명화·폴백).
 
 - functions: conn, test_present_or_warm_schedules_once_and_not_on_hit, test_present_or_warm_memory_db_never_schedules, test_today_adjust_rule_then_ai, test_today_reason_ai_cached_and_stale_on_fact_change, test_today_hold_reason_item, test_today_health_reason_redacted_for_ai, test_today_no_reason_no_wording, test_impact_lines_parity_with_old_frontend, test_impact_attach_rule_ai_and_hash, test_impact_attach_none, test_story_rule_then_ai_then_stale, test_story_no_records_and_future_have_no_item, test_story_current_periods, test_collectors_run_on_db, test_warm_after_sync_runs_all_surfaces, test_story_warm_end_to_end_and_invalid_falls_back
 
@@ -3243,10 +3263,10 @@
 
 - functions: test_longest_run_needs_history_min_km_and_margin, test_longest_run_skips_vehicle_pace, test_week_start_sunday, test_streak_tiers, test_streak_weeks_dates_and_reset, test_streak_not_before_week_end, test_no_runs, test_sync_detection_includes_running_and_prunes
 
-### `test_milestone_service.py` (338줄) — tests/test_milestone_service.py — milestone_service 단위 테스트.
+### `test_milestone_service.py` (348줄) — tests/test_milestone_service.py — milestone_service 단위 테스트.
 
 - class **TestDistanceThreshold**: test_100km_created_on_crossing, test_multiple_thresholds_crossed, test_no_duplicate_on_second_call
-- class **TestPB**: test_pb_created_when_faster, test_no_pb_when_slower, test_no_pb_for_first_race, test_pb_no_duplicate, test_pb_race_keyword_detection
+- class **TestPB**: test_pb_created_when_faster, test_pb_found_when_sync_window_missed_race_day, test_no_pb_when_slower, test_no_pb_for_first_race, test_pb_no_duplicate, test_pb_race_keyword_detection
 - class **TestMetricRecompute**: test_recompute_milestone_created_on_version_change, test_no_recompute_below_threshold, test_no_recompute_for_non_allowlist_metric
 - class **TestGetRecentMilestones**: test_returns_empty_when_no_milestones, test_returns_ordered_by_date_desc, test_limit_respected, test_date_range_filters, test_no_date_range_returns_all
 - functions: test_recompute_kinds_are_stored_but_never_shown, test_v22_reclassifies_old_version_change_rows
@@ -3512,6 +3532,10 @@
 ### `test_prediction_core_r4.py` (84줄) — P7-PRED-20·22: Daniels 공식·강도 역산, 칼만 결합, 예측 코어(r4).
 
 - functions: test_daniels_formula_and_zones, test_set_zone_and_equivalent_minutes, test_temp, test_k_personal_disjoint_pairs, test_distance_extrapolation, test_quality_multiplier, test_kalman_weights_and_add, test_summary_and_marathon, test_hr_profile_and_weather_helpers, test_kalman_low_mult_weakens_low_observations
+
+### `test_prediction_facts.py` (68줄) — 레이스 예측 설명 근거(prediction_facts, ADR-059 D18) — 지표 해석 표면 facts 보강·검증·익명화.
+
+- functions: test_prediction_facts_range_confidence_limiting_gap, test_prediction_wording_validates_against_evidence, test_non_prediction_slug_has_no_prediction_facts, test_confidence_label_matches_frontend, test_prediction_rule_fallback_when_no_other_rule
 
 ### `test_prediction_signals.py` (36줄) — P7-PRED-22: 예측 신호(순수).
 
@@ -4028,6 +4052,10 @@
 
 - functions: conn, test_percentile_band_requires_min_n, test_headline_reasons_by_abs_z_and_status, test_headline_without_reasons_when_usual, test_baselines_exclude_current_day_and_omit_small_n, test_no_record_day_has_week_and_nav, test_as_of_only_for_today, test_detail_keeps_legacy_fields, test_trend_end_and_band
 
+### `test_wellness_facts.py` (73줄) — 웰니스 원값 근거(wellness_facts, ADR-059 D18) — 지표 해석·회복 인사이트 facts 포함, 건강 일반화 유지.
+
+- functions: test_day_values_and_own_averages, test_missing_day_or_short_history, test_metric_interp_recovery_slugs_include_wellness, test_wellness_numbers_pass_validation_and_health_terms_still_rejected, test_recovery_insight_facts_include_wellness_but_pain_flag_none
+
 ### `test_wellness_series.py` (95줄) — wellness_series: Garmin 실제 payload 구조 파싱·저장·파생 요약 (REVIEW-10 A6).
 
 - functions: conn, kinds, test_parsers_extract_real_structures, test_parsers_tolerate_empty_and_garbage, test_derive_summary, test_ingest_day_saves_series_and_summary_idempotently, test_resave_replaces_stale_rows_of_same_kind, test_retention_drops_old_days, test_ingest_hr_day
@@ -4162,7 +4190,7 @@
 - functions: run
 
 ---
-총 907개 파일
+총 914개 파일
 
 ## docstring 누락
 
