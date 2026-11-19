@@ -55,7 +55,7 @@ def present_or_warm(conn: sqlite3.Connection | None, config: dict | None, surfac
     """화면 응답용 {text, source}. item 이 None 이면 None. 캐시가 낡았으면 백그라운드 생성을 예약(대기 없음)."""
     if item is None or not item.rule_text:
         return None
-    view = aw.present(conn, surface, item.scope_key, item.rule_text, item.facts)
+    view = aw.present(conn, surface, item.scope_key, item.rule_text, item.facts, item.basis)
     if conn is None or view["source"] == "ai" or aw.is_fresh(conn, surface, item):
         return view
     path = _db_path(conn)

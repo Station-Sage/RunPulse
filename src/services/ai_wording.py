@@ -2,8 +2,8 @@
 
 원칙: 규칙 문구가 기본값이다. 요청 스레드는 `get_cached`/`present` 로 캐시만 읽고(큐를 기다리지 않음), 생성은 `warm`
 (백그라운드)에서 동의·큐 가용·전역 사용량·uid 락을 통과할 때만 haiku 큐(job kind 'insight_polish' 재사용)로 한다.
-결과는 ai_outputs(kind='w:<표면>', scope_key, src_hash) 에 저장하고, 규칙 문구·근거·프롬프트가 바뀌면 src_hash 가
-달라져 자동으로 규칙 문구로 돌아간다. 검증 실패(숫자 ⊆ 근거, 길이, 금지어, 마크다운)는 저장하지 않는다.
+결과는 ai_outputs(kind='w:<표면>', scope_key, src_hash) 에 저장하고, 항목이 선언한 근거(basis, 반올림 —
+`ai_wording_basis`)·지침이 바뀌면 src_hash 가 달라져 자동으로 규칙 문구로 돌아간다. 검증 실패(숫자 ⊆ 근거, 길이, 금지어, 마크다운)는 저장하지 않는다.
 건강 정보(질병·부상·통증·부위)는 AI 로 보내기 전 '몸 상태 이상 신호' 로 일반화한다(ADR-057/058).
 """
 from __future__ import annotations
@@ -56,10 +56,15 @@ class Surface:
 
 @dataclass(frozen=True)
 class Item:
-    """다듬을 한 건. facts 는 AI 가 인용해도 되는 추가 근거(평면 dict, 민감 메모 금지)."""
+    """다듬을 한 건. facts 는 AI 가 인용해도 되는 추가 근거(평면 dict, 민감 메모 금지).
+
+    basis 는 재생성 기준(해시 전용, AI 로 보내지 않음). None 이면 `ai_wording_basis.default_basis(rule_text, facts)`
+    (반올림 facts + facts 로 설명되지 않는 규칙 숫자). 스냅샷형 표면은 자기 데이터만 담은 basis 를 직접 준다.
+    """
     scope_key: str
     rule_text: str
     facts: dict = field(default_factory=dict)
+    basis: dict | None = None
 
 
 _REGISTRY: dict[str, Surface] = {}
@@ -141,8 +146,10 @@ def _payload(surface: Surface, item: Item) -> dict:
 
 
 def src_hash(surface: Surface, item: Item) -> str:
-    """규칙 문구·근거·지침·버전이 하나라도 바뀌면 달라진다. 원문(익명화 전)도 포함해 원문 변경도 무효로 만든다."""
-    blob = json.dumps([surface.version, surface.guide, surface.max_chars, item.rule_text, item.facts or {}],
+    """지침·버전과 항목이 선언한 근거(basis, 반올림)가 바뀔 때만 달라진다(D15). 미세 수치 변화는 같은 해시."""
+    from src.services.ai_wording_basis import default_basis
+    basis = item.basis if item.basis is not None else default_basis(item.rule_text, item.facts)
+    blob = json.dumps([surface.version, surface.guide, surface.max_chars, basis],
                       sort_keys=True, ensure_ascii=False, default=str)
     return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:16]
 
@@ -169,16 +176,16 @@ def is_fresh(conn: sqlite3.Connection, surface: Surface, item: Item) -> bool:
 
 
 def get_cached(conn: sqlite3.Connection, surface: Surface, scope_key: str, rule_text: str,
-               facts: dict | None = None) -> str | None:
+               facts: dict | None = None, basis: dict | None = None) -> str | None:
     """src_hash 가 일치하는 AI 문구만 반환, 없거나 낡았거나 '원문 유지'면 None. 큐·LLM 을 부르지 않는다."""
-    body = _fresh_body(conn, surface, Item(scope_key, rule_text, facts or {}))
+    body = _fresh_body(conn, surface, Item(scope_key, rule_text, facts or {}, basis))
     return (body or {}).get("text") or None
 
 
 def present(conn: sqlite3.Connection | None, surface: Surface, scope_key: str, rule_text: str,
-            facts: dict | None = None) -> dict:
+            facts: dict | None = None, basis: dict | None = None) -> dict:
     """화면 응답용 {text, source:'ai'|'rule'} — 캐시가 맞으면 AI 문구, 아니면 규칙 문구."""
-    ai = get_cached(conn, surface, scope_key, rule_text, facts) if conn is not None and rule_text else None
+    ai = get_cached(conn, surface, scope_key, rule_text, facts, basis) if conn is not None and rule_text else None
     return {"text": ai, "source": "ai"} if ai else {"text": rule_text, "source": "rule"}
 
 

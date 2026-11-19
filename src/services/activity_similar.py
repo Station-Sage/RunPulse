@@ -58,7 +58,9 @@ def _summary(basis: str, pool: list[dict], pace: float, load: float | None, **ex
     loads = [c["load"] for c in pool if c.get("load") is not None]
     med = round(median(loads), 1) if loads else None
     pct = round((load - med) / med * 100, 1) if load is not None and med else None
+    # latest_id = 비교 집합 중 가장 최근 활동(직전 비교 대상) — AI 문구 재생성 의존(ADR-059 D16)
     return {"basis": basis, "n": len(pool), "pace_rank": sum(1 for p in paces if p < pace) + 1,
+            "latest_id": pool[0]["id"],
             "avg_pace_sec_km": avg, "pace_diff_sec": round(pace - avg, 1),
             "load_median": med, "load_pct_vs_median": pct, **extra}
 

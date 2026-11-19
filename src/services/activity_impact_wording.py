@@ -2,7 +2,12 @@
 
 규칙 줄은 값이 있는 항목만 만든다(근거 없는 문장 금지, 이전 프론트 impactLines 와 같은 문구). AI 는 그 줄과
 활동 기본값(날짜·거리·평균 페이스·운동 유형)·그날 계획 세션·대회까지 남은 일수를 엮어 한두 문장으로 의미를 말한다.
-활동 이름·메모(자유 입력)는 보내지 않는다. scope_key = 활동 id, src_hash = 규칙 줄 + facts.
+활동 이름·메모(자유 입력)는 보내지 않는다. scope_key = 활동 id.
+
+스냅샷형(ADR-059 D16): src_hash 는 그 활동 자신의 데이터 서명(`wording_deps.activity_signature` — 거리·페이스·HR·랩·
+플랜 매칭·피드백·마일스톤)과 직전 비교 대상 활동의 서명·비교 기준·대회 D-day 로만 만든다. 이후 CTL/TSB 변동이나
+새 활동 추가는 재생성하지 않는다(비교 집합은 이전 활동뿐). 생성 한도(D17): 최근 RECENT_DAYS 일 활동은 동기화 직후,
+그보다 오래된 활동은 처음 열 때 한 번(백그라운드, 쿨다운).
 """
 from __future__ import annotations
 
@@ -96,8 +101,18 @@ def facts(conn: sqlite3.Connection, activity_id: int, impact: dict) -> dict:
     return out
 
 
+def snapshot_basis(conn: sqlite3.Connection, activity_id: int, impact: dict) -> dict:
+    """재생성 기준 — 활동 자신 + 직전 비교 대상 활동(그 활동이 편집되면 이 문구도 재생성) + 비교 기준·대회 D-day."""
+    from src.services.wording_deps import activity_signature
+    s = impact.get("similar") or {}
+    return {"own": activity_signature(conn, activity_id), "cmp_basis": s.get("basis"),
+            "cmp_prev": activity_signature(conn, s.get("latest_id")) if s.get("latest_id") else None,
+            "race_days_left": (impact.get("race") or {}).get("days_left")}
+
+
 def item(conn: sqlite3.Connection, activity_id: int, impact: dict, lines: list[str]) -> aw.Item:
-    return aw.Item(str(activity_id), LINE_SEP.join(lines), facts(conn, activity_id, impact))
+    return aw.Item(str(activity_id), LINE_SEP.join(lines), facts(conn, activity_id, impact),
+                   snapshot_basis(conn, activity_id, impact))
 
 
 def attach(conn: sqlite3.Connection, activity_id: int, impact: dict | None, config: dict | None,
@@ -111,23 +126,32 @@ def attach(conn: sqlite3.Connection, activity_id: int, impact: dict | None, conf
         from src.services.ai_wording_live import present_or_warm
         wording = present_or_warm(conn, config, SURFACE, it)
     else:
-        wording = aw.present(conn, SURFACE, it.scope_key, it.rule_text, it.facts)
+        wording = aw.present(conn, SURFACE, it.scope_key, it.rule_text, it.facts, it.basis)
     return {**impact, "lines": lines, "wording": wording}
 
 
-RECENT_ON_SYNC = 3
+RECENT_DAYS = 14      # 동기화 직후 선생성 범위(사용자 결정 2026-11-20)
+RECENT_MAX = 30       # 한 번의 동기화에서 선생성할 최대 활동 수(하루 2회 러닝 대비 여유)
 
 
-def collect(conn: sqlite3.Connection) -> list[aw.Item]:
-    """동기화 뒤 워밍용 — 최근 러닝 RECENT_ON_SYNC 건(나머지는 화면을 열 때 예약)."""
+def _today(conn: sqlite3.Connection) -> str:
+    from src.services.milestone_events import today_local
+    return today_local(conn)
+
+
+def collect(conn: sqlite3.Connection, today: str | None = None) -> list[aw.Item]:
+    """동기화 뒤 워밍용 — 최근 RECENT_DAYS 일 러닝(최대 RECENT_MAX). 이미 최신인 항목은 warm 이 건너뛴다."""
+    from datetime import date as _date, timedelta
+
     from src.services.activity_impact_service import get_activity_impact
-    rows = conn.execute("SELECT id FROM v_canonical_activities WHERE distance_m > 0"
-                        " ORDER BY start_time DESC LIMIT ?", (RECENT_ON_SYNC * 3,)).fetchall()
+    since = (_date.fromisoformat(today or _today(conn)) - timedelta(days=RECENT_DAYS - 1)).isoformat()
+    rows = conn.execute("SELECT id FROM v_canonical_activities WHERE distance_m > 0 AND substr(start_time,1,10) >= ?"
+                        " ORDER BY start_time DESC LIMIT ?", (since, RECENT_MAX * 2)).fetchall()
     items: list[aw.Item] = []
     for (aid,) in rows:
         imp = get_activity_impact(conn, aid)
         if imp is not None:
             items.append(item(conn, aid, imp, impact_lines(imp)))
-        if len(items) >= RECENT_ON_SYNC:
+        if len(items) >= RECENT_MAX:
             break
     return items

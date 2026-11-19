@@ -161,8 +161,11 @@ def test_impact_attach_rule_ai_and_hash(conn):
     assert "무릎" not in json.dumps(it.facts, ensure_ascii=False)        # 활동 이름(자유 입력)은 보내지 않는다
     _seed(conn, aiw.SURFACE, it, "계획한 롱런 10km 를 대회 30일 전에 채워 체력(CTL)을 2.3 올렸어요.")
     assert aiw.attach(conn, aid, dict(FULL), None, schedule=False)["wording"]["source"] == "ai"
-    changed = {**FULL, "ctl_contribution": 2.5}
-    assert aiw.attach(conn, aid, changed, None, schedule=False)["wording"]["source"] == "rule"
+    # 스냅샷형(D16): 이후 CTL/TSB 변동은 무시, 활동 자신의 데이터가 바뀌면 재생성
+    changed = {**FULL, "ctl_contribution": 2.5, "tsb": -3.0}
+    assert aiw.attach(conn, aid, changed, None, schedule=False)["wording"]["source"] == "ai"
+    conn.execute("UPDATE activity_summaries SET distance_m=10400 WHERE id=?", (aid,))
+    assert aiw.attach(conn, aid, dict(FULL), None, schedule=False)["wording"]["source"] == "rule"
 
 
 def test_impact_attach_none():
@@ -182,7 +185,7 @@ def test_story_rule_then_ai_then_stale(conn):
     r = ss.get_story(conn, "2026-09")
     assert r["paragraph_source"] == "rule" and "paragraph_rule" not in r
     rule = ss.build_story(conn, "2026-09")
-    it = sw.item(rule, rule["paragraph_rule"])
+    it = sw.item(rule, rule["paragraph_rule"], conn)
     assert it.scope_key == "2026-09" and "통증" not in json.dumps(it.facts, ensure_ascii=False)
     _seed(conn, sw.SURFACE, it, "9월은 31km를 2회 달렸어요. 하프 거리 롱런이 이번 달의 중심이었어요.")
     r2 = ss.get_story(conn, "2026-09")
@@ -210,7 +213,7 @@ def test_collectors_run_on_db(conn, monkeypatch):
     _story_db(conn)
     assert [i.scope_key for i in sw.collect(conn, "2026-09-10")] == ["2026-09", "2026-W37"]
     assert trw.collect(conn, DAY) == []
-    items = aiw.collect(conn)
+    items = aiw.collect(conn, "2026-09-15")
     assert items and all(i.rule_text for i in items)
 
 
@@ -245,7 +248,7 @@ def test_story_warm_end_to_end_and_invalid_falls_back(conn, monkeypatch):
     reply = {"text": "9월엔 31km를 2회 달렸고 99km 롱런이 있었어요."}
     monkeypatch.setattr(pcq, "try_complete", lambda c, cfg, **kw: json.dumps([{"id": "2026-09", **reply}]))
     rule = ss.build_story(conn, "2026-09")
-    it = sw.item(rule, rule["paragraph_rule"])
+    it = sw.item(rule, rule["paragraph_rule"], conn)
     assert aw.warm(conn, {}, sw.SURFACE, [it]) == 0                  # 99 는 근거에 없는 수치 → 거부
     assert ss.get_story(conn, "2026-09")["paragraph_source"] == "rule"
     reply["text"] = "9월엔 31km를 2회 달렸어요. 21km 롱런이 이번 달의 중심이었어요."

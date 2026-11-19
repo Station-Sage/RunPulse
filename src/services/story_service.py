@@ -85,7 +85,7 @@ def get_story(
     from src.services import ai_wording_live, story_wording
     story = build_story(conn, period)
     rule = story.pop("paragraph_rule")
-    view = ai_wording_live.present_or_warm(conn, config, story_wording.SURFACE, story_wording.item(story, rule))
+    view = ai_wording_live.present_or_warm(conn, config, story_wording.SURFACE, story_wording.item(story, rule, conn))
     story["paragraph"], story["paragraph_source"] = (view["text"], view["source"]) if view else (rule, "rule")
     return story
 
