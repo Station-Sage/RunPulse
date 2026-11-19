@@ -57,37 +57,48 @@ class ChatResult:
         return asdict(self.engine)
 
 
+MAX_FALLBACKS = 2
+
+
+def fallback_providers(selected: str, config: dict | None, keyed: list[str], cq_available: bool) -> list[str]:
+    """2·3순위 폴백(최대 2개). ai.fallback_order 가 없으면 기본 FALLBACK_ORDER. 키 없는 provider·큐 불가는 건너뛴다."""
+    raw = ((config or {}).get("ai") or {}).get("fallback_order")
+    order = FALLBACK_ORDER if raw is None else raw
+    out: list[str] = []
+    for p in order:
+        usable = cq_available if p == CLAUDE_QUEUE else p in keyed
+        if p != selected and usable and p not in out:
+            out.append(p)
+    return out[:MAX_FALLBACKS]
+
+
 def build_chain(selected: str, config: dict | None, consent: dict | None,
                 require_consent: bool, *, cq_available: bool = False) -> tuple[list[str], str | None]:
     """(시도할 provider 목록, 체인이 비었을 때 사유 no_key/no_consent/None).
 
-    require_consent=False(v1 /ai-coach)는 기존 동작 — 선택 provider → 키가 있는 gemini/groq.
-    selected=claude_queue 는 키 없이 큐 가용 여부(cq_available)로 선두를 정하고, 동의의 fallback_enabled 일 때만 키 provider 를 잇는다.
+    선택 → 2순위 → 3순위(ai.fallback_order, 기본 gemini·groq) → 규칙. selected=claude_queue 는 키 없이 큐 가용 여부(cq_available)로 선두를 정한다.
+    require_consent=False(v1 /ai-coach)는 동의 없이 같은 순서. 동의 모드에서는 동의의 fallback_enabled 가 꺼져 있으면 폴백 없음.
     """
     keyed = [p for p in LLM_PROVIDERS if api_key_for(p, config)]
+    fb_on = not require_consent or bool((consent or {}).get("fallback_enabled"))
+    fallbacks = fallback_providers(selected, config, keyed, cq_available) if fb_on else []
     if selected == CLAUDE_QUEUE:
         if require_consent and (not consent or consent.get("provider") != CLAUDE_QUEUE):
             return [], "no_consent"
-        chain = [CLAUDE_QUEUE] if cq_available else []
-        if not require_consent or (consent or {}).get("fallback_enabled"):
-            chain += [p for p in FALLBACK_ORDER if p in keyed]
+        chain = ([CLAUDE_QUEUE] if cq_available else []) + fallbacks
         return chain, (None if chain else "no_key")
     if selected not in LLM_PROVIDERS:
         return [], None
     if not keyed:
         return [], "no_key"
     if not require_consent:
-        chain = [selected] if selected in keyed else []
-        chain += [p for p in FALLBACK_ORDER if p != selected and p in keyed]
+        chain = ([selected] if selected in keyed else []) + fallbacks
         return chain, ("no_key" if not chain else None)
     if not consent or consent.get("provider") != selected:
         return [], "no_consent"
     if selected not in keyed:
         return [], "no_key"
-    chain = [selected]
-    if consent.get("fallback_enabled"):
-        chain += [p for p in FALLBACK_ORDER if p != selected and p in keyed]
-    return chain, None
+    return [selected] + fallbacks, None
 
 
 def run_chain(conn: sqlite3.Connection, prompt: str, config: dict | None, chain: list[str],

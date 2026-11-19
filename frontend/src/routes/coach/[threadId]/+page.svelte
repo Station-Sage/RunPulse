@@ -263,7 +263,7 @@
 					<button
 						type="button"
 						data-testid="followup-chip"
-						onclick={() => send(chip)}
+						onclick={() => send(chip.chip_id === chip.text ? chip.text : chip)}
 						class="inline-flex min-h-11 items-center rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-xs text-fg-secondary hover:bg-surface-3"
 					>{chip.text}</button>
 				{/each}

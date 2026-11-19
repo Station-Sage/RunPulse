@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 import sqlite3
 
+from src.ai.chat_engine_result import FALLBACK_ORDER, MAX_FALLBACKS
 from src.ai.provider_common import CLAUDE_QUEUE, LLM_PROVIDERS, ProviderError, api_key_for, model_for
 from src.services import coach_consent, coach_engine_health
 from src.utils.config import save_config
@@ -50,6 +51,11 @@ def usage_7d(conn: sqlite3.Connection) -> dict:
     return {"messages": total, "by_provider": by_provider, "fallback": fallback, "rule": rule, "tool_calls": tool_calls}
 
 
+def _effective_order(config: dict, selected: str) -> list[str]:
+    raw = (config.get("ai") or {}).get("fallback_order")
+    return [p for p in (FALLBACK_ORDER if raw is None else raw) if p != selected][:MAX_FALLBACKS]
+
+
 def build_view(conn: sqlite3.Connection, config: dict, user_id: str | None = None) -> dict:
     from src.ai.llm_budget import usage_today
     from src.utils.user_context import resolve_user_id
@@ -63,7 +69,8 @@ def build_view(conn: sqlite3.Connection, config: dict, user_id: str | None = Non
     scope = [{**s, "enabled": not (s.get("optional") and notes_off)} for s in engine["scope"]]
     return {
         "provider": engine["selected"]["provider"], "providers": providers, "mode": engine["mode"],
-        "fallback_enabled": consent.get("fallback_enabled", True), "exclude_notes": notes_off,
+        "fallback_enabled": consent.get("fallback_enabled", True),
+        "fallback_order": _effective_order(config, engine["selected"]["provider"]), "exclude_notes": notes_off,
         "consented": bool(consent.get("accepted_at")) and consent.get("provider") == engine["selected"]["provider"],
         "scope": scope, "usage_7d": usage_7d(conn), "usage_today": usage_today(resolve_user_id(user_id)),
         "chain": engine["chain"], "health": health,
@@ -104,13 +111,22 @@ def validate_patch(body: dict) -> tuple[dict, str | None]:
                 clean[p] = v.strip()
         if clean:  # D-23: 빈 키만 보냈으면 '바꿀 항목 없음'으로 알린다
             out["keys"] = clean
-        elif not out and not (set(body) & {"exclude_notes", "fallback_enabled"}):
+        elif not out and not (set(body) & {"exclude_notes", "fallback_enabled", "fallback_order"}):
             return {}, "API 키를 입력해 주세요"
     for k in ("exclude_notes", "fallback_enabled"):
         if k in body:
             if not isinstance(body[k], bool):
                 return {}, f"{k}는 true/false예요"
             out[k] = body[k]
+    if "fallback_order" in body:
+        order = body["fallback_order"]
+        if (not isinstance(order, list) or len(order) > MAX_FALLBACKS or len(set(order)) != len(order)
+                or any(p not in (*LLM_PROVIDERS, CLAUDE_QUEUE) for p in order)):
+            return {}, f"fallback_order는 중복 없는 provider 최대 {MAX_FALLBACKS}개예요"
+        if out.get("provider") in order:
+            return {}, "선택한 AI를 폴백 순서에 또 넣을 수 없어요"
+        out["fallback_order"] = order
+        out["fallback_enabled"] = bool(order)
     return (out, None) if out else ({}, "바꿀 항목이 없어요")
 
 
@@ -120,6 +136,8 @@ def apply_patch(conn: sqlite3.Connection, config: dict, user_id: str, changes: d
         ai["provider"] = changes["provider"]
     for p, v in changes.get("keys", {}).items():
         ai[f"{p}_api_key"] = v
+    if "fallback_order" in changes:
+        ai["fallback_order"] = [p for p in changes["fallback_order"] if p != ai.get("provider")]
     save_config(config, user_id=user_id)
     provider = ai.get("provider", "rule")
     current = coach_consent.get_consent(conn) or {}

@@ -77,7 +77,8 @@ def chat_result(
     consent_on = require_consent
     exclude_notes = bool(consent and consent.get("exclude_notes")) if consent_on else False
     tools_on = bool(consent.get("tools_enabled")) if consent_on and consent else True
-    cq_ok = provider == CLAUDE_QUEUE and pcq.available(conn, config)
+    cq_wanted = provider == CLAUDE_QUEUE or CLAUDE_QUEUE in (((config or {}).get("ai") or {}).get("fallback_order") or [])
+    cq_ok = cq_wanted and pcq.available(conn, config)
     chain, empty_reason = build_chain(provider, config, consent, consent_on, cq_available=cq_ok)
 
     chat_history = _load_recent_chat(conn, limit=6, thread_id=thread_id)

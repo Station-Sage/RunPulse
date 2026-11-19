@@ -1,6 +1,7 @@
 <script lang="ts">
 	// AI 초안 — 규칙 일정을 4주 범위에서 다듬어 제안. 검증을 통과한 초안만 적용 가능 (V2-AI-CLAUDE-QUEUE E5-c).
 	import { onDestroy, onMount } from 'svelte';
+	import { announce } from '$lib/a11y/announce';
 	import { applyPlanDraft, getPlanDraft, startPlanDraft, type PlanDraftState } from '$lib/api/plan';
 	import type { ReplanParams, ReplanPreview } from '$lib/types';
 
@@ -18,7 +19,9 @@
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
 	async function refresh() {
+		const was = st?.running;
 		st = await getPlanDraft().catch(() => null);
+		if (!was && st?.running) announce('AI가 앞으로 4주를 다듬고 있어요');
 		if (st?.running) timer = setTimeout(refresh, 3000);
 	}
 
@@ -30,6 +33,7 @@
 			await refresh();
 		} catch (e) {
 			msg = (e as { message?: string }).message ?? 'AI 초안을 시작하지 못했어요';
+			announce(msg);
 		} finally {
 			busy = false;
 		}
@@ -58,7 +62,7 @@
 	<section class="space-y-2 rounded-lg bg-surface-2 p-3 text-sm" data-testid="plan-draft" aria-label="AI 초안">
 		<p class="font-medium">AI 초안 (선택)</p>
 		{#if st.running}
-			<p class="text-xs text-fg-secondary" role="status">AI가 앞으로 4주를 다듬고 있어요. 1~3분 걸려요.</p>
+			<p class="text-xs text-fg-secondary">AI가 앞으로 4주를 다듬고 있어요. 1~3분 걸려요.</p>
 		{:else}
 			<p class="text-xs text-fg-secondary">위 일정은 규칙으로 계산한 거예요. AI가 쉬운 날·롱런 거리와 설명을 4주 범위에서 ±15%까지 다듬어 제안해요. 날짜·훈련 종류·페이스는 그대로예요.</p>
 		{/if}
@@ -67,7 +71,7 @@
 		{:else if st?.state === 'failed'}
 			<p class="text-xs text-fg-secondary">이번엔 쓸 만한 초안이 나오지 않았어요{st.reason ? ` (${st.reason})` : ''}. 규칙 일정이 그대로 유지돼요.</p>
 		{/if}
-		{#if msg}<p class="text-xs text-semantic-red" role="alert">{msg}</p>{/if}
+		{#if msg}<p class="text-xs text-semantic-red">{msg}</p>{/if}
 		<div class="flex flex-wrap gap-2">
 			<button class="min-h-11 rounded-lg bg-surface-1 px-4" disabled={busy || st.running || disabled} onclick={start}>
 				{fresh ? '다시 만들기' : 'AI 초안 만들기'}

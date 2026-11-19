@@ -91,8 +91,12 @@ def _progress(key: str):
     return cb
 
 
-def generate(conn: sqlite3.Connection, config: dict | None, activity_id: int, run_key: str | None = None) -> dict:
-    """캐시(입력 해시 일치) → 큐 호출(opus, 도구 사용) → 검증 → 저장. 반환 {state: ready|failed, ...}."""
+def generate(conn: sqlite3.Connection, config: dict | None, activity_id: int, run_key: str | None = None,
+             cancelled=None, on_progress=None) -> dict:
+    """캐시(입력 해시 일치) → 큐 호출(opus, 도구 사용) → 검증 → 저장. 반환 {state: ready|failed, ...}.
+
+    cancelled()/on_progress(progress_json, partial) 는 코치 스레드 실행기(deep_thread)가 넘기며, 없으면 run_key 의 메모리 상태를 쓴다.
+    """
     from src.ai import claude_queue, provider_claude_queue as pcq
     from src.mcp_remote.policy import LOCAL_ONLY_TOOLS, REMOTE_TOOLS
     prompt = build_prompt(conn, activity_id)
@@ -103,11 +107,14 @@ def generate(conn: sqlite3.Connection, config: dict | None, activity_id: int, ru
         return {"state": "ready", **get_cached(conn, activity_id)}
     if not pcq.available(conn, config):
         return {"state": "failed", "reason": "AI 큐를 사용할 수 없음"}
-    cancelled = lambda: bool(run_key and _runs.get(run_key, {}).get("cancel"))  # noqa: E731
+    if cancelled is None:
+        cancelled = lambda: bool(run_key and _runs.get(run_key, {}).get("cancel"))  # noqa: E731
+    if on_progress is None and run_key:
+        on_progress = _progress(run_key)
     res = claude_queue.run_job(pcq.db_path_of(conn), kind="deep_analysis", model=pcq.MODEL_FOR_KIND["deep_analysis"],
                                prompt=prompt, deadline_sec=pcq.DEADLINE_FOR_KIND["deep_analysis"], tools="read",
                                allowed_tools=sorted(REMOTE_TOOLS | LOCAL_ONLY_TOOLS), queue_wait=30,
-                               on_progress=_progress(run_key) if run_key else None, should_cancel=cancelled)
+                               on_progress=on_progress, should_cancel=cancelled)
     if res["reason"] == "cancelled":
         return {"state": "cancelled", "reason": "취소됨"}
     if not res["ok"]:

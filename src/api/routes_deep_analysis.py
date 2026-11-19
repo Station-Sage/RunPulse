@@ -1,10 +1,11 @@
-"""`/api/v1/coach/deep*` — 사용자 요청 심화 분석 시작·조회·취소 (V2-AI-CLAUDE-QUEUE E5-d)."""
+"""`/api/v1/coach/deep*` — 사용자 요청 심화 분석 시작(코치 스레드 생성)·조회·취소 (V2-AI-CLAUDE-QUEUE E5-d)."""
 from __future__ import annotations
 
 from flask import request
 
 from src.ai import provider_claude_queue as pcq
 from src.services import deep_analysis as da
+from src.services import deep_thread
 from src.utils.config import load_config
 from src.utils.user_context import db_path
 
@@ -46,8 +47,8 @@ def deep_start():
             return api_error("NOT_FOUND", "분석할 활동이 없습니다", 404)
     finally:
         conn.close()
-    started = da.start_background(str(db_path()), cfg, aid)
-    return api_ok({"started": started, "activity_id": aid}, 202)
+    created = deep_thread.start(str(db_path()), cfg, aid)
+    return api_ok({**created, "activity_id": aid}, 202)
 
 
 @api_bp.post("/coach/deep/cancel")

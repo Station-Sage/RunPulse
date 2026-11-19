@@ -124,7 +124,7 @@
 				+ 새 대화 시작
 			</button>
 		</div>
-		<DeepAnalysisCard onAsk={start} />
+		<DeepAnalysisCard />
 		<CoachStartChips {todos} {chips} {limitNotice} {sending} {errorMessage} onStart={start} />
 	{/if}
 

@@ -122,7 +122,7 @@
 
 - functions: kind_of, triggered, intensity, primary, classify
 
-### `ai_settings_service.py` (164줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
+### `ai_settings_service.py` (182줄) — AI 설정 페이지 서비스 — provider·키 상태·전송 범위·7일 사용량·연결 테스트 (F-DATA-12, ADR-030).
 
 - functions: mask_key, key_state, usage_7d, build_view, key_format_error, validate_patch, apply_patch, test_connection
 
@@ -151,7 +151,7 @@
 
 - functions: get_consent, save_consent
 
-### `coach_engine_health.py` (168줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
+### `coach_engine_health.py` (171줄) — Coach 엔진 상태 — 메시지별 엔진 라벨, 최근 20개 집계(H0 배너), GET /coach/engine 페이로드.
 
 - functions: model_label, reason_label, failure_history, engine_label, parse_engine, attempt_views, message_engine_view, health_summary, get_engine
 
@@ -203,9 +203,13 @@
 
 - functions: set_source_enabled, auto_settings, validate_auto_patch, patch_auto
 
-### `deep_analysis.py` (158줄) — 사용자 요청 심화 분석 (V2-AI-CLAUDE-QUEUE E5-d, deep_v1) — 오늘(또는 지정) 훈련을 opus 가 도구로 조회하며 해설한다.
+### `deep_analysis.py` (165줄) — 사용자 요청 심화 분석 (V2-AI-CLAUDE-QUEUE E5-d, deep_v1) — 오늘(또는 지정) 훈련을 opus 가 도구로 조회하며 해설한다.
 
 - functions: scope_key, pick_activity_id, build_prompt, src_hash, split_output, get_cached, generate, start_background, cancel, run_state
+
+### `deep_thread.py` (95줄) — 심화 분석 → 코치 스레드 — 'AI 분석'을 코치 대화의 첫 답변으로 만든다 (opus 분석 결과 + 후속 칩).
+
+- functions: start
 
 ### `export_archive.py` (207줄) — 내보내기 아카이브 zip 작성 — 그룹별 테이블 CSV/JSON·원본 jsonl·manifest·README (data-export §2.2).
 
@@ -1199,7 +1203,7 @@
 
 - functions: seconds_to_pace
 
-### `chat_engine.py` (260줄) — AI 채팅 엔진 — 교체 가능 구조.
+### `chat_engine.py` (261줄) — AI 채팅 엔진 — 교체 가능 구조.
 
 - functions: get_ai_provider, chat_result, chat
 
@@ -1207,12 +1211,12 @@
 
 - functions: complete, call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
 
-### `chat_engine_result.py` (158줄) — 채팅 엔진 결과 모델 + provider 체인 실행 (30-coach-chat design §4.1·§4.3·§6.2).
+### `chat_engine_result.py` (169줄) — 채팅 엔진 결과 모델 + provider 체인 실행 (30-coach-chat design §4.1·§4.3·§6.2).
 
 - class **Attempt**: 없음
 - class **EngineInfo**: 없음
 - class **ChatResult**: engine_dict
-- functions: build_chain, run_chain, engine_for_rule, engine_for_ok
+- functions: fallback_providers, build_chain, run_chain, engine_for_rule, engine_for_ok
 
 ### `chat_engine_rules.py` (24줄) — AI 채팅 — 규칙 기반 답변 디스패처 (30-coach-chat design §7.3).
 
@@ -1896,7 +1900,7 @@
 
 - functions: get_data_profile, preview_data_profile, patch_data_profile
 
-### `routes_deep_analysis.py` (55줄) — `/api/v1/coach/deep*` — 사용자 요청 심화 분석 시작·조회·취소 (V2-AI-CLAUDE-QUEUE E5-d).
+### `routes_deep_analysis.py` (56줄) — `/api/v1/coach/deep*` — 사용자 요청 심화 분석 시작(코치 스레드 생성)·조회·취소 (V2-AI-CLAUDE-QUEUE E5-d).
 
 - functions: deep_state, deep_start, deep_cancel
 
@@ -2133,9 +2137,9 @@
 
 - functions: argv_for, mk, turn, row, test_multi_turn_same_process, test_retire_reasons, test_seed_prompt_limits, test_retire_starts_new_session, test_resume_failure_marks_broken_and_reseeds, test_tool_cap_interrupts, test_cancel_interrupts_and_keeps_process, test_deadline_kills_process, test_pool_lru_and_idle_reap
 
-### `test_ai_settings.py` (105줄) — ai_settings_service + /data/settings/ai 라우트 — 키 값 비노출, PATCH 검증, 사용량, 연결 테스트.
+### `test_ai_settings.py` (116줄) — ai_settings_service + /data/settings/ai 라우트 — 키 값 비노출, PATCH 검증, 사용량, 연결 테스트.
 
-- functions: conn, test_mask_and_validate, test_view_never_leaks_key_and_usage, test_apply_patch_updates_config_and_consent, test_connection_test, test_routes, test_claude_queue_choice_and_ping
+- functions: conn, test_mask_and_validate, test_view_never_leaks_key_and_usage, test_apply_patch_updates_config_and_consent, test_connection_test, test_routes, test_claude_queue_choice_and_ping, test_validate_patch_fallback_order
 
 ### `test_ai_tool_format.py` (115줄) — 도구 응답 압축 헬퍼 — columnar, 반올림, 주별 롤업.
 
@@ -2418,10 +2422,10 @@
 - class **_Resp**: json
 - functions: test_stage_events_per_provider_and_rule, test_cancelled_stops_chain_before_next_provider, test_tool_stage_emitted
 
-### `test_chat_engine_result.py` (121줄) — chat_result — 엔진 상태·동의 게이트·체인 구성·예산 (30-coach-chat design §4.1·§4.3·§8).
+### `test_chat_engine_result.py` (138줄) — chat_result — 엔진 상태·동의 게이트·체인 구성·예산 (30-coach-chat design §4.1·§4.3·§8).
 
 - class **_Resp**: json
-- functions: calls, test_404_on_selected_falls_to_second_provider, test_all_fail_gives_rule_fallback_with_reason, test_no_external_call_before_consent, test_consent_for_other_provider_requires_reconsent, test_fallback_disabled_uses_single_provider, test_rule_only_without_keys_and_rule_by_choice, test_exclude_notes_keeps_memo_out_of_prompt, test_budget_exhausted_stops_chain, test_legacy_chat_returns_tuple, test_rule_text_has_no_ai_coach_self_reference, test_v2_chip_with_ai_uses_free_text_path_with_tools
+- functions: calls, test_404_on_selected_falls_to_second_provider, test_all_fail_gives_rule_fallback_with_reason, test_no_external_call_before_consent, test_consent_for_other_provider_requires_reconsent, test_fallback_disabled_uses_single_provider, test_rule_only_without_keys_and_rule_by_choice, test_exclude_notes_keeps_memo_out_of_prompt, test_budget_exhausted_stops_chain, test_legacy_chat_returns_tuple, test_rule_text_has_no_ai_coach_self_reference, test_v2_chip_with_ai_uses_free_text_path_with_tools, test_fallback_order_custom_and_cq_third, test_fallback_order_empty_means_no_fallback_and_default_kept
 
 ### `test_chat_engine_rules_grade.py` (54줄) — Coach 규칙 답변 — 회복 등급 → 강도 매핑과 오늘 판정 일치 (design 30-coach-chat §7.2, §8).
 
@@ -2715,6 +2719,10 @@
 ### `test_deep_analysis.py` (98줄) — 심화 분석 서비스·API (V2-AI-CLAUDE-QUEUE E5-d).
 
 - functions: db, test_split_output, test_pick_activity_id_prefers_latest_run, test_generate_stores_and_caches, test_generate_failures, test_background_progress_and_cancel, test_api
+
+### `test_deep_thread.py` (78줄) — deep_thread 테스트 — 'AI 분석'이 코치 스레드의 첫 답변이 된다 (INLINE 모드).
+
+- functions: db_file, test_start_ready_fills_first_message, test_start_failed_and_cancelled, test_stage_emitter_reports_tools, test_post_route_returns_thread
 
 ### `test_di_v2.py` (28줄) — P7-PRED-89: DI v2 — 랩 기반 후반 효율 유지율, 상한 없음.
 
@@ -4046,7 +4054,7 @@
 - functions: run
 
 ---
-총 879개 파일
+총 881개 파일
 
 ## docstring 누락
 

@@ -103,3 +103,14 @@ def test_claude_queue_choice_and_ping(conn):
     r = svc.test_connection("claude_queue", {"ai": {}}, conn)
     assert r["ok"] is False and r["reason"] == "no_key"
     assert svc.test_connection("claude_queue", {"ai": {}}, None)["ok"] is False
+
+
+def test_validate_patch_fallback_order():
+    from src.services import ai_settings_service as svc
+    out, err = svc.validate_patch({"fallback_order": ["groq", "claude_queue"]})
+    assert err is None and out == {"fallback_order": ["groq", "claude_queue"], "fallback_enabled": True}
+    out, _ = svc.validate_patch({"fallback_order": []})
+    assert out["fallback_enabled"] is False
+    for bad in (["groq", "groq"], ["a", "b"], ["groq", "gemini", "claude_queue"], "groq"):
+        assert svc.validate_patch({"fallback_order": bad})[1]
+    assert svc.validate_patch({"provider": "groq", "fallback_order": ["groq"]})[1]

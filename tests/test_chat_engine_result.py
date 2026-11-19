@@ -119,3 +119,20 @@ def test_v2_chip_with_ai_uses_free_text_path_with_tools(db_conn, monkeypatch):
     r = chat_result(db_conn, "오늘 훈련 어떻게 할까요?", cfg, chip_id="today_advice")
     assert r.text == "AI 답" and seen["tools"] is True
     assert "오늘 훈련 어떻게 할까요?" in seen["prompt"]
+
+
+def test_fallback_order_custom_and_cq_third():
+    from src.ai.chat_engine_result import build_chain, fallback_providers
+    cfg = {"ai": {"groq_api_key": "g", "gemini_api_key": "m", "fallback_order": ["groq", "claude_queue"]}}
+    assert fallback_providers("gemini", cfg, ["gemini", "groq"], True) == ["groq", "claude_queue"]
+    assert fallback_providers("gemini", cfg, ["gemini", "groq"], False) == ["groq"]
+    consent = {"provider": "gemini", "fallback_enabled": True}
+    assert build_chain("gemini", cfg, consent, True, cq_available=True)[0] == ["gemini", "groq", "claude_queue"]
+
+
+def test_fallback_order_empty_means_no_fallback_and_default_kept():
+    from src.ai.chat_engine_result import build_chain
+    keyed = {"ai": {"groq_api_key": "g", "gemini_api_key": "m"}}
+    consent = {"provider": "claude_queue", "fallback_enabled": True}
+    assert build_chain("claude_queue", {"ai": {**keyed["ai"], "fallback_order": []}}, consent, True, cq_available=True)[0] == ["claude_queue"]
+    assert build_chain("claude_queue", keyed, consent, True, cq_available=True)[0] == ["claude_queue", "gemini", "groq"]

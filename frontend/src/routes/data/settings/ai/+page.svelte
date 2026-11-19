@@ -3,7 +3,8 @@
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { say } from '$lib/a11y/say';
 	import { base } from '$app/paths';
-	import { getAiQueue, pingAiQueue, patchAiSettings, testAiConnection, type AiQueueStatus, type AiPatch, type AiSettings } from '$lib/api/data';
+	import { patchAiSettings, testAiConnection, type AiPatch, type AiSettings } from '$lib/api/data';
+	import { getAiQueue, pingAiQueue, type AiQueueStatus } from '$lib/api/aiQueue';
 	import { engineSummary, keyFormatError, keyStateText, providerName, queueOption, usageText, usageTodayText } from '$lib/aiSettings';
 	import type { AiPageData } from './+page';
 
@@ -29,6 +30,19 @@
 		} finally {
 			busy = false;
 		}
+	}
+
+	function fbCandidates(i: number): string[] {
+		if (!s) return [];
+		const all = [...s.providers.filter((p) => p.key_state !== 'missing').map((p) => p.provider), 'claude_queue'];
+		const other = s.fallback_order[1 - i];
+		return all.filter((c) => c !== s!.provider && c !== other);
+	}
+	function setOrder(i: number, v: string) {
+		if (!s) return;
+		const cur = [s.fallback_order[0] ?? '', s.fallback_order[1] ?? ''];
+		cur[i] = v;
+		void save({ fallback_order: cur.filter(Boolean) });
 	}
 
 	let q = $state<AiQueueStatus | null>(null);
@@ -133,11 +147,21 @@
 					{#if results[p.provider]}<p class="mt-1 text-xs text-fg-secondary">{results[p.provider]}</p>{/if}
 				</div>
 			{/each}
-			<label class="flex min-h-11 items-center gap-2 text-sm text-fg-primary">
-				<input type="checkbox" checked={s.fallback_enabled} disabled={busy || s.provider === 'rule'}
-					onchange={(e) => save({ fallback_enabled: e.currentTarget.checked })} />
-				선택한 제공자가 실패하면 키가 있는 다른 제공자로 대신 답하기
-			</label>
+			<div class="flex flex-col gap-2" data-testid="fallback-order">
+				<p class="text-xs text-fg-secondary">선택한 제공자가 실패하면 아래 순서로 대신 답해요. 비우면 폴백 없이 규칙 기반으로 답해요.</p>
+				{#each [0, 1] as i (i)}
+					<label class="flex min-h-11 items-center gap-2 text-sm text-fg-primary">
+						{i + 2}순위
+						<select class="min-h-11 rounded border border-border-subtle bg-surface-1 px-2 text-sm" aria-label="{i + 2}순위 폴백"
+							disabled={busy || s.provider === 'rule' || (i === 1 && !s.fallback_order[0])}
+							value={s.fallback_order[i] ?? ''}
+							onchange={(e) => setOrder(i, e.currentTarget.value)}>
+							<option value="">없음</option>
+							{#each fbCandidates(i) as c (c)}<option value={c}>{providerName(c)}</option>{/each}
+						</select>
+					</label>
+				{/each}
+			</div>
 		</section>
 
 		<section class="flex flex-col gap-2">

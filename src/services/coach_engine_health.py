@@ -9,7 +9,7 @@ import re
 import sqlite3
 
 from src.ai.chat_context_scope import scope_catalog
-from src.ai.chat_engine_result import FALLBACK_ORDER, build_chain
+from src.ai.chat_engine_result import build_chain, fallback_providers
 from src.ai.provider_common import CLAUDE_QUEUE, LLM_PROVIDERS, REASON_LABELS, api_key_for, model_for
 from src.services.coach_consent import get_consent
 
@@ -143,7 +143,8 @@ def get_engine(conn: sqlite3.Connection, config: dict | None) -> dict:
     selected = ((config or {}).get("ai") or {}).get("provider", "rule")
     consent = get_consent(conn)
     cq_ok = False
-    if selected == CLAUDE_QUEUE:
+    order = ((config or {}).get("ai") or {}).get("fallback_order") or []
+    if selected == CLAUDE_QUEUE or CLAUDE_QUEUE in order:
         from src.ai import provider_claude_queue as pcq
         cq_ok = pcq.available(conn, config)
     if selected == CLAUDE_QUEUE:
@@ -156,12 +157,14 @@ def get_engine(conn: sqlite3.Connection, config: dict | None) -> dict:
         mode = "llm"
     chain, _ = build_chain(selected, config, consent, True, cq_available=cq_ok)
     # C-17: 동의창에 "실패 시 재시도" 대상 제공자를 이름으로 밝힌다(호출 순서는 build_chain 그대로).
-    fallback = [p for p in FALLBACK_ORDER if p != selected and api_key_for(p, config)] if selected in LLM_PROVIDERS else []
+    keyed = [p for p in LLM_PROVIDERS if api_key_for(p, config)]
+    fallback = fallback_providers(selected, config, keyed, cq_ok) if selected in LLM_PROVIDERS or selected == CLAUDE_QUEUE else []
     return {
         "mode": mode,
         "selected": {"provider": selected, "model": model_for(selected, config) if selected in LLM_PROVIDERS else None},
         "chain": [{"provider": p, "model": None if p == CLAUDE_QUEUE else model_for(p, config)} for p in chain],
         "fallback_providers": [{"provider": p, "label": _PROVIDER_NAMES.get(p, p)} for p in fallback],
+        "fallback_order": ((config or {}).get("ai") or {}).get("fallback_order"),
         "health": health_summary(conn),
         "consent": consent,
         "scope": scope_catalog(),

@@ -232,7 +232,7 @@ export interface AiSettings {
 	provider: string;
 	providers: AiProviderRow[];
 	mode: 'llm' | 'rule_only' | 'rule_by_choice';
-	fallback_enabled: boolean; exclude_notes: boolean;
+	fallback_enabled: boolean; fallback_order: string[]; exclude_notes: boolean;
 	consented: boolean;
 	scope: { item: string; period: string; optional: boolean; enabled: boolean }[];
 	usage_7d: { messages: number; by_provider: Record<string, number>; fallback: number; rule: number; tool_calls: number };
@@ -245,7 +245,7 @@ export interface AiPatch {
 	provider?: string;
 	keys?: Record<string, string>;
 	exclude_notes?: boolean;
-	fallback_enabled?: boolean;
+	fallback_enabled?: boolean; fallback_order?: string[];
 }
 
 export const getAiSettings = () => apiFetch<AiSettings>('/data/settings/ai');
@@ -254,12 +254,6 @@ export const patchAiSettings = (patch: AiPatch) =>
 export const testAiConnection = (provider: string) =>
 	apiFetch<{ ok: boolean; reason: string | null; label: string; http_status: number | null }>(
 		'/data/settings/ai/test', { method: 'POST', body: JSON.stringify({ provider }) });
-
-export interface AiQueueStatus { enabled: boolean; worker_up: boolean; available: boolean }
-export const getAiQueue = () => apiFetch<AiQueueStatus>('/ai/queue');
-export const pingAiQueue = () =>
-	apiFetch<AiQueueStatus & { ok: boolean; reason: string | null; text?: string; queue_ms?: number | null }>(
-		'/ai/queue/ping', { method: 'POST' });
 
 export type ImportSource = 'garmin' | 'strava';
 export type ImportKind = 'strava_archive' | 'strava_csv' | 'garmin_csv' | 'files';
