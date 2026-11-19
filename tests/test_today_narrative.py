@@ -78,3 +78,12 @@ def test_empty_month_with_other_data_names_period(db_conn):
     _seed(db_conn, 901, "running", "2026-09-10T06:00:00", 5000, 1800)
     out = today_service.get_today_narrative(db_conn, config=None, year=2026, month=5)
     assert out["text"] == "2026년 5월에는 기록된 활동이 없어요."
+
+
+def test_chain_output_validated_like_queue(db_conn):
+    """키 기반 provider 출력도 근거 밖 숫자면 버리고 규칙 문장으로(REVIEW-AI-WORDING)."""
+    _seed(db_conn, 903, "running", "2026-09-10T06:00:00", 5000, 1800)
+    config = {"ai": {"provider": "gemini", "gemini_api_key": "key"}}
+    with patch("src.ai.chat_engine._call_provider", return_value="이번 달 42km를 달렸어요."):
+        out = today_service.get_today_narrative(db_conn, date="2026-09-22", config=config)
+    assert out["source"] == "rule" and "42" not in out["text"]

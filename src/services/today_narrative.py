@@ -7,7 +7,7 @@ from __future__ import annotations
 import datetime as _dt
 import sqlite3
 
-from src.services.narrative_queue import narrative_via_queue, queue_ready as _queue_ready
+from src.services.narrative_queue import narrative_via_queue, queue_ready as _queue_ready, validate_narrative
 
 
 def get_today_narrative(
@@ -119,7 +119,8 @@ def get_today_narrative(
                 source = "ai"
         with llm_budget.ensure_scope("narrative") as sc:
             for prov in ([] if text else chain):
-                ai_result = _call_provider(prov, prompt, config)
+                # 큐 경로와 같은 검증(근거 밖 숫자·과도한 길이 거부) — 실패면 다음 provider → 규칙 문장
+                ai_result = validate_narrative(prompt, _call_provider(prov, prompt, config))
                 if ai_result:
                     text = ai_result
                     source = "ai"

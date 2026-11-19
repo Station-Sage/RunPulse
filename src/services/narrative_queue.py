@@ -4,11 +4,9 @@
 """
 from __future__ import annotations
 
-import re
 import sqlite3
 
 MAX_LEN = 400
-_NUM = re.compile(r"\d+(?:\.\d+)?")
 
 
 def queue_ready(conn: sqlite3.Connection, config: dict | None) -> bool:
@@ -23,10 +21,8 @@ def validate_narrative(prompt: str, out: str | None) -> str | None:
     t = out.strip()
     if not t or len(t) > MAX_LEN or t.startswith("#"):
         return None
-    known = set(_NUM.findall(prompt))
-    if any(n not in known for n in _NUM.findall(t)):
-        return None
-    return t
+    from src.services.ai_wording import numbers_ok
+    return t if numbers_ok(prompt, t) else None   # 프롬프트 수치(반올림 허용)만
 
 
 def narrative_via_queue(conn: sqlite3.Connection, config: dict | None, prompt: str) -> str | None:

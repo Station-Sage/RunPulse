@@ -52,3 +52,12 @@ def test_warm_stores_valid_and_rejects_numbers(monkeypatch):
 def test_warm_noop_when_queue_unavailable(monkeypatch):
     monkeypatch.setattr(pcq, "available", lambda *a, **k: False)
     assert mn.warm(_conn(), {}) == 0
+
+
+def test_warm_keeps_source_numbers(monkeypatch):
+    """원문 수치(6시간·7시간)는 유지 허용 — 숫자 전면 금지는 3개 문구를 항상 거부했다(REVIEW-AI-WORDING)."""
+    c = _conn()
+    monkeypatch.setattr(pcq, "available", lambda *a, **k: True)
+    monkeypatch.setattr(pcq, "try_complete", lambda conn, config, **kw: json.dumps(
+        [{"id": "sleep_duration_sec:poor", "text": "잠이 6시간이 안 됐어요. 오늘은 일찍 자요."}], ensure_ascii=False))
+    assert mn.warm(c, {}) == 1

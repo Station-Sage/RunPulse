@@ -18,7 +18,6 @@ log = logging.getLogger(__name__)
 _TEMPLATE = Path(__file__).resolve().parents[1] / "ai" / "prompt_templates" / "insight_polish.txt"
 _TEMPLATE_BATCH = _TEMPLATE.with_name("insight_polish_batch.txt")
 _MAX_LEN = 120
-_NUM = re.compile(r"\d+(?:\.\d+)?")
 
 
 def validate(src: str, out: str | None) -> str | None:
@@ -28,7 +27,8 @@ def validate(src: str, out: str | None) -> str | None:
     t = out.strip().strip("\"'“”`")
     if not t or "\n\n" in t or len(t) > _MAX_LEN or t.startswith(("#", "-", "*", "[")):
         return None
-    if not set(_NUM.findall(t)) <= set(_NUM.findall(src)):
+    from src.services.ai_wording import numbers_ok
+    if not numbers_ok(src, t):   # 원문 수치(반올림 허용)만
         return None
     return t
 

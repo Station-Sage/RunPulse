@@ -8,7 +8,6 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import re
 import sqlite3
 import threading
 from pathlib import Path
@@ -66,7 +65,7 @@ def warm(conn: sqlite3.Connection, config: dict | None, chunk: int = 30) -> int:
         for it in parse_batch(out):
             rule = src.get(it.get("id"))
             text = validate(rule, it.get("text")) if rule else None
-            if text and not re.search(r"\d", text):
+            if text:   # 원문 수치(예: 6시간·60~70%)는 유지 허용, 새 수치만 validate 가 거부
                 conn.execute("INSERT OR REPLACE INTO ai_outputs(kind, scope_key, src_hash, body_json, created_at) "
                              "VALUES (?,?,?,?,datetime('now'))",
                              (KIND, it["id"], _hash(rule), json.dumps({"text": text}, ensure_ascii=False)))

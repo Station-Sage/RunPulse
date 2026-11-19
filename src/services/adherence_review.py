@@ -19,7 +19,6 @@ log = logging.getLogger(__name__)
 
 KIND = "adherence"
 _TEMPLATE = Path(__file__).resolve().parents[1] / "ai" / "prompt_templates" / "adherence.txt"
-_NUM = re.compile(r"\d+(?:\.\d+)?")
 _SKIP_STATES = ("pre_plan", "rest")
 
 
@@ -67,10 +66,6 @@ def src_hash(inp: dict) -> str:
     return hashlib.sha256(json.dumps(inp, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
 
 
-def _nums(s: str) -> set[str]:
-    return {n.rstrip("0").rstrip(".") if "." in n else n for n in _NUM.findall(s)}
-
-
 def validate(inp: dict, out: str | None) -> dict | None:
     """응답 → 정규화된 {summary, points, next_focus}. 스키마·길이·숫자·evidence 위반이면 None."""
     m = re.search(r"\{.*\}", out or "", re.S)
@@ -94,9 +89,10 @@ def validate(inp: dict, out: str | None) -> dict | None:
         if not text or len(text) > 80 or ek not in keys:
             return None
         clean.append({"text": text, "evidence_key": ek})
-    allowed = _nums(json.dumps(inp, ensure_ascii=False))
+    from src.services.ai_wording import numbers_ok
+    src = json.dumps(inp, ensure_ascii=False)
     for t in [summary, nxt, *[p["text"] for p in clean]]:
-        if "#" in t or "*" in t or not _nums(t) <= allowed:
+        if "#" in t or "*" in t or not numbers_ok(src, t):   # 입력 수치(반올림 허용)만
             return None
     return {"summary": summary, "points": clean, "next_focus": nxt}
 
@@ -120,8 +116,8 @@ def generate(conn: sqlite3.Connection, config: dict | None, week_start: date) ->
         return json.loads(row[1])
     if not pcq.available(conn, config):
         return None
-    prompt = _TEMPLATE.read_text(encoding="utf-8").replace(
-        "{{INPUT}}", json.dumps(inp, ensure_ascii=False))
+    prompt = (_TEMPLATE.read_text(encoding="utf-8").replace("{{KEYS}}", ", ".join(sorted(evidence_keys(inp))))
+              .replace("{{INPUT}}", json.dumps(inp, ensure_ascii=False)))
     body = validate(inp, pcq.try_complete(conn, config, kind="adherence", prompt=prompt))
     if body is None:
         return None

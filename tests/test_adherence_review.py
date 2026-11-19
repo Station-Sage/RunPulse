@@ -140,3 +140,14 @@ def test_build_input_and_tool_with_real_week(conn, monkeypatch):
     assert any(d["date"] == "2026-11-10" for d in inp["days"])
     out = _exec_get_plan_adherence(conn, {"weeks": 1})
     assert out["fields"][0] == "week" and "sessions" in out
+
+
+def test_prompt_lists_evidence_keys_and_rounding_ok(conn, monkeypatch):
+    monkeypatch.setattr(AR, "build_input", lambda c, w: INP)
+    monkeypatch.setattr(pcq, "available", lambda *a: True)
+    seen = {}
+    out = _mut(points=[{"text": "10일 8km 계획을 채웠어요", "evidence_key": "day:2026-11-10"}],
+               summary="볼륨은 30km 남짓, 계획의 85%였어요.")
+    monkeypatch.setattr(pcq, "try_complete", lambda *a, **k: seen.update(p=k["prompt"]) or out)
+    assert AR.generate(conn, {}, WS) is not None   # 30.5 → 30 반올림 허용
+    assert "day:2026-11-10" in seen["p"] and "{{KEYS}}" not in seen["p"]
