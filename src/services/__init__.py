@@ -11,6 +11,7 @@ today_service·coach_service(Phase 7a, 구현 완료) / metrics_service·plan_se
 data_service(Phase 7b~7d 스텁). story_service(+story_period·story_stats): 월·주·블록 Story
 (REVIEW-03, 00-diagnostic-and-direction.md §5.1). milestone_service(조회·동기화 탐지)·milestone_events(기록·삭제 원시)·
 milestone_hooks(출처별 훅: 대회 결과·목표·대회 등록·재계획·질병/부상) — 사용자 사건 마일스톤(ADR-057).
+ai_wording: 규칙 문구 AI 다듬기 공통 계층(표면 선언·캐시 조회·백그라운드 생성·건강 익명화, ADR-059).
 
 설계 문서: v0.3/data/phase-5-impl/01-service-layer.md,
 v0.3/data/phase-7-ui-renewal/06-data-layer-extensions.md (D5)
