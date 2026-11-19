@@ -2,6 +2,8 @@
 	// 내러티브(L2) — 지연 로드 Promise를 {#await}로 소비. 실패 시 규칙 기반 fallback 한 줄.
 	import EvidenceQuote from '$lib/components/EvidenceQuote.svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import AiMark from '$lib/components/AiMark.svelte';
+	import { isAiWorded } from '$lib/aiWording';
 	import { milestoneIconName } from '$lib/milestoneIcon';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
 	import { base } from '$app/paths';
@@ -56,7 +58,7 @@
 			</div>
 			<button class="inline-flex min-h-11 items-center self-start text-sm text-fg-secondary hover:text-fg-primary" onclick={onMilestones}>전체 마일스톤 →</button>
 		{/if}
-		{#if n.source === 'rule'}<p class="text-xs text-fg-muted">규칙 기반 요약</p>{/if}
+		{#if isAiWorded(n)}<p><AiMark source={n.source} /></p>{/if}
 		<button class="inline-flex min-h-11 items-center self-start text-sm text-fg-secondary hover:text-fg-primary" onclick={onMonth}>이번 달 전체 이야기 보기 →</button>
 	{:else}
 		<p class="text-sm text-fg-secondary">

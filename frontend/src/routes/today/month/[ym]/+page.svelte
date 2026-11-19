@@ -19,6 +19,8 @@
 	import MetricBreakdown from '$lib/components/MetricBreakdown.svelte';
 	import WeekDigestList from '$lib/components/WeekDigestList.svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import AiMark from '$lib/components/AiMark.svelte';
+	import { isAiWorded } from '$lib/aiWording';
 	import { milestoneIconName } from '$lib/milestoneIcon';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
 	import type { NarrativeResponse } from '$lib/types';
@@ -230,8 +232,8 @@
 		<!-- CTL 스파크라인 — 이번 달은 최근 4주, 과거 달은 그 달(1년 추세에서 잘라 씀, T-24). -->
 		<MonthLoadSparkline ctl={ctlSlice} atl={atlSlice} title={sparkTitle} loading={sparklineLoading} />
 
-		{#if narrativeData.source === 'rule'}
-			<p class="text-xs text-fg-muted">규칙 기반 요약</p>
+		{#if isAiWorded(narrativeData)}
+			<p><AiMark source={narrativeData.source} /></p>
 		{/if}
 	{/if}
 </div>

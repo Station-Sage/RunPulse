@@ -1,6 +1,7 @@
 <script lang="ts">
 	// 지난주 이행 리뷰(AI 해설) — 검증을 통과해 저장된 경우에만 보인다. 없거나 실패하면 아무것도 그리지 않는다.
 	import { onMount } from 'svelte';
+	import AiMark from './AiMark.svelte';
 	import { evidenceLabel, getAdherenceReview, type AdherenceReview } from '$lib/api/adherence';
 
 	let review = $state<AdherenceReview | null>(null);
@@ -16,7 +17,7 @@
 
 {#if review}
 	<section class="border-b border-border-subtle px-4 py-3" aria-label="지난주 리뷰" data-testid="adherence-review">
-		<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">지난주 리뷰 <span class="normal-case">· AI 해설</span></h2>
+		<h2 class="mb-2 text-xs uppercase tracking-wide text-fg-muted">지난주 리뷰 <AiMark source="ai" prefix /></h2>
 		<p class="text-sm text-fg-primary">{review.summary}</p>
 		{#if review.points.length}
 			<ul class="mt-2 flex flex-col gap-1.5">
