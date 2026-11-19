@@ -13,13 +13,13 @@ USAGE_GUIDE = """RunPulse 러닝 데이터 도구 규칙 (호출 횟수·토큰 
 - 날짜·id를 모르면 먼저 get_training_summary로 좁힌 뒤 id로 상세를 본다. 같은 데이터를 반복 조회 금지.
 질문 → 도구
 - 최근 N주/훈련 블록/대회 이후 → get_training_summary (1회로 볼륨·CTL/TSB·주요 세션 id)
-- 몸 상태(수면·HRV·BB) → get_wellness (14일 이내 권장)
+- 몸 상태(수면·HRV·BB) → get_wellness (최근 상태는 14일, HRV 기준선은 90일 이상 구간을 주별로 함께 조회: 28일 평균은 휴식기에 낮아져 있을 수 있다)
 - 피트니스 추이 → get_fitness
 - 특정 날 러닝 → get_activity(date), 기간 목록 → get_activities_range
 - 인터벌·크루즈 세트별 → get_activity_laps(id), 세션 간 세트 비교 → compare_workout_sets
 - km 스플릿·HR존 → get_activity_detail(id)
 - 대회 이력 → get_race_history, 두 기간 비교 → compare_periods
-- 메트릭 → get_metrics(날짜)/get_metrics_trend, 계획·프로필·날씨 → get_training_plan/get_runner_profile/get_weather, 계획 이행 → get_plan_adherence, 계획 제약 → get_plan_constraints
+- 메트릭(이름은 소문자: cirs·acwr·utrs·ctl·tsb) → get_metrics(날짜)/get_metrics_trend, 계획·프로필·날씨 → get_training_plan/get_runner_profile/get_weather, 계획 이행 → get_plan_adherence, 계획 제약 → get_plan_constraints
 - 수면·HRV 일별 추세 → get_wellness_series, 열린 알림 → get_insights, 체크인·RPE → get_checkins, 예측·PB → get_predictions
 - 구간 심박·페이스 곡선 → get_activity_stream(id, channel, from_sec, to_sec)
 - 원본 API 응답 → list_raw_payloads 로 id 확인 후 get_raw_payload(id, path)

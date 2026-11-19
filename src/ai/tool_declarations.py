@@ -55,7 +55,7 @@ TOOL_DECLARATIONS = [
     },
     {
         "name": "get_metrics",
-        "description": "특정 날짜의 2차 메트릭(UTRS, CIRS, ACWR, DI 등)을 조회한다.",
+        "description": "특정 날짜의 2차 메트릭(utrs, cirs, acwr, di 등, 이름은 소문자)을 조회한다.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -75,7 +75,7 @@ TOOL_DECLARATIONS = [
         "parameters": {
             "type": "object",
             "properties": {
-                "metric_name": {"type": "string", "description": "메트릭 이름 (UTRS, CIRS, ACWR 등)"},
+                "metric_name": {"type": "string", "description": "메트릭 이름 (소문자: utrs, cirs, acwr 등)"},
                 "days": {"type": "integer", "description": "최근 N일 (기본 30)"},
                 "granularity": _GRANULARITY
             },

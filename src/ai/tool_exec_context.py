@@ -13,7 +13,7 @@ from src.utils.pace import seconds_to_pace
 
 def _exec_get_metrics(conn: sqlite3.Connection, args: dict) -> dict:
     d = args.get("date", date.today().isoformat())
-    names = args.get("metric_names", [])
+    names = [str(n).strip().lower() for n in (args.get("metric_names") or []) if str(n).strip()]
     if names:
         placeholders = ",".join("?" for _ in names)
         rows = conn.execute(
@@ -28,11 +28,15 @@ def _exec_get_metrics(conn: sqlite3.Connection, args: dict) -> dict:
             " WHERE scope_type='daily' AND scope_id=? AND is_primary=1 AND numeric_value IS NOT NULL",
             (d,),
         ).fetchall()
-    return {"date": d, "metrics": {r[0]: round(float(r[1]), 2) for r in rows if r[1]}}
+    out: dict = {"date": d, "metrics": {r[0]: round(float(r[1]), 2) for r in rows if r[1]}}
+    if not out["metrics"]:
+        out["note"] = ("해당 날짜에 값이 없다. 메트릭 이름은 소문자(cirs, acwr, utrs, ctl, tsb …)이며 "
+                       "get_metrics_trend 로 최근 값이 있는 날짜를 확인할 수 있다.")
+    return out
 
 
 def _exec_get_metrics_trend(conn: sqlite3.Connection, args: dict) -> dict:
-    name = args["metric_name"]
+    name = str(args["metric_name"]).strip().lower()
     days = int(args.get("days", 30))
     first = args.get("week_start", DEFAULT_WEEK_START)
     gran, note = resolve_granularity(args.get("granularity"), days)
@@ -46,6 +50,8 @@ def _exec_get_metrics_trend(conn: sqlite3.Connection, args: dict) -> dict:
     out: dict = {"metric": name, "days": days, "granularity": gran}
     if note:
         out["note"] = note
+    if not rows:
+        out["note"] = (out.get("note", "") + " 기간 내 값이 없다. 메트릭 이름은 소문자(cirs, acwr, utrs …)여야 한다.").strip()
     if gran == "week":
         out["unit"] = f"week({'Mon' if first == 'mon' else 'Sun'}-start)"
         out.update(columnar(["week", "n", "value"],

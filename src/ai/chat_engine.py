@@ -110,12 +110,24 @@ def chat_result(
     as_of = date.today().isoformat()
     if text and used:
         text = _TRAILING_RECO.sub("", text).rstrip() or text
-        return ChatResult(text, engine_for_ok(used, attempts), as_of=as_of, sent_scope=sent_scope)
+        return ChatResult(text, engine_for_ok(used, attempts), as_of=as_of, sent_scope=sent_scope,
+                          followups=llm_followups(conn, user_message, chip_id))
     if on_event is not None:
         on_event("stage", {"key": "rule", "label": "기본 답변 준비 중", "tool": None})
     answer = rule_based_response(conn, user_message, chip_id)
     return ChatResult(answer.text, engine_for_rule(provider, config, empty_reason, attempts),
                       evidence=answer.evidence, followups=list(answer.followups), as_of=as_of)
+
+
+def llm_followups(conn: sqlite3.Connection, user_message: str, chip_id: str | None) -> list[str]:
+    """LLM 답변에도 후속 칩을 붙인다 — 답할 수 있는 칩 중 질문과 가까운 순, 방금 누른 칩은 제외."""
+    from .coach_rule_handlers import answerable_chips
+    from .coach_rule_intent import rank_followups
+    try:
+        chips, _ = rank_followups(user_message, [c for c in answerable_chips(conn) if c != chip_id])
+    except sqlite3.Error:
+        return []
+    return chips
 
 
 def chat(
@@ -191,6 +203,9 @@ _SYSTEM_PROMPT = """당신은 RunPulse AI 러닝 코치입니다. 반드시 한�
 - CIRS > 75: 휴식 필수
 - ACWR 0.8~1.3: 안전 범위
 - TSB > 0: 신선, TSB < -20: 피로 축적
+- 마지막 러닝이 7일 이상 전(휴식기)이면 TSB 높음을 곧바로 "컨디션 좋음"으로 읽지 말고, 지표와 상황이 엇갈린다고 먼저 짚은 뒤 복귀 첫 세션은 보수적으로(이지 위주) 제안하세요.
+- HRV 28일 평균은 휴식기에 낮아질 수 있으니 장기(90일 이상) 기준선과 함께 비교하세요.
+- 도구 결과가 비었으면 이유(기간·이름·데이터 없음)를 짧게 설명하고, 계획·체크인이 비어 있으면 그 점을 사용자에게 물어보세요.
 
 ## 훈련 계획 추천 형식
 사용자가 훈련 스케줄/계획을 요청하면 반드시 아래 형식으로 답변:

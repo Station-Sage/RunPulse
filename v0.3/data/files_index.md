@@ -1203,9 +1203,9 @@
 
 - functions: seconds_to_pace
 
-### `chat_engine.py` (261줄) — AI 채팅 엔진 — 교체 가능 구조.
+### `chat_engine.py` (276줄) — AI 채팅 엔진 — 교체 가능 구조.
 
-- functions: get_ai_provider, chat_result, chat
+- functions: get_ai_provider, chat_result, llm_followups, chat
 
 ### `chat_engine_providers.py` (280줄) — AI 채팅 — 외부 API provider 호출 모듈.
 
@@ -1296,7 +1296,7 @@
 
 - (public API 없음)
 
-### `tool_exec_context.py` (235줄) — 일별/기간 단위 도구 실행기 — 메트릭, 웰니스, 피트니스, 날씨, 기간 비교, 프로필.
+### `tool_exec_context.py` (241줄) — 일별/기간 단위 도구 실행기 — 메트릭, 웰니스, 피트니스, 날씨, 기간 비교, 프로필.
 
 - functions: fitness_rows
 
@@ -3794,6 +3794,10 @@
 
 - functions: conn, test_registered_and_classified, test_wellness_series_kinds_and_values, test_wellness_series_caps_range, test_activity_stream_resample_and_cap, test_activity_stream_errors, test_insights_order_and_state, test_checkins_redact_without_consent, test_checkins_with_consent, test_predictions_sections
 
+### `test_tool_metric_names.py` (43줄) — get_metrics / get_metrics_trend 메트릭 이름 대소문자 무시 + 빈 결과 안내.
+
+- functions: conn, test_get_metrics_uppercase_names, test_get_metrics_empty_has_note, test_trend_uppercase_name, test_trend_empty_has_note, test_llm_followups_excludes_current_chip
+
 ### `test_tpdi.py` (117줄)
 
 - class **TestTPDI**: test_with_indoor_outdoor, test_json_has_counts, test_no_indoor
@@ -4054,7 +4058,7 @@
 - functions: run
 
 ---
-총 881개 파일
+총 882개 파일
 
 ## docstring 누락
 
