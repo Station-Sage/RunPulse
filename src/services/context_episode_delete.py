@@ -80,6 +80,8 @@ def delete_episode(conn: sqlite3.Connection, episode_id: int, *, chat_thread_ids
     kind = row[0]
     out = {"kind": kind, "chat_deleted": 0}
     conn.execute("DELETE FROM context_episodes WHERE id=?", (episode_id,))
+    from src.services import milestone_hooks
+    milestone_hooks.on_episode_removed(conn, episode_id)
     if kind == "illness":
         sync_adj_flag(conn, _anonymize_adjustments(conn))
         ai_cache.clear_all_no_commit(conn)

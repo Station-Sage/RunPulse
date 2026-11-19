@@ -149,6 +149,8 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
         if write:
             conn.execute("UPDATE plan_replans SET replaced_json=? WHERE id=?", (json.dumps(
                 {"deleted": res["snapshot"], "inserted": res["inserted"]}, ensure_ascii=False), replan_id))
+            from src.services import milestone_hooks   # 재계획 적용 마일스톤(ADR-057)
+            milestone_hooks.on_replan(conn, replan_id, today.isoformat())
         else:
             conn.execute("ROLLBACK TO replan")
         conn.execute("RELEASE replan")
@@ -260,6 +262,8 @@ def undo(conn: sqlite3.Connection, replan_id: int, today: date | None = None) ->
         goal_id = conn.execute("SELECT goal_id FROM plan_replans WHERE id=?", (replan_id,)).fetchone()[0]
         write_planner_rows(conn, saved.get("deleted", []), goal_id=goal_id, restore=True)
         conn.execute("UPDATE plan_replans SET status='undone', undone_at=datetime('now') WHERE id=?", (replan_id,))
+        from src.services import milestone_hooks
+        milestone_hooks.on_replan_undone(conn, replan_id)
         conn.execute("RELEASE undo")
     except Exception:
         conn.execute("ROLLBACK TO undo")

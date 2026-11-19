@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_USER = "default"
-SCHEMA_VERSION = 48  # v48: ai_jobs·ai_sessions·ai_worker_state·ai_outputs Claude 큐 (db_schema_v48) — v47: insight_events 능동 인사이트 (db_schema_v47) — v46: wellness_series 일중 시계열 (db_schema_v46) — v45: activity_laps.lap_kind 강도 분리 (db_schema_v45) — v44: 러닝 다이내믹스 컬럼 (db_schema_v44) — v43: activity_streams.sample_idx (db_schema_v43) — v42: user_shoes·activity_shoe·gear.shoe_id (db_schema_v42) — v41: goals.plan_snapshot_json (db_schema_v41) — v40: planned_workouts.goal_id·adj_accepted + user_training_prefs.workout_weekdays_mask (db_schema_v40) — v39: goals.race_id + race_calendar 백필 (db_schema_v39) — v38: 가산 race_calendar·context_episodes·illness_consent_events (db_schema_v38) — v37: plan_adjustments 재생성 — source 11종·signals_json·자동 묶음 유니크 (db_schema_v37) — v36: 퇴역 테이블 sync_jobs·ui_events 삭제 (db_schema_v36) — v35: plan_replans.rules_version anchor 별 규칙 버전 (db_schema_v35) — v34: CalDAV 전송 기록 caldav_pushes (db_schema_v34) — v33: plan_replans.start_source 확장 (db_schema_v33) — v0.3.21: 안전한 재계획 plan_replans·활성 목표 유니크 (db_schema_v32) — v31: 계획 조정 plan_adjustments (db_schema_v31) — v30: 스트림 시간축 meta (db_schema_v30) — v29: 품질 사다리 plan_progression (db_schema_v29) — v28: goals 사용자 입력 시작 부하 (db_schema_v28) — v27: planned_workouts CHECK 확장 (db_schema_v27) — v26: goals.plan_rules_version (db_schema_v26) — v25: 활동 피드백·user_settings (db_schema_v25) — v24: Coach 비동기 답변 컬럼·client_msg_id (db_schema_v24) — v23: 엔진 투명성·coach_consent, v22: 마일스톤 재계산 종류 분리, v21: 예측 스냅샷, v20: 예측 리뉴얼 컬럼·race_results
+SCHEMA_VERSION = 49  # v49: milestones.source_ref 출처 연결 (db_schema_v49) — v48: ai_jobs·ai_sessions·ai_worker_state·ai_outputs Claude 큐 (db_schema_v48) — v47: insight_events 능동 인사이트 (db_schema_v47) — v46: wellness_series 일중 시계열 (db_schema_v46) — v45: activity_laps.lap_kind 강도 분리 (db_schema_v45) — v44: 러닝 다이내믹스 컬럼 (db_schema_v44) — v43: activity_streams.sample_idx (db_schema_v43) — v42: user_shoes·activity_shoe·gear.shoe_id (db_schema_v42) — v41: goals.plan_snapshot_json (db_schema_v41) — v40: planned_workouts.goal_id·adj_accepted + user_training_prefs.workout_weekdays_mask (db_schema_v40) — v39: goals.race_id + race_calendar 백필 (db_schema_v39) — v38: 가산 race_calendar·context_episodes·illness_consent_events (db_schema_v38) — v37: plan_adjustments 재생성 — source 11종·signals_json·자동 묶음 유니크 (db_schema_v37) — v36: 퇴역 테이블 sync_jobs·ui_events 삭제 (db_schema_v36) — v35: plan_replans.rules_version anchor 별 규칙 버전 (db_schema_v35) — v34: CalDAV 전송 기록 caldav_pushes (db_schema_v34) — v33: plan_replans.start_source 확장 (db_schema_v33) — v0.3.21: 안전한 재계획 plan_replans·활성 목표 유니크 (db_schema_v32) — v31: 계획 조정 plan_adjustments (db_schema_v31) — v30: 스트림 시간축 meta (db_schema_v30) — v29: 품질 사다리 plan_progression (db_schema_v29) — v28: goals 사용자 입력 시작 부하 (db_schema_v28) — v27: planned_workouts CHECK 확장 (db_schema_v27) — v26: goals.plan_rules_version (db_schema_v26) — v25: 활동 피드백·user_settings (db_schema_v25) — v24: Coach 비동기 답변 컬럼·client_msg_id (db_schema_v24) — v23: 엔진 투명성·coach_consent, v22: 마일스톤 재계산 종류 분리, v21: 예측 스냅샷, v20: 예측 리뉴얼 컬럼·race_results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -787,6 +787,9 @@ def create_tables(conn: sqlite3.Connection) -> None:
     ensure_v47(conn)
     from src.db_schema_v48 import ensure_v48
     ensure_v48(conn)
+    # v49: milestones.source_ref (출처 연결 — 출처 삭제·취소 시 마일스톤도 삭제, ADR-057)
+    from src.db_schema_v49 import ensure_v49
+    ensure_v49(conn)
 
     conn.commit()
 

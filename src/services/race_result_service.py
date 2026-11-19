@@ -44,6 +44,8 @@ def confirm(conn: sqlite3.Connection, activity_id: int, effort: str, official_ti
         "distance_m=excluded.distance_m, official_time_sec=excluded.official_time_sec, effort=excluded.effort, "
         "note=excluded.note, confirmed_at=excluded.confirmed_at",
         (activity_id, race_name, distance_m, official_time_sec, effort, note))
+    from src.services import milestone_hooks   # 대회 완주(DNF 포함) 마일스톤 — 같은 트랜잭션(ADR-057)
+    milestone_hooks.on_race_result(conn, activity_id)
     conn.commit()
     from src.services.prediction_snapshot_service import evaluate_race   # 대회 전 스냅샷 전향 평가(P7-PRED-63)
     evaluate_race(conn, activity_id)
@@ -52,6 +54,8 @@ def confirm(conn: sqlite3.Connection, activity_id: int, effort: str, official_ti
 
 def remove(conn: sqlite3.Connection, activity_id: int) -> bool:
     n = conn.execute("DELETE FROM race_results WHERE activity_id=?", (activity_id,)).rowcount
+    from src.services import milestone_hooks
+    milestone_hooks.on_race_result_removed(conn, activity_id)
     conn.commit()
     return n > 0
 

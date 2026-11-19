@@ -9,7 +9,8 @@ Phase 7a). 첫 번째 인자는 항상 sqlite3.Connection. 반환값은 dict (sn
 파일: context_episodes·illness_consent·context_episode_delete·context_autodetect·context_today·adjustment_signals_context(S5-13 컨텍스트 신호: 질병·이동·고지대, ADR-035 v3) / activity_service·dashboard_service·wellness_service(Phase 5, 구현 완료) /
 today_service·coach_service(Phase 7a, 구현 완료) / metrics_service·plan_service·
 data_service(Phase 7b~7d 스텁). story_service(+story_period·story_stats): 월·주·블록 Story
-(REVIEW-03, 00-diagnostic-and-direction.md §5.1).
+(REVIEW-03, 00-diagnostic-and-direction.md §5.1). milestone_service(조회·동기화 탐지)·milestone_events(기록·삭제 원시)·
+milestone_hooks(출처별 훅: 대회 결과·목표·대회 등록·재계획·질병/부상) — 사용자 사건 마일스톤(ADR-057).
 
 설계 문서: v0.3/data/phase-5-impl/01-service-layer.md,
 v0.3/data/phase-7-ui-renewal/06-data-layer-extensions.md (D5)

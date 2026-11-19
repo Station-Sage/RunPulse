@@ -9,6 +9,7 @@ import json
 import sqlite3
 from datetime import date, timedelta
 
+from src.services import milestone_hooks
 from src.utils.reference_day import reference_today
 
 KINDS = ("illness", "travel", "altitude")
@@ -39,11 +40,13 @@ def open_episode(conn, kind: str, *, start_date: str | None = None, severity: in
         if status == "confirmed":
             confirm(conn, cur[0])
         return cur[0]
-    return conn.execute(
+    eid = conn.execute(
         "INSERT INTO context_episodes(kind, start_date, severity, detail_json, origin, status, last_confirmed_date)"
         " VALUES (?,?,?,?,?,?,?)",
         (kind, day, severity, json.dumps(detail or {}, ensure_ascii=False), origin, status,
          day if status == "confirmed" else None)).lastrowid
+    milestone_hooks.on_episode(conn, eid)   # 질병·부상 시작 마일스톤(확정만, ADR-057)
+    return eid
 
 
 def confirm(conn, episode_id: int) -> bool:
@@ -51,12 +54,16 @@ def confirm(conn, episode_id: int) -> bool:
     day = _today(conn)
     n = conn.execute("UPDATE context_episodes SET status='confirmed', last_confirmed_date=?, updated_at=datetime('now')"
                      " WHERE id=? AND status IN ('candidate','confirmed') AND end_date IS NULL", (day, episode_id)).rowcount
+    if n:
+        milestone_hooks.on_episode(conn, episode_id)
     return n > 0
 
 
 def dismiss(conn, episode_id: int) -> bool:
     n = conn.execute("UPDATE context_episodes SET status='dismissed', updated_at=datetime('now')"
                      " WHERE id=? AND status='candidate'", (episode_id,)).rowcount
+    if n:
+        milestone_hooks.on_episode(conn, episode_id)   # 기각 — 마일스톤 삭제
     return n > 0
 
 
@@ -68,6 +75,7 @@ def close(conn, episode_id: int, end_date: str | None = None) -> bool:
         return False
     end = max(end_date or _today(conn), row[0])
     conn.execute("UPDATE context_episodes SET end_date=?, updated_at=datetime('now') WHERE id=?", (end, episode_id))
+    milestone_hooks.on_episode(conn, episode_id)   # 회복 마일스톤(종료일)
     return True
 
 

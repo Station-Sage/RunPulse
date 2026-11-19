@@ -124,6 +124,8 @@ def add_goal(
            VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?)""",
         (name, race_date, distance_km, target_time_sec, target_pace_sec_km, rules_version, plan_weeks, race_id),
     )
+    from src.services import milestone_hooks   # 목표 설정 마일스톤(이전 목표의 기록은 교체로 지우지 않음, ADR-057)
+    milestone_hooks.on_goal_set(conn, cursor.lastrowid)
     if commit:
         conn.commit()
     return cursor.lastrowid
@@ -182,6 +184,8 @@ def update_goal(conn: sqlite3.Connection, goal_id: int, **kwargs) -> bool:
     g = get_goal(conn, goal_id)
     if g is None:
         return False
+    from src.services import milestone_hooks
+    changed = {k for k, v in updates.items() if g.get(k) != v}   # 반영 뒤 기록(같은 날 변경은 1건, ADR-057)
     shared = {k: updates.pop(k) for k in ("race_date", "distance_km") if k in updates}
     if shared:  # 대회 사실의 원천은 race_calendar (RC §2.3)
         from src.services import race_calendar_service, race_goal_sync
@@ -195,11 +199,13 @@ def update_goal(conn: sqlite3.Connection, goal_id: int, **kwargs) -> bool:
         else:
             updates.update(shared)
     if not updates:
+        milestone_hooks.on_goal_changed(conn, goal_id, changed)
         conn.commit()
         return True
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     values = list(updates.values()) + [goal_id]
     cursor = conn.execute(f"UPDATE goals SET {set_clause} WHERE id = ?", values)
+    milestone_hooks.on_goal_changed(conn, goal_id, changed)
     conn.commit()
     return cursor.rowcount > 0
 
@@ -219,5 +225,7 @@ def complete_goal(conn: sqlite3.Connection, goal_id: int) -> bool:
 
 
 def cancel_goal(conn: sqlite3.Connection, goal_id: int) -> bool:
-    """목표를 cancelled로 변경."""
+    """목표를 cancelled로 변경(사용자 취소 — 그 목표의 설정·수정 마일스톤도 삭제, ADR-057)."""
+    from src.services import milestone_hooks
+    milestone_hooks.on_goal_removed(conn, goal_id)
     return _set_status(conn, goal_id, "cancelled")

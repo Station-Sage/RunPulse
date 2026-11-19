@@ -65,7 +65,10 @@ def test_apply_protects_history_and_keeps_past(c):
 def test_undo_restores_and_locks(c):
     before = c.execute("SELECT date,workout_type,distance_km FROM planned_workouts ORDER BY date,id").fetchall()
     out = R.apply(c, {"recent_weekly_km": 20, "expect_anchor": MON.isoformat()}, TODAY)
+    ms = "SELECT date FROM milestones WHERE type='plan_replan'"
+    assert c.execute(ms).fetchall() == [(TODAY.isoformat(),)]    # 적용일 마일스톤(ADR-057)
     R.undo(c, out["replan_id"], TODAY)
+    assert c.execute(ms).fetchall() == []                          # 되돌리면 삭제
     assert c.execute("SELECT date,workout_type,distance_km FROM planned_workouts ORDER BY date,id").fetchall() == before
     with pytest.raises(R.ReplanError) as e:
         R.undo(c, out["replan_id"], TODAY)

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from src.services import milestone_hooks
 from src.services import race_calendar_query as q
 from src.services import race_goal_sync as sync
 from src.services.race_calendar_query import RaceError
@@ -41,6 +42,7 @@ def add(conn: sqlite3.Connection, data: dict, *, as_goal: bool = False) -> dict:
     cur = conn.execute(f"INSERT INTO race_calendar ({cols}) VALUES ({','.join('?' * len(vals))})", tuple(vals.values()))
     if as_goal:
         conn.execute("UPDATE race_calendar SET adapt_choice='adapt', plan_state='applied' WHERE id=?", (cur.lastrowid,))
+    milestone_hooks.on_race_registered(conn, cur.lastrowid)   # 등록일 기준(가져오기·목표 자동 생성 포함, ADR-057)
     return q.require(conn, cur.lastrowid)
 
 
@@ -68,7 +70,21 @@ def update(conn: sqlite3.Connection, race_id: int, changes: dict) -> dict:
         conn.execute(f"UPDATE race_calendar SET {sets}, updated_at=datetime('now') WHERE id=?", (*ch.values(), race_id))
     if linked:
         sync.push_cache(conn, race_id, date_changed=date_changed)
+    _milestones_on_update(conn, race_id, cur, ch, linked)
     return q.require(conn, race_id)
+
+
+def _milestones_on_update(conn, race_id: int, cur: dict, ch: dict, linked: bool) -> None:
+    """대회 등록 마일스톤 내용 갱신(날짜 유지) + 목표 연결 대회면 목표 수정 마일스톤(ADR-057)."""
+    diff = {k for k in ("name", "race_date", "distance_km", "goal_value", "goal_type") if k in ch and ch[k] != cur[k]}
+    if diff & {"name", "race_date", "distance_km"}:
+        milestone_hooks.on_race_registered(conn, race_id)
+    if linked and diff:
+        row = conn.execute("SELECT id FROM goals WHERE status='active' AND race_id=?", (race_id,)).fetchone()
+        if row:
+            fields = {"race_date": "race_date", "distance_km": "distance_km",
+                      "goal_value": "target_time_sec", "goal_type": "target_time_sec"}
+            milestone_hooks.on_goal_changed(conn, row[0], {fields[k] for k in diff if k in fields})
 
 
 def cancel(conn: sqlite3.Connection, race_id: int, *, cancel_goal: bool = False) -> dict:
@@ -85,10 +101,12 @@ def cancel(conn: sqlite3.Connection, race_id: int, *, cancel_goal: bool = False)
             raise RaceError("GOAL_LINKED", "연결된 목표도 함께 취소됩니다. 취소하시겠습니까?", needs_confirm=True)
         goal_cancelled = conn.execute("SELECT id FROM goals WHERE status='active' AND race_id=?", (race_id,)).fetchone()[0]
         conn.execute("UPDATE goals SET status='cancelled' WHERE id=?", (goal_cancelled,))
+        milestone_hooks.on_goal_removed(conn, goal_cancelled)
     conn.execute("UPDATE race_calendar SET cancel_prev_adapt_choice=?, cancel_prev_plan_state=? WHERE id=?",
                  (cur["adapt_choice"], cur["plan_state"], race_id))
     if cur["plan_state"] == "applied":
         _rollback_applied(conn, race_id)
     conn.execute("UPDATE race_calendar SET status='cancelled', plan_state='none', updated_at=datetime('now')"
                  " WHERE id=?", (race_id,))
+    milestone_hooks.on_race_cancelled(conn, race_id)
     return {**q.require(conn, race_id), "goal_cancelled": goal_cancelled}

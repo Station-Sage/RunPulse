@@ -65,6 +65,7 @@ def restore(conn: sqlite3.Connection, race_id: int, today: str, *, confirm_past:
                  (new_status, adapt, state, race_id))
     if link_gid is not None:
         sync.link_goal(conn, link_gid, race_id)
+    _restore_registered(conn, race_id)
     out = {"replan_applied": None, "reason": None}
     if r["cancel_prev_plan_state"] == "applied" and not linked and not past:
         conn.execute("SAVEPOINT race_reapply")
@@ -97,3 +98,11 @@ def reopen(conn: sqlite3.Connection, race_id: int, today: str, *, demote_existin
     if link_gid is not None:
         sync.link_goal(conn, link_gid, race_id)
     return q.require(conn, race_id)
+
+
+def _restore_registered(conn, race_id: int) -> None:
+    """복원한 대회의 등록 마일스톤을 원래 등록일(created_at 현지 날짜)로 되살린다(ADR-057)."""
+    from src.services import milestone_events as ev, milestone_hooks
+    row = conn.execute("SELECT created_at FROM race_calendar WHERE id=?", (race_id,)).fetchone()
+    day = ev.local_date_of(conn, row[0], ev.user_offset(conn)) if row else None
+    milestone_hooks.on_race_registered(conn, race_id, day)
