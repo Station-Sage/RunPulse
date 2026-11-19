@@ -2,6 +2,7 @@
 	// 오늘 훈련 상세 분석 — 큐 사용 가능할 때만 노출. 시작 → 진행(단계·조회 도구·경과) → 결과 (V2-AI-CLAUDE-QUEUE E5-d).
 	import { onDestroy, onMount } from 'svelte';
 	import { cancelDeepAnalysis, getDeepAnalysis, startDeepAnalysis, type DeepState } from '$lib/api/deepAnalysis';
+	import ChatBody from '$lib/components/ChatBody.svelte';
 	import type { CoachInput } from '$lib/coachSuggestions';
 
 	let { onAsk }: { onAsk?: (input: CoachInput) => void } = $props();
@@ -58,7 +59,7 @@
 				<p class="text-xs text-fg-secondary">분석을 취소했어요.</p>
 			{/if}
 			{#if st.result}
-				<p class="whitespace-pre-wrap" data-testid="deep-result">{st.result.text}</p>
+				<div data-testid="deep-result"><ChatBody content={st.result.text} /></div>
 				{#if st.result.suggestions.length && onAsk}
 					<div class="flex flex-wrap gap-2">
 						{#each st.result.suggestions as s (s)}
