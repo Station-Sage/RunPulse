@@ -1,7 +1,7 @@
 """능동 인사이트 규칙 평가 (V2-REPAIR D) — 신호 목록 → 사건 후보. 순수 함수(DB·외부 호출 없음).
 
-새 계산은 만들지 않고 adjustment_triggers_v3 판정·ACWR 임계를 재사용한다. 질병은 문구에 드러내지 않는다
-(redact_illness_for_ai 와 같은 원칙: 통증·질병은 "몸 상태 이상 신호" 로만 표기).
+새 계산은 만들지 않고 adjustment_triggers_v3 판정·ACWR 임계를 재사용한다. 질병·부상은 문구·근거 신호에 드러내지 않는다
+(redact_health_for_ai 와 같은 원칙: 통증·질병·부상은 "몸 상태 이상 신호" 로만 표기, ADR-058).
 """
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from src.services import adjustment_triggers_v3 as T
 GAP_DAYS = 3
 GAP_WATCH_DAYS = 7
 _SNAP = ("signal", "value", "as_of", "freshness")
+_HEALTH = ("illness", "injury")   # AI 도구(get_insights)로 나가는 근거 스냅샷에서 뺀다
 
 
 def _snap(signals: list[dict], names: list[str]) -> list[dict]:
@@ -41,7 +42,7 @@ def evaluate_signal_rules(signals: list[dict]) -> list[dict]:
     alone = [n for n in T.STANDALONE if n in trig]
     if alone:
         out.append(_cand("pain_flag", "act", "global", "몸 상태 이상 신호가 있어요. 무리하지 말고 오늘 세션을 확인하세요.",
-                         _snap(signals, [n for n in alone if n != "illness"]), "/today", "오늘 세션 보기"))
+                         _snap(signals, [n for n in alone if n not in _HEALTH]), "/today", "오늘 세션 보기"))
     return out
 
 

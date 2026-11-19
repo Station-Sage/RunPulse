@@ -2,6 +2,8 @@
 
 질병: plan_adjustments 의 질병 흔적 익명화 + 질병만이 근거인 proposed 철회 + ai_cache 전체 삭제 +
 선택한 대화 스레드 메시지 삭제(+빈 스레드 정리) + thread_id 없는 메시지 삭제. 여행·고도는 이력을 보존한다.
+부상(ADR-058): plan_adjustments 의 injury 신호 익명화 + 부상만이 트리거인 proposed 철회. AI 로는 원문을 보낸 적이
+없으므로(항상 일반화) ai_cache·대화는 건드리지 않는다.
 """
 from __future__ import annotations
 
@@ -14,14 +16,14 @@ from src.services.plan_adj_flag import sync_adj_flag
 _GENERIC = "컨디션 신호"
 
 
-def _scrub_signals(raw: str | None) -> tuple[str, bool]:
+def _scrub_signals(raw: str | None, name: str = "illness") -> tuple[str, bool]:
     try:
         items = json.loads(raw or "[]")
     except (ValueError, TypeError):
         return raw or "[]", False
     hit = False
     for it in items:
-        if isinstance(it, dict) and it.get("signal") == "illness":
+        if isinstance(it, dict) and it.get("signal") == name:
             it.update(signal="condition", value=_GENERIC, detail=None)
             hit = True
     return json.dumps(items, ensure_ascii=False), hit
@@ -60,6 +62,28 @@ def _anonymize_adjustments(conn) -> set[int]:
     return touched
 
 
+def _injury_only(raw: str | None) -> bool:
+    try:
+        trig = [it.get("signal") for it in json.loads(raw or "[]") if isinstance(it, dict) and it.get("role") == "trigger"]
+    except (ValueError, TypeError):
+        return False
+    return bool(trig) and set(trig) == {"injury"}
+
+
+def _anonymize_injury(conn) -> set[int]:
+    touched: set[int] = set()
+    for rid, wid, decision, sj in conn.execute("SELECT id, workout_id, decision, signals_json FROM plan_adjustments"
+                                               " WHERE signals_json LIKE '%\"injury\"%'").fetchall():
+        sj2, _hit = _scrub_signals(sj, "injury")
+        if decision == "proposed" and _injury_only(sj):
+            conn.execute("UPDATE plan_adjustments SET decision='reverted', decided_at=datetime('now'), signals_json=?,"
+                         " updated_at=datetime('now') WHERE id=?", (sj2, rid))
+            touched.add(wid)
+        else:
+            conn.execute("UPDATE plan_adjustments SET signals_json=?, updated_at=datetime('now') WHERE id=?", (sj2, rid))
+    return touched
+
+
 def _delete_chat(conn, thread_ids) -> int:
     n = 0
     ids = sorted({int(t) for t in thread_ids})
@@ -73,7 +97,7 @@ def _delete_chat(conn, thread_ids) -> int:
 
 
 def delete_episode(conn: sqlite3.Connection, episode_id: int, *, chat_thread_ids=()) -> dict | None:
-    """없으면 None. 질병이면 연쇄 삭제 후 요약 dict 반환."""
+    """없으면 None. 질병·부상이면 연쇄 정리 후 요약 dict 반환."""
     row = conn.execute("SELECT kind FROM context_episodes WHERE id=?", (episode_id,)).fetchone()
     if row is None:
         return None
@@ -86,4 +110,6 @@ def delete_episode(conn: sqlite3.Connection, episode_id: int, *, chat_thread_ids
         sync_adj_flag(conn, _anonymize_adjustments(conn))
         ai_cache.clear_all_no_commit(conn)
         out["chat_deleted"] = _delete_chat(conn, chat_thread_ids)
+    elif kind == "injury":
+        sync_adj_flag(conn, _anonymize_injury(conn))
     return out

@@ -1,7 +1,7 @@
 """컨텍스트 에피소드(질병·부상·여행·고도) 저장/조회 (NEW-1~3·9·13·19·22) — '오늘' = reference_today.
 
 confirmed 만 신호의 트리거/근거가 되고 candidate 는 context 다. candidate 는 2일 무응답이면 dismissed.
-질병·부상은 자동 종료하지 않는다(종료는 사용자만). 부상(v50)은 조정 신호·AI 로 보내지 않는다. 삭제 연쇄는 context_episode_delete.py.
+질병·부상은 자동 종료하지 않는다(종료는 사용자만). 부상(v50)은 조정 단독 트리거(ADR-058)지만 AI 에는 항상 일반화('컨디션 신호')해 보낸다. 삭제 연쇄는 context_episode_delete.py.
 """
 from __future__ import annotations
 

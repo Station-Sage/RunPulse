@@ -39,6 +39,7 @@ export function adjustmentDelta(adj: PlanAdjustment, label: (t: string) => strin
 const CHIP: Record<string, (v: unknown) => string> = {
 	pain: () => '통증 기록',
 	illness: () => '질병 확인',
+	injury: () => '부상 기록',
 	checkin_pain: () => '체크인 통증',
 	condition: () => '컨디션 신호',
 	checkin_fatigue: (v) => `체크인 피로 ${v}/10`,

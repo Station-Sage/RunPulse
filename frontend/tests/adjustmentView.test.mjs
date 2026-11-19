@@ -44,4 +44,6 @@ test('triggerChips: trigger 역할 신호만 칩으로, v2(신호 없음)는 빈
 		}),
 		['ACWR 1.60', '체크인 피로 8/10']
 	);
+	// 부상 단독 트리거(ADR-058) — 정도·단계는 칩에 드러내지 않는다
+	assert.deepEqual(triggerChips({ signals: [{ signal: 'injury', role: 'trigger', value: 2 }] }), ['부상 기록']);
 });

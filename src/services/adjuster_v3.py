@@ -1,6 +1,7 @@
 """조정 제안 v3 (ADR-035 개정, ADJ §3.7) — 신호 수집 → 트리거 판정 → adjust_todays_plan 형식 제안 dict.
 
 트리거가 없으면 기존 readiness 하향(adjuster_v2)을 단독 경로로 유지한다. 대회·휴식 행은 조정하지 않는다.
+사유 문구는 AI 채팅에도 실리므로 질병·부상은 일반 문구('컨디션 이상')만 쓴다(ADR-058). 부상의 종류(key·source)는 pain.
 """
 from __future__ import annotations
 
@@ -15,6 +16,11 @@ RULE_VERSION = "adjuster_v3"
 SKIP_TYPES = ("rest", "race")
 LABELS = {"pain": "통증", "illness": "컨디션 이상", "checkin": "체크인", "race": "대회 일정",
           "crs": "회복 준비도(CRS)", "acwr": "급성/만성 부하비(ACWR)", "readiness": "컨디션"}
+SIGNAL_LABELS = {"injury": "컨디션 이상"}   # 종류 라벨 대신 쓸 신호별 라벨(부상 → 일반 문구)
+
+
+def _label(trigger: str) -> str:
+    return SIGNAL_LABELS.get(trigger) or LABELS[T.kind_of(trigger)]
 
 
 def _target_type(original: str, intensity: str) -> str:
@@ -46,10 +52,10 @@ def propose(conn: sqlite3.Connection, day: str, hold: dict | None) -> tuple[dict
         if adj == base["original_type"]:
             return None, T.classify(signals, trig)
         source = T.primary(trig)
-        labels = [LABELS[T.kind_of(t)] for t in trig]
+        labels = [_label(t) for t in trig]
         base.update({"adjusted_type": adj, "adjusted": True, "source": source, "rule_version": RULE_VERSION,
                      "adjustment_reason": "·".join(dict.fromkeys(labels)) + " 신호",
-                     "adjustment_reason_parts": [], "reasons": [{"key": T.kind_of(t), "label": LABELS[T.kind_of(t)]}
+                     "adjustment_reason_parts": [], "reasons": [{"key": T.kind_of(t), "label": _label(t)}
                                                                 for t in trig]})
         return base, T.classify(signals, trig)
     if base["adjusted"]:

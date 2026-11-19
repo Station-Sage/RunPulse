@@ -1,7 +1,8 @@
 """adjuster_v3 트리거 판정 (ADR-035 개정, ADJ) — 신호 목록 → 단독 OR / 2개 이상 AND 판정. 순수 함수(DB 접근 없음).
 
-단독(OR): 통증 기록, 체크인 통증 moderate/severe, 확정 질병. AND(2개 이상): CRS level<=1, ACWR>=1.5, 체크인 피로>=7.
-1개만 충족하면 support. 강도: CRS level 0 → rest, ACWR>=1.8 → Q 데이 이지 대체, 그 외 reduce.
+단독(OR): 통증 기록, 체크인 통증 moderate/severe, 확정 질병, 확정 부상(진행 중 + 종료 후 복귀 구간, ADR-058). AND(2개 이상): CRS level<=1, ACWR>=1.5, 체크인 피로>=7.
+1개만 충족하면 support. 부상은 종류(source)상 통증(pain)으로 묶는다(plan_adjustments.source 스키마 불변).
+강도: 통증·질병·진행 중 부상(많이 아파요, severity>=2) → rest, 가벼운 부상·복귀 구간 → reduce, CRS level 0 → rest, ACWR>=1.8 → Q 데이 이지 대체, 그 외 reduce.
 """
 from __future__ import annotations
 
@@ -9,9 +10,10 @@ ACWR_AND = 1.5
 ACWR_STRONG = 1.8
 FATIGUE_AND = 7
 CRS_AND_LEVEL = 1
-STANDALONE = ("pain", "checkin_pain", "illness")
+INJURY_REST_SEVERITY = 2
+STANDALONE = ("pain", "checkin_pain", "illness", "injury")
 AND_MEMBERS = ("crs", "acwr", "checkin_fatigue")
-KIND_OF = {"checkin_pain": "checkin", "checkin_fatigue": "checkin"}
+KIND_OF = {"checkin_pain": "checkin", "checkin_fatigue": "checkin", "injury": "pain"}
 PRIORITY = ("pain", "illness", "checkin", "race", "crs", "acwr", "readiness")
 
 
@@ -25,7 +27,7 @@ def _by_name(signals: list[dict]) -> dict[str, dict]:
 
 def _met(name: str, s: dict) -> bool:
     v = s.get("value")
-    if name in ("pain", "illness"):
+    if name in ("pain", "illness", "injury"):
         return bool(v)
     if name == "checkin_pain":
         return v in ("moderate", "severe")
@@ -42,10 +44,18 @@ def triggered(signals: list[dict]) -> list[str]:
     return alone + (members if len(members) >= 2 else [])
 
 
+def _injury_rest(s: dict) -> bool:
+    """진행 중이고 정도가 '많이 아파요'(>=2)면 휴식. 가벼운 부상·복귀 구간은 reduce(품질 → 이지)."""
+    d = s.get("detail") or {}
+    return d.get("phase") == "active" and isinstance(s.get("value"), int) and s["value"] >= INJURY_REST_SEVERITY
+
+
 def intensity(signals: list[dict], trig: list[str]) -> str:
     """'rest' | 'easy_replace' | 'reduce'."""
     sig = _by_name(signals)
     if any(n in trig for n in ("pain", "illness")) or sig.get("checkin_pain", {}).get("value") == "severe":
+        return "rest"
+    if "injury" in trig and _injury_rest(sig["injury"]):
         return "rest"
     if "crs" in trig and sig["crs"].get("value") == 0:
         return "rest"

@@ -1,7 +1,8 @@
-"""컨텍스트 신호 illness·travel·altitude 수집 (NEW-3·9·19·33·34) — context_episodes(confirmed) 읽기 전용.
+"""컨텍스트 신호 illness·injury·travel·altitude 수집 (NEW-3·9·19·33·34, ADR-058) — context_episodes(confirmed) 읽기 전용.
 
-illness 는 단독 트리거(값=severity), 종료 후 7일은 context. travel/altitude 는 트리거가 아니며
-적응 창 안에서는 BOOST hold, 창 밖 복귀 구간은 context 다. 창 길이 상수는 §2.7 (구현 시 값 확인 필요 표기).
+illness 는 단독 트리거(값=severity), 종료 후 7일은 context. injury 는 단독 트리거(값=severity, 진행 중
+phase=active, 종료 후 3일 phase=return — 복귀 구간도 트리거, 강도는 triggers_v3.intensity). 부위는 신호에 싣지 않는다.
+travel/altitude 는 트리거가 아니며 적응 창 안에서는 BOOST hold, 창 밖 복귀 구간은 context 다. 창 길이 상수는 §2.7.
 """
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ import sqlite3
 from datetime import date, timedelta
 
 ILLNESS_RETURN_CONTEXT_DAYS = 7
+INJURY_RETURN_DAYS = 3
 TRAVEL_ALTITUDE_RETURN_CONTEXT_DAYS = 3
 ALTITUDE_ADAPT_DAYS = 5
 _COLS = "id, start_date, end_date, severity, detail_json, last_confirmed_date"
@@ -58,6 +60,23 @@ def collect_illness(conn: sqlite3.Connection, day: str) -> list[dict]:
     return [_item("illness", False, day, {})]
 
 
+def collect_injury(conn: sqlite3.Connection, day: str) -> list[dict]:
+    """진행 중 = phase active, 종료 후 1~INJURY_RETURN_DAYS 일 = phase return(둘 다 값=severity, 없으면 1)."""
+    rows = _rows(conn, "injury", day)
+    for e in rows:
+        if e["end_date"] is None or e["end_date"] >= day:
+            since = _days(day, e["last_confirmed_date"] or e["start_date"])
+            fresh = "fresh" if since <= 0 else "partial" if since <= 2 else "stale"
+            det = {"episode_id": e["id"], "phase": "active", "day_n": _days(day, e["start_date"]) + 1}
+            return [_item("injury", int(e["severity"] or 1), day, det, fresh=fresh)]
+    for e in rows:
+        k = _days(day, e["end_date"]) if e["end_date"] else 0
+        if 0 < k <= INJURY_RETURN_DAYS:
+            det = {"episode_id": e["id"], "phase": "return", "day_n": k}
+            return [_item("injury", int(e["severity"] or 1), day, det)]
+    return [_item("injury", False, day, {})]
+
+
 def _travel_phase(e: dict, day: str) -> tuple[str, int] | None:
     delta = float(e["detail"].get("delta_h") or 0)
     w = travel_window_days(delta)
@@ -104,4 +123,4 @@ def collect_altitude(conn: sqlite3.Connection, day: str) -> list[dict]:
 
 
 def collect_context(conn: sqlite3.Connection, day: str) -> list[dict]:
-    return collect_illness(conn, day) + collect_travel(conn, day) + collect_altitude(conn, day)
+    return collect_illness(conn, day) + collect_injury(conn, day) + collect_travel(conn, day) + collect_altitude(conn, day)

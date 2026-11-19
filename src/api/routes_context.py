@@ -83,7 +83,7 @@ def create_episode():
         return _no_db()
     try:
         first = body["kind"] == "illness" and consent.needs_first_prompt(conn)
-        # 부상(injury)은 정도·부위를 받지만 AI 로 보내지 않으므로 동의 질문 대상이 아니다(ADR-057)
+        # 부상(injury)은 조정 신호로 쓰지만 AI 에는 항상 '컨디션 신호'로만 가므로 동의 질문 대상이 아니다(ADR-057·058)
         sev = body.get("severity") if body["kind"] in eps.HEALTH_KINDS else None
         eid = eps.open_episode(conn, body["kind"], start_date=body.get("start_date"), severity=sev,
                                detail=body.get("detail"))
