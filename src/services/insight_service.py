@@ -21,14 +21,19 @@ SIGNAL_KINDS = ("load_spike", "recovery_low", "pain_flag")
 _COLS = "id, kind, severity, as_of, dedupe_key, signals_json, text, action_json, state, created_at, resolved_at, text_ai, text_src"
 
 
-def _row(r: sqlite3.Row | tuple) -> dict:
+def _row(r: sqlite3.Row | tuple, conn: sqlite3.Connection | None = None, with_facts: bool = False) -> dict:
+    """저장 행 → 응답. 다듬은 문장은 동의가 있고 text_src 가 현재 원문(+근거 facts 해시)과 같을 때만(source='ai')."""
+    from src.services import insight_evidence as ev
     d = dict(zip(_COLS.replace(" ", "").split(","), r))
     d["signals"] = json.loads(d.pop("signals_json") or "[]")
     d["action"] = json.loads(d.pop("action_json") or "null")
     ai, src = d.pop("text_ai"), d.pop("text_src")
-    d["polished"] = bool(ai and src == d["text"])
+    # 동의가 없으면(with_facts=False) 저장된 다듬은 문장도 쓰지 않는다 — 규칙 문장만(사용자 결정 2026-11-19)
+    ok = with_facts and conn is not None and bool(ai)
+    d["polished"] = ok and src == ev.polish_key(d["text"], ev.evidence_facts(conn, d["kind"], d["signals"], d["as_of"]))
     if d["polished"]:
         d["text"] = ai
+    d["source"] = "ai" if d["polished"] else "rule"
     return d
 
 
@@ -88,7 +93,9 @@ def list_events(conn: sqlite3.Connection, state: str = "open", limit: int = 20) 
     """state: 'open'(open+seen, 심각도→최신순) | 'all'. 저장된 사건만 읽는다."""
     where = "state IN ('open','seen')" if state == "open" else "1=1"
     rows = conn.execute(f"SELECT {_COLS} FROM insight_events WHERE {where} ORDER BY id DESC").fetchall()
-    ev = sorted((_row(r) for r in rows), key=lambda e: (_SEV_RANK.get(e["severity"], 9), -e["id"]))
+    from src.services.insight_evidence import facts_enabled
+    with_facts = facts_enabled(conn)
+    ev = sorted((_row(r, conn, with_facts) for r in rows), key=lambda e: (_SEV_RANK.get(e["severity"], 9), -e["id"]))
     return ev[:limit]
 
 

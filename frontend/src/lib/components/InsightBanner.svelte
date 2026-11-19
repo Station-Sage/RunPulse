@@ -4,7 +4,8 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { dismissInsight, getInsights, seenInsight, type InsightEvent } from '$lib/api/insights';
-	import { SEVERITY_TONE, signalChip, topInsight } from '$lib/insightView';
+	import { insightSource, SEVERITY_TONE, signalChip, topInsight } from '$lib/insightView';
+	import AiMark from '$lib/components/AiMark.svelte';
 
 	let { limit = 1 }: { limit?: number } = $props();
 	let events = $state<InsightEvent[]>([]);
@@ -33,7 +34,7 @@
 {#each shown as e (e.id)}
 	<section class="rounded-lg border px-3 py-2 {SEVERITY_TONE[e.severity]}" aria-label="알림">
 		<button type="button" class="flex min-h-11 w-full items-center justify-between gap-2 text-left text-sm text-fg-primary" aria-expanded={openId === e.id} onclick={() => toggle(e)}>
-			<span>{e.text}</span>
+			<span data-testid="insight-text">{e.text} <AiMark source={insightSource(e)} prefix /></span>
 			<span aria-hidden="true" class="text-fg-muted">{openId === e.id ? '▴' : '▾'}</span>
 		</button>
 		{#if openId === e.id}

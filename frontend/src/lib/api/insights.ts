@@ -15,6 +15,9 @@ export interface InsightEvent {
 	state: 'open' | 'seen' | 'dismissed' | 'resolved';
 	signals: InsightSignal[];
 	action: { label: string; route: string } | null;
+	/** text 가 AI 로 다듬은 문장인지(ADR-059). 없으면 규칙 문장. */
+	polished?: boolean;
+	source?: 'ai' | 'rule';
 }
 
 export const getInsights = (limit = 20) => apiFetch<{ events: InsightEvent[] }>(`/insights?state=open&limit=${limit}`);

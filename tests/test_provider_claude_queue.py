@@ -60,6 +60,9 @@ def test_complete_ok_and_unavailable(monkeypatch):
 def conn():
     c = sqlite3.connect(":memory:")
     ensure_v47(c)
+    c.execute("CREATE TABLE coach_consent (id INTEGER PRIMARY KEY, provider TEXT, accepted_at TEXT,"
+              " exclude_notes INTEGER, tools_enabled INTEGER, fallback_enabled INTEGER)")
+    c.execute("INSERT INTO coach_consent VALUES (1, 'claude_queue', 't', 1, 0, 0)")
     for i, t in enumerate(["부하가 늘었어요 (ACWR 1.62).", "수면이 짧았어요 (5.2시간)."]):
         c.execute("INSERT INTO insight_events(kind,severity,as_of,dedupe_key,text) VALUES ('k','watch','2026-11-18',?,?)", (f"k:{i}", t))
     c.commit()

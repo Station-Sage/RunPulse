@@ -11,10 +11,17 @@ from src.services import insight_service as S
 SRC = "최근 훈련 부하가 급격히 늘었어요 (ACWR 1.62). 오늘은 강도를 낮춰 보세요."
 
 
+def _consent(c, provider="claude_queue"):
+    c.execute("CREATE TABLE IF NOT EXISTS coach_consent (id INTEGER PRIMARY KEY, provider TEXT, accepted_at TEXT,"
+              " exclude_notes INTEGER, tools_enabled INTEGER, fallback_enabled INTEGER)")
+    c.execute("INSERT OR REPLACE INTO coach_consent VALUES (1, ?, 't', 1, 0, 0)", (provider,))
+
+
 @pytest.fixture
 def conn():
     c = sqlite3.connect(":memory:")
     ensure_v47(c)
+    _consent(c)
     c.execute("INSERT INTO insight_events(kind,severity,as_of,dedupe_key,text) VALUES ('load_spike','watch','2026-11-18','load_spike:global',?)", (SRC,))
     c.commit()
     return c
@@ -70,3 +77,12 @@ def test_coach_context_empty_has_no_block():
     ctx: dict = {}
     add_insight_context(c, ctx, "2026-11-18")
     assert "insight_events" not in ctx
+
+
+def test_no_consent_no_polish_and_rule_text(conn):
+    """동의 없음 → AI 호출 없음, 저장된 다듬은 문장도 숨김(사용자 결정 2026-11-19)."""
+    P.polish_open_events(conn, None, caller=lambda p: "부하가 빠르게 올랐어요(ACWR 1.62).")
+    conn.execute("DELETE FROM coach_consent")
+    assert P.polish_open_events(conn, None, caller=lambda p: pytest.fail("called")) == 0
+    ev = S.list_events(conn)[0]
+    assert ev["source"] == "rule" and ev["text"] == SRC
