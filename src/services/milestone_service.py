@@ -1,6 +1,8 @@
 """Phase 7b 마일스톤 탐지 + 저장 서비스 (03a-today.md 1-D).
 
 detect_and_store_milestones(): sync 파이프라인에서 호출, INSERT OR IGNORE로 중복 방지.
+  누적 거리·PB(이 모듈) + 최장거리·연속 주(milestone_running) + 출처 잃은 사건 정리(milestone_events).
+사용자 사건(대회 완주·목표·대회 등록·재계획·질병/부상)은 milestone_hooks 가 쓰기 경로에서 기록한다(ADR-057).
 get_recent_milestones(): 읽기 전용, today_service / routes_today 에서 호출.
 
 설계 문서: v0.3/data/phase-7-ui-renewal/DECISIONS.md [P7-DESIGN-7B-API] 항목.
@@ -41,9 +43,14 @@ def detect_and_store_milestones(
 
     Returns: 새로 삽입된 마일스톤 dict 목록.
     """
+    from src.services import milestone_events, milestone_running
     inserted: list[dict] = []
     inserted += _detect_distance_thresholds(conn, start_date, end_date)
     inserted += _detect_pb(conn, start_date, end_date)
+    # 최장거리·연속 주는 전 기간 재탐지(멱등, 날짜 = 사건일) + 출처 잃은 사건 마일스톤 정리(ADR-057)
+    inserted += milestone_running.detect_longest_runs(conn)
+    inserted += milestone_running.detect_streaks(conn, milestone_events.today_local(conn))
+    milestone_events.prune_orphans(conn)
     return inserted
 
 
