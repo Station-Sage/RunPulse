@@ -2,6 +2,7 @@
 // 같은 컴포넌트를 그대로 쓰기 위해 화면 코드는 건드리지 않고 window.fetch만 감싼다.
 
 import { writable } from 'svelte/store';
+import { demoMilestoneResponse } from './demoMilestones.ts';
 
 export const DEMO_FLAG = 'runpulse.demo';
 const API_PREFIX = '/api/v1';
@@ -61,6 +62,8 @@ export function demoResponse(decision: DemoDecision, snap: Snapshot): Response |
 	}
 	const hit = snap[decision.key];
 	if (hit === undefined) {
+		const derived = demoMilestoneResponse(decision.key, snap);
+		if (derived) return json(derived.status, derived.body);
 		return json(404, { error: { code: 'DEMO_NOT_AVAILABLE', message: '데모에 없는 화면이에요' } });
 	}
 	return json(200, hit);

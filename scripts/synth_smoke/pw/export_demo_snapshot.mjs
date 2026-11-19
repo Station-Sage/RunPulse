@@ -1,5 +1,6 @@
 // /demo 스냅샷 생성 — synth 서버를 크롤링해 GET /api/v1 응답을 키별로 모아 frontend/static/demo/snapshot.json에 쓴다.
 // 사용: BASE=http://127.0.0.1:18999 node export_demo_snapshot.mjs
+// 그다음 저장소 루트에서 python3 scripts/synth_smoke/export_demo_milestones.py — 이 크롤러가 덮어쓴 마일스톤 전체 이력 키를 다시 넣는다.
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
 

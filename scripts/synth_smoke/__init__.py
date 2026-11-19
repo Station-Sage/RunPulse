@@ -8,6 +8,7 @@ default 계정(`data/users/default`)은 쓰지 않는다 — DB 경로를 항상
 - seed_synth.py  — 합성 DB 생성(활동 14·웰니스 30일·메트릭·랩·스트림·마일스톤·플랜·Coach 스레드).
 - serve_synth.py — 지정한 DB로 Flask 앱 기동(get_db_path 패치). 프론트는 `frontend/build`(v2)를 서빙.
 - race_check.py  — 동시 GET 요청 부하(`database is locked`/500 회귀 확인).
+- export_demo_milestones.py — /demo 스냅샷에 마일스톤 전체 이력(`/library/milestones`) 키를 넣는다(ADR-057).
 - pw/            — Playwright 스크립트(node). smoke2(텍스트·가로 넘침) · sweep(요소 개수) ·
                    smoke(스크린샷+ACTIONS) · scrub(스트림 판독) · flow_checkin · flow_plan.
 
