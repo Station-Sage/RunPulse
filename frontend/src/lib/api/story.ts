@@ -21,6 +21,8 @@ export interface StoryIntensity {
 export interface StoryData {
 	period: { id: string; label: string; start: string; end: string; prev: string; next: string | null };
 	paragraph: string;
+	/** 문단 출처(ADR-059) — 'ai' 면 AI 가 다듬은 문단(AiMark 표시). 이전 응답엔 없을 수 있다. */
+	paragraph_source?: 'ai' | 'rule';
 	chips: StoryChip[];
 	compare: StoryCompare[];
 	/** 진행 중인 기간을 같은 일수로 비교했을 때 안내 문구(M-14), 아니면 null. */

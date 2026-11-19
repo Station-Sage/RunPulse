@@ -3,8 +3,8 @@
 설계 문서: v0.3/data/phase-7-ui-renewal/ux-review-2026-09/40-v2-unimplemented/design.md §2.8
           v0.3/data/phase-7-ui-renewal/06-data-layer-extensions.md (D3 scope 일반화)
 
-스코프별 데이터 조회 및 규칙 기반 문단 생성. AI 생성은 기존 narrative 캐시/체인 재사용.
-장애 시 규칙 fallback 필수.
+스코프별 데이터 조회 및 규칙 기반 문단 생성(build_story). 월·주 문단은 AI 다듬기 공통 계층(story_wording,
+ADR-059)으로 캐시만 읽어 paragraph/paragraph_source 를 채운다(get_story) — 캐시가 없거나 낡으면 규칙 문단.
 """
 from __future__ import annotations
 
@@ -77,15 +77,23 @@ def get_story(
     period: str,
     config: dict | None = None,
 ) -> dict[str, Any]:
-    """훈련 이야기 조회 — 월/주/블록 일반화.
+    """훈련 이야기 조회 — build_story + 문단 AI 다듬기(캐시만, 낡으면 백그라운드 생성 예약).
 
-    Args:
-        conn: SQLite 연결
-        period: '2026-09' | '2026-W39' | 'b-<planId>-<phase>'
-        config: AI 설정(선택)
+    Returns: {period, paragraph, paragraph_source:'ai'|'rule', chips, compare, intensity, key_sessions,
+    risk_peak, milestones} 또는 ValueError 발생(잘못된 period).
+    """
+    from src.services import ai_wording_live, story_wording
+    story = build_story(conn, period)
+    rule = story.pop("paragraph_rule")
+    view = ai_wording_live.present_or_warm(conn, config, story_wording.SURFACE, story_wording.item(story, rule))
+    story["paragraph"], story["paragraph_source"] = (view["text"], view["source"]) if view else (rule, "rule")
+    return story
 
-    Returns: {period, paragraph, chips, compare, intensity, key_sessions, risk_peak, milestones}
-    또는 ValueError 발생(잘못된 period).
+
+def build_story(conn: sqlite3.Connection, period: str) -> dict[str, Any]:
+    """규칙만으로 만든 훈련 이야기 — 월/주/블록 일반화. paragraph_rule = 규칙 문단(AI 없음).
+
+    period: '2026-09' | '2026-W39' | 'b-<planId>-<phase>'. 잘못된 period 는 ValueError.
     """
     parsed = _parse_period(period)
     scope = parsed["scope"]
@@ -221,7 +229,7 @@ def get_story(
             "prev": prev_period,
             "next": next_period,
         },
-        "paragraph": paragraph,
+        "paragraph_rule": paragraph,
         "chips": chips,
         "compare": [] if is_future else compare,
         "compare_basis": basis["label"],

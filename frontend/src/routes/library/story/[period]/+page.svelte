@@ -8,6 +8,7 @@
 	import type { StoryData } from '$lib/api/story';
 	import { deltaPctText, isoWeekId, riskPeakText, storyScope, thisMonthId } from '$lib/storyPeriod';
 	import Icon from '$lib/components/Icon.svelte';
+	import AiMark from '$lib/components/AiMark.svelte';
 	import { milestoneIconName } from '$lib/milestoneIcon';
 
 	let { data }: { data: { story: StoryData } } = $props();
@@ -66,7 +67,10 @@
 			<a class="mt-2 inline-block text-semantic-teal underline" href="{base}/library/story/{thisMonthId()}">이번 달 이야기 보기</a>
 		</div>
 	{:else}
-	<p class="rounded bg-surface-2 p-4 leading-relaxed text-fg-primary">{s.paragraph}</p>
+	<div class="rounded bg-surface-2 p-4" data-testid="story-paragraph">
+		<p class="leading-relaxed text-fg-primary">{s.paragraph}</p>
+		{#if s.paragraph_source === 'ai'}<p class="mt-1"><AiMark source={s.paragraph_source} /></p>{/if}
+	</div>
 	{/if}
 
 	{#if s.chips.length}
