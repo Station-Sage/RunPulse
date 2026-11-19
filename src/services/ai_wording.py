@@ -185,14 +185,13 @@ def present(conn: sqlite3.Connection | None, surface: Surface, scope_key: str, r
 # ── 생성(백그라운드) ───────────────────────────────────────────────────────────
 
 def _consent_ok(conn: sqlite3.Connection) -> bool:
-    """큐(claude_queue)로 보내는 데 동의했는지 — 다른 제공자 동의는 이 경로에 쓰지 않는다(ADR-055)."""
+    """코치 LLM 전송에 어떤 제공자로든 동의했는지(사용자 결정 2026-11-20). 실제 호출은 큐로만 나간다."""
     try:
-        from src.ai.provider_common import CLAUDE_QUEUE
         from src.services import coach_consent
         c = coach_consent.get_consent(conn)
     except sqlite3.Error:
         return False
-    return bool(c) and c.get("provider") == CLAUDE_QUEUE
+    return bool(c) and bool(c.get("provider"))
 
 
 def gate(conn: sqlite3.Connection, config: dict | None, surface: Surface) -> str | None:

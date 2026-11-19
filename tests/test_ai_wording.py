@@ -100,8 +100,8 @@ def test_health_is_redacted_before_prompt(queue):
     assert queue["calls"][0]["kind"] == "insight_polish" and queue["calls"][0]["model"] == "haiku"
 
 
-@pytest.mark.parametrize("consent", [None, "gemini"])
-def test_gate_requires_queue_consent(queue, consent):
+@pytest.mark.parametrize("consent", [None])
+def test_gate_requires_consent(queue, consent):
     c = _conn(consent)
     assert aw.gate(c, {}, S) == "no_consent"
     assert aw.warm(c, {}, S, [ITEM]) == 0 and not queue["calls"]
@@ -135,3 +135,9 @@ def test_queue_failure_stores_nothing(queue):
     queue["reply"] = None
     assert aw.warm(c, {}, S, [ITEM]) == 0
     assert c.execute("SELECT COUNT(*) FROM ai_outputs").fetchone()[0] == 0
+
+
+def test_consent_any_provider():
+    from src.services import ai_wording as aw
+    assert aw._consent_ok(_conn("gemini")) is True
+    assert aw._consent_ok(_conn(None)) is False
