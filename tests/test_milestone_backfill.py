@@ -26,12 +26,12 @@ def _seed(conn):
 def test_backfill_dates_and_idempotent(db_conn):
     _seed(db_conn)
     out = B.backfill(db_conn)
-    assert out == {"goal_set": 2, "injury_start": 1, "plan_replan": 1, "race_finish": 1,
+    assert out == {"goal_set": 1, "injury_start": 1, "plan_replan": 1, "race_finish": 1,
                    "race_registered": 1, "recovery": 1}
     rows = dict(db_conn.execute("SELECT type || ':' || title, date FROM milestones").fetchall())
     assert rows["race_finish:하프마라톤 완주"] == "2026-04-05"           # 대회일
     assert rows["race_registered:대회 등록: 서울 하프"][:7] == "2026-01"   # 등록일(대회일 아님)
-    assert "goal_set:목표 설정: 옛 목표" in rows                          # 교체된 목표 포함
+    assert "goal_set:목표 설정: 옛 목표" not in rows                      # 취소된 목표는 만들지 않음
     assert rows["recovery:부상에서 회복"] == "2026-03-15"
     assert B.backfill(db_conn) == {}                                       # 재실행 — 변화 없음
 
@@ -42,10 +42,10 @@ def test_run_backfill_dry_run_rolls_back(tmp_path):
     create_tables(c)
     migrate_db(c)
     _seed(c)
-    assert B.run_backfill(c, apply=False)["goal_set"] == 2
+    assert B.run_backfill(c, apply=False)["goal_set"] == 1
     assert c.execute("SELECT count(*) FROM milestones").fetchone()[0] == 0
-    assert B.run_backfill(c, apply=True)["goal_set"] == 2
-    assert c.execute("SELECT count(*) FROM milestones").fetchone()[0] == 7
+    assert B.run_backfill(c, apply=True)["goal_set"] == 1
+    assert c.execute("SELECT count(*) FROM milestones").fetchone()[0] == 6
     c.close()
 
 
@@ -65,4 +65,16 @@ def test_script_main_dry_run_and_apply(tmp_path, capsys):
     assert mod.main(["--db", str(p), "--apply"]) == 0
     assert list(tmp_path.glob("running.db.bak-milestones-*"))
     with sqlite3.connect(str(p)) as c2:
-        assert c2.execute("SELECT count(*) FROM milestones").fetchone()[0] == 7
+        assert c2.execute("SELECT count(*) FROM milestones").fetchone()[0] == 6
+
+
+def test_replaced_goal_milestone_removed(db_conn):
+    from src.services import goal_service as gs
+    db_conn.execute("INSERT INTO goals(name, distance_km, status) VALUES ('옛', 10, 'active')")
+    gid = db_conn.execute("SELECT id FROM goals").fetchone()[0]
+    from src.services import milestone_hooks as H
+    H.on_goal_set(db_conn, gid, "2026-01-01")
+    assert db_conn.execute("SELECT count(*) FROM milestones WHERE type='goal_set'").fetchone()[0] == 1
+    gs.create_goal_with_race(db_conn, name="새", distance_km=21.0975, race_date="2027-03-01")
+    titles = [r[0] for r in db_conn.execute("SELECT title FROM milestones WHERE type='goal_set'")]
+    assert "목표 설정: 옛" not in titles

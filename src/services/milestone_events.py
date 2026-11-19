@@ -113,7 +113,7 @@ def remove_event(conn: sqlite3.Connection, source_ref: str, types: tuple[str, ..
 # 출처 상태 → 마일스톤이 남아도 되는지. 각 SQL 은 살아 있는 출처 id 를 돌려준다.
 _ALIVE = {
     "race_result": "SELECT CAST(activity_id AS TEXT) FROM race_results",
-    "goal": "SELECT CAST(id AS TEXT) FROM goals",
+    "goal": "SELECT CAST(id AS TEXT) FROM goals WHERE status != 'cancelled'",
     "race": "SELECT CAST(id AS TEXT) FROM race_calendar WHERE status != 'cancelled'",
     "episode": "SELECT CAST(id AS TEXT) FROM context_episodes WHERE status = 'confirmed'",
     "replan": "SELECT CAST(id AS TEXT) FROM plan_replans WHERE status = 'applied'",

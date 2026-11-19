@@ -7,6 +7,7 @@ from __future__ import annotations
 import sqlite3
 
 from src.services import race_calendar_query as q
+from src.services import milestone_hooks
 from src.services import race_calendar_service as svc
 from src.services import race_goal_sync as sync
 from src.services.race_calendar_query import RaceError
@@ -23,6 +24,7 @@ def create_goal_with_race(conn: sqlite3.Connection, *, name: str, distance_km: f
     old = conn.execute("SELECT id, race_id FROM goals WHERE status='active'").fetchone()
     if old:
         conn.execute("UPDATE goals SET status='cancelled' WHERE id=?", (old[0],))
+        milestone_hooks.on_goal_removed(conn, old[0])   # 교체로 취소된 목표의 마일스톤도 삭제
         prev = q.get(conn, old[1]) if old[1] else None
         if prev and prev["status"] == "planned" and prev["id"] != race_id:
             sync.demote_a(conn, prev["id"])

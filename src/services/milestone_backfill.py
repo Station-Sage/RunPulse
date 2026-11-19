@@ -2,7 +2,7 @@
 
 날짜: 대회 완주 = 대회일, 목표 설정·대회 등록·재계획 = created_at(UTC) 의 현지 날짜, 질병/부상 = 시작·종료일,
 최장거리·연속 주 = 사건일. 목표 수정(goal_changed)은 변경 이력이 저장돼 있지 않아 백필하지 않는다.
-취소된 목표는 뒤에 다른 목표가 생긴 경우(= 새 목표로 교체)만 포함 — 사용자 취소와 구분할 수 없어 근사한다.
+취소된 목표(사용자 취소·새 목표로 교체)는 마일스톤을 만들지 않는다.
 누적 거리·PB 는 기존 동기화 탐지 그대로(여기서 다시 돌리지 않음). commit 은 호출자(run_backfill 은 dry_run 이면 롤백).
 """
 from __future__ import annotations
@@ -31,9 +31,7 @@ def backfill(conn: sqlite3.Connection) -> dict[str, int]:
     off = ev.user_offset(conn)
     for (aid,) in _rows(conn, "SELECT activity_id FROM race_results ORDER BY activity_id"):
         H.on_race_result(conn, aid)
-    for gid, created in _rows(conn, "SELECT g.id, g.created_at FROM goals g WHERE g.status IN ('active','completed')"
-                                    " OR (g.status='cancelled' AND EXISTS (SELECT 1 FROM goals n WHERE n.id > g.id))"
-                                    " ORDER BY g.id"):
+    for gid, created in _rows(conn, "SELECT g.id, g.created_at FROM goals g WHERE g.status IN ('active','completed') ORDER BY g.id"):
         H.on_goal_set(conn, gid, ev.local_date_of(conn, created, off))
     for rid, created in _rows(conn, "SELECT id, created_at FROM race_calendar WHERE status != 'cancelled' ORDER BY id"):
         H.on_race_registered(conn, rid, ev.local_date_of(conn, created, off))
