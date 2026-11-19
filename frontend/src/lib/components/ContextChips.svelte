@@ -1,7 +1,7 @@
 <script lang="ts">
-	// NEW-7·8·19 — 체크인 '+ 상태' 토글(아파요·이동·시차·고지대)과 최상단 확인 질문(Level 0).
+	// NEW-7·8·19 — 체크인 '+ 상태' 토글(아파요·다쳤어요·이동·시차·고지대)과 최상단 확인 질문(Level 0).
 	import { closeContext, confirmContext, dismissContext, getContext, openContext } from '$lib/api/context';
-	import { ALT_BANDS, KIND_LABEL, SEVERITY, SITES, confirmPrompts, isOpen, type ConfirmPrompt, type ContextKind, type ContextList } from '$lib/contextView';
+	import { ALT_BANDS, HEALTH_KINDS, KIND_LABEL, SEVERITY, confirmPrompts, sitesFor, isOpen, type ConfirmPrompt, type ContextKind, type ContextList } from '$lib/contextView';
 	import ContextEpisodeList from './ContextEpisodeList.svelte';
 	import ToggleGroup from './ui/ToggleGroup.svelte';
 	import IllnessConsentSheet from './IllnessConsentSheet.svelte';
@@ -52,11 +52,11 @@
 		if (!pick) return;
 		const kind = pick;
 		const extra: { severity?: number; detail?: Record<string, unknown> } = {};
-		if (kind === 'illness') { extra.severity = severity; if (site) extra.detail = { site }; }
+		if (HEALTH_KINDS.includes(kind)) { extra.severity = severity; if (site) extra.detail = { site }; }
 		if (kind === 'altitude' && band) extra.detail = { band, altitude_m: ALT_BANDS.find((b) => b.key === band)?.m };
 		await run(async () => {
 			const r = await openContext(kind, extra);
-			if (r.needs_consent_prompt) consentSheet = true;
+			if (r.needs_consent_prompt) consentSheet = true; // 서버는 질병일 때만 true(부상은 AI 로 보내지 않음)
 			pick = null; severity = undefined; site = undefined; band = undefined; open = false;
 		});
 	}
@@ -87,9 +87,9 @@
 				clearable
 				items={Object.entries(KIND_LABEL).map(([k, label]) => ({ value: k, label, disabled: openKinds.has(k as ContextKind) }))}
 				selected={pick}
-				onchange={(v) => (pick = (v as ContextKind | null) ?? null)}
+				onchange={(v) => { pick = (v as ContextKind | null) ?? null; site = undefined; }}
 			/>
-			{#if pick === 'illness'}
+			{#if pick && HEALTH_KINDS.includes(pick)}
 				<ToggleGroup
 					label="정도"
 					class="flex flex-wrap gap-1"
@@ -102,7 +102,7 @@
 					label="부위"
 					class="flex flex-wrap gap-1"
 					clearable
-					items={SITES.map((x) => ({ value: x, label: x }))}
+					items={sitesFor(pick).map((x) => ({ value: x, label: x }))}
 					selected={site ?? null}
 					onchange={(v) => (site = (v as string) ?? undefined)}
 				/>

@@ -1,4 +1,4 @@
-"""`/api/context-episodes*` — 질병·여행·고도 컨텍스트 에피소드와 AI 동의 (NEW-40, ADR-035 v3).
+"""`/api/context-episodes*` — 질병·부상·여행·고도 컨텍스트 에피소드와 AI 동의 (NEW-40, ADR-035 v3).
 
 `/api/v1` 밖의 별도 블루프린트이며 오류는 같은 봉투(`register_envelope_handlers`)로 나간다.
 쓰기 요청은 Origin 관문을 그대로 거친다(면제 경로 아님).
@@ -83,7 +83,8 @@ def create_episode():
         return _no_db()
     try:
         first = body["kind"] == "illness" and consent.needs_first_prompt(conn)
-        sev = body.get("severity") if body["kind"] == "illness" else None
+        # 부상(injury)은 정도·부위를 받지만 AI 로 보내지 않으므로 동의 질문 대상이 아니다(ADR-057)
+        sev = body.get("severity") if body["kind"] in eps.HEALTH_KINDS else None
         eid = eps.open_episode(conn, body["kind"], start_date=body.get("start_date"), severity=sev,
                                detail=body.get("detail"))
         conn.commit()

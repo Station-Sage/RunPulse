@@ -1,5 +1,5 @@
-// 컨텍스트 칩·목록의 순수 표시 로직 (NEW-7·19·22, 문구는 의미 먼저·진단 표현 없음).
-export type ContextKind = 'illness' | 'travel' | 'altitude';
+// 컨텍스트 칩·목록의 순수 표시 로직 (NEW-7·19·22, 부상 ADR-057, 문구는 의미 먼저·진단 표현 없음).
+export type ContextKind = 'illness' | 'injury' | 'travel' | 'altitude';
 export type ConsentAction = 'grant' | 'decline' | 'revoke';
 
 export interface ContextEpisode {
@@ -22,7 +22,9 @@ export interface ContextList {
 	health_question: boolean;
 }
 
-export const KIND_LABEL: Record<ContextKind, string> = { illness: '아파요', travel: '이동·시차', altitude: '고지대' };
+export const KIND_LABEL: Record<ContextKind, string> = { illness: '아파요', injury: '다쳤어요', travel: '이동·시차', altitude: '고지대' };
+/** 정도·부위를 받는 건강 기록(질병·부상). */
+export const HEALTH_KINDS: ContextKind[] = ['illness', 'injury'];
 export const SEVERITY: { value: number; label: string }[] = [
 	{ value: 1, label: '가벼워요' },
 	{ value: 2, label: '많이 아파요' }
@@ -33,6 +35,8 @@ export const ALT_BANDS: { key: string; label: string; m: number }[] = [
 	{ key: 'high', label: '2500m 이상', m: 2600 }
 ];
 export const SITES = ['목', '코', '가슴', '배', '전신'];
+export const INJURY_SITES = ['발', '발목', '종아리', '정강이', '무릎', '허벅지', '고관절', '허리'];
+export const sitesFor = (k: ContextKind | null): string[] => (k === 'injury' ? INJURY_SITES : SITES);
 
 export function isOpen(e: ContextEpisode): boolean {
 	return e.end_date === null && e.status !== 'dismissed';
@@ -42,6 +46,10 @@ export function episodeLabel(e: ContextEpisode): string {
 	if (e.kind === 'illness') {
 		const sev = SEVERITY.find((s) => s.value === e.severity)?.label;
 		return ['아팠던 기록', sev, e.detail.site].filter(Boolean).join(' · ');
+	}
+	if (e.kind === 'injury') {
+		const sev = SEVERITY.find((s) => s.value === e.severity)?.label;
+		return ['부상 기록', sev, e.detail.site].filter(Boolean).join(' · ');
 	}
 	if (e.kind === 'travel') {
 		const h = e.detail.delta_h;

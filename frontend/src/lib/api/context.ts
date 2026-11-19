@@ -1,4 +1,4 @@
-// 컨텍스트 에피소드(질병·여행·고지대) + 질병 AI 동의 — /api/context-episodes (v1 밖, 같은 봉투).
+// 컨텍스트 에피소드(질병·부상·여행·고지대) + 질병 AI 동의 — /api/context-episodes (v1 밖, 같은 봉투).
 import { ApiError } from './client';
 import type { ContextEpisode, ContextKind, ContextList, ConsentState, ConsentAction } from '$lib/contextView';
 

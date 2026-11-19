@@ -1,7 +1,7 @@
-"""컨텍스트 에피소드(질병·여행·고도) 저장/조회 (NEW-1~3·9·13·19·22) — '오늘' = reference_today.
+"""컨텍스트 에피소드(질병·부상·여행·고도) 저장/조회 (NEW-1~3·9·13·19·22) — '오늘' = reference_today.
 
 confirmed 만 신호의 트리거/근거가 되고 candidate 는 context 다. candidate 는 2일 무응답이면 dismissed.
-질병은 자동 종료하지 않는다(종료는 사용자만). 삭제 연쇄는 context_episode_delete.py.
+질병·부상은 자동 종료하지 않는다(종료는 사용자만). 부상(v50)은 조정 신호·AI 로 보내지 않는다. 삭제 연쇄는 context_episode_delete.py.
 """
 from __future__ import annotations
 
@@ -12,7 +12,8 @@ from datetime import date, timedelta
 from src.services import milestone_hooks
 from src.utils.reference_day import reference_today
 
-KINDS = ("illness", "travel", "altitude")
+KINDS = ("illness", "travel", "altitude", "injury")
+HEALTH_KINDS = ("illness", "injury")   # 정도(severity)·부위를 받는 민감 건강 기록
 CANDIDATE_TTL_DAYS = 2
 ILLNESS_RECONFIRM_DAYS = 7
 _COLS = "id, kind, start_date, end_date, severity, detail_json, origin, status, last_confirmed_date"

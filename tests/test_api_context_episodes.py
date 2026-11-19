@@ -81,3 +81,19 @@ def test_today_context_block_and_forged_origin(tmp_path, monkeypatch):
     from src.services import context_episodes as eps
     eps.open_episode(c, "travel", detail={"delta_h": 5})
     assert len(context_today.build(c)["active"]) == 1
+
+
+def test_create_injury_no_consent_prompt_and_milestones(client, tmp_path):
+    r = client.post("/api/context-episodes", json={"kind": "injury", "severity": 1, "start_date": "2026-11-01",
+                                                  "detail": {"site": "무릎"}}, headers=H)
+    assert r.status_code == 201
+    d = r.get_json()["data"]
+    assert d["needs_consent_prompt"] is False and d["episode"]["severity"] == 1
+    assert d["episode"]["detail"]["site"] == "무릎"
+    eid = d["episode"]["id"]
+    assert client.post(f"/api/context-episodes/{eid}/close", json={"end_date": "2026-11-10"}, headers=H).status_code == 200
+    c = sqlite3.connect(str(tmp_path / "running.db"))
+    rows = c.execute("SELECT type, date, title FROM milestones ORDER BY id").fetchall()
+    assert rows == [("injury_start", "2026-11-01", "부상 발생"), ("recovery", "2026-11-10", "부상에서 회복")]
+    assert client.delete(f"/api/context-episodes/{eid}", json={}, headers=H).status_code == 200
+    assert c.execute("SELECT count(*) FROM milestones").fetchone()[0] == 0

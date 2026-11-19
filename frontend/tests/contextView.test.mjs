@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { confirmPrompts, episodeLabel, isOpen, staleBanner } from '../src/lib/contextView.ts';
+import { INJURY_SITES, SITES, confirmPrompts, episodeLabel, isOpen, sitesFor, staleBanner } from '../src/lib/contextView.ts';
 
 const ep = (o) => ({ id: 1, kind: 'illness', start_date: '2026-10-10', end_date: null, severity: null, detail: {}, origin: 'manual', status: 'confirmed', last_confirmed_date: null, ...o });
 const list = (o) => ({ episodes: [], illness_reconfirm: null, consent: { action: null, needs_first_prompt: false }, health_question: false, ...o });
@@ -32,4 +32,10 @@ test('confirmPrompts: 재확인 → 자동 후보 → 몸 상태 질문 순서',
 test('staleBanner: 7일 재확인만', () => {
 	assert.equal(staleBanner(list()), null);
 	assert.match(staleBanner(list({ illness_reconfirm: { episode_id: 1, days_since: 9 } })), /9일째/);
+});
+
+test('부상: 라벨·부위 목록(ADR-057)', () => {
+	assert.equal(episodeLabel(ep({ kind: 'injury', severity: 1, detail: { site: '무릎' } })), '부상 기록 · 가벼워요 · 무릎');
+	assert.equal(sitesFor('injury'), INJURY_SITES);
+	assert.equal(sitesFor('illness'), SITES);
 });

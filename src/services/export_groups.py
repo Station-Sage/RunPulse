@@ -55,7 +55,7 @@ EXPORT_GROUPS: tuple[GroupDef, ...] = (
         _t("goals"), _t("planned_workouts", "date"), _t("plan_adjustments"), _t("plan_progression"),
         _t("plan_replans"), _t("user_training_prefs"), _t("session_outcomes"))),
     GroupDef("checkins", "컨디션 체크인", (_t("user_inputs", "input_date"),)),
-    GroupDef("episodes", "컨텍스트 기록 (질병·여행·고도)", (_t("context_episodes", "start_date", optional=True),),
+    GroupDef("episodes", "컨텍스트 기록 (질병·부상·여행·고도)", (_t("context_episodes", "start_date", optional=True),),
              default=True, sensitive=True),
     GroupDef("races", "대회 일정·결과", (
         _t("race_calendar", "race_date", optional=True), _t("race_results", fk=True)), default=True),
