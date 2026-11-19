@@ -288,6 +288,8 @@ class BgSyncThread(threading.Thread):
         else:
             from src.services.narrative_warm import warm_in_background
             warm_in_background(str(get_db_path(self.user_id)), date.today().isoformat(), self.config)
+            from src.services.ai_wording_live import warm_after_sync   # Today 사유·Story·러닝의 의미(ADR-059)
+            warm_after_sync(str(get_db_path(self.user_id)), self.config)
 
         # 동기화 완료 후 최근 4주 계획↔활동 자동 매칭 (신규 활동이 있을 때만, 결과는 counts_json 에 기록)
         from src.training.match_hooks import count_canonical, run_post_sync_match

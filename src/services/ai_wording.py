@@ -163,6 +163,11 @@ def _fresh_body(conn: sqlite3.Connection, surface: Surface, item: Item) -> dict 
     return body if isinstance(body, dict) else None
 
 
+def is_fresh(conn: sqlite3.Connection, surface: Surface, item: Item) -> bool:
+    """이 항목의 저장 결과(AI 문구 또는 '원문 유지')가 src_hash 와 맞는지 — 참이면 다시 생성할 필요가 없다."""
+    return _fresh_body(conn, surface, item) is not None
+
+
 def get_cached(conn: sqlite3.Connection, surface: Surface, scope_key: str, rule_text: str,
                facts: dict | None = None) -> str | None:
     """src_hash 가 일치하는 AI 문구만 반환, 없거나 낡았거나 '원문 유지'면 None. 큐·LLM 을 부르지 않는다."""
