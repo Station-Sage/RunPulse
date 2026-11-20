@@ -54,6 +54,38 @@ def _resolve_version(conn: sqlite3.Connection, goal_id: int, anchor: date, p: di
     return cur, 2
 
 
+def _resolve_method(conn: sqlite3.Connection, goal: dict, anchor: date, p: dict) -> tuple[str, str | None]:
+    """(현재 방식, 새 anchor 에 저장할 방식). 요청이 없거나 현재와 같으면 저장값은 None."""
+    from src.training.methods import candidates_for, effective_method
+    from src.training.planner_config import load_prefs
+    cur = effective_method(conn, goal["id"], anchor)
+    want = p.get("plan_method")
+    if not want or want == cur:
+        return cur, None
+    mask = load_prefs(conn).get("workout_weekdays_mask")
+    days = bin(mask).count("1") if mask else None
+    dlabel = resolve_distance_label(goal["distance_km"], goal.get("distance_label"))
+    if want not in {m.id for m in candidates_for(dlabel, days)}:
+        raise ReplanError("METHOD_UNSUPPORTED", "이 목표·요일 구성에서 선택할 수 없는 훈련 방식입니다")
+    return cur, want
+
+
+def methods_state(conn: sqlite3.Connection, today: date | None = None) -> dict:
+    """활성 목표의 현재 훈련 방식과 선택 가능 후보(장단점·추천 대상 포함). 목표가 없으면 NO_GOAL."""
+    from src.training.methods import candidates_for, effective_method
+    from src.training.planner_config import load_prefs
+    goal = get_active_goal(conn)
+    if goal is None:
+        raise ReplanError("NO_GOAL", "활성 목표가 없습니다")
+    mask = load_prefs(conn).get("workout_weekdays_mask")
+    dlabel = resolve_distance_label(goal["distance_km"], goal.get("distance_label"))
+    cur = effective_method(conn, goal["id"], replan_anchor(goal, today or date.today()))
+    return {"goal_id": goal["id"], "distance_label": dlabel, "current": cur, "methods": [
+        {"id": m.id, "label": m.label, "summary": m.summary, "pros": list(m.pros), "cons": list(m.cons),
+         "target_runners": m.target_runners, "sources": list(m.sources)}
+        for m in candidates_for(dlabel, bin(mask).count("1") if mask else None)]}
+
+
 def next_monday(today: date) -> date:
     return today + timedelta(days=7 - today.weekday())
 
@@ -123,6 +155,7 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
     user_km, user_long, target = p.get("recent_weekly_km"), p.get("recent_long_km"), p.get("target_time_sec")
     start_km, start_source, basis = _start_km(conn, goal, today, user_km)
     cur_version, new_version = _resolve_version(conn, goal["id"], anchor, p)
+    cur_method, new_method = _resolve_method(conn, goal, anchor, p)
     if not user_long:
         user_long = P.start_long_km(basis["long6"], basis["long12"]) or None
     end = (race - timedelta(days=race.weekday()) + timedelta(days=6)).isoformat()
@@ -137,8 +170,8 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
         before, rows_before = _weekly_km(conn, a_iso, end), snapshot(conn, a_iso, end)
         conn.execute(
             "INSERT INTO plan_replans(goal_id, anchor_monday, start_km, start_long_km, start_source, target_time_sec,"
-            " rules_version) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (goal["id"], a_iso, start_km, user_long, start_source, target, new_version))
+            " rules_version, plan_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (goal["id"], a_iso, start_km, user_long, start_source, target, new_version, new_method))
         replan_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
         plan, ws, ov = [], anchor, p.get("plan_override") or {}
         while ws <= race:
@@ -172,7 +205,8 @@ def _run(conn: sqlite3.Connection, today: date, p: dict, write: bool) -> dict:
             "start_long_km": user_long, "target_time_sec": target, "before": before, "after": after,
             "deleted_count": len(res["deleted"]), "preserved": res["preserved"], "external": res["external"],
             "skipped_dates": res["skipped_dates"], "rules_version": new_version or cur_version,
-            "rules_upgrade": new_version is not None, "structure_diff": diff}
+            "rules_upgrade": new_version is not None, "structure_diff": diff,
+            "plan_method": new_method or cur_method, "method_changed": new_method is not None}
 
 
 def preview(conn: sqlite3.Connection, params: dict, today: date | None = None) -> dict:

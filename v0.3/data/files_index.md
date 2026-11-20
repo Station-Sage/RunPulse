@@ -462,10 +462,10 @@
 
 - functions: snapshot, structure_diff
 
-### `plan_replan_service.py` (273줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
+### `plan_replan_service.py` (307줄) — 안전한 재계획 서비스 — preview / apply / undo (ADR-035 부록 R).
 
 - class **ReplanError**: 없음
-- functions: upgrade_enabled, next_monday, replan_anchor, preview, apply, last_undoable, entry_state, undo
+- functions: upgrade_enabled, methods_state, next_monday, replan_anchor, preview, apply, last_undoable, entry_state, undo
 
 ### `plan_restore.py` (68줄) — 과거 플랜 복원(PLN-43) — 취소된 목표의 plan_snapshot_json 행을 되살리고 그 목표를 활성으로 되돌린다.
 
@@ -1590,7 +1590,7 @@
 
 - functions: get_planned_workouts
 
-### `planner.py` (225줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
+### `planner.py` (231줄) — 규칙 기반 주간 훈련 계획 생성 (v2 — 논문 기반 재설계).
 
 - functions: generate_weekly_plan
 
@@ -2028,9 +2028,9 @@
 
 - functions: plan_draft_state, plan_draft_start, plan_draft_apply
 
-### `routes_plan_replan.py` (121줄) — `/api/v1/coach/plan/replan*` — 안전한 재계획 미리보기·적용·되돌리기 (ADR-035 부록 R).
+### `routes_plan_replan.py` (127줄) — `/api/v1/coach/plan/replan*` — 안전한 재계획 미리보기·적용·되돌리기 (ADR-035 부록 R).
 
-- functions: replan_preview, replan_last, replan_apply, replan_undo, replan_garmin_targets, replan_garmin_cleanup
+- functions: replan_preview, plan_methods, replan_last, replan_apply, replan_undo, replan_garmin_targets, replan_garmin_cleanup
 
 ### `routes_prediction.py` (88줄) — GET /api/v1/prediction/compare, GET /api/v1/prediction/profile, GET /api/v1/races/candidates, PUT·DELETE /api/v1/races/<activity_id>/confirm — P7-PRED-53·71.
 
@@ -3437,9 +3437,9 @@
 
 - functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week, test_plan_structure_for_each_workout_type, test_easy_run_too_fast_is_modified_not_on_target, test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis, test_adjustment_skips_day_already_executed, test_matcher_uses_accepted_adjustment_for_rest_and_distance_gate
 
-### `test_plan_methods_registry.py` (47줄) — 훈련 방식 레지스트리 + 스키마 v51 마이그레이션.
+### `test_plan_methods_registry.py` (117줄) — 훈련 방식 레지스트리 + 스키마 v51 마이그레이션.
 
-- functions: test_v51_adds_columns_idempotent_and_backfills_default, test_v51_no_tables_is_noop, test_get_method_fallback, test_effective_method_reads_goal_and_tolerates_missing_column, test_candidates_guard_never_empty
+- functions: test_v51_adds_columns_idempotent_and_backfills_default, test_v51_no_tables_is_noop, test_get_method_fallback, test_effective_method_reads_goal_and_tolerates_missing_column, test_candidates_guard_never_empty, alt_method, test_balanced_unchanged_and_hook_applies, test_replan_method_change_keeps_past_and_undo, test_replan_rejects_unknown_method_and_state
 
 ### `test_plan_move.py` (101줄) — plan_move: M1~M10 검증, 오버레이(이동·맞교환), 쌍 되돌리기, 이동 후 줄이기.
 

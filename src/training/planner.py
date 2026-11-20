@@ -222,4 +222,10 @@ def generate_weekly_plan(
         from .planner_v2 import apply_for_goal
         plan = apply_for_goal(conn, goal, plan, target, dlabel, paces, week_start,
                             min(len(available), _run_days(conn, as_of or week_start)), vdot, as_of)
+    if goal:
+        from .methods import effective_method, get_method
+        m = get_method(effective_method(conn, goal["id"], week_start))
+        if m.adjust is not None:
+            plan = m.adjust(plan, {"phase": phase, "dlabel": dlabel, "vdot": vdot, "week_start": week_start,
+                                   "total_km": total_km, "long_km": long_km, "n_avail": n_avail})
     return finalize_week(apply_race_week(plan, race_date, goal_distance), run_weekdays=run_weekdays)

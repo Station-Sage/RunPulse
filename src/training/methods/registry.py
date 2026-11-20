@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
+from typing import Callable
 
 DEFAULT_METHOD = "balanced"
 
@@ -18,6 +19,7 @@ class PlanMethod:
     target_runners: str = ""
     sources: tuple[str, ...] = ()
     min_run_days: int = 1                # 후보 가드: 선택 가능 러닝 요일이 이보다 적으면 후보 제외
+    adjust: Callable[[list[dict], dict], list[dict]] | None = None   # 주간 계획 후처리 훅(balanced 는 None=무변경)
 
 
 METHODS: dict[str, PlanMethod] = {
@@ -55,6 +57,19 @@ def goal_method(conn: sqlite3.Connection, goal_id: int | None) -> str:
     return get_method(row[0] if row else None).id
 
 
-def effective_method(conn: sqlite3.Connection, goal_id: int | None, week_start) -> str:
-    """주 기준 유효 방식. anchor 이전 주는 과거 방식 유지가 원칙이나, 방식 변경 이력이 생기기 전(1단계)에는 목표 값."""
-    return goal_method(conn, goal_id)
+def effective_method(conn: sqlite3.Connection, goal_id: int | None, week_start=None) -> str:
+    """주 기준 유효 방식: 그 주 이전(포함) 마지막 applied 재계획 anchor 의 plan_method, 없으면 목표 값.
+
+    week_start 가 None 이면 날짜와 무관하게 마지막 applied anchor 를 쓴다(과거 주는 과거 방식 유지, undo 는 status 로 반영)."""
+    if goal_id is None:
+        return DEFAULT_METHOD
+    q = "SELECT plan_method FROM plan_replans WHERE goal_id = ? AND status = 'applied' AND plan_method IS NOT NULL"
+    args: list = [goal_id]
+    if week_start is not None:
+        q += " AND anchor_monday <= ?"
+        args.append(week_start.isoformat() if hasattr(week_start, "isoformat") else week_start)
+    try:
+        row = conn.execute(q + " ORDER BY anchor_monday DESC, id DESC LIMIT 1", args).fetchone()
+    except sqlite3.OperationalError:
+        row = None
+    return get_method(row[0]).id if row else goal_method(conn, goal_id)
