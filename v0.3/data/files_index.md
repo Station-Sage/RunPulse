@@ -3453,7 +3453,7 @@
 
 - functions: test_registered_full_only_and_run_day_guard, test_weekday_roles_and_total_kept, test_saturday_alternates_by_week_parity, test_saturday_capped_at_half_of_week_when_low_volume, test_taper_unchanged_and_missing_run_day_dropped, test_10k_registered_and_guard, test_targets_initial_and_independent_success_failure, test_10k_never_faster_than_5k_plus_gap, test_10k_week_layout_and_long_cap
 
-### `test_plan_methods_registry.py` (117줄) — 훈련 방식 레지스트리 + 스키마 v51 마이그레이션.
+### `test_plan_methods_registry.py` (118줄) — 훈련 방식 레지스트리 + 스키마 v51 마이그레이션.
 
 - functions: test_v51_adds_columns_idempotent_and_backfills_default, test_v51_no_tables_is_noop, test_get_method_fallback, test_effective_method_reads_goal_and_tolerates_missing_column, test_candidates_guard_never_empty, alt_method, test_balanced_unchanged_and_hook_applies, test_replan_method_change_keeps_past_and_undo, test_replan_rejects_unknown_method_and_state
 

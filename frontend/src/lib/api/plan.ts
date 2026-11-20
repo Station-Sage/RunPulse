@@ -143,7 +143,7 @@ export function previewReplan(q: string): Promise<ReplanPreview> {
 	return apiFetch<ReplanPreview>(`/coach/plan/replan/preview${q ? `?${q}` : ''}`);
 }
 
-export function applyReplan(params: ReplanParams, expectAnchor: string): Promise<ReplanPreview> {
+export function applyReplan(params: import('$lib/types/planMethods').MethodReplanParams, expectAnchor: string): Promise<ReplanPreview> {
 	return apiFetch<ReplanPreview>('/coach/plan/replan', {
 		method: 'POST',
 		body: JSON.stringify({ ...params, expect_anchor: expectAnchor })
@@ -191,4 +191,12 @@ export function applyPlanDraft(expectAnchor: string): Promise<ReplanPreview> {
 		method: 'POST',
 		body: JSON.stringify({ expect_anchor: expectAnchor })
 	});
+}
+
+export function getPlanMethods(): Promise<import('$lib/types/planMethods').PlanMethodsState> {
+	return apiFetch('/coach/plan/methods');
+}
+
+export function getMethodRecommend(): Promise<import('$lib/types/planMethods').PlanMethodRecommend> {
+	return apiFetch('/coach/plan/methods/recommend');
 }

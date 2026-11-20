@@ -147,7 +147,7 @@
 					{/if}
 				</p>
 			{:else if entry.value?.eligible}
-				<a href="{base}/coach/plan/replan" class="mt-2 inline-flex min-h-11 items-center text-xs text-semantic-amber hover:underline">남은 일정 다시 맞추기 →</a>
+				<a href="{base}/coach/plan/replan" class="mt-2 inline-flex min-h-11 items-center text-xs text-semantic-amber hover:underline">남은 일정 다시 맞추기 · 훈련 방식 변경 →</a>
 			{/if}
 
 			<!-- CTL 현황 — 막대 기준은 최근 1년 최고(P-10) -->

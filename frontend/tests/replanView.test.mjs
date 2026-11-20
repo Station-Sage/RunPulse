@@ -166,3 +166,15 @@ test('replanSummary: 전에 없던 첫 주는 비교하지 않고 새로 넣는 
 	assert.match(s, /47\.8km로 새로 넣어/);
 	assert.doesNotMatch(s, /비슷한 거리/);
 });
+
+test('methodOrder: 랭킹 순 정렬, 추천 없으면 원순서', () => {
+	const ms = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+	assert.deepEqual(v.methodOrder(ms, { ranking: ['c', 'a'], recommended: 'c' }).map((m) => m.id), ['c', 'a', 'b']);
+	assert.deepEqual(v.methodOrder(ms, null).map((m) => m.id), ['a', 'b', 'c']);
+});
+
+test('methodParam·replanQuery: 현재와 같으면 보내지 않음', () => {
+	assert.equal(v.methodParam('balanced', 'balanced'), undefined);
+	assert.equal(v.methodParam('hansons', 'balanced'), 'hansons');
+	assert.equal(v.replanQuery({ plan_method: 'hansons' }), 'plan_method=hansons');
+});

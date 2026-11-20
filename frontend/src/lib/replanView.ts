@@ -1,4 +1,5 @@
 // 재계획 화면 순수 로직 (ADR-035 부록 R, DESIGN-PLAN-A6-REPLAN-UI).
+import type { MethodReplanParams, PlanMethodInfo, PlanMethodRecommend } from '$lib/types/planMethods';
 import type { ReplanBasis, ReplanParams, ReplanPreview, ReplanRowRef, ReplanWeek } from '$lib/types';
 
 export interface MergedWeek {
@@ -150,11 +151,12 @@ export function parseReplanInputs(raw: RawInputs): {
 	return { params, errors, warnings };
 }
 
-export function replanQuery(p: ReplanParams): string {
+export function replanQuery(p: MethodReplanParams): string {
 	const q = new URLSearchParams();
 	if (p.recent_weekly_km != null) q.set('recent_weekly_km', String(p.recent_weekly_km));
 	if (p.recent_long_km != null) q.set('recent_long_km', String(p.recent_long_km));
 	if (p.target_time_sec != null) q.set('target_time_sec', String(p.target_time_sec));
+	if (p.plan_method) q.set('plan_method', p.plan_method);
 	return q.toString();
 }
 
@@ -269,4 +271,13 @@ export function fmtTarget(sec: number): string {
 export function targetChangeText(goalSec: number | null, newSec: number | null): string | null {
 	if (newSec == null || newSec === goalSec) return null;
 	return goalSec == null ? `목표 ${fmtTarget(newSec)} 기준으로 다시 짜요.` : `목표 ${fmtTarget(goalSec)} → ${fmtTarget(newSec)} 기준으로 다시 짜요.`;
+}
+
+export function methodOrder(methods: PlanMethodInfo[], rec: PlanMethodRecommend | null): PlanMethodInfo[] {
+	const rank = new Map((rec?.ranking ?? (rec ? [rec.recommended] : [])).map((id, i) => [id, i]));
+	return [...methods].sort((a, b) => (rank.get(a.id) ?? 99) - (rank.get(b.id) ?? 99));
+}
+
+export function methodParam(selected: string | null, current: string): string | undefined {
+	return selected && selected !== current ? selected : undefined;
 }

@@ -5,17 +5,19 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { inlineConfirm } from '$lib/overlay';
-	import { applyReplan, getReplanLast, previewReplan, undoReplan } from '$lib/api/plan';
+	import { applyReplan, getMethodRecommend, getPlanMethods, getReplanLast, previewReplan, undoReplan } from '$lib/api/plan';
 	import GarminCleanup from '$lib/components/plan/GarminCleanup.svelte';
 	import ReplanStartCard from '$lib/components/plan/ReplanStartCard.svelte';
+	import MethodPicker from '$lib/components/plan/MethodPicker.svelte';
 	import ReplanInputs from '$lib/components/plan/ReplanInputs.svelte';
 	import ReplanDraftCard from '$lib/components/plan/ReplanDraftCard.svelte';
 	import ReplanNotices from '$lib/components/plan/ReplanNotices.svelte';
 	import ReplanWeekTable from '$lib/components/plan/ReplanWeekTable.svelte';
 	import {
-		anchorLabel, canApply, inputFields, longRunLine, mergeWeeks, startSourceText, startState, targetChangeText, parseReplanInputs, replanErrorView, replanQuery, replanSummary,
+		anchorLabel, canApply, inputFields, longRunLine, mergeWeeks, methodParam, startSourceText, startState, targetChangeText, parseReplanInputs, replanErrorView, replanQuery, replanSummary,
 		undoUntilLabel, type ErrorAction, type Phase, type RawInputs
 	} from '$lib/replanView';
+	import type { PlanMethodRecommend, PlanMethodsState } from '$lib/types/planMethods';
 	import type { ReplanPreview } from '$lib/types';
 
 	let values = $state<RawInputs>({ weekly: '', long: '', target: '' });
@@ -28,7 +30,15 @@
 	let pendingId = $state<number | null>(null);
 	let confirmUndo = $state(false);   // P-20/PLN-8: 되돌리기 전 확인
 
-	const parsed = $derived(parseReplanInputs(values));
+	let methodsState = $state<PlanMethodsState | null>(null);
+	let rec = $state<PlanMethodRecommend | null>(null);
+	let picked = $state<string | null>(null);
+
+	const parsed = $derived.by(() => {
+		const r = parseReplanInputs(values);
+		const m = methodParam(picked, methodsState?.current ?? '');
+		return m ? { ...r, params: { ...r.params, plan_method: m } } : r;
+	});
 	const hasError = $derived(Object.keys(parsed.errors).length > 0);
 	const fields = $derived(inputFields(preview ? startState(preview.basis) : 'A'));
 	const targetNote = $derived(targetChangeText(preview?.goal_target_time_sec ?? null, parsed.params.target_time_sec ?? null));
@@ -109,7 +119,11 @@
 		retry: '다시 시도', repreview: '미리보기 다시 보기', newGoal: '목표 만들기', plan: '계획 보기', undo: '되돌리기', back: '계획으로 돌아가기'
 	};
 
-	onMount(load);
+	onMount(() => {
+		load();
+		getPlanMethods().then((m) => { methodsState = m; picked = m.current; }).catch(() => {});
+		getMethodRecommend().then((r) => (rec = r)).catch(() => {});
+	});
 </script>
 
 {#snippet undoConfirm()}
@@ -154,6 +168,10 @@
 			<ReplanStartCard {preview} bind:values error={parsed.errors.target} oninput={() => (dirty = true)} />
 		{:else if busy}
 			<p class="text-xs text-fg-secondary">미리보기를 계산하고 있어요</p>
+		{/if}
+
+		{#if preview && methodsState && methodsState.methods.length > 1}
+			<MethodPicker methods={methodsState.methods} current={methodsState.current} selected={picked ?? methodsState.current} {rec} onselect={(id) => { picked = id; dirty = true; }} />
 		{/if}
 
 		{#if preview}
