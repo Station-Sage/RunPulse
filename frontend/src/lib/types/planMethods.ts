@@ -28,3 +28,8 @@ export interface PlanMethodRecommend {
 	current: string;
 	pending: boolean;
 }
+
+export interface PlanMethodDraft extends PlanMethodRecommend {
+	distance_label: string;
+	methods: PlanMethodInfo[];
+}

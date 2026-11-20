@@ -15,6 +15,7 @@ export interface ComparePlanData {
 	runWeekdays: number[];
 	/** P-14: 롱런 요일(null = 자동). */
 	longRunWeekday: number | null;
+	planMethod: string | null;
 }
 
 export async function load({ url }: { url: URL }): Promise<ComparePlanData> {
@@ -42,6 +43,7 @@ export async function load({ url }: { url: URL }): Promise<ComparePlanData> {
 		recentWeeklyKm: reported.weeklyKm,
 		recentLongKm: reported.longKm,
 		runWeekdays,
-		longRunWeekday: parseLongRunWeekday(url.searchParams.get('long_run'), runWeekdays)
+		longRunWeekday: parseLongRunWeekday(url.searchParams.get('long_run'), runWeekdays),
+		planMethod: url.searchParams.get('plan_method')
 	};
 }

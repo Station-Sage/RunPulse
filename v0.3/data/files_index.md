@@ -305,9 +305,13 @@
 
 - functions: refresh, list_events, mark_seen, dismiss
 
-### `method_recommend.py` (231줄) — 훈련 방식 AI 추천 (PLAN-METHODS 3단계, ADR-060) — 장기 데이터를 AI 가 판단하고 규칙은 후보 가드·검증·폴백만 맡는다.
+### `method_recommend.py` (240줄) — 훈련 방식 AI 추천 (PLAN-METHODS 3단계, ADR-060) — 장기 데이터를 AI 가 판단하고 규칙은 후보 가드·검증·폴백만 맡는다.
 
-- functions: build_input, fallback, src_hash, validate, get_cached, generate, view, warm_in_background
+- functions: build_input, fallback, src_hash, validate, get_cached, get_cached_scope, generate, generate_for, view, warm_in_background
+
+### `method_recommend_draft.py` (55줄) — 생성 화면용 훈련 방식 후보·추천(PLAN-METHODS 6단계 전 보강) — 활성 목표 없이 입력(거리·러닝 요일·목표·기간)만으로 낸다.
+
+- functions: build_draft_input, view, warm
 
 ### `metric_browse_groups.py` (101줄) — 메트릭 브라우저 표시 분류·정렬 — 8의도 그룹 slug 매핑 + 당일 주목도(salience) 정렬.
 
@@ -480,9 +484,10 @@
 
 - functions: ctl_scale, get_active_plan, todays_adjustment_with_hold, get_todays_adjustment, get_session_detail, get_session_note, save_session_note
 
-### `plan_template_service.py` (275줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
+### `plan_template_service.py` (288줄) — Phase 7b — 플랜 템플릿 조회 + 새 플랜 생성 서비스.
 
 - class **PlanConflict**: 없음
+- class **InvalidMethod**: 없음
 - functions: check_active_expectation, finish_goal_summary, get_static_plan_templates, create_plan_from_template
 
 ### `prediction_compare_service.py` (89줄) — 레이스 예측 3경로 비교(P7-PRED-71) — (a) Garmin 예측, (b) RunPulse·기기 심박 기준, (c) RunPulse·자체 추정(기본, r3)
@@ -2020,7 +2025,7 @@
 
 - functions: get_preferences, patch_preferences
 
-### `routes_plan.py` (294줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
+### `routes_plan.py` (297줄) — GET /api/v1/coach/plan/* 조회 + POST /api/v1/coach/plan 생성 + GET /api/v1/coach/plan/adaptation — Phase 7b.
 
 - functions: get_active_plan_route, get_adherence_review_route, get_restorable_plans_route, get_plan_weeks_route, get_plan_adjustment, get_plan_adaptation, get_plan_by_id, get_plan_templates, get_session_detail_route, save_session_note_route, create_plan, restore_plan_route
 
@@ -2032,9 +2037,9 @@
 
 - functions: plan_draft_state, plan_draft_start, plan_draft_apply
 
-### `routes_plan_replan.py` (142줄) — `/api/v1/coach/plan/replan*` — 안전한 재계획 미리보기·적용·되돌리기 (ADR-035 부록 R).
+### `routes_plan_replan.py` (168줄) — `/api/v1/coach/plan/replan*` — 안전한 재계획 미리보기·적용·되돌리기 (ADR-035 부록 R).
 
-- functions: replan_preview, plan_methods, plan_methods_recommend, replan_last, replan_apply, replan_undo, replan_garmin_targets, replan_garmin_cleanup
+- functions: replan_preview, plan_methods, plan_methods_recommend, plan_methods_draft, replan_last, replan_apply, replan_undo, replan_garmin_targets, replan_garmin_cleanup
 
 ### `routes_prediction.py` (88줄) — GET /api/v1/prediction/compare, GET /api/v1/prediction/profile, GET /api/v1/races/candidates, PUT·DELETE /api/v1/races/<activity_id>/confirm — P7-PRED-53·71.
 
@@ -3445,6 +3450,10 @@
 
 - functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week, test_plan_structure_for_each_workout_type, test_easy_run_too_fast_is_modified_not_on_target, test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis, test_adjustment_skips_day_already_executed, test_matcher_uses_accepted_adjustment_for_rest_and_distance_gate
 
+### `test_plan_methods_draft.py` (59줄) — 생성 화면 훈련 방식 — 목표 없는 후보·추천(/coach/plan/methods/draft)과 plan_method 생성 반영.
+
+- functions: db, test_draft_candidates_by_distance_and_days, test_draft_requires_distance, test_create_plan_sets_method_and_guards
+
 ### `test_plan_methods_external.py` (93줄) — 외부 방식 7종 adjust — 후보 가드·요일 역할·총량·롱런 상한·테이퍼 무변경·finalize 불변식.
 
 - functions: test_candidate_guards, test_invariants, test_taper_unchanged_except_first_run3, test_total_kept_for_slot_methods, test_higdon_all_easy_and_long_cap, test_hansons_long_cap_and_three_sos, test_first_run3_three_runs_only, test_marathon_specific_mp_long_in_peak, test_threshold_base_phase_single_quality
@@ -4214,7 +4223,7 @@
 - functions: run
 
 ---
-총 920개 파일
+총 922개 파일
 
 ## docstring 누락
 

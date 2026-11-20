@@ -6,12 +6,13 @@ import sqlite3
 from flask import request
 
 from src.services import garmin_cleanup as gc
+from src.services import input_limits
 from src.services import plan_replan_service as svc
 from src.training.planner import WeekdaysRequired
 from src.utils.user_context import db_path
 
 from . import api_bp, api_error, api_ok
-from .validation import json_object
+from .validation import float_field, int_field, json_object, parse_args
 
 _STATUS = {"NO_GOAL": 404}
 
@@ -83,6 +84,31 @@ def plan_methods_recommend():
             raise svc.ReplanError("NO_GOAL", "활성 목표가 없습니다")
         pending = v["source"] == "rule" and mr.warm_in_background(str(db_path()), load_config(user_id=get_current_user_id()))
         return {**v, "pending": bool(pending)}
+    return _run(_fn)
+
+
+_DRAFT_ARGS = {"distance_km": float_field(0, input_limits.DISTANCE_KM_MAX, lo_exclusive=True, required=True),
+               "run_days": int_field(1, 7), "target_time_sec": int_field(1, input_limits.TARGET_TIME_SEC_MAX),
+               "weeks": int_field(*input_limits.WEEKS_RANGE)}
+
+
+@api_bp.get("/coach/plan/methods/draft")
+def plan_methods_draft():
+    """생성 화면용 — 활성 목표 없이 거리·러닝 요일로 후보와 추천(AI 캐시 → 규칙 폴백)을 낸다."""
+    from src.services import method_recommend_draft as md
+    from src.utils.config import load_config
+    from src.utils.user_context import get_current_user_id
+    q, err = parse_args(_DRAFT_ARGS)
+    if err:
+        return err
+
+    def _fn(conn):
+        inp = md.build_draft_input(conn, q["distance_km"], q["run_days"], q["target_time_sec"], q["weeks"])
+        v = md.view(conn, inp)
+        pending = v["source"] == "rule" and md.warm(str(db_path()), load_config(user_id=get_current_user_id()), inp)
+        return {"distance_label": inp["goal"]["distance"], "methods": [
+            {k: c[k] for k in ("id", "label", "summary", "pros", "cons", "target_runners")} for c in inp["candidates"]],
+            **v, "pending": bool(pending)}
     return _run(_fn)
 
 

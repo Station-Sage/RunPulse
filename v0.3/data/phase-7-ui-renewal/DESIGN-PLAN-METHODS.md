@@ -160,3 +160,8 @@ Team DBS (B)(구 영상, 느린 러너, 화·목·토)는 별도 방식으로 �
 - 방식 선택 UI 는 재계획 화면(`/coach/plan/replan`)의 `MethodPicker` 로 배치했다. methods API 가 활성 목표를 요구하므로 목표 생성 전 선택은 거리 기반 추천 엔드포인트가 추가로 필요하다(보류, 사용자 판단 대기).
 - AI 추천 카드 1개를 앞세우고 나머지는 접어 둔다. 방식을 고르면 dirty 로 전환 → 다시 계산(`plan_method` 쿼리) → 적용/되돌리기.
 - 브라우저 스모크: `scripts/synth_smoke/pw/p5_method.mjs`, `p5_apply.mjs` (데스크톱·375px, 가로 넘침·오류 없음).
+
+## 5단계 보강: 생성 화면 선택 (2026-11-20)
+- `GET /coach/plan/methods/draft`(거리·운동일수·목표시간) — 목표 없이 `candidates_for` 후보 + AI/규칙 추천. 캐시 scope=`draft`(`method_recommend_draft.py`).
+- 생성 화면 `/coach/plan/new` 에 `NewPlanMethod` 배치 → `plan_method` 쿼리로 비교 화면에 전달 → `POST /coach/plan` 이 후보 검증(`InvalidMethod`→400) 후 `goals.plan_method` 저장.
+- 스모크: `pw/p6_new.mjs`.

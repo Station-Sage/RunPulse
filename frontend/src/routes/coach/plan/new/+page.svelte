@@ -19,6 +19,7 @@
 	} from '$lib/planPrefill';
 	import { planStepText } from '$lib/planDetailView';
 	import { ApiError } from '$lib/api/client';
+	import NewPlanMethod from '$lib/components/plan/NewPlanMethod.svelte';
 
 	const DISTANCES: { label: string; km: number }[] = [
 		{ label: '5km', km: 5 },
@@ -43,6 +44,8 @@
 	let longRunDay = $state<number | null>(parseLongRunWeekday(page.url.searchParams.get('long_run'), initialRunDays));
 	// 운동 요일에서 빠진 요일이 롱런으로 남지 않게(자동으로 되돌림)
 	const longRunEffective = $derived(longRunDay != null && runDays.includes(longRunDay) ? longRunDay : null);
+	let planMethod = $state<string | null>(null);
+	const draftTts = $derived(isCompletion ? undefined : targetTimeSec());
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 
@@ -73,6 +76,7 @@
 			const params = new URLSearchParams({ distance_km: String(selectedKm) });
 			params.set('run_weekdays', runDays.join(','));
 			if (longRunEffective != null) params.set('long_run', String(longRunEffective));
+			if (planMethod) params.set('plan_method', planMethod);
 			if (raceDate) params.set('race_date', raceDate);
 			if (tts != null) params.set('target_time_sec', String(tts));
 			for (const [k, v] of reportedLoadEntries(String(recentWeekly ?? ''), String(recentLong ?? ''))) params.set(k, v);
@@ -144,6 +148,8 @@
 				/>
 			</div>
 		{/if}
+
+		<NewPlanMethod distanceKm={selectedKm} runDays={runDays.length} targetTimeSec={draftTts} bind:selected={planMethod} />
 
 		<!-- 날짜 입력 -->
 		<div>

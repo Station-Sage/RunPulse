@@ -188,6 +188,10 @@ def get_static_plan_templates(
     return templates
 
 
+class InvalidMethod(ValueError):
+    """후보 밖 훈련 방식."""
+
+
 def create_plan_from_template(
     conn: sqlite3.Connection,
     distance_km: float,
@@ -202,6 +206,7 @@ def create_plan_from_template(
     expect_active_goal_id=_UNSET,
     race_id: int | None = None,
     long_run_weekday=_UNSET,
+    plan_method: str | None = None,
 ) -> int:
     """템플릿 선택으로 새 플랜 생성. goal_id 반환.
 
@@ -217,6 +222,7 @@ def create_plan_from_template(
         race_id: 기존 대회(race_calendar)에 연결. A·예정 대회만 허용하고 대회일·거리·이름을 그 값으로 맞춘다(RC-c).
         long_run_weekday: 롱런 선호 요일(0=월..6=일) 또는 None(자동). 주어지면 저장하고 운동 요일 안이어야 한다(P-14).
             생략(_UNSET)하면 저장된 선호를 그대로 쓴다(구버전 클라이언트 호환).
+        plan_method: 훈련 방식 id(없으면 balanced). 거리·러닝 요일 후보(`candidates_for`) 밖이면 InvalidMethod.
         expect_active_goal_id: 활성 플랜이 있고 이 값과 다르면 PlanConflict(확인 후 재전송, PLN-43).
 
     Returns:
@@ -233,6 +239,11 @@ def create_plan_from_template(
         raise WeekdaysRequired("운동 요일을 먼저 지정해야 계획을 만들 수 있습니다")
     if long_run_weekday is not _UNSET and long_run_weekday is not None and long_run_weekday not in run_weekdays:
         raise WeekdaysRequired("롱런 요일은 운동 요일 중 하나여야 합니다")
+    if plan_method is not None:
+        from src.training.methods import candidates_for
+        from src.training.planner_rules import resolve_distance_label
+        if plan_method not in {m.id for m in candidates_for(resolve_distance_label(distance_km, None), len(set(run_weekdays)))}:
+            raise InvalidMethod("이 거리·운동 요일에서는 선택할 수 없는 훈련 방식입니다")
     avail = plan_weeks_until_race(race_date)
     if avail is not None:
         weeks = max(1, min(weeks, avail))    # 대회일 이후로는 계획을 만들지 않는다(대회 주가 마지막 주)
@@ -251,6 +262,8 @@ def create_plan_from_template(
             conn.execute("UPDATE goals SET plan_snapshot_json=? WHERE id=?",
                          (json.dumps(res["snapshot"], ensure_ascii=False, default=str), prev["id"]))
         conn.execute("UPDATE goals SET plan_weeks=? WHERE id=?", (weeks, goal_id))
+        if plan_method is not None:
+            conn.execute("UPDATE goals SET plan_method=? WHERE id=?", (plan_method, goal_id))
         if recent_weekly_km is not None or recent_long_km is not None:
             set_reported_load(conn, goal_id, recent_weekly_km, recent_long_km)
         set_workout_weekdays(conn, run_weekdays, commit=False)

@@ -164,10 +164,14 @@ def _consent_ok(conn: sqlite3.Connection) -> bool:
 
 def get_cached(conn: sqlite3.Connection, goal_id: int, inp: dict) -> dict | None:
     """입력 해시가 맞는 AI 추천만(동의 없으면 숨김). 큐·LLM 을 부르지 않는다."""
+    return get_cached_scope(conn, _scope(goal_id), inp)
+
+
+def get_cached_scope(conn: sqlite3.Connection, scope: str, inp: dict) -> dict | None:
     if not _consent_ok(conn):
         return None
     r = conn.execute("SELECT src_hash, body_json FROM ai_outputs WHERE kind=? AND scope_key=?",
-                     (KIND, _scope(goal_id))).fetchone()
+                     (KIND, scope)).fetchone()
     if not r or r[0] != src_hash(inp):
         return None
     try:
@@ -178,14 +182,19 @@ def get_cached(conn: sqlite3.Connection, goal_id: int, inp: dict) -> dict | None
 
 def generate(conn: sqlite3.Connection, config: dict | None, today: date | None = None) -> dict | None:
     """캐시 → 동의·예산·큐 확인 → AI 호출 → 게이트 → 저장. 불가·실패는 None(규칙 폴백)."""
-    from src.ai import llm_budget
-    from src.ai import provider_claude_queue as pcq
     from src.training.goals import get_active_goal
     inp = build_input(conn, today)
     goal = get_active_goal(conn)
     if inp is None or goal is None:
         return None
-    cached = get_cached(conn, goal["id"], inp)
+    return generate_for(conn, config, inp, _scope(goal["id"]))
+
+
+def generate_for(conn: sqlite3.Connection, config: dict | None, inp: dict, scope: str) -> dict | None:
+    """입력·캐시 범위가 정해진 생성 본체(목표 있음/생성 화면 공용)."""
+    from src.ai import llm_budget
+    from src.ai import provider_claude_queue as pcq
+    cached = get_cached_scope(conn, scope, inp)
     if cached:
         return cached
     if not _consent_ok(conn) or llm_budget.global_ratio() >= llm_budget.limits()["warm_stop_ratio"] \
@@ -196,7 +205,7 @@ def generate(conn: sqlite3.Connection, config: dict | None, today: date | None =
     if body is None:
         return None
     conn.execute("INSERT OR REPLACE INTO ai_outputs(kind, scope_key, src_hash, body_json, created_at) VALUES (?,?,?,?,?)",
-                 (KIND, _scope(goal["id"]), src_hash(inp), json.dumps(body, ensure_ascii=False),
+                 (KIND, scope, src_hash(inp), json.dumps(body, ensure_ascii=False),
                   datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")))
     conn.commit()
     return body

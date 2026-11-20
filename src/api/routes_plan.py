@@ -210,6 +210,7 @@ _CREATE_PLAN_SCHEMA = {
     "expect_active_goal_id": int_field(1, 2**31 - 1),
     "race_id": int_field(1, 2**31 - 1),
     "long_run_weekday": int_field(0, 6),
+    "plan_method": str_field(40),
 }
 
 
@@ -252,12 +253,14 @@ def create_plan():
             conn, body["distance_km"], body["race_date"], weeks, body["target_time_sec"], body["name"],
             recent_weekly_km=weekly_km, recent_long_km=long_km, run_weekdays=body["run_weekdays"],
             expect_active_goal_id=_expect(request.get_json(silent=True) or {}, body), race_id=body["race_id"],
-            **_long_run_kw(request.get_json(silent=True) or {}, body),
+            plan_method=body["plan_method"], **_long_run_kw(request.get_json(silent=True) or {}, body),
         )
         plan_weeks = conn.execute("SELECT plan_weeks FROM goals WHERE id=?", (goal_id,)).fetchone()[0]
         warnings = plan_readiness.plan_warnings(conn, goal_id)
     except WeekdaysRequired as exc:
         return api_error("INVALID_PARAM", str(exc), 400, {"run_weekdays": str(exc)})
+    except plan_template_service.InvalidMethod as exc:
+        return api_error("INVALID_PARAM", str(exc), 400, {"plan_method": str(exc)})
     except plan_template_service.PlanConflict as exc:
         return _conflict(exc)
     except RaceError as exc:

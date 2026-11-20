@@ -39,7 +39,7 @@ export function getPlanTemplates(
 	return apiFetch<PlanTemplate[]>(`/coach/plan/templates?${params}`);
 }
 
-export function createPlan(payload: CreatePlanPayload): Promise<CreatePlanResult> {
+export function createPlan(payload: CreatePlanPayload & { plan_method?: string }): Promise<CreatePlanResult> {
 	return apiFetch<CreatePlanResult>('/coach/plan', {
 		method: 'POST',
 		body: JSON.stringify(payload)
@@ -199,4 +199,14 @@ export function getPlanMethods(): Promise<import('$lib/types/planMethods').PlanM
 
 export function getMethodRecommend(): Promise<import('$lib/types/planMethods').PlanMethodRecommend> {
 	return apiFetch('/coach/plan/methods/recommend');
+}
+
+export function getMethodDraft(
+	distanceKm: number,
+	runDays: number,
+	targetTimeSec?: number
+): Promise<import('$lib/types/planMethods').PlanMethodDraft> {
+	const q = new URLSearchParams({ distance_km: String(distanceKm), run_days: String(runDays) });
+	if (targetTimeSec != null) q.set('target_time_sec', String(targetTimeSec));
+	return apiFetch(`/coach/plan/methods/draft?${q}`);
 }
