@@ -93,12 +93,13 @@ def _view(conn, race: dict, today: str) -> dict:
 @api_bp.get("/race-calendar")
 def list_races():
     def go(conn, today):
+        q.lazy_done(conn, today)
         z = q.list_zones(conn, today)
         z["basis"] = reference_today(conn)[1]
         g = conn.execute("SELECT race_id FROM goals WHERE status='active' AND race_id IS NOT NULL LIMIT 1").fetchone()
         z["goal_race_id"] = g[0] if g else None
         return api_ok(z)
-    return _run(go, write=False)
+    return _run(go)
 
 
 @api_bp.post("/race-calendar")

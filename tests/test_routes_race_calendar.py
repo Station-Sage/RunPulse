@@ -149,3 +149,16 @@ def test_reopen_needs_review(ctx):
     assert d["needs_review"] is True
     r = cl.post(f"/api/v1/race-calendar/{rid}/reopen", json={}, headers=H)
     assert r.status_code == 200 and r.get_json()["data"]["status"] == "planned"
+
+
+def test_list_marks_past_planned_done(ctx):
+    cl, f = ctx
+    rid = _post(cl).get_json()["data"]["id"]
+    c = sqlite3.connect(str(f))
+    c.execute("UPDATE race_calendar SET race_date='2020-01-01' WHERE id=?", (rid,))
+    c.commit()
+    c.close()
+    z = cl.get("/api/v1/race-calendar").get_json()["data"]
+    assert [x["id"] for x in z["past"]] == [rid] and z["past"][0]["status"] == "done"
+    c = sqlite3.connect(str(f))
+    assert c.execute("SELECT status FROM race_calendar WHERE id=?", (rid,)).fetchone()[0] == "done"
