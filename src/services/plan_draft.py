@@ -27,6 +27,9 @@ _running: set[str] = set()
 _lock = threading.Lock()
 
 
+_KEEP_PARAMS = ("recent_weekly_km", "recent_long_km", "target_time_sec", "plan_method")
+
+
 def _weeks(rows: list[dict]) -> dict[str, list[dict]]:
     out: dict[str, list[dict]] = {}
     for r in rows:
@@ -35,14 +38,21 @@ def _weeks(rows: list[dict]) -> dict[str, list[dict]]:
     return out
 
 
-def build_input(conn: sqlite3.Connection, baseline: dict[str, list[dict]]) -> dict:
+def method_info(method_id: str | None) -> dict:
+    from src.training.methods.registry import get_method
+    m = get_method(method_id)
+    return {"id": m.id, "label": m.label, "summary": m.summary, "pros": list(m.pros), "cons": list(m.cons),
+            "ai_note": m.ai_note, "long_cap_km": m.long_cap_km}
+
+
+def build_input(conn: sqlite3.Connection, baseline: dict[str, list[dict]], method_id: str | None = None) -> dict:
     from src.ai.tool_exec_plan_constraints import _exec_get_plan_constraints
     weeks = []
     for ws in sorted(baseline)[:HORIZON]:
         weeks.append({"week_start": ws, "sessions": [
             {"date": r["date"], "type": r["workout_type"], "distance_km": float(r.get("distance_km") or 0),
              "description": r.get("description") or ""} for r in baseline[ws]]})
-    return {"constraints": _exec_get_plan_constraints(conn, {}), "baseline": weeks}
+    return {"constraints": _exec_get_plan_constraints(conn, {}), "method": method_info(method_id), "baseline": weeks}
 
 
 def src_hash(inp: dict) -> str:
@@ -70,6 +80,9 @@ def _check_week(ws: str, base: list[dict], new: list[dict], inp: dict) -> str | 
         cap = lim.get("long_abs_cap_km")
         if t == "long" and cap and nk > cap:
             return f"{b['date']}: 롱런 상한 {cap}km 초과"
+        mcap = (inp.get("method") or {}).get("long_cap_km")
+        if t == "long" and mcap and nk > mcap:
+            return f"{b['date']}: 이 훈련 방식의 롱런 상한 {mcap}km 초과"
     tb, tn = sum(float(r.get("distance_km") or 0) for r in base), sum(float(r.get("distance_km") or 0) for r in new)
     if tb > 0 and tn > tb * (1 + SHIFT_MAX):
         return f"{ws} 주 총거리가 baseline 대비 {SHIFT_MAX:.0%} 초과"
@@ -145,7 +158,7 @@ def generate(conn: sqlite3.Connection, config: dict | None, params: dict, today:
         body = {"state": "failed", "reason": "baseline 없음"}
         _put(conn, "", body)
         return body
-    inp = build_input(conn, baseline)
+    inp = build_input(conn, baseline, base.get("plan_method"))
     h = src_hash(inp)
     cur = latest(conn)
     if cur and cur.get("hash") == h and cur.get("state") == "ready":
@@ -168,7 +181,7 @@ def generate(conn: sqlite3.Connection, config: dict | None, params: dict, today:
             changed = sum(1 for ws, rows in res["weeks"].items() for a, b in zip(baseline[ws], rows)
                           if a.get("distance_km") != b.get("distance_km") or a.get("description") != b.get("description"))
             body.update(state="ready", summary=res["summary"], override=res["weeks"], changed=changed,
-                        params={k: v for k, v in params.items() if k in ("recent_weekly_km", "recent_long_km", "target_time_sec")})
+                        params={k: v for k, v in params.items() if k in _KEEP_PARAMS})
         else:
             body["reason"] = why
     _put(conn, h, body)

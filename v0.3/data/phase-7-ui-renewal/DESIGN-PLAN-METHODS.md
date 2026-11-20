@@ -165,3 +165,8 @@ Team DBS (B)(구 영상, 느린 러너, 화·목·토)는 별도 방식으로 �
 - `GET /coach/plan/methods/draft`(거리·운동일수·목표시간) — 목표 없이 `candidates_for` 후보 + AI/규칙 추천. 캐시 scope=`draft`(`method_recommend_draft.py`).
 - 생성 화면 `/coach/plan/new` 에 `NewPlanMethod` 배치 → `plan_method` 쿼리로 비교 화면에 전달 → `POST /coach/plan` 이 후보 검증(`InvalidMethod`→400) 후 `goals.plan_method` 저장.
 - 스모크: `pw/p6_new.mjs`.
+
+## 6단계 구현 메모 (AI 파라미터 개인화)
+- 별도 서비스 없이 `plan_draft` 확장: 입력에 `method{id,label,summary,pros,cons,ai_note,long_cap_km}` 추가(해시에 포함 → 방식이 바뀌면 캐시 무효).
+- 게이트: 기존 ±15%·limits 에 더해 방식별 `long_cap_km`(hansons 26km) 초과 거부. AI 는 방식 템플릿·세션 종류를 바꿀 수 없음.
+- `plan_method` 는 draft params 에 보존돼 `apply_draft` → `svc.apply` 로 전달(되돌리기 가능).

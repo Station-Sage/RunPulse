@@ -23,6 +23,8 @@ class PlanMethod:
     sources: tuple[str, ...] = ()
     min_run_days: int = 1                # 후보 가드: 선택 가능 러닝 요일이 이보다 적으면 후보 제외
     adjust: Callable[[list[dict], dict], list[dict]] | None = None   # 주간 계획 후처리 훅(balanced 는 None=무변경)
+    long_cap_km: float | None = None     # AI 개인화 게이트: 이 방식의 롱런 거리 상한(없으면 제약 limits 만 적용)
+    ai_note: str = ""                    # AI 개인화 프롬프트에 전달하는 방식별 유지 원칙(한 줄)
 
 
 METHODS: dict[str, PlanMethod] = {
@@ -33,6 +35,7 @@ METHODS: dict[str, PlanMethod] = {
         pros=("부상 위험이 낮음", "검증된 기본 구성"), cons=("거리별 특이성은 보통",),
         target_runners="처음이거나 어떤 방식이 맞는지 모르는 러너",
         sources=("planner v2 (papers-based)",),
+        ai_note="80/20 강도 배분 유지. 이지·롱런 거리를 러너의 최근 볼륨·회복 상태에 맞춰 미세 조정.",
     ),
     "gundalf_sub3": PlanMethod(
         id="gundalf_sub3", label="건달프 서브3",
@@ -43,6 +46,7 @@ METHODS: dict[str, PlanMethod] = {
         target_runners="서브3 안팎을 노리는 주 5일 이상 고볼륨 러너",
         sources=("건달프 서브3 훈련법", "Team DBS (A) 17주 표"),
         adjust=gundalf_sub3.adjust,
+        ai_note="화·수·토 핵심 세션 구조 유지. 이지 조깅 거리만 피로·볼륨에 맞춰 조정.",
     ),
     "gundalf_10k_base": PlanMethod(
         id="gundalf_10k_base", label="건달프 10K 베이스",
@@ -53,6 +57,7 @@ METHODS: dict[str, PlanMethod] = {
         target_runners="10K 기록을 꾸준히 줄이려는 서브3:10보다 느린 러너",
         sources=("건달프 10K 베이스 블록",),
         adjust=gundalf_10k_base.adjust,
+        ai_note="화 5K·토 10K 기준 달리기는 건드리지 않고 이지 조깅 거리만 조정.",
     ),
     "threshold_vo2": PlanMethod(
         id="threshold_vo2", label="임계값+VO2max",
@@ -62,6 +67,7 @@ METHODS: dict[str, PlanMethod] = {
         target_runners="속도를 끌어올리고 싶은 중급 이상 10K 러너",
         sources=("Daniels Running Formula(2차 자료로 확인, 일부 수치는 일반 규칙으로 보완)",),
         adjust=threshold_vo2.adjust,
+        ai_note="T·I 세션 구조 유지. 이지·롱런은 인터벌 회복에 맞춰 짧게 유지.",
     ),
     "threshold_tempo": PlanMethod(
         id="threshold_tempo", label="임계값 템포",
@@ -71,6 +77,7 @@ METHODS: dict[str, PlanMethod] = {
         target_runners="하프 기록 단축을 노리는 주 4일 이상 러너",
         sources=("Daniels Running Formula(2차 자료, 20분 초과 지속 템포는 일반 규칙으로 보완)",),
         adjust=threshold_tempo.adjust,
+        ai_note="지속 템포·크루즈 구조 유지. 롱런은 이지 페이스 그대로.",
     ),
     "hr_z2": PlanMethod(
         id="hr_z2", label="심박 Z2 중심",
@@ -80,6 +87,7 @@ METHODS: dict[str, PlanMethod] = {
         target_runners="부상 이력이 있거나 유산소 기반이 부족한 마라토너",
         sources=("Maffetone·80/20 계열 일반 원칙(일반 규칙으로 보완)",),
         adjust=hr_z2.adjust,
+        ai_note="이지·롱런은 존2 심박 기준. 거리는 늘리되 강도 언급 금지.",
     ),
     "marathon_specific": PlanMethod(
         id="marathon_specific", label="마라톤 특이성",
@@ -89,6 +97,7 @@ METHODS: dict[str, PlanMethod] = {
         target_runners="주 55km 이상, 서브4 안팎 기록을 노리는 마라토너",
         sources=("Pfitzinger Advanced Marathoning 18/55 구조(2차 자료, 수치는 일반 규칙으로 보완)",),
         adjust=marathon_specific.adjust,
+        ai_note="LT 데이·미디엄롱·MP 롱런 구조 유지. 롱런 다음날 회복 거리는 짧게.",
     ),
     "hansons": PlanMethod(
         id="hansons", label="Hansons",
@@ -98,6 +107,7 @@ METHODS: dict[str, PlanMethod] = {
         target_runners="주 6일 달릴 수 있고 레이스 페이스 적응을 원하는 마라토너",
         sources=("Hansons Marathon Method(2차 자료, 세부 거리는 일반 규칙으로 보완)",),
         adjust=hansons.adjust,
+        long_cap_km=26.0, ai_note="롱런은 26km 이내가 이 방식의 원칙(누적 피로 설계). 이지 6일 유지.",
     ),
     "first_run3": PlanMethod(
         id="first_run3", label="FIRST 주3",
@@ -107,6 +117,7 @@ METHODS: dict[str, PlanMethod] = {
         target_runners="주 3일만 달리고 교차훈련을 병행할 수 있는 러너",
         sources=("Run Less Run Faster(FIRST, 2차 자료, 세부 수치는 일반 규칙으로 보완)",),
         adjust=first_run3.adjust,
+        ai_note="주 3회 러닝 구조 유지. 교차훈련 일정·거리는 건드리지 않음.",
     ),
     "higdon_novice": PlanMethod(
         id="higdon_novice", label="Higdon 노비스",
@@ -116,6 +127,7 @@ METHODS: dict[str, PlanMethod] = {
         target_runners="첫 하프·풀 완주가 목표인 입문 러너",
         sources=("Hal Higdon Novice 1(2차 자료, 일반 규칙으로 보완)",),
         adjust=higdon_novice.adjust,
+        ai_note="속도 훈련 없이 이지 위주. 점진 롱런 원칙 유지, 급격한 증량 금지.",
     ),
 }
 

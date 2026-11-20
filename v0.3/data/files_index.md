@@ -442,9 +442,9 @@
 
 - functions: compute, issue
 
-### `plan_draft.py` (217줄) — AI 플랜 초안 (V2-AI-CLAUDE-QUEUE E5-c, plan_draft_v1) — 규칙 계획을 baseline 으로 opus 가 이지/롱런 거리·설명을 다듬는다.
+### `plan_draft.py` (230줄) — AI 플랜 초안 (V2-AI-CLAUDE-QUEUE E5-c, plan_draft_v1) — 규칙 계획을 baseline 으로 opus 가 이지/롱런 거리·설명을 다듬는다.
 
-- functions: build_input, src_hash, validate, latest, generate, start_background, is_running, apply_draft
+- functions: method_info, build_input, src_hash, validate, latest, generate, start_background, is_running, apply_draft
 
 ### `plan_load.py` (137줄) — 계획 조정의 부하 영향 추정 — 이번 주 부하 변화율과 주말 ACWR 전/후 (ADR-035, DESIGN-PLAN-ROW-ACTION-COACHING §5).
 
@@ -3425,9 +3425,9 @@
 
 - functions: test_plan_start_monday, test_recent_load_reads_history, test_created_plan_follows_periodization_and_ends_on_race, test_shorter_plan_starts_in_future_and_week_index_is_zero_before_start
 
-### `test_plan_draft.py` (123줄) — AI 플랜 초안 — 검증 게이트·캐시·적용 (V2-AI-CLAUDE-QUEUE E5-c).
+### `test_plan_draft.py` (138줄) — AI 플랜 초안 — 검증 게이트·캐시·적용 (V2-AI-CLAUDE-QUEUE E5-c).
 
-- functions: test_validate_gates, test_validate_merges_and_keeps_fixed_fields, test_validate_bad_format, conn, test_generate_ready_then_cached, test_generate_failure_records_reason, test_generate_retries_with_reason, test_apply_draft_passes_override, test_apply_without_draft, test_check_week_ignores_baseline_violations
+- functions: test_validate_gates, test_validate_merges_and_keeps_fixed_fields, test_validate_bad_format, conn, test_generate_ready_then_cached, test_generate_failure_records_reason, test_generate_retries_with_reason, test_apply_draft_passes_override, test_apply_without_draft, test_check_week_ignores_baseline_violations, test_method_long_cap_gate, test_method_info_and_input_hash
 
 ### `test_plan_gates.py` (145줄)
 

@@ -66,7 +66,7 @@ def conn(tmp_path):
 def _patch(monkeypatch, out):
     monkeypatch.setattr(svc, "preview", lambda c, p, t=None: {"plan_rows": [r for rs in BASE.values() for r in rs],
                                                               "anchor_monday": WS})
-    monkeypatch.setattr(PD, "build_input", lambda c, b: INP)
+    monkeypatch.setattr(PD, "build_input", lambda c, b, m=None: INP)
     monkeypatch.setattr(pcq, "available", lambda c, cfg: True)
     calls = []
     monkeypatch.setattr(pcq, "try_complete", lambda *a, **k: calls.append(k) or out)
@@ -121,3 +121,18 @@ def test_check_week_ignores_baseline_violations(monkeypatch):
     base = [{"date": "2026-11-23", "workout_type": "easy", "distance_km": 10.0}]
     new = [{"date": "2026-11-23", "workout_type": "easy", "distance_km": 11.0}]
     assert PD._check_week(WS, base, new, INP) is None
+
+
+def test_method_long_cap_gate():
+    inp = {**INP, "method": {"long_cap_km": 21.0}}
+    new = [dict(BASE[WS][0]), dict(BASE[WS][1]), {**BASE[WS][2], "distance_km": 22.0, "description": "롱런 22.0km"}]
+    assert "방식의 롱런 상한" in PD._check_week(WS, BASE[WS], new, inp)
+    assert PD._check_week(WS, BASE[WS], new, INP) is None
+
+
+def test_method_info_and_input_hash(conn):
+    info = PD.method_info("hansons")
+    assert info["id"] == "hansons" and info["long_cap_km"] == 26.0 and info["ai_note"]
+    a = PD.build_input(conn, BASE, "balanced")
+    b = PD.build_input(conn, BASE, "hansons")
+    assert PD.src_hash(a) != PD.src_hash(b)

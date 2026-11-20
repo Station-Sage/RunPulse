@@ -47,7 +47,7 @@ def plan_draft_start():
             return api_error("UNAVAILABLE", "AI 큐를 사용할 수 없습니다", 409)
     finally:
         conn.close()
-    params = {k: p[k] for k in ("recent_weekly_km", "recent_long_km", "target_time_sec") if p.get(k)}
+    params = {k: p[k] for k in ("recent_weekly_km", "recent_long_km", "target_time_sec", "plan_method") if p.get(k)}
     started = pd.start_background(str(db_path()), cfg, params)
     return api_ok({"started": started, "running": True}, 202)
 
