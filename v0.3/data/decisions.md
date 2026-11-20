@@ -505,3 +505,11 @@
 - D18 웰니스·예측 근거: 지표 해석의 회복 계열(tsb·atl·utrs·cirs)과 recovery_low 인사이트 facts 에 웰니스 원값(`wellness_facts` — 수면 시간·점수, 스트레스, 안정시 심박, HRV, Body Battery 최고치와 본인 7·90일 평균, 당일 제외; 사용자 결정 B). 질병·부상 단어 금지·일반화는 유지(D5). race_pred_* 해석 facts 에 `prediction_facts`(모델 범위·신뢰도 라벨·제한 요인 3개·주 신호와 가중치 5%p·같은 거리 활성 목표 기록·격차, 목표 이름 제외), 다른 규칙 문장이 없을 때 규칙 기본 문장 '모델 범위는 …, 신뢰도 …이에요. 제한 요인: ….'. 예측 값·결정 로직 불변, 프런트 변경 없음(BreakdownView 가 AiMark 로 표시).
 - D19 3단계 표면 검토 결과(만들지 않음): 마일스톤 문구(제목이 '누적 500km 돌파'·'10K PB 47:12' 같은 사실 라벨이고 이야기·월 내러티브가 이미 AI 근거로 엮음), 플랜 조정·주간 적응(조정 사유 문장은 Today `today_reason` 표면과 같은 문장이라 중복, weekly_adapt 는 사용자 문구 없음, advisory A1~A6 은 '사실+영향+선택지 하나' 로 설계 고정된 문구라 AI 는 바꿔 말하기뿐), heat_forecast(문구가 계획 행 rationale 꼬리표 '[폭염 보정 +x%: 페이스만 완화]' 뿐 — 빠진 사실(예보 기온)은 규칙 문구에 넣는 게 맞음). 레이스 허브(Today)는 수치 라벨뿐이라 별도 표면 없이 분해 화면 해석(D18)으로 대신한다.
 - D20 (사용자 결정 2026-11-20, D19 보완) ① '직전 비교 대상' 해석(D16) 확정, 회복 인사이트 웰니스 유지, 지난 날짜 지표 해석은 생성하지 않음(오늘만). ② 계획 조정 카드(AdjustmentCard)는 오늘 조정(proposed·accepted)일 때 Today '오늘 이유' AI 문장을 재사용한다 — `today_reason_wording.ai_view_for_adjustment`(같은 항목·해시로 캐시만 읽음, 생성 예약 없음, adjust 사유만, 예외는 None) → `GET /coach/plan/adjustment` 의 `adjustment.reason_wording`. 카드는 AI 문장 + AiMark 를 요약 줄(key 'summary') 대신 보이고 나머지 사유 줄은 그대로(`adjustmentView.adjustmentReasonView`). 새 생성·새 표면 없음. ③ 폭염 꼬리표는 규칙 문구에 아침 예보 기온을 넣는다 — `heat_forecast.forecast_morning_temps`(캐시 값 = 기온, 보정 % 는 파생), `constraints.heat_tag` → '[폭염 보정 +x%: 아침 예보 N℃ · 페이스만 완화]'. AI 없음.
+
+## ADR-060: 훈련 방식(plan_method) 축 — 규칙 엔진 유지, 추천은 AI 가 장기 데이터로 판단 (2026-11-20)
+
+- 방식은 `plan_rules_version`(규칙 세대)과 직교하는 훈련 철학 축. `goals.plan_method`(기본 `balanced` = 현행 규칙, 회귀 기준)·`plan_replans.plan_method`(v51).
+- 계획 생성은 규칙 기반 유지. 방식 변경은 재계획 경로로만, 과거 주 유지·anchor 이후만 적용, undo 지원.
+- 추천은 고정 임계값 없이 AI 가 장기 데이터로 순위·이유 판단. 규칙은 하드 가드(요일 수·거리 적용)와 폴백만 담당, AI 출력은 후보 id 게이트.
+- 하프 건달프는 원문 없음으로 제외. 외부 방식은 원전 확인(§9) 전 구현 금지.
+- 설계: `v0.3/data/phase-7-ui-renewal/DESIGN-PLAN-METHODS.md`.

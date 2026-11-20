@@ -2036,7 +2036,7 @@
 
 - functions: get_prediction_compare, get_prediction_profile, get_race_candidates, put_race_confirm, delete_race_confirm
 
-### `routes_race_calendar.py` (210줄) — `/api/v1/race-calendar*` — 대회 캘린더 CRUD·영향 미리보기·플랜 반영·복원·되돌리기 (RC-c, S4-28).
+### `routes_race_calendar.py` (211줄) — `/api/v1/race-calendar*` — 대회 캘린더 CRUD·영향 미리보기·플랜 반영·복원·되돌리기 (RC-c, S4-28).
 
 - functions: list_races, create_race, get_race, update_race, cancel_race, race_impact_route, race_plan_route, restore_route, reopen_route
 
@@ -3437,6 +3437,10 @@
 
 - functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week, test_plan_structure_for_each_workout_type, test_easy_run_too_fast_is_modified_not_on_target, test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis, test_adjustment_skips_day_already_executed, test_matcher_uses_accepted_adjustment_for_rest_and_distance_gate
 
+### `test_plan_methods_registry.py` (47줄) — 훈련 방식 레지스트리 + 스키마 v51 마이그레이션.
+
+- functions: test_v51_adds_columns_idempotent_and_backfills_default, test_v51_no_tables_is_noop, test_get_method_fallback, test_effective_method_reads_goal_and_tolerates_missing_column, test_candidates_guard_never_empty
+
 ### `test_plan_move.py` (101줄) — plan_move: M1~M10 검증, 오버레이(이동·맞교환), 쌍 되돌리기, 이동 후 줄이기.
 
 - functions: test_move_to_empty_day_and_overlay, test_swap_with_easy_and_pair_revert_from_either_row, test_reduce_after_move_uses_overlay_date, test_validation_codes, test_cross_week_taper_and_done, test_already_moved_and_not_found
@@ -3703,9 +3707,9 @@
 - class **TestCalculatorMetadata**: test_all_have_display_name, test_all_have_description, test_format_types_valid, test_ranges_are_dict_or_none, test_groups_have_members, test_get_group_for_metric, test_get_group_members, test_get_group_members_nonexistent
 - class **TestCLI**: test_status_empty, test_status_with_data, test_cli_no_command
 
-### `test_routes_race_calendar.py` (151줄) — RC-c: /api/v1/race-calendar* — CRUD·영향·플랜 반영·복원·되돌리기 + 봉투 오류.
+### `test_routes_race_calendar.py` (164줄) — RC-c: /api/v1/race-calendar* — CRUD·영향·플랜 반영·복원·되돌리기 + 봉투 오류.
 
-- functions: ctx, test_create_list_get_patch, test_validation_envelope, test_cancel_goal_linked_needs_confirm, test_cancel_plain_via_query, test_impact_and_plan_actions, test_restore_and_conflicts, test_restore_a_conflict_and_reopen, test_reopen_needs_review
+- functions: ctx, test_create_list_get_patch, test_validation_envelope, test_cancel_goal_linked_needs_confirm, test_cancel_plain_via_query, test_impact_and_plan_actions, test_restore_and_conflicts, test_restore_a_conflict_and_reopen, test_reopen_needs_review, test_list_marks_past_planned_done
 
 ### `test_routes_shoes.py` (108줄) — /api/v1/shoes* + 활동 신발 PUT/DELETE — 봉투·Origin 관문·검증·비러닝·409·200건 제한.
 
@@ -4194,7 +4198,7 @@
 - functions: run
 
 ---
-총 915개 파일
+총 916개 파일
 
 ## docstring 누락
 
