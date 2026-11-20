@@ -43,7 +43,7 @@ def test_effective_method_reads_goal_and_tolerates_missing_column():
 
 
 def test_candidates_guard_never_empty():
-    assert [m.id for m in candidates_for("10k", 3)] == ["balanced"]
+    assert [m.id for m in candidates_for("10k", 3)] == ["balanced", "first_run3"]
     assert [m.id for m in candidates_for("ultra")] == ["balanced"]
 
 
@@ -113,5 +113,6 @@ def test_replan_rejects_unknown_method_and_state():
         R.preview(conn, {"plan_method": "nope"}, _TODAY)
     assert e.value.code == "METHOD_UNSUPPORTED"
     st = R.methods_state(conn, _TODAY)
-    assert st["current"] == "balanced" and [m["id"] for m in st["methods"]] == ["balanced"]
+    ids = [m["id"] for m in st["methods"]]
+    assert st["current"] == "balanced" and ids[0] == "balanced" and "nope" not in ids
     assert R.preview(conn, {}, _TODAY)["method_changed"] is False

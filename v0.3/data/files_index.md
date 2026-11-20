@@ -3445,6 +3445,10 @@
 
 - functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week, test_plan_structure_for_each_workout_type, test_easy_run_too_fast_is_modified_not_on_target, test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis, test_adjustment_skips_day_already_executed, test_matcher_uses_accepted_adjustment_for_rest_and_distance_gate
 
+### `test_plan_methods_external.py` (93줄) — 외부 방식 7종 adjust — 후보 가드·요일 역할·총량·롱런 상한·테이퍼 무변경·finalize 불변식.
+
+- functions: test_candidate_guards, test_invariants, test_taper_unchanged_except_first_run3, test_total_kept_for_slot_methods, test_higdon_all_easy_and_long_cap, test_hansons_long_cap_and_three_sos, test_first_run3_three_runs_only, test_marathon_specific_mp_long_in_peak, test_threshold_base_phase_single_quality
+
 ### `test_plan_methods_gundalf.py` (115줄) — 건달프 서브3 방식 adjust — 요일 역할·주간 총량·롱런 상한·테이너 무변경.
 
 - functions: test_registered_full_only_and_run_day_guard, test_weekday_roles_and_total_kept, test_saturday_alternates_by_week_parity, test_saturday_capped_at_half_of_week_when_low_volume, test_taper_unchanged_and_missing_run_day_dropped, test_10k_registered_and_guard, test_targets_initial_and_independent_success_failure, test_10k_never_faster_than_5k_plus_gap, test_10k_week_layout_and_long_cap
@@ -4210,7 +4214,7 @@
 - functions: run
 
 ---
-총 919개 파일
+총 920개 파일
 
 ## docstring 누락
 

@@ -513,5 +513,6 @@
 - 추천은 고정 임계값 없이 AI 가 장기 데이터로 순위·이유 판단. 규칙은 하드 가드(요일 수·거리 적용)와 폴백만 담당, AI 출력은 후보 id 게이트.
 - 하프 건달프는 원문 없음으로 제외. 외부 방식은 원전 확인(§9) 전 구현 금지.
 - 3단계(AI 추천): `src/services/method_recommend.py`. 입력=최근 26주 주별 km·횟수(5km 반올림)·VDOT·대회·목표·러닝 요일 수(건강 정보 없음). job kind 는 `deep_analysis` 대신 기존 `plan_draft`(opus) 재사용(AI_JOB_KINDS CHECK 제약). 캐시 `ai_outputs(kind=method_recommend, scope_key=goal:<id>)`+입력 해시, 동의·예산·큐 게이트, 요청 스레드는 캐시만 읽고 생성은 백그라운드(쿨다운 30분). 폴백=주 3일 이하 first_run3, 아니면 balanced.
-- 4단계(건달프 2종): `adjust(plan, ctx)` 훅이 엔진 주간 총량·러닝 요일을 유지한 채 요일 역할만 재배정(`methods/slots.py`). `gundalf_sub3`=화 400m·수 AR·토 하프 지속주/35km 교대(ISO 주 홀짝, 주간 50% 상한)·금 휴식, 테이퍼 무변경. `gundalf_10k_base`=화 5K·토 10K 기준 달리기, 최근 8주 결과로 목표 재계산(5K 성공 -5s/실패 +3s×남은km, 10K 성공 -3s(설계값)/실패 +2s×남은km, 10K ≥ 5K+5s). planner 가 ctx 에 conn 전달. 나머지 방식은 §9 원전 확인 후.
+- 4단계(건달프 2종): `adjust(plan, ctx)` 훅이 엔진 주간 총량·러닝 요일을 유지한 채 요일 역할만 재배정(`methods/slots.py`). `gundalf_sub3`=화 400m·수 AR·토 하프 지속주/35km 교대(ISO 주 홀짝, 주간 50% 상한)·금 휴식, 테이퍼 무변경. `gundalf_10k_base`=화 5K·토 10K 기준 달리기, 최근 8주 결과로 목표 재계산(5K 성공 -5s/실패 +3s×남은km, 10K 성공 -3s(설계값)/실패 +2s×남은km, 10K ≥ 5K+5s). planner 가 ctx 에 conn 전달.
+- 5단계 전 구현(외부 방식 7종): threshold_vo2·threshold_tempo·hr_z2·marathon_specific·hansons·higdon_novice·first_run3. 같은 `adjust` 훅·`slots.build_week`(고정 거리 퀄리티 + share_out 분배, 롱런 상한·주간 50% 가드). 원전 미확인 수치는 §9 에 [?] 표기, `sources` 에 "일반 규칙으로 보완". first_run3 은 테이퍼에도 적용(러닝 3회 유지).
 - 설계: `v0.3/data/phase-7-ui-renewal/DESIGN-PLAN-METHODS.md`.

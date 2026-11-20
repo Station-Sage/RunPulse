@@ -5,7 +5,8 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Callable
 
-from . import gundalf_10k_base, gundalf_sub3
+from . import (first_run3, gundalf_10k_base, gundalf_sub3, hansons, higdon_novice, hr_z2, marathon_specific,
+               threshold_tempo, threshold_vo2)
 
 DEFAULT_METHOD = "balanced"
 
@@ -52,6 +53,69 @@ METHODS: dict[str, PlanMethod] = {
         target_runners="10K 기록을 꾸준히 줄이려는 서브3:10보다 느린 러너",
         sources=("건달프 10K 베이스 블록",),
         adjust=gundalf_10k_base.adjust,
+    ),
+    "threshold_vo2": PlanMethod(
+        id="threshold_vo2", label="임계값+VO2max",
+        summary="T 크루즈 인터벌(5분 반복)과 I 페이스 반복 중심, 롱런은 이지. 빌드·피크에 VO2max 추가.",
+        distances=frozenset({'10k'}), min_run_days=4,
+        pros=("10K 레이스 페이스 직결 자극","세션 구성이 명확"), cons=("인터벌 강도가 높아 부상·피로 위험","주 4일 이상 필요"),
+        target_runners="속도를 끌어올리고 싶은 중급 이상 10K 러너",
+        sources=("Daniels Running Formula(2차 자료로 확인, 일부 수치는 일반 규칙으로 보완)",),
+        adjust=threshold_vo2.adjust,
+    ),
+    "threshold_tempo": PlanMethod(
+        id="threshold_tempo", label="임계값 템포",
+        summary="지속 템포(T 페이스 20→40분)와 크루즈 인터벌 중심, 롱런은 이지.",
+        distances=frozenset({'half'}), min_run_days=4,
+        pros=("하프 레이스 지속 능력 향상","강도 관리가 쉬움"), cons=("속도 자극이 적음","주 4일 이상 필요"),
+        target_runners="하프 기록 단축을 노리는 주 4일 이상 러너",
+        sources=("Daniels Running Formula(2차 자료, 20분 초과 지속 템포는 일반 규칙으로 보완)",),
+        adjust=threshold_tempo.adjust,
+    ),
+    "hr_z2": PlanMethod(
+        id="hr_z2", label="심박 Z2 중심",
+        summary="대부분 존2 이지, 빌드·피크에 짧은 템포 1회. 롱런도 존2.",
+        distances=frozenset({'full'}), min_run_days=3,
+        pros=("부상 위험 낮음","유산소 기반 확장"), cons=("속도·레이스 특이 자극 부족","기록 단축 속도는 느림"),
+        target_runners="부상 이력이 있거나 유산소 기반이 부족한 마라토너",
+        sources=("Maffetone·80/20 계열 일반 원칙(일반 규칙으로 보완)",),
+        adjust=hr_z2.adjust,
+    ),
+    "marathon_specific": PlanMethod(
+        id="marathon_specific", label="마라톤 특이성",
+        summary="LT 데이·미디엄롱·마라톤 페이스 구간 롱런·롱런 다음날 회복 구성(Pfitzinger 계열).",
+        distances=frozenset({'full'}), min_run_days=4,
+        pros=("마라톤 특이 지구력 직접 훈련","주기화가 체계적"), cons=("주중 장거리 포함 부담","주 4일 이상 필요"),
+        target_runners="주 55km 이상, 서브4 안팎 기록을 노리는 마라토너",
+        sources=("Pfitzinger Advanced Marathoning 18/55 구조(2차 자료, 수치는 일반 규칙으로 보완)",),
+        adjust=marathon_specific.adjust,
+    ),
+    "hansons": PlanMethod(
+        id="hansons", label="Hansons",
+        summary="SOS 3세션(스피드/스트렝스·마라톤 페이스 템포·롱런)+이지 6일, 롱런 26km 이내.",
+        distances=frozenset({'full'}), min_run_days=6,
+        pros=("롱런을 짧게 유지해 부상 부담 완화","레이스 페이스 적응"), cons=("주 6일 러닝 필요","누적 피로 속 훈련으로 컨디션 관리 필요"),
+        target_runners="주 6일 달릴 수 있고 레이스 페이스 적응을 원하는 마라토너",
+        sources=("Hansons Marathon Method(2차 자료, 세부 거리는 일반 규칙으로 보완)",),
+        adjust=hansons.adjust,
+    ),
+    "first_run3": PlanMethod(
+        id="first_run3", label="FIRST 주3",
+        summary="러닝 주 3회(트랙 반복·템포·롱런)+교차훈련 2회. 질 높은 3세션만 수행.",
+        distances=frozenset({'10k', 'half', 'full'}), min_run_days=3,
+        pros=("러닝 횟수가 적어 시간·관절 부담 적음","세션 목적이 뚜렷"), cons=("세션 강도가 높아 컨디션 관리 필요","러닝 볼륨이 작음"),
+        target_runners="주 3일만 달리고 교차훈련을 병행할 수 있는 러너",
+        sources=("Run Less Run Faster(FIRST, 2차 자료, 세부 수치는 일반 규칙으로 보완)",),
+        adjust=first_run3.adjust,
+    ),
+    "higdon_novice": PlanMethod(
+        id="higdon_novice", label="Higdon 노비스",
+        summary="속도훈련 없이 이지 위주 주 4회, 점진 롱런. 완주가 목표인 입문 플랜.",
+        distances=frozenset({'half', 'full'}), min_run_days=3,
+        pros=("부담 낮고 따라 하기 쉬움","완주 중심"), cons=("기록 단축 자극 부족","고급 러너에겐 부족"),
+        target_runners="첫 하프·풀 완주가 목표인 입문 러너",
+        sources=("Hal Higdon Novice 1(2차 자료, 일반 규칙으로 보완)",),
+        adjust=higdon_novice.adjust,
     ),
 }
 
