@@ -101,3 +101,17 @@ def test_garmin_cleanup_api(client, tmp_path, monkeypatch):
     assert r.get_json()["data"]["deleted"] == 1
     assert client.get("/api/v1/coach/plan/replan/7/garmin").get_json()["data"]["targets"] == []
     assert client.get("/api/v1/coach/plan/replan/99/garmin").status_code == 404
+
+
+def test_methods_recommend_rule_fallback_and_warm_once(client, monkeypatch):
+    from src.services import method_recommend as mr
+    started = []
+    monkeypatch.setattr(mr, "generate", lambda c, cfg: started.append(1))
+    monkeypatch.setattr(mr.threading, "Thread", lambda target, **k: type("T", (), {"start": lambda s: target()})())
+    mr._cooldown.clear()
+    monkeypatch.setattr(mr, "_consent_ok", lambda conn: False)
+    r = client.get("/api/v1/coach/plan/methods/recommend")
+    d = r.get_json()["data"]
+    assert r.status_code == 200 and d["source"] == "rule" and d["recommended"] == "balanced" and d["pending"] is True
+    assert client.get("/api/v1/coach/plan/methods/recommend").get_json()["data"]["pending"] is False
+    assert started == [1]

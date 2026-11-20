@@ -305,6 +305,10 @@
 
 - functions: refresh, list_events, mark_seen, dismiss
 
+### `method_recommend.py` (231줄) — 훈련 방식 AI 추천 (PLAN-METHODS 3단계, ADR-060) — 장기 데이터를 AI 가 판단하고 규칙은 후보 가드·검증·폴백만 맡는다.
+
+- functions: build_input, fallback, src_hash, validate, get_cached, generate, view, warm_in_background
+
 ### `metric_browse_groups.py` (101줄) — 메트릭 브라우저 표시 분류·정렬 — 8의도 그룹 slug 매핑 + 당일 주목도(salience) 정렬.
 
 - functions: classify, baseline_z, salience_key
@@ -2028,9 +2032,9 @@
 
 - functions: plan_draft_state, plan_draft_start, plan_draft_apply
 
-### `routes_plan_replan.py` (127줄) — `/api/v1/coach/plan/replan*` — 안전한 재계획 미리보기·적용·되돌리기 (ADR-035 부록 R).
+### `routes_plan_replan.py` (142줄) — `/api/v1/coach/plan/replan*` — 안전한 재계획 미리보기·적용·되돌리기 (ADR-035 부록 R).
 
-- functions: replan_preview, plan_methods, replan_last, replan_apply, replan_undo, replan_garmin_targets, replan_garmin_cleanup
+- functions: replan_preview, plan_methods, plan_methods_recommend, replan_last, replan_apply, replan_undo, replan_garmin_targets, replan_garmin_cleanup
 
 ### `routes_prediction.py` (88줄) — GET /api/v1/prediction/compare, GET /api/v1/prediction/profile, GET /api/v1/races/candidates, PUT·DELETE /api/v1/races/<activity_id>/confirm — P7-PRED-53·71.
 
@@ -2333,9 +2337,9 @@
 
 - functions: api, test_409_then_confirm_replaces_and_restore_swaps, test_undo_blocked_for_non_active_goal, test_weeks_route
 
-### `test_api_plan_replan.py` (103줄) — /api/v1/coach/plan/replan* — 200/400/404/409/503 (ADR-035 부록 R).
+### `test_api_plan_replan.py` (117줄) — /api/v1/coach/plan/replan* — 200/400/404/409/503 (ADR-035 부록 R).
 
-- functions: client, test_preview_apply_undo, test_last_endpoint, test_bad_request_and_conflict, test_no_goal_404_and_no_db_503, test_garmin_cleanup_api
+- functions: client, test_preview_apply_undo, test_last_endpoint, test_bad_request_and_conflict, test_no_goal_404_and_no_db_503, test_garmin_cleanup_api, test_methods_recommend_rule_fallback_and_warm_once
 
 ### `test_api_plan_reported.py` (53줄) — POST /api/v1/coach/plan 선택 입력(최근 주간·최장 km)과 준비도 경고(warnings) — DESIGN-U16-LONGRUN §5.2.
 
@@ -3163,6 +3167,10 @@
 ### `test_mcp_token_routes.py` (73줄) — 웹 토큰 발급 API — 세션 사용자 한정, 원문 1회 노출, 상한·폐기·감사.
 
 - functions: client, test_issue_shows_plaintext_once_and_list_hides_it, test_label_required_and_bad_days, test_cap_returns_409, test_revoke_is_user_scoped_and_audited
+
+### `test_method_recommend.py` (148줄) — 훈련 방식 AI 추천 — 후보 가드·검증 게이트·폴백·캐시·게이트·요청 스레드 비차단.
+
+- functions: test_validate_ok_completes_ranking, test_validate_rejects, test_fallback_in_candidates, test_hash_stable_and_sensitive, env, test_generate_stores_then_cache_hit, test_input_change_invalidates_cache, test_no_consent_no_call_and_hidden, test_budget_or_queue_off_no_call, test_bad_ai_output_not_stored, test_warm_cooldown, test_build_input_and_view_on_real_db
 
 ### `test_metric_action_hint.py` (23줄) — 지표 행동 힌트(규칙) + ACWR 저부하·휴식기 밴드. 정적 힌트의 AI 다듬기(metric_note)는 폐지(ADR-059 2단계).
 
@@ -4198,7 +4206,7 @@
 - functions: run
 
 ---
-총 916개 파일
+총 918개 파일
 
 ## docstring 누락
 

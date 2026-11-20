@@ -512,4 +512,5 @@
 - 계획 생성은 규칙 기반 유지. 방식 변경은 재계획 경로로만, 과거 주 유지·anchor 이후만 적용, undo 지원.
 - 추천은 고정 임계값 없이 AI 가 장기 데이터로 순위·이유 판단. 규칙은 하드 가드(요일 수·거리 적용)와 폴백만 담당, AI 출력은 후보 id 게이트.
 - 하프 건달프는 원문 없음으로 제외. 외부 방식은 원전 확인(§9) 전 구현 금지.
+- 3단계(AI 추천): `src/services/method_recommend.py`. 입력=최근 26주 주별 km·횟수(5km 반올림)·VDOT·대회·목표·러닝 요일 수(건강 정보 없음). job kind 는 `deep_analysis` 대신 기존 `plan_draft`(opus) 재사용(AI_JOB_KINDS CHECK 제약). 캐시 `ai_outputs(kind=method_recommend, scope_key=goal:<id>)`+입력 해시, 동의·예산·큐 게이트, 요청 스레드는 캐시만 읽고 생성은 백그라운드(쿨다운 30분). 폴백=주 3일 이하 first_run3, 아니면 balanced.
 - 설계: `v0.3/data/phase-7-ui-renewal/DESIGN-PLAN-METHODS.md`.

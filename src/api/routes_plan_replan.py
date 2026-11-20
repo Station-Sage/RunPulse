@@ -71,6 +71,21 @@ def plan_methods():
     return _run(svc.methods_state)
 
 
+@api_bp.get("/coach/plan/methods/recommend")
+def plan_methods_recommend():
+    from src.services import method_recommend as mr
+    from src.utils.config import load_config
+    from src.utils.user_context import get_current_user_id
+
+    def _fn(conn):
+        v = mr.view(conn)
+        if v is None:
+            raise svc.ReplanError("NO_GOAL", "활성 목표가 없습니다")
+        pending = v["source"] == "rule" and mr.warm_in_background(str(db_path()), load_config(user_id=get_current_user_id()))
+        return {**v, "pending": bool(pending)}
+    return _run(_fn)
+
+
 @api_bp.get("/coach/plan/replan/last")
 def replan_last():
     return _run(lambda c: (lambda e: {"last": e["last"], "entry": e})(svc.entry_state(c)))
