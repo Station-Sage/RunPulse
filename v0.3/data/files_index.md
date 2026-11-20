@@ -146,7 +146,7 @@
 
 - functions: reset_cooldown, present_or_warm, warm_after_sync
 
-### `archive_service.py` (121줄) — 러닝 아카이브 — 누적 통계·월별 거리·365일 히트맵·개인 최고 기록(읽기 전용).
+### `archive_service.py` (122줄) — 러닝 아카이브 — 누적 통계·월별 거리·365일 히트맵·개인 최고 기록(읽기 전용).
 
 - functions: get_archive
 
@@ -211,7 +211,7 @@
 
 - functions: safe_return_to, strava_app_ready, failure_message, test_connection, connect, disconnect
 
-### `data_health_service.py` (32줄) — 데이터 건강 — 부하(TRIMP) 커버리지 등, 지표를 믿어도 되는지 알려주는 읽기 전용 진단.
+### `data_health_service.py` (33줄) — 데이터 건강 — 부하(TRIMP) 커버리지 등, 지표를 믿어도 되는지 알려주는 읽기 전용 진단.
 
 - functions: get_load_coverage
 
@@ -269,7 +269,7 @@
 
 - functions: create_goal_with_race
 
-### `heat_forecast.py` (87줄) — 예보 기온 → 날짜별 폭염 보정(%) (E10) — 최근 러닝 시작 좌표의 7일 예보(아침 6~8시 평균)로 페이스 완화 폭을 구한다.
+### `heat_forecast.py` (88줄) — 예보 기온 → 날짜별 폭염 보정(%) (E10) — 최근 러닝 시작 좌표의 7일 예보(아침 6~8시 평균)로 페이스 완화 폭을 구한다.
 
 - functions: cache_key, clear_cache, home_coords, morning_temps, heat_pcts, forecast_heat_pct, forecast_morning_temps
 
@@ -333,7 +333,7 @@
 
 - functions: rule_text, build_facts, build_item, interpretation, collect
 
-### `metric_unlock_service.py` (32줄) — 지표 해금 진행도 — 핵심 게이지(CTL·TSB·CIRS·UTRS)가 열리기까지 모은 일수 (REVIEW03 §2.5, D-L7).
+### `metric_unlock_service.py` (33줄) — 지표 해금 진행도 — 핵심 게이지(CTL·TSB·CIRS·UTRS)가 열리기까지 모은 일수 (REVIEW03 §2.5, D-L7).
 
 - functions: get_unlock_progress
 
@@ -563,7 +563,7 @@
 
 - functions: project_race_form
 
-### `race_result_service.py` (87줄) — 대회 확인(race_results, P7-PRED-53) — 사용자가 대회 여부·전력 여부·공식 기록을 확정한다.
+### `race_result_service.py` (88줄) — 대회 확인(race_results, P7-PRED-53) — 사용자가 대회 여부·전력 여부·공식 기록을 확정한다.
 
 - functions: confirm, remove, get, candidates
 
@@ -750,7 +750,7 @@
 
 - functions: show_metric_status, main
 
-### `context_runs.py` (152줄) — CalcContext 러닝 이력 API(RunHistoryMixin) — canonical 러닝 + 트윈 HR 병합 + 랩(경사보정 속도) + 대회 판정.
+### `context_runs.py` (153줄) — CalcContext 러닝 이력 API(RunHistoryMixin) — canonical 러닝 + 트윈 HR 병합 + 랩(경사보정 속도) + 대회 판정.
 
 - class **RunHistoryMixin**: get_runs, get_activity_metric_json, get_active_goal, get_latest_daily_metric, get_best_efforts, get_race_results
 - functions: nominal_distance, lap_block
@@ -795,12 +795,12 @@
 
 - class **EFTPCalculator**: compute
 
-### `engine.py` (799줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
+### `engine.py` (796줄) — Metrics Engine — topological sort 기반 실행. 설계서 4-5 + 보강 #1,#2,#11 기준.
 
 - class **ComputeResult**: summary
 - functions: prune_noncanonical_runpulse, run_activity_metrics, run_daily_metrics, run_for_date, compute_for_activities, compute_for_dates, recompute_single_metric, run_for_date_range, recompute_recent, clear_runpulse_metrics, recompute_all, find_missing_load_dates, backfill_missing_loads
 
-### `fearp.py` (76줄) — FEARP (Fitness & Environment Adjusted Running Pace) v2 — 외기 기온·이슬점·고도로 보정한 환경 보정 페이스(P7-PRED-90).
+### `fearp.py` (77줄) — FEARP (Fitness & Environment Adjusted Running Pace) v2 — 외기 기온·이슬점·고도로 보정한 환경 보정 페이스(P7-PRED-90).
 
 - class **FEARPCalculator**: compute
 - functions: heat_penalty
@@ -912,7 +912,7 @@
 
 - class **UTRSCalculator**: compute, tsb_component
 
-### `vdot.py` (69줄) — VDOT Calculator — 설계서 4-2 기준.
+### `vdot.py` (70줄) — VDOT Calculator — 설계서 4-2 기준.
 
 - class **VDOTCalculator**: compute
 
@@ -1232,7 +1232,7 @@
 
 - functions: build_daily_briefing, build_activity_analysis, build_ai_context
 
-### `ai_context_legacy.py` (290줄) — 레거시 dict 기반 AI 컨텍스트 — build_context/format_context_text/format_activity_context.
+### `ai_context_legacy.py` (288줄) — 레거시 dict 기반 AI 컨텍스트 — build_context/format_context_text/format_activity_context.
 
 - functions: build_context, format_context_text, format_activity_context
 
@@ -1521,7 +1521,7 @@
 
 - functions: compatible, pick_activity, is_done, classify_outcome
 
-### `matcher.py` (268줄) — 날짜 기반 계획 ↔ 실제 활동 자동 매칭 + session_outcomes 저장.
+### `matcher.py` (266줄) — 날짜 기반 계획 ↔ 실제 활동 자동 매칭 + session_outcomes 저장.
 
 - functions: match_week_activities, save_skipped_outcome, get_actual_activities_for_week
 
@@ -1670,7 +1670,7 @@
 > 주의: db_helpers의 upsert 함수는 Phase 3 sync에서만 호출.
 >       서비스 레이어는 read 함수만 사용.
 
-### `activity_types.py` (116줄) — 활동 유형 정규화.
+### `activity_types.py` (121줄) — 활동 유형 정규화.
 
 - functions: normalize_activity_type, sport_family, family_raw_types, family_clause
 
@@ -1739,7 +1739,7 @@
 
 - (public API 없음)
 
-### `metric_groups.py` (151줄) — 메트릭 의미 그룹핑 — 소스 비교 뷰 지원 (보강 #8).
+### `metric_groups.py` (150줄) — 메트릭 의미 그룹핑 — 소스 비교 뷰 지원 (보강 #8).
 
 - functions: get_group_for_metric, get_group_members
 
@@ -3582,9 +3582,9 @@
 
 - functions: test_record_only_today_and_dedupe, test_garmin_uses_recent_value_only, test_evaluate_on_confirm, test_not_allout_not_evaluated
 
-### `test_profile_service.py` (164줄) — profile_service — 자체 추정/기기/직접 입력 병합과 사용값 결정, PATCH 검증.
+### `test_profile_service.py` (177줄) — profile_service — 자체 추정/기기/직접 입력 병합과 사용값 결정, PATCH 검증.
 
-- functions: conn, test_rows_merge_self_and_device, test_manual_override_wins_and_choice_respected, test_choice_without_value_falls_back, test_legacy_keys_read_as_manual, test_validate_changes, test_apply_changes_sets_and_clears, test_profile_api_roundtrip, test_preview_zones_and_affected, test_before_after_status, test_job_routes, test_planner_paces_use_profile_threshold
+- functions: conn, test_rows_merge_self_and_device, test_manual_override_wins_and_choice_respected, test_choice_without_value_falls_back, test_legacy_keys_read_as_manual, test_validate_changes, test_apply_changes_sets_and_clears, test_profile_api_roundtrip, test_preview_zones_and_affected, test_before_after_status, test_job_routes, test_planner_paces_use_profile_threshold, test_vdot_slug_reads_race_pred_vdot, test_vdot_group_has_no_deprecated_vdot_adj
 
 ### `test_progression.py` (37줄) — U16l: 품질 사다리 순수 함수·v29 테이블·저장 서비스.
 
@@ -3758,6 +3758,10 @@
 ### `test_run_totals.py` (49줄) — run_totals / other_totals / other_line 테스트 (NRA N2).
 
 - functions: test_run_totals_ignores_non_running, test_run_totals_empty, test_other_totals_and_line, test_week_digest_and_story_stats_running_only
+
+### `test_run_types_ssot.py` (25줄) — 러닝 타입 SSOT(NRA-8) — HIIT 는 러닝이 아니고, 모든 러닝 판정 사본이 activity_types 하나를 본다.
+
+- functions: test_hiit_excluded_and_core_types_included, test_run_sql_filters_rows, test_copies_are_ssot
 
 ### `test_runalyze_extractor.py` (58줄) — Runalyze Extractor 단위 테스트.
 
@@ -4223,7 +4227,7 @@
 - functions: run
 
 ---
-총 922개 파일
+총 923개 파일
 
 ## docstring 누락
 
