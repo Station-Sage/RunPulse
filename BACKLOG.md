@@ -22,7 +22,6 @@
   - `07-entry-common.md` E-: 19건 (03,05,10,11,12,13,16,17,18,19,20,21,22,25,26,27,28,29,30)
   - `08-supplement.md` S-: 11건 (05,06,09,14,16,18,19,20,21,22,23)
 
-- **[ADJUSTMENT-SOURCE-CRS-LABEL]** `plan_adjustment_service` 의 `source='crs'` 조정 제안은 실제로는 `plan_pain.proposal`/`adjust_todays_plan`(readiness·피로도 기반)에서 생성되어 이름과 근거가 불일치. **방향(2026-10-11): 조정 제안 근거에 CRS·readiness 등 복수 신호를 모두 반영하도록 확장 — opus 설계 진행(`design-2026-10/bundles/adjustment-signals.md`).** ADR-035 영향 확인 필요. 출처: 같은 문서 §8.
 
 
 ## 미해결 확인 사항 (MIGRATION-04 §6)

@@ -1,5 +1,6 @@
 # DONE — 완료된 버그
 
+- **[ADJUSTMENT-SOURCE-CRS-LABEL]** 조정 근거 복수 신호 확장 — v37(source 11종·signals_json)·`adjustment_signals`·`adjuster_v3`·빈도 롤백(ADJ-1~24, 커밋 20acc7e2·55529eb0·bcf50015)으로 이미 구현돼 있어 BACKLOG 항목만 정리(2026-11-20 확인).
 - **[RUN-TYPES-SSOT]** 러닝 판정 사본 10여 곳·`LIKE '%running%'` 을 `activity_types.RUN_TYPES/RUN_SQL` 로 통합, HIIT 비러닝(사용자 결정, ADR-062). 운영 반영 후 지표 재계산 필요.
 - **[VDOT-NAMES]** 재계산 비교표·프로필 자가추정이 없는 `vdot` 를 조회하던 결함 — 대표 VDOT = 일별 `race_pred_vdot` 로 결정(사용자 위임, ADR-061). `TRACKED`·`profile_service` 이름 교정, `vdot` 그룹에서 폐기된 `vdot_adj` 제거, 사전·설명 갱신(2026-11-20).
 - **[TEST-PLAN-CREATION-DATE]** `test_created_plan_follows_periodization_and_ends_on_race` 주 수 불일치 — 실행 날짜 의존(하드코딩 날짜) 테스트였고 S4-93(2026-11-12)에서 원인 수정, 전체 스위트 통과로 해소.
@@ -9,4 +10,3 @@
 - **[P7-PRED r4 예측 리뉴얼]** 유닛 30개 구현(클라우드 세션, PR #66) 후 로컬 리뷰 — 명세 대조 이탈 없음(72 타입 보완만 수용), 리뷰 중 결함 3건 교정: TIDS `log10(0)`(88), Garmin LT 이력 응답 형태·366일 창 제한(25), 실 DB 범위 테스트를 글리치 허용 비율 방식으로 변경. 풀 pytest 1928 통과.
 - **[DATA-CTL-WARMUP]** 2025-09 이전 CTL 과소(심박 결측으로 TRIMP 없음). `TRIMPEstCalculator`(ADR-024)로 심박 결측 러닝 133건 추정 TRIMP 산출 + 운영 DB 전 기간 PMC 재계산(2026-10-07, 백업 /tmp/bk/running_pre_trimp_est_20261007.db). 2024-10~2025-03 월평균 CTL 3→24~33, 2025-10 이후 불변. 비-정본 중복 활동 7건·측정 TRIMP 우선 1건은 정본 활동에 값이 있어 정상.
 - **[SYNC-ERROR-SURFACE]** 외부 API 오류 표면화 — U15g(SyncSourceError·error_code·동기화 탭 표시)에 이어, 일반 예외로 끝난 배치도 전체 0건이면 job `failed`+분류 코드로 마감(`bg_sync._batch_error`). 일부 성공이면 `completed` 유지 (2026-10-07).
-- **[BUG-INDOOR-RUN-TYPE]** Garmin `indoor_running` 16건을 러닝으로 정규화(`_RUNNING_TYPES`, 2026-09-26) + 운영 DB 16건 `running` 정정 및 전 기간 `recompute_all` 완료(2026-10-10). 활동 632·645 등에 TRIMP·HRSS 생성 확인. 백업 `running.db.bak-20261009-pre-indoor`(커밋 금지).
