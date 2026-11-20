@@ -57,6 +57,7 @@ from src.metrics.crs import CRSCalculator
 log = logging.getLogger(__name__)
 
 from dataclasses import dataclass, field
+from src.utils.activity_types import RUN_SQL, RUN_TYPES
 import time as _time
 
 
@@ -453,8 +454,7 @@ def run_for_date(conn: sqlite3.Connection, target_date: str,
     """특정 날짜의 전체 메트릭 계산 (활동별 → 일별)."""
     activities = conn.execute(
         "SELECT id FROM v_canonical_activities "
-        "WHERE substr(start_time, 1, 10) = ? AND activity_type IN "
-        "('running','trail_running','treadmill')",
+        f"WHERE substr(start_time, 1, 10) = ? AND activity_type IN {RUN_SQL}",
         (target_date,),
     ).fetchall()
 
@@ -533,7 +533,7 @@ def _compute_activity_metrics_for_dates(conn: sqlite3.Connection,
     rows = conn.execute(
         f"SELECT id, substr(start_time, 1, 10) FROM v_canonical_activities "
         f"WHERE substr(start_time, 1, 10) IN ({placeholders}) "
-        f"AND activity_type IN ('running','trail_running','treadmill')",
+        f"AND activity_type IN {RUN_SQL}",
         list(dates),
     ).fetchall()
     prune_noncanonical_runpulse(conn)
@@ -621,8 +621,7 @@ def recompute_single_metric(conn: sqlite3.Connection,
         start_date = (today - timedelta(days=days)).isoformat()
         activities = conn.execute(
             "SELECT id FROM v_canonical_activities "
-            "WHERE substr(start_time,1,10) >= ? AND activity_type IN "
-            "('running','trail_running','treadmill')",
+            f"WHERE substr(start_time,1,10) >= ? AND activity_type IN {RUN_SQL}",
             (start_date,),
         ).fetchall()
         for (aid,) in activities:
@@ -754,8 +753,6 @@ def recompute_all(conn: sqlite3.Connection, days: int | None = None,
     return _recompute_dates(conn, dates, on_progress=on_progress)
 
 
-_RUN_TYPES = ("running", "trail_running", "treadmill")
-
 
 def find_missing_load_dates(conn: sqlite3.Connection, since_days: int = 730,
                             today: str | None = None) -> list[str]:
@@ -765,7 +762,7 @@ def find_missing_load_dates(conn: sqlite3.Connection, since_days: int = 730,
     """
     end = date.fromisoformat(today) if today else date.today()
     cutoff = (end - timedelta(days=since_days)).isoformat()
-    marks = ",".join("?" * len(_RUN_TYPES))
+    marks = ",".join("?" * len(RUN_TYPES))
     rows = conn.execute(
         f"SELECT DISTINCT substr(a.start_time, 1, 10) FROM activity_summaries a"
         f" WHERE a.activity_type IN ({marks}) AND a.avg_hr > 0 AND a.duration_sec > 0"
@@ -773,7 +770,7 @@ def find_missing_load_dates(conn: sqlite3.Connection, since_days: int = 730,
         f"   AND NOT EXISTS (SELECT 1 FROM metric_store m WHERE m.scope_type = 'activity'"
         f"     AND m.scope_id = CAST(a.id AS TEXT) AND m.metric_name = 'trimp' AND m.is_primary = 1)"
         f" ORDER BY 1",
-        [*_RUN_TYPES, cutoff, end.isoformat()],
+        [*RUN_TYPES, cutoff, end.isoformat()],
     ).fetchall()
     return [r[0] for r in rows]
 

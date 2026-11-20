@@ -2,6 +2,8 @@
 
 import json
 import sqlite3
+
+from src.utils.activity_types import RUN_SQL
 from datetime import date
 
 from src.utils.db_helpers import load_activity_streams
@@ -33,7 +35,7 @@ def _find_activity(
     target_date = date_str or date.today().isoformat()
     return conn.execute(
         f"SELECT {cols} FROM activity_summaries "
-        "WHERE start_time >= ? AND start_time < ? AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining') "
+        f"WHERE start_time >= ? AND start_time < ? AND activity_type IN {RUN_SQL} "
         "ORDER BY start_time DESC LIMIT 1",
         (target_date, target_date + "T99"),
     ).fetchone()

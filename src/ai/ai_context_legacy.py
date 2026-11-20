@@ -11,11 +11,9 @@ from datetime import timedelta
 from typing import Any
 
 from src.utils import db_helpers
+from src.utils.activity_types import RUN_SQL
 
 
-_RUN_TYPES = (
-    "('running','run','virtualrun','treadmill','highintensityintervaltraining')"
-)
 
 
 def build_context(conn: sqlite3.Connection, date_str: str | None = None) -> dict:
@@ -38,7 +36,7 @@ def build_context(conn: sqlite3.Connection, date_str: str | None = None) -> dict
         "SELECT id, source, activity_type, start_time, distance_m, duration_sec,"
         "       avg_pace_sec_km, avg_hr"
         " FROM activity_summaries"
-        f" WHERE date(start_time) = ? AND activity_type IN {_RUN_TYPES}"
+        f" WHERE date(start_time) = ? AND activity_type IN {RUN_SQL}"
         " ORDER BY start_time DESC LIMIT 1",
         (date_str,),
     ).fetchone()

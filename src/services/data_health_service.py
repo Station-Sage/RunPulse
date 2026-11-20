@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import date as _date, timedelta
+from src.utils.activity_types import RUN_SQL
 
 
 def get_load_coverage(conn: sqlite3.Connection, days: int = 90, today: str | None = None) -> dict:
@@ -18,7 +19,7 @@ def get_load_coverage(conn: sqlite3.Connection, days: int = 90, today: str | Non
         "   SELECT 1 FROM metric_store m WHERE m.scope_type = 'activity' AND m.scope_id = CAST(a.id AS TEXT)"
         "   AND m.metric_name = 'trimp' AND m.is_primary = 1) THEN 1 ELSE 0 END) AS miss"
         " FROM v_canonical_activities a"
-        " WHERE a.activity_type LIKE '%running%' AND a.avg_hr > 0 AND a.duration_sec > 0"
+        f" WHERE a.activity_type IN {RUN_SQL} AND a.avg_hr > 0 AND a.duration_sec > 0"
         "   AND substr(a.start_time, 1, 10) > ? AND substr(a.start_time, 1, 10) <= ?",
         (start, end.isoformat()),
     ).fetchone()

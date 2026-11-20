@@ -11,8 +11,8 @@ from statistics import median
 
 from src.metrics.base import CalcContext, CalcResult, MetricCalculator
 from src.metrics import segments as seg
+from src.utils.activity_types import RUN_TYPES
 
-RUN_TYPES = ("running", "trail_running", "treadmill", "indoor_running", "virtual_running")
 DEFAULT_V_EASY = 1000 / 360.0     # 6:00/km — 이력이 없을 때
 
 

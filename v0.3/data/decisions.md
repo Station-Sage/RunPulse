@@ -521,3 +521,8 @@
 - 사용자 위임(원칙·설계 기준 판단). 대표 VDOT 는 일별 `race_pred_vdot`(is_primary=1, 15℃ 등가 예측 결합값) — 플랜 페이스(`get_vdot_adj`)·프로필 자가추정·재계산 비교표가 같은 값을 본다.
 - `runpulse_vdot` 은 활동별 Daniels 표 값(세션 단위, 대표값 아님). `vdot` 그룹에서 폐기된 `vdot_adj` 제거.
 - `recompute_service.TRACKED` slug `vdot` 은 유지(UI 호환), metric_name 만 `race_pred_vdot` 로 교정. `profile_service._self_estimates` 도 동일.
+
+## ADR-062: 러닝 판정 SSOT 통합 — HIIT 비러닝 (2026-11-20, BACKLOG RUN-TYPES-SSOT)
+- 사용자 결정: HIIT 는 러닝이 아니다(NRA-7 확정). 러닝 타입 사본 10여 곳(analysis·training·metrics·services·weather·ai)과 `LIKE '%running%'` 을 `activity_types.RUN_TYPES`/`RUN_SQL`(= `family_raw_types("running")`) 하나로 통합.
+- 영향: 계획 매칭·주간 점수·추세·ACWR·존 분석에서 HIIT 활동 제외. engine·fearp·vdot·archive·race 후보 등 좁은 목록이던 곳은 `track_running`·`virtual_run` 등 러닝 변형을 포함하게 됨(Calculator 입력 확장 → 운영 반영 후 `recompute` 필요).
+- 미변경: `src/sync/*` 의 소스 raw 타입 집합(Strava/Intervals/Garmin 원본 표기, 정규화 이전 단계).

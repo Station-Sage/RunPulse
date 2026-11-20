@@ -16,14 +16,15 @@ from typing import Any, Callable
 from src.metrics.prediction.physio import ambient_from_device, round_coord
 from src.utils.db_helpers import upsert_metric
 from src.weather import provider as om
+from src.utils.activity_types import RUN_SQL
 
 CONFLICT_C = 6.0
 METRICS = {"temp_c": "weather_temp_c", "humidity_pct": "weather_humidity_pct", "dew_point_c": "weather_dew_point_c",
            "feels_like_c": "weather_feels_like_c", "wind_speed_ms": "weather_wind_speed_ms", "wbgt_c": "weather_wbgt_c"}
-_TARGETS = """
+_TARGETS = f"""
 SELECT id, start_time, start_lat, start_lon, COALESCE(elapsed_time_sec, duration_sec, 0), avg_temperature
 FROM v_canonical_activities
-WHERE start_time >= ? AND activity_type IN ('running', 'trail_running') AND NOT EXISTS (SELECT 1 FROM metric_store m WHERE m.scope_type='activity'
+WHERE start_time >= ? AND activity_type IN {RUN_SQL} AND NOT EXISTS (SELECT 1 FROM metric_store m WHERE m.scope_type='activity'
       AND m.scope_id = CAST(v_canonical_activities.id AS TEXT) AND m.metric_name='weather_temp_c' AND m.provider='open_meteo')
 ORDER BY start_time DESC
 """

@@ -1,6 +1,8 @@
 """주간 추세 및 ACWR 부상 위험도 계산."""
 
 import sqlite3
+
+from src.utils.activity_types import RUN_SQL
 from datetime import date, timedelta
 
 from src.utils.vo2max_source import garmin_vo2max_between
@@ -30,14 +32,14 @@ def weekly_trends(conn: sqlite3.Connection, weeks: int = 8) -> list[dict]:
         wk_start = current_monday - timedelta(weeks=i)
         wk_end = wk_start + timedelta(weeks=1)
 
-        rows = conn.execute("""
+        rows = conn.execute(f"""
             SELECT COALESCE(matched_group_id, CAST(id AS TEXT)) AS gk,
                    AVG(distance_m) / 1000.0 AS dist,
                    AVG(duration_sec)    AS dur,
                    AVG(avg_pace_sec_km) AS pace
             FROM activity_summaries
             WHERE start_time >= ? AND start_time < ?
-              AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
+              AND activity_type IN {RUN_SQL}
             GROUP BY gk
         """, (wk_start.isoformat(), wk_end.isoformat())).fetchall()
 
@@ -128,13 +130,13 @@ def _fitness_last_from_activity_metrics(
     metric_name: str,
 ) -> float | None:
     """metric_store(scope_type='activity')에서 주간 마지막 값 조회. VO2max/VDOT 등 활동별 메트릭용."""
-    row = conn.execute("""
+    row = conn.execute(f"""
         SELECT sm.numeric_value
         FROM metric_store sm
         JOIN activity_summaries a ON sm.scope_id = CAST(a.id AS TEXT)
         WHERE sm.scope_type = 'activity'
           AND a.start_time >= ? AND a.start_time < ?
-          AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
+          AND a.activity_type IN {RUN_SQL}
           AND sm.provider = ? AND sm.metric_name = ?
         ORDER BY a.start_time DESC
         LIMIT 1

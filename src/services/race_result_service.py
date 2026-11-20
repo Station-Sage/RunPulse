@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from src.utils.activity_types import RUN_SQL
 
 EFFORTS = ("allout", "paced", "fun", "dnf")
 _RACE_NAME = re.compile(r"대회|마라톤|marathon|half|하프|10k|10km|race|레이스", re.I)
@@ -72,7 +73,7 @@ def candidates(conn: sqlite3.Connection, since: str) -> list[dict]:
     rows = conn.execute(
         "SELECT v.id, substr(v.start_time,1,10), v.name, v.distance_m, COALESCE(v.elapsed_time_sec, v.duration_sec), "
         "v.event_type, r.effort FROM v_canonical_activities v LEFT JOIN race_results r ON r.activity_id = v.id "
-        "WHERE v.start_time >= ? AND v.activity_type IN ('running','trail_running') ORDER BY v.start_time DESC",
+        f"WHERE v.start_time >= ? AND v.activity_type IN {RUN_SQL} ORDER BY v.start_time DESC",
         (since,)).fetchall()
     out = []
     for aid, d, name, dist, t, ev, eff in rows:

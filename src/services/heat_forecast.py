@@ -14,6 +14,7 @@ from typing import Any, Callable
 
 from src.metrics.heat_model import DEFAULT_HEAT
 from src.weather import provider as om
+from src.utils.activity_types import RUN_SQL
 
 MORNING_HOURS = (6, 7, 8)
 CACHE_TTL_SEC = 3 * 3600
@@ -33,7 +34,7 @@ def clear_cache() -> None:
 def home_coords(conn: sqlite3.Connection) -> tuple[float, float] | None:
     """가장 최근 러닝의 시작 좌표."""
     r = conn.execute("SELECT start_lat, start_lon FROM v_canonical_activities WHERE start_lat IS NOT NULL"
-                     " AND start_lon IS NOT NULL AND activity_type IN ('running','trail_running')"
+                     f" AND start_lon IS NOT NULL AND activity_type IN {RUN_SQL}"
                      " ORDER BY start_time DESC LIMIT 1").fetchone()
     return (r[0], r[1]) if r else None
 

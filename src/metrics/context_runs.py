@@ -7,7 +7,8 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 
-RUN_TYPES = ("running", "trail_running", "treadmill", "indoor_running", "virtual_running")
+from src.utils.activity_types import RUN_TYPES
+
 RACE_NAME = re.compile(r"대회|마라톤|marathon|half|하프|10k|10km|race|레이스", re.I)
 NOT_RACE_NAME = re.compile(r"TT|템포|tempo", re.I)
 NOMINAL = ((5000.0, 0.04), (10000.0, 0.04), (21097.5, 0.03), (42195.0, 0.02))

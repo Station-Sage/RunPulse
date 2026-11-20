@@ -2,6 +2,8 @@
 
 import json
 import sqlite3
+
+from src.utils.activity_types import RUN_SQL
 from datetime import date, timedelta
 
 from .recovery import get_recovery_status
@@ -91,14 +93,14 @@ def _efficiency_score(
 
 def _get_week_basics(conn: sqlite3.Connection, start: str, end: str) -> dict:
     """주간 기본 집계 (중복 제거)."""
-    rows = conn.execute("""
+    rows = conn.execute(f"""
         SELECT COALESCE(matched_group_id, CAST(id AS TEXT)) AS gk,
                AVG(distance_m) / 1000.0 AS dist,
                AVG(avg_pace_sec_km) AS pace,
                AVG(avg_hr)          AS hr
         FROM activity_summaries
         WHERE start_time >= ? AND start_time < ?
-          AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
+          AND activity_type IN {RUN_SQL}
         GROUP BY gk
     """, (start, end)).fetchall()
 
@@ -116,13 +118,13 @@ def _get_week_basics(conn: sqlite3.Connection, start: str, end: str) -> dict:
 def _get_easy_ratio(conn: sqlite3.Connection, start: str, end: str) -> float | None:
     """HR Zone 기반 Easy 비율 계산 (intervals zone 데이터 우선, 없으면 HR 추정)."""
     # hr_zones_detail = [z1_sec, z2_sec, ...] 리스트 포맷
-    rows = conn.execute("""
+    rows = conn.execute(f"""
         SELECT sm.json_value
         FROM metric_store sm
         JOIN activity_summaries a ON sm.scope_id=CAST(a.id AS TEXT)
         WHERE sm.scope_type='activity'
           AND a.start_time >= ? AND a.start_time < ?
-          AND a.activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
+          AND a.activity_type IN {RUN_SQL}
           AND sm.metric_name = 'hr_zones_detail'
           AND sm.json_value IS NOT NULL
     """, (start, end)).fetchall()
@@ -144,11 +146,11 @@ def _get_easy_ratio(conn: sqlite3.Connection, start: str, end: str) -> float | N
             return round(easy_time / total_time, 3)
 
     # intervals 데이터 없으면 평균 HR로 Easy 비율 추정
-    row = conn.execute("""
+    row = conn.execute(f"""
         SELECT AVG(avg_hr), MAX(max_hr)
         FROM activity_summaries
         WHERE start_time >= ? AND start_time < ?
-          AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
+          AND activity_type IN {RUN_SQL}
           AND avg_hr IS NOT NULL
     """, (start, end)).fetchone()
 

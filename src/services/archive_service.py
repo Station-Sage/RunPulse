@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import date as _date, timedelta
+from src.utils.activity_types import RUN_SQL
 
-_RUN = "activity_type LIKE '%running%'"
+_RUN = f"activity_type IN {RUN_SQL}"
 _PB_EFFORTS = [("1K", "1K"), ("1 mile", "1마일"), ("5K", "5K"), ("10K", "10K")]
 # 대회 기록(전력 allout)으로도 뽑는 표준 거리 — 대회 거리가 이 값의 ±1.5% 안이면 그 거리 기록으로 본다(시간은 거리 비로 환산)
 _PB_RACES = [("5K", "5K", 5000.0), ("10K", "10K", 10000.0), ("half", "하프", 21097.5), ("full", "풀", 42195.0)]
@@ -79,7 +80,7 @@ def get_archive(conn: sqlite3.Connection, today: str | None = None) -> dict:
         row = conn.execute(
             "SELECT b.activity_id AS aid, b.elapsed_sec AS sec, substr(a.start_time, 1, 10) AS d"
             " FROM activity_best_efforts b JOIN activity_summaries a ON a.id = b.activity_id"
-            " WHERE b.effort_name = ? AND b.elapsed_sec IS NOT NULL AND a.activity_type LIKE '%running%'"
+            f" WHERE b.effort_name = ? AND b.elapsed_sec IS NOT NULL AND a.activity_type IN {RUN_SQL}"
             " ORDER BY b.elapsed_sec ASC LIMIT 1",
             (key,),
         ).fetchone()

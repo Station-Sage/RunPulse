@@ -2,6 +2,8 @@
 
 import json
 import sqlite3
+
+from src.utils.activity_types import RUN_SQL
 from datetime import date, timedelta
 
 from src.utils.db_helpers import load_activity_streams
@@ -195,14 +197,14 @@ def analyze_zones(
     Returns:
         zone 분포, 강도 비율, polarization 상태를 담은 dict.
     """
-    groups = conn.execute("""
+    groups = conn.execute(f"""
         SELECT COALESCE(matched_group_id, CAST(id AS TEXT)) AS gk,
                MIN(id) AS rep_id,
                SUM(duration_sec) AS total_dur,
                AVG(avg_hr) AS avg_hr_val
         FROM activity_summaries
         WHERE start_time >= ? AND start_time < ?
-          AND activity_type IN ('running', 'run', 'virtualrun', 'treadmill', 'highintensityintervaltraining')
+          AND activity_type IN {RUN_SQL}
         GROUP BY gk
     """, (period_start, period_end)).fetchall()
 

@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from src.metrics.base import CalcContext, CalcResult, MetricCalculator
+from src.utils.activity_types import RUN_TYPES
 
 
 _HEAT_TABLE = ((100, 0.0), (110, 0.5), (120, 1.0), (130, 2.0), (140, 3.0), (150, 4.5), (160, 6.0), (170, 8.0), (180, 10.0))
@@ -48,7 +49,7 @@ class FEARPCalculator(MetricCalculator):
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
         act = ctx.activity
-        if act.get("activity_type") not in ("running", "trail_running", "treadmill"):
+        if act.get("activity_type") not in RUN_TYPES:
             return []
 
         pace = act.get("avg_pace_sec_km")

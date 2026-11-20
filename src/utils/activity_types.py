@@ -114,3 +114,8 @@ def family_clause(family: str, col: str = "activity_type") -> tuple[str, list]:
     if not raws:
         return "0", []
     return f"{col} IN ({','.join('?' * len(raws))})", list(raws)
+
+
+# 러닝 판정 SSOT(NRA-7/8): HIIT·미매핑은 러닝이 아니다. SQL 상수는 고정 리터럴이라 f-string 삽입이 안전하다.
+RUN_TYPES: tuple[str, ...] = family_raw_types("running")
+RUN_SQL = "(" + ",".join(f"'{t}'" for t in RUN_TYPES) + ")"

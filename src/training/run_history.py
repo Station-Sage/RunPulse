@@ -9,7 +9,7 @@ import sqlite3
 import threading
 from datetime import date
 
-RUN_TYPES = "('running','run','virtualrun','treadmill','highintensityintervaltraining')"
+from src.utils.activity_types import RUN_SQL as RUN_TYPES  # SSOT — HIIT 제외(NRA-8)
 
 _LOCAL = threading.local()      # sqlite3.Connection 은 weakref 불가 → 스레드당 최근 1개만 보관
 

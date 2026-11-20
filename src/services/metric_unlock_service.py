@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import date as _date
+from src.utils.activity_types import RUN_SQL
 
 REQUIRED = {
     "ctl": (42, "load_span"),
@@ -21,7 +22,7 @@ def get_unlock_progress(conn: sqlite3.Connection, today: str | None = None) -> d
     end = _date.fromisoformat(today) if today else _date.today()
     first = conn.execute(
         "SELECT MIN(substr(start_time, 1, 10)) FROM v_canonical_activities"
-        " WHERE activity_type LIKE '%running%'").fetchone()[0]
+        f" WHERE activity_type IN {RUN_SQL}").fetchone()[0]
     span = max(0, (end - _date.fromisoformat(first)).days + 1) if first else 0
     wellness = int(conn.execute(
         "SELECT COUNT(DISTINCT date) FROM daily_wellness WHERE date <= ?", (end.isoformat(),)).fetchone()[0] or 0)

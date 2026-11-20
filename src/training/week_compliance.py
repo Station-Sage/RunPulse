@@ -12,8 +12,8 @@ import sqlite3
 from datetime import date, timedelta
 
 from src.training.planned_query import get_planned_workouts
+from src.utils.activity_types import RUN_TYPES  # noqa: F401 — 재노출(plan_first_week)
 
-RUN_TYPES = ("running", "trail_running", "treadmill", "indoor_running")
 CROSS_TYPES = ("cycling", "virtual_cycling", "swimming", "lap_swimming", "rowing", "elliptical")
 QUALITY_TYPES = {"interval", "tempo", "marathon", "long_mp", "threshold"}
 EASY_TYPES = {"easy", "recovery", "long"}

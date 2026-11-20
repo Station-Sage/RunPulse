@@ -21,12 +21,10 @@ from datetime import date, timedelta
 from src.training.matcher_context import _classified_kinds, _get_condition_snapshot, _get_hr_zone_dist, canonical_activity_id
 from src.training.match_select import classify_outcome, is_done, pick_activity
 from src.training.outcome_store import update_outcome_v2
+from src.utils.activity_types import RUN_SQL
 
 log = logging.getLogger(__name__)
 
-_RUN_TYPES = (
-    "('running','run','virtualrun','treadmill','highintensityintervaltraining')"
-)
 
 
 # ── 활동 매칭 ─────────────────────────────────────────────────────────────
@@ -68,7 +66,7 @@ def match_week_activities(
         f"SELECT id, DATE(start_time) as d, distance_m / 1000.0 AS distance_km, avg_pace_sec_km, avg_hr, "
         f"duration_sec, activity_type "
         f"FROM v_canonical_activities "
-        f"WHERE activity_type IN {_RUN_TYPES} "
+        f"WHERE activity_type IN {RUN_SQL} "
         f"AND DATE(start_time) BETWEEN ? AND ?",
         (week_start.isoformat(), week_end.isoformat()),
     ).fetchall()
@@ -253,7 +251,7 @@ def get_actual_activities_for_week(
         f"SELECT id, DATE(start_time) as d, distance_m / 1000.0 AS distance_km, avg_pace_sec_km, avg_hr, "
         f"duration_sec, activity_type "
         f"FROM v_canonical_activities "
-        f"WHERE activity_type IN {_RUN_TYPES} "
+        f"WHERE activity_type IN {RUN_SQL} "
         f"AND DATE(start_time) BETWEEN ? AND ? "
         f"ORDER BY start_time",
         (week_start.isoformat(), week_end.isoformat()),

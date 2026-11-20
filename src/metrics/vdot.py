@@ -7,6 +7,7 @@ from __future__ import annotations
 import math
 
 from src.metrics.base import CalcContext, CalcResult, MetricCalculator
+from src.utils.activity_types import RUN_TYPES
 
 
 class VDOTCalculator(MetricCalculator):
@@ -34,7 +35,7 @@ class VDOTCalculator(MetricCalculator):
 
     def compute(self, ctx: CalcContext) -> list[CalcResult]:
         act = ctx.activity
-        if act.get("activity_type") not in ("running", "trail_running", "treadmill", "race"):
+        if act.get("activity_type") not in RUN_TYPES:
             return []
 
         distance_m = act.get("distance_m") or 0
