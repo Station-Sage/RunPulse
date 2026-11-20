@@ -894,7 +894,6 @@ Garmin/Strava/Intervals/Runalyze
 | 메트릭 | 제공자 |
 |--------|--------|
 | `runpulse_vdot` | runpulse:formula_v1 |
-| `vdot_adj` | runpulse:formula_v1 |
 
 ### 훈련 트렌드 (`training_trend`)
 

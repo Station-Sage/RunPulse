@@ -159,6 +159,19 @@ def test_planner_paces_use_profile_threshold(conn):
     cfg = {"profile": {"overrides": {"threshold_pace": 280}, "source_choice": {"threshold_pace": "manual"}}}
     assert get_paces_from_vdot(None, cfg, conn)["T"] == 280
     assert get_paces_from_vdot(None, {}, conn)["T"] == 300
-    conn.execute("INSERT INTO metric_store VALUES ('vdot','daily','2026-10-01',50,'runpulse:formula_v1',1)")
+    conn.execute("INSERT INTO metric_store VALUES ('race_pred_vdot','daily','2026-10-01',50,'runpulse:formula_v1',1)")
     cfg = {"profile": {"source_choice": {"threshold_pace": "self"}}}
     assert ps.effective_value(cfg, "threshold_pace", conn) != 300
+
+
+def test_vdot_slug_reads_race_pred_vdot():
+    from src.services import recompute_service as rs
+
+    assert ("vdot", "race_pred_vdot", "VDOT", "") in rs.TRACKED
+
+
+def test_vdot_group_has_no_deprecated_vdot_adj():
+    from src.utils import metric_groups as mg
+
+    names = [m[0] if isinstance(m, (tuple, list)) else m for m in mg.SEMANTIC_GROUPS["vdot"]["members"]]
+    assert "vdot_adj" not in names

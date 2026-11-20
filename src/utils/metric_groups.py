@@ -109,7 +109,6 @@ SEMANTIC_GROUPS: dict[str, dict] = {
         "display_name": "VDOT",
         "members": [
             ("runpulse_vdot", "runpulse:formula_v1"),
-            ("vdot_adj", "runpulse:formula_v1"),
         ],
         "primary_strategy": "prefer_runpulse",
     },

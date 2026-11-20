@@ -1,5 +1,6 @@
 # DONE — 완료된 버그
 
+- **[VDOT-NAMES]** 재계산 비교표·프로필 자가추정이 없는 `vdot` 를 조회하던 결함 — 대표 VDOT = 일별 `race_pred_vdot` 로 결정(사용자 위임, ADR-061). `TRACKED`·`profile_service` 이름 교정, `vdot` 그룹에서 폐기된 `vdot_adj` 제거, 사전·설명 갱신(2026-11-20).
 - **[TEST-PLAN-CREATION-DATE]** `test_created_plan_follows_periodization_and_ends_on_race` 주 수 불일치 — 실행 날짜 의존(하드코딩 날짜) 테스트였고 S4-93(2026-11-12)에서 원인 수정, 전체 스위트 통과로 해소.
 - **[BUG-DASHBOARD-INCLUDE-WEEKLY]** `views_dashboard.py` `run_for_date(include_weekly=False)` 잘못된 파라미터 제거 → `run_for_date(conn, today)`.
 - **[BUG-WORKOUT-TYPE-COLUMN]** 앱 AI 코치 컨텍스트가 `workout_type_classified`를 `numeric_value`에서 읽어 항상 비던 버그 — `text_value`로 수정(`chat_context_builders.py` 2곳, `chat_context_rich.py` 3곳) + 회귀 테스트. 오토파일럿 P7-FIX-CHAT-WORKOUT-TYPE (2026-09-26).
@@ -9,4 +10,3 @@
 - **[SYNC-ERROR-SURFACE]** 외부 API 오류 표면화 — U15g(SyncSourceError·error_code·동기화 탭 표시)에 이어, 일반 예외로 끝난 배치도 전체 0건이면 job `failed`+분류 코드로 마감(`bg_sync._batch_error`). 일부 성공이면 `completed` 유지 (2026-10-07).
 - **[BUG-INDOOR-RUN-TYPE]** Garmin `indoor_running` 16건을 러닝으로 정규화(`_RUNNING_TYPES`, 2026-09-26) + 운영 DB 16건 `running` 정정 및 전 기간 `recompute_all` 완료(2026-10-10). 활동 632·645 등에 TRIMP·HRSS 생성 확인. 백업 `running.db.bak-20261009-pre-indoor`(커밋 금지).
 - **[GARMIN-TRAINING-STATUS-PARSER]** `training_status` 파서가 존재하지 않는 최상위 키를 읽던 결함 수정 — `mostRecentTrainingStatus.latestTrainingStatusData`의 primary 기기 레코드에서 읽고, 가민 자체 단위라 PMC 와 섞이지 않도록 `garmin_acute_load`/`garmin_chronic_load` 로 저장(2026-10-10). 과거 `training_status_day` payload 재파싱은 운영 DB 쓰기라 사용자 조치로 남김.
-- **[CRS-EVALUATE-MISSING]** `src.metrics.crs.evaluate(conn, target_date)` 복원(ADJ-22, 2026-10). 저장된 daily CRS(`is_primary=1`) 중 **정확히 그 날짜** 행만 읽는 읽기 전용 함수 — 행 없음·손상 JSON·유효하지 않은 level 은 `None`, DB 오류는 전파. `replanner`(오늘 기준)·`matcher_context` 호출부의 광범위 `except Exception` 제거. 재계획 CRS 경고(level≤1)·매처 `crs_at_session` 이 실제로 채워짐. 신선도(FRS-12·15~18 BOOST 보류)는 FRS 번들(S4) 범위로 남음.

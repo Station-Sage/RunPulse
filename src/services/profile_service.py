@@ -44,7 +44,7 @@ def _self_estimates(conn: sqlite3.Connection) -> dict[str, dict]:
         "ORDER BY date DESC LIMIT 30")]
     if rhrs:
         out["resting_hr"] = {"value": round(median(rhrs)), "basis": "wellness_30d_median", "at": None, "confidence": None}
-    v = _latest(conn, "vdot")
+    v = _latest(conn, "race_pred_vdot")   # 대표 VDOT = 일별 예측 결합 VDOT(ADR-061)
     if v and v[0] > 20:
         from src.utils.daniels_table import get_training_paces
         out["threshold_pace"] = {"value": int(get_training_paces(v[0])["T"]), "basis": "vdot", "at": v[1], "confidence": None}

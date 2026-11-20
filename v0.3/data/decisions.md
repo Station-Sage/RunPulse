@@ -516,3 +516,8 @@
 - 4단계(건달프 2종): `adjust(plan, ctx)` 훅이 엔진 주간 총량·러닝 요일을 유지한 채 요일 역할만 재배정(`methods/slots.py`). `gundalf_sub3`=화 400m·수 AR·토 하프 지속주/35km 교대(ISO 주 홀짝, 주간 50% 상한)·금 휴식, 테이퍼 무변경. `gundalf_10k_base`=화 5K·토 10K 기준 달리기, 최근 8주 결과로 목표 재계산(5K 성공 -5s/실패 +3s×남은km, 10K 성공 -3s(설계값)/실패 +2s×남은km, 10K ≥ 5K+5s). planner 가 ctx 에 conn 전달.
 - 5단계 전 구현(외부 방식 7종): threshold_vo2·threshold_tempo·hr_z2·marathon_specific·hansons·higdon_novice·first_run3. 같은 `adjust` 훅·`slots.build_week`(고정 거리 퀄리티 + share_out 분배, 롱런 상한·주간 50% 가드). 원전 미확인 수치는 §9 에 [?] 표기, `sources` 에 "일반 규칙으로 보완". first_run3 은 테이퍼에도 적용(러닝 3회 유지).
 - 설계: `v0.3/data/phase-7-ui-renewal/DESIGN-PLAN-METHODS.md`.
+
+## ADR-061: 대표 VDOT = 일별 `race_pred_vdot` (2026-11-20, BACKLOG VDOT-NAMES)
+- 사용자 위임(원칙·설계 기준 판단). 대표 VDOT 는 일별 `race_pred_vdot`(is_primary=1, 15℃ 등가 예측 결합값) — 플랜 페이스(`get_vdot_adj`)·프로필 자가추정·재계산 비교표가 같은 값을 본다.
+- `runpulse_vdot` 은 활동별 Daniels 표 값(세션 단위, 대표값 아님). `vdot` 그룹에서 폐기된 `vdot_adj` 제거.
+- `recompute_service.TRACKED` slug `vdot` 은 유지(UI 호환), metric_name 만 `race_pred_vdot` 로 교정. `profile_service._self_estimates` 도 동일.

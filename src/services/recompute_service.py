@@ -16,7 +16,7 @@ SERVICE = "recompute"
 SCOPES = ("90d", "all", "from")
 # (slug, metric_name, 한글 라벨, 단위)
 TRACKED = (
-    ("ctl", "ctl", "CTL", ""), ("tsb", "tsb", "TSB", ""), ("vdot", "vdot", "VDOT", ""),
+    ("ctl", "ctl", "CTL", ""), ("tsb", "tsb", "TSB", ""), ("vdot", "race_pred_vdot", "VDOT", ""),
     ("marathon", "race_pred_marathon_sec", "마라톤 예측", "sec"), ("utrs", "utrs", "UTRS", ""),
 )
 _AFFECTED = {
