@@ -141,7 +141,7 @@ def test_build_input_and_view_on_real_db(monkeypatch):
     conn.commit()
     inp = mr.build_input(conn, today)
     assert inp["goal"]["weeks_to_race"] == 12 and len(inp["history"]["weekly_km_26w"]) == mr.HISTORY_WEEKS
-    assert [c["id"] for c in inp["candidates"]] == ["balanced"]
+    assert [c["id"] for c in inp["candidates"]] == ["balanced", "gundalf_10k_base"]
     assert "health" not in json.dumps(inp)
     monkeypatch.setattr(mr, "_consent_ok", lambda c: False)
     v = mr.view(conn, today)

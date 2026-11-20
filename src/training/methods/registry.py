@@ -5,6 +5,8 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Callable
 
+from . import gundalf_10k_base, gundalf_sub3
+
 DEFAULT_METHOD = "balanced"
 
 
@@ -30,6 +32,26 @@ METHODS: dict[str, PlanMethod] = {
         pros=("부상 위험이 낮음", "검증된 기본 구성"), cons=("거리별 특이성은 보통",),
         target_runners="처음이거나 어떤 방식이 맞는지 모르는 러너",
         sources=("planner v2 (papers-based)",),
+    ),
+    "gundalf_sub3": PlanMethod(
+        id="gundalf_sub3", label="건달프 서브3",
+        summary="화 400m 인터벌·수 AR·토 하프 지속주/장거리 교대·금 휴식. 팀 DBS(A) 토요일 표와 같은 골격.",
+        distances=frozenset({"full"}), min_run_days=5,
+        pros=("마라톤 페이스 지속 능력 직접 훈련", "토요일 장거리 구성이 명확"),
+        cons=("주 80~110km 전제라 볼륨 낮으면 부담", "주 5일 이상 필요", "부상 위험 높음"),
+        target_runners="서브3 안팎을 노리는 주 5일 이상 고볼륨 러너",
+        sources=("건달프 서브3 훈련법", "Team DBS (A) 17주 표"),
+        adjust=gundalf_sub3.adjust,
+    ),
+    "gundalf_10k_base": PlanMethod(
+        id="gundalf_10k_base", label="건달프 10K 베이스",
+        summary="화 5K·토 10K 기준 달리기와 이지 조깅 중심. 지난주 결과로 다음 주 목표 페이스를 올리거나 내린다.",
+        distances=frozenset({"10k"}), min_run_days=4,
+        pros=("복잡한 인터벌 없이 꾸준한 향상", "결과에 따라 목표가 자동 조정"),
+        cons=("서브3:10보다 빠른 러너에겐 자극 부족", "기준 달리기 2회에 의존"),
+        target_runners="10K 기록을 꾸준히 줄이려는 서브3:10보다 느린 러너",
+        sources=("건달프 10K 베이스 블록",),
+        adjust=gundalf_10k_base.adjust,
     ),
 }
 

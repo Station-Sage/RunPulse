@@ -3445,6 +3445,10 @@
 
 - functions: test_plan_weeks_until_race_counts_both_ends, test_weeks_to_race_is_relative_to_as_of, test_phase_differs_by_week_and_race_week_is_built, test_apply_race_week_rests_after_race, test_create_plan_is_clamped_to_race_week, test_templates_are_capped_by_race_date, test_pick_activity_skips_claimed_and_incompatible, test_classify_outcome_prioritises_distance, test_matcher_does_not_steal_activity_claimed_by_external_plan, test_matcher_partial_run_is_linked_but_not_completed, test_continuous_plan_outcome_uses_duration, test_continuous_garmin_plan_is_not_marked_skipped_when_executed, test_rematch_resets_wrong_completion_and_replan_trims_after_race, test_taper_wins_over_recovery_week, test_plan_structure_for_each_workout_type, test_easy_run_too_fast_is_modified_not_on_target, test_matcher_rejects_hard_session_for_easy_plan_and_uses_set_analysis, test_adjustment_skips_day_already_executed, test_matcher_uses_accepted_adjustment_for_rest_and_distance_gate
 
+### `test_plan_methods_gundalf.py` (115줄) — 건달프 서브3 방식 adjust — 요일 역할·주간 총량·롱런 상한·테이너 무변경.
+
+- functions: test_registered_full_only_and_run_day_guard, test_weekday_roles_and_total_kept, test_saturday_alternates_by_week_parity, test_saturday_capped_at_half_of_week_when_low_volume, test_taper_unchanged_and_missing_run_day_dropped, test_10k_registered_and_guard, test_targets_initial_and_independent_success_failure, test_10k_never_faster_than_5k_plus_gap, test_10k_week_layout_and_long_cap
+
 ### `test_plan_methods_registry.py` (117줄) — 훈련 방식 레지스트리 + 스키마 v51 마이그레이션.
 
 - functions: test_v51_adds_columns_idempotent_and_backfills_default, test_v51_no_tables_is_noop, test_get_method_fallback, test_effective_method_reads_goal_and_tolerates_missing_column, test_candidates_guard_never_empty, alt_method, test_balanced_unchanged_and_hook_applies, test_replan_method_change_keeps_past_and_undo, test_replan_rejects_unknown_method_and_state
@@ -4206,7 +4210,7 @@
 - functions: run
 
 ---
-총 918개 파일
+총 919개 파일
 
 ## docstring 누락
 

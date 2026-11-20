@@ -227,5 +227,5 @@ def generate_weekly_plan(
         m = get_method(effective_method(conn, goal["id"], week_start))
         if m.adjust is not None:
             plan = m.adjust(plan, {"phase": phase, "dlabel": dlabel, "vdot": vdot, "week_start": week_start,
-                                   "total_km": total_km, "long_km": long_km, "n_avail": n_avail})
+                                   "total_km": total_km, "long_km": long_km, "n_avail": n_avail, "conn": conn})
     return finalize_week(apply_race_week(plan, race_date, goal_distance), run_weekdays=run_weekdays)
