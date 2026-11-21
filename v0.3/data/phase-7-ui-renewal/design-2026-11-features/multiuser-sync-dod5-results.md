@@ -92,3 +92,21 @@ tests/test_llm_budget_ux.py::test_coach_async_scopes_uid_from_db_path PASSED
 - [ ] check_docs 통과 (✓ 완료)
 - [ ] 운영 legacy 24h 관찰 (남음)
 - [ ] multi 모드 스모크 (남음)
+
+## 6. 대규모 데이터·LCP/CLS 추가 실측 (2026-11-21)
+
+- 환경: 운영 DB 를 sqlite backup 으로 복사한 사본(활동 1,481건), `serve_synth.py` 로 별도 포트 구동. 측정 스크립트 `scripts/synth_smoke/pw/perf_cwv.mjs`.
+- API(엔드포인트별 15회): p95 최대 332ms(`/api/v1/today/narrative`), `library/activities?page=1&per_page=40` 243ms, `/api/v1/today` 168ms, `coach/plan/active` 88ms, 나머지 ≤61ms. 5xx 0.
+- 모바일 에뮬레이션(360×720, 150ms 지연, 200KB/s, CPU 4×):
+
+| 화면 | LCP | CLS |
+|---|---|---|
+| today | 3488ms | ≤0.001 |
+| library | 2208ms | ≤0.001 |
+| library/activities | 548ms | ≤0.001 |
+| library/metrics | 2512ms | 0.108 |
+| coach | 2160ms | 0.046 |
+| coach/plan | 2324ms | ≤0.001 |
+
+- 결론: LCP 전 화면 ≤4s, API p95 기준 충족. CLS 는 metrics 0.108 이 "양호" 기준(0.1)을 소폭 초과 — 원인 미조사.
+- 브라우저 LLM 한도 UI 시나리오는 여전히 미수행.
