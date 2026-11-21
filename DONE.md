@@ -1,5 +1,6 @@
 # DONE — 완료된 버그
 
+- **[V2-AI-CLAUDE-QUEUE]** 호스트 워커 `claude -p` 영속 세션 큐(E1~E5) 완료(2026-11-21, E4-f 운영 확인 사용자 완료) — 코치·이행·내러티브·플랜 초안(opus)·오늘 상세 분석·지표 안내 사전 생성, AI 분석을 코치 스레드로 통합, `ai.fallback_order`. 설계 `v0.3/data/phase-7-ui-renewal/DESIGN-V2-AI-CLAUDE-QUEUE.md`.
 - **[AUDIT-SERVICE-LAYER]** 서비스 계층 감사·v1 퇴역 완료(2026-11-21 확인) — 0~3단계(S4-89~91)·4단계(S4-92 테스트 전용 함수, S4-98 `ai_parser`·`ai_schema`·`replanner`·`sync_cli`·`unified_view`, S4-99 `analyze.py`·analysis 퇴역, S4-97 `/connect/garmin*` 퇴역) 모두 반영. 운영 접근 로그에 퇴역 v1 URL 호출 0건. 유지: `plan.py` CLI.
 - **[V2-AUDIT-INDIV]** v2 점검 개별 버그 161건 처리 완료(2026-11-21, 추천안 일괄) — 배치 T·A·M·D·P·C·E·S 전부 처리. 의도적 미변경: S-18 start_time 형식 혼재(데이터 재작성 없이 읽기 시 환산 S-17 유지), E-20 초대 mailto(기본안 유지). 미검증: T-01 주간 스트립 시각 확인(플랜 있는 DB 필요) — 플랜 있는 화면 점검 때 함께 확인. 기록 `ux-review-2026-10/08-supplement.md`.
 - **[ADJUSTMENT-SOURCE-CRS-LABEL]** 조정 근거 복수 신호 확장 — v37(source 11종·signals_json)·`adjustment_signals`·`adjuster_v3`·빈도 롤백(ADJ-1~24, 커밋 20acc7e2·55529eb0·bcf50015)으로 이미 구현돼 있어 BACKLOG 항목만 정리(2026-11-20 확인).
@@ -9,4 +10,3 @@
 - **[BUG-DASHBOARD-INCLUDE-WEEKLY]** `views_dashboard.py` `run_for_date(include_weekly=False)` 잘못된 파라미터 제거 → `run_for_date(conn, today)`.
 - **[BUG-WORKOUT-TYPE-COLUMN]** 앱 AI 코치 컨텍스트가 `workout_type_classified`를 `numeric_value`에서 읽어 항상 비던 버그 — `text_value`로 수정(`chat_context_builders.py` 2곳, `chat_context_rich.py` 3곳) + 회귀 테스트. 오토파일럿 P7-FIX-CHAT-WORKOUT-TYPE (2026-09-26).
 - **[AI-CHAT-TOOL-PROMPT]** `_TOOL_SYSTEM_TEXT`에 누락된 `get_training_summary`·`get_activity_laps`·`compare_workout_sets` 추가 + 모든 도구 이름 포함 검증 테스트. 오토파일럿 P7-FIX-CHAT-TOOL-PROMPT (2026-09-26).
-- **[P7-PRED r4 예측 리뉴얼]** 유닛 30개 구현(클라우드 세션, PR #66) 후 로컬 리뷰 — 명세 대조 이탈 없음(72 타입 보완만 수용), 리뷰 중 결함 3건 교정: TIDS `log10(0)`(88), Garmin LT 이력 응답 형태·366일 창 제한(25), 실 DB 범위 테스트를 글리치 허용 비율 방식으로 변경. 풀 pytest 1928 통과.
