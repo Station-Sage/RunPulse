@@ -12,6 +12,7 @@ F = [{"perspective": "ux", "kind": "tap", "verdict": "real", "impact": "작음",
 @pytest.fixture(autouse=True)
 def _no_release(monkeypatch):
     monkeypatch.setattr(loop.release, "due", lambda *a, **k: False)
+    monkeypatch.setattr(loop.deploy, "run", lambda n: {"ran": False, "reason": "테스트"})
 
 
 def _backlog(tmp_path, stage="queued"):
@@ -125,3 +126,18 @@ def test_audit_phase_falls_back_to_normal_when_release_blocked(tmp_path, monkeyp
            "audit": lambda: {"ran": True, "outcome": "done", "confirmed": 0}}
     st = _st("audit")
     assert "감사 완료" in loop.step(st, path=_backlog(tmp_path), act=act)
+
+
+def test_round_end_deploys_when_units_done_and_reports_failure(tmp_path, monkeypatch):
+    sent = []
+    monkeypatch.setattr(loop.notify, "send", lambda t: sent.append(t) or True)
+    monkeypatch.setattr(loop.pacing, "check", lambda n: type("P", (), {"allowed": True, "reason": ""})())
+    calls = []
+    ok = lambda n: calls.append(n) or {"ran": True, "outcome": "done", "commits": 2, "reason": "빌드 성공"}
+    st = _st("develop", units_done=2)
+    msg = loop.step(st, path=_backlog(tmp_path, "done"), act={"deploy": ok})
+    assert calls == [2] and "운영 반영 완료" in msg and st["units_done"] == 0 and st["phase"] == "audit"
+    bad = lambda n: {"ran": True, "outcome": "failed", "reason": "갈라짐"}
+    st = _st("develop", units_done=1)
+    msg = loop.step(st, path=_backlog(tmp_path, "done"), act={"deploy": bad})
+    assert "운영 반영 실패" in msg and st["phase"] == "audit" and "사람 확인" in sent[-1]

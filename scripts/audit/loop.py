@@ -8,7 +8,7 @@
   develop: run_unit.run_once 1건 → review 면 test, blocked 면 알리고 다음 항목
   test   : 브라우저 스윕(안쪽 루프) 통과 → done, 실패 → queued(버그수정 재개발), 상한 초과 → blocked
 정지 조건: 같은 단계 연속 실패 FAIL_LIMIT, 항목당 테스트 재시도 FIX_LIMIT, 라운드당 단위 UNIT_CAP, 단계 직전 pacing.
-열린 단위가 없으면 라운드가 끝나고 다음 감사(audit)로 돌아간다 — 고정 최소 간격(90분)은 없고 라운드 종료 즉시 시작(pacing 만 게이트). 이 프로세스는 대화 세션에 쓸 수 없어 알림은 텔레그램이다.
+열린 단위가 없으면(또는 단위 상한) 라운드가 끝나며 통과 단위가 있으면 운영 반영(deploy.py) 후 다음 감사(audit)로 돌아간다 — 고정 최소 간격(90분)은 없고 라운드 종료 즉시 시작(pacing 만 게이트). 이 프로세스는 대화 세션에 쓸 수 없어 알림은 텔레그램이다.
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ import json
 import time
 from pathlib import Path
 
-from scripts.audit import agents, cycle, inventory, progress, release, triage
+from scripts.audit import agents, cycle, deploy, inventory, progress, release, triage
 from scripts.autopilot import notify, pacing, queue, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
@@ -96,6 +96,18 @@ def _fail(st: dict, why: str) -> str:
     return why
 
 
+def _end_round(st: dict, ship, msg: str) -> str:
+    """안쪽 루프 종료 — 통과 단위가 있으면 운영 반영(실패해도 루프는 계속, 알림만) 후 다음 감사로."""
+    r = ship(st["units_done"])
+    if r.get("ran"):
+        ok = r.get("outcome") == "done"
+        notify.send(f"[루프] 운영 반영 {'완료' if ok else '실패'} — {r.get('commits', 0)}커밋, {r.get('reason')}"
+                    + ("" if ok else " (자동 반영 안 됨, 사람 확인 필요)"))
+        msg += f" · 운영 반영 {'완료' if ok else '실패'}({r.get('reason')})"
+    st.update(phase="audit", round=st["round"] + 1, units_done=0, unit=None)
+    return msg
+
+
 def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: bool = False) -> str:
     """상태를 한 칸 진행하고 한 줄 결과를 반환한다. act 로 외부 동작(감사·개발·스윕)을 주입할 수 있다."""
     path = path or settings.QUEUE_PATH
@@ -103,6 +115,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     audit = act.get("audit", lambda: cycle.run_cycle(force=True))  # pacing 은 위에서 검사, 90분 간격은 단독 cycle 용(여기선 라운드 종료가 곧 간격)
     rel = act.get("release", release.run)
     develop = act.get("develop", _develop)
+    ship = act.get("deploy", deploy.run)
     sweep = act.get("sweep", lambda: cycle.browser_sweep())
     ph = st["phase"]
     progress.mark(f"[루프] 라운드 {st['round']} · {ph} 단계 시작")
@@ -139,11 +152,9 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         return "새 후보 없음 — 라운드 종료"
     if ph in ("await", "develop"):
         if queue.next_runnable(queue.parse(path)) is None:
-            st.update(phase="audit", round=st["round"] + 1, units_done=0, unit=None)
-            return "열린 단위 없음 — 다음 감사로"
+            return _end_round(st, ship, "열린 단위 없음 — 다음 감사로")
         if st["units_done"] >= UNIT_CAP:
-            st.update(phase="audit", round=st["round"] + 1, units_done=0, unit=None)
-            return f"라운드 단위 상한 {UNIT_CAP} — 다음 감사로"
+            return _end_round(st, ship, f"라운드 단위 상한 {UNIT_CAP} — 다음 감사로")
         nxt = queue.next_runnable(queue.parse(path))
         rc = develop()
         stage = _stage(path, nxt.item_id)
