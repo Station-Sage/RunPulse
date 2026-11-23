@@ -1,0 +1,9 @@
+[Unit]
+Description=RunPulse 루프 감시 30분 주기
+
+[Timer]
+OnBootSec=10min
+OnUnitInactiveSec=30min
+
+[Install]
+WantedBy=timers.target

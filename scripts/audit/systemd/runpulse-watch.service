@@ -1,0 +1,7 @@
+[Unit]
+Description=RunPulse 루프 감시 1회
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ubuntu/projects/RunPulse-p0
+ExecStart=/home/ubuntu/projects/RunPulse-p0/.venv/bin/python -m scripts.audit.watch
