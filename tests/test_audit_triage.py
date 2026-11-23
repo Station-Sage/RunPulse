@@ -107,3 +107,10 @@ def test_open_unit_covering_kind_suppresses_duplicate_finding(tmp_path, monkeypa
 
 def test_design_prompt_asks_for_root_cause_and_recommendation():
     assert "근본원인" in triage._DESIGN and "추천안 하나" in triage._DESIGN
+
+
+def test_normalize_verify_runs_frontend_tests_from_frontend_dir():
+    assert triage.normalize_verify("node --test frontend/tests/a.test.mjs frontend/tests/b.test.mjs") == \
+        "cd frontend && node --test tests/a.test.mjs tests/b.test.mjs"
+    assert triage.normalize_verify("python3 -m pytest tests/ -q") == "python3 -m pytest tests/ -q"
+    assert triage.parse_design('{"verify":["node --test frontend/tests/x.test.mjs"]}')["verify"] == ["cd frontend && node --test tests/x.test.mjs"]
