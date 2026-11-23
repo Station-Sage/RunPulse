@@ -31,6 +31,11 @@ def _quiet(monkeypatch):
     monkeypatch.setattr(loop.pacing, "check", lambda n: type("P", (), {"allowed": True, "reason": ""})())
 
 
+@pytest.fixture(autouse=True)
+def _isolate_stop_flag(tmp_path, monkeypatch):
+    monkeypatch.setattr(loop, "STOP_FLAG", lambda: tmp_path / "no_stop_flag")
+
+
 def test_state_roundtrip_and_default(tmp_path):
     p = tmp_path / "s.json"
     assert loop.load_state(p)["phase"] == "audit"
