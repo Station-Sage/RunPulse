@@ -46,8 +46,8 @@ def read_all() -> list[dict]:
     return out
 
 
-def since(hours: float, entries: list[dict] | None = None) -> list[dict]:
-    cutoff = time.time() - hours * 3600
+def since(hours: float, entries: list[dict] | None = None, now: float | None = None) -> list[dict]:
+    cutoff = (now or time.time()) - hours * 3600
     entries = read_all() if entries is None else entries
     return [e for e in entries if e.get("ts", 0) >= cutoff]
 
