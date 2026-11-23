@@ -24,6 +24,8 @@
 	import { isAiWorded } from '$lib/aiWording';
 	import { milestoneIconName } from '$lib/milestoneIcon';
 	import { adaptEvidence, type DrillTarget } from '$lib/evidence';
+	import ErrorState from '$lib/components/ErrorState.svelte';
+	import { classifyFailure, type Failure } from '$lib/loadFailure';
 	import type { NarrativeResponse } from '$lib/types';
 
 	let { data }: { data: MonthPageData } = $props();
@@ -34,7 +36,7 @@
 
 	let narrativeData = $state<NarrativeResponse | null>(null);
 	let loading = $state(true);
-	let error = $state<string | null>(null);
+	let failure = $state<Failure | null>(null);
 
 	let drillStack = $state<DrillTarget[]>([]);
 	const drillTop = $derived(drillStack.length > 0 ? drillStack[drillStack.length - 1] : null);
@@ -96,12 +98,12 @@
 
 	async function loadNarrative() {
 		loading = true;
-		error = null;
+		failure = null;
 		narrativeData = null;
 		try {
 			narrativeData = await getTodayNarrative(displayYear, displayMonth);
 		} catch (e) {
-			error = e instanceof Error ? e.message : '내러티브를 불러올 수 없습니다.';
+			failure = classifyFailure(e);
 		} finally {
 			loading = false;
 		}
@@ -170,8 +172,10 @@
 
 	{#if loading}
 		<p class="text-sm text-fg-muted">불러오는 중…</p>
-	{:else if error || !narrativeData}
-		<p class="text-sm text-fg-secondary">내러티브를 불러올 수 없습니다.</p>
+	{:else if failure}
+		<ErrorState {failure} onRetry={loadNarrative} />
+	{:else if !narrativeData}
+		<p class="text-sm text-fg-muted" data-testid="month-empty">이 달의 기록이 아직 없어요</p>
 	{:else}
 		<!-- 내러티브 텍스트 -->
 		{#each narrativeData.text.split('\n').filter((p) => p.trim()) as paragraph}
