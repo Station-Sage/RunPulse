@@ -131,12 +131,19 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--viewports", default="390,desktop")
     ap.add_argument("--limit", type=int, default=None, help="화면 수 제한(시험용)")
     args = ap.parse_args(argv)
+    total, failed = 0, []
     with tempfile.TemporaryDirectory() as d:
         for state in args.states.split(","):
             for vp in args.viewports.split(","):
-                res = sweep_state(state, vp, Path(d), args.limit)
+                try:
+                    res = sweep_state(state, vp, Path(d), args.limit)
+                except Exception as e:   # 한 조합 실패가 나머지 스윕을 막지 않는다
+                    failed.append(f"{state}|{vp}: {e}"[:200])
+                    continue
+                total += len(res)
                 print(state, vp, apply_results(res))
-    return 0
+    print(json.dumps({"swept": total, "failed": failed}, ensure_ascii=False))
+    return 1 if failed or total == 0 else 0
 
 
 if __name__ == "__main__":

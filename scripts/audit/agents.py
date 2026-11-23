@@ -49,15 +49,19 @@ def parse_findings(text: str) -> list[dict]:
     return [d for d in data if isinstance(d, dict) and d.get("verdict") in ok and d.get("kind")]
 
 
-def run_perspective(name: str, groups: dict[str, list[dict]]) -> list[dict]:
-    cmd = ["claude", "-p", build_prompt(name, groups), "--model", AUDIT_MODELS[name], "--output-format", "json",
+def ask(prompt: str, model: str) -> str:
+    """읽기 전용(도구 없음) claude -p 1회 호출 — 실패·타임아웃은 빈 문자열."""
+    cmd = ["claude", "-p", prompt, "--model", model, "--output-format", "json",
            "--no-session-persistence", "--allowed-tools", "", "--permission-mode", "default"]
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT_SEC, stdin=subprocess.DEVNULL)
-        body = json.loads(r.stdout).get("result", "") if r.returncode == 0 else ""
+        return json.loads(r.stdout).get("result", "") if r.returncode == 0 else ""
     except (subprocess.TimeoutExpired, json.JSONDecodeError):
-        body = ""
-    return [{**f, "perspective": name} for f in parse_findings(body)]
+        return ""
+
+
+def run_perspective(name: str, groups: dict[str, list[dict]]) -> list[dict]:
+    return [{**f, "perspective": name} for f in parse_findings(ask(build_prompt(name, groups), AUDIT_MODELS[name]))]
 
 
 def backlog_lines(findings: list[dict]) -> list[str]:
@@ -75,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--perspectives", default=",".join(AUDIT_MODELS))
     ap.add_argument("--dry-run", action="store_true", help="프롬프트만 출력")
     ap.add_argument("--backlog", action="store_true", help="real 판정을 BACKLOG 후보 문구로 출력")
+    ap.add_argument("--review", action="store_true", help="real 후보를 다른 모델이 독립 검토(P5)")
     args = ap.parse_args(argv)
     groups = group_issues(inventory.load_ledger())
     names = [n for n in args.perspectives.split(",") if n in AUDIT_MODELS]
@@ -83,10 +88,16 @@ def main(argv: list[str] | None = None) -> int:
             print(f"=== {n} ({AUDIT_MODELS[n]}) ===\n{build_prompt(n, groups)}")
         return 0
     findings = [f for n in names for f in run_perspective(n, groups)]
+    if args.review:
+        from scripts.audit import review
+        findings = review.review(findings, groups)
     FINDINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
     FINDINGS_PATH.write_text(json.dumps(findings, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"findings {len(findings)} → {FINDINGS_PATH}")
     if args.backlog:
+        if args.review:
+            from scripts.audit import review
+            findings = review.confirmed(findings)
         print("\n".join(backlog_lines(findings)))
     return 0
 

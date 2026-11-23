@@ -1,0 +1,10 @@
+[Unit]
+Description=RunPulse 감사 사이클 주기 호출 (실행 여부는 pacing 게이트·최소 간격이 결정)
+
+[Timer]
+OnBootSec=15min
+OnUnitInactiveSec=100min
+Persistent=false
+
+[Install]
+WantedBy=timers.target

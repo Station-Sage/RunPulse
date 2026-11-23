@@ -1,0 +1,8 @@
+[Unit]
+Description=RunPulse 감사 사이클 1회 (브라우저 스윕 필수 + 관점 감사 + 독립 검토)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ubuntu/projects/RunPulse-p0
+ExecStart=/home/ubuntu/projects/RunPulse-p0/.venv/bin/python -m scripts.audit.cycle
+TimeoutStartSec=3h

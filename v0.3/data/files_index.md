@@ -2390,6 +2390,10 @@
 
 - functions: test_frontend_screens_handles_dynamic_and_groups, test_real_routes_nonempty, test_cells_and_coverage, test_record_rejects_bad_status, test_diff_detects_added_removed, test_committed_inventory_matches_live
 
+### `test_audit_p5.py` (68줄) — P5 — 필수 브라우저 스윕 가드, 독립 검토 게이트, 사이클 요약.
+
+- functions: test_browser_sweep_fails_on_zero_cells, test_browser_sweep_ok_and_no_node, test_cycle_skips_agents_when_sweep_fails, test_cycle_runs_agents_with_review_after_sweep, test_parse_verdict_and_confirmed, test_review_uses_different_model_and_skips_non_real
+
 ### `test_audit_sweep.py` (36줄) — 감사 스윕 러너의 순수 로직(경로 치환·원장 기록) 테스트.
 
 - functions: test_resolve_path_uses_db_sample_and_defaults, test_apply_results_records_ledger, test_stop_kills_stubborn_process
@@ -4247,7 +4251,7 @@
 - functions: run
 
 ---
-총 928개 파일
+총 929개 파일
 
 ## docstring 누락
 
