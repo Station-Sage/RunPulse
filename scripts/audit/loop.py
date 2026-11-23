@@ -18,7 +18,7 @@ import json
 import time
 from pathlib import Path
 
-from scripts.audit import agents, cycle, inventory, release, triage
+from scripts.audit import agents, cycle, inventory, progress, release, triage
 from scripts.autopilot import notify, pacing, queue, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
@@ -105,6 +105,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     develop = act.get("develop", _develop)
     sweep = act.get("sweep", lambda: cycle.browser_sweep())
     ph = st["phase"]
+    progress.mark(f"[루프] 라운드 {st['round']} · {ph} 단계 시작")
     if ph == "halted":
         return "정지 상태 — 원인 확인 후 --reset"
     if not force:
@@ -195,7 +196,7 @@ def main(argv: list[str] | None = None) -> int:
     if a.reset:
         st.update(phase="audit", fails=0, unit=None)
     if not a.status:
-        print(step(st, force=a.force))
+        progress.mark("[루프] 결과: " + step(st, force=a.force))
     save_state(st)
     print(json.dumps(st, ensure_ascii=False))
     return 0

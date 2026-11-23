@@ -14,7 +14,7 @@ import subprocess
 import sys
 import time
 
-from scripts.audit import agents, inventory, procs
+from scripts.audit import agents, inventory, procs, progress
 from scripts.autopilot import notify, pacing, settings
 
 CYCLES_PATH = inventory.LEDGER_PATH.parent / "cycles.jsonl"
@@ -55,8 +55,10 @@ def run_cycle(force: bool = False, perspectives: str | None = None, limit: int |
     entry["reaped"] = procs.reap()
     entry["ran"] = True
     entry["release"] = release
+    progress.mark(f"[감사] 브라우저 스윕 시작{' (릴리스·Opus)' if release else ''}")
     swept, err = browser_sweep(limit)
     entry["swept"] = swept
+    progress.mark(f"[감사] 스윕 종료 — {swept}셀" + (f" 실패: {err}" if err else ""))
     if err:
         entry.update(outcome="sweep_failed", reason=err, elapsed_sec=round(time.time() - now))
         _log(entry)
@@ -65,6 +67,7 @@ def run_cycle(force: bool = False, perspectives: str | None = None, limit: int |
     groups = agents.group_issues(inventory.load_ledger())
     args = ["--backlog", "--review"] + (["--perspectives", perspectives] if perspectives else []) + (["--release"] if release else [])
     entry["issue_kinds"] = {k: len(v) for k, v in groups.items()}
+    progress.mark(f"[감사] 관점 감사 + 독립 검토 시작 — 이슈 유형 {len(groups)}종")
     entry["agents_rc"] = agents.main(args)
     entry["outcome"] = "done"
     entry["findings"] = _count_findings()

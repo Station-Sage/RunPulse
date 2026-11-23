@@ -2370,9 +2370,9 @@
 
 - functions: test_group_issues_and_prompt, test_parse_findings_graceful, test_backlog_lines_dedup_and_models
 
-### `test_audit_budget_release.py` (62줄) — Opus 게이트(budget)·ask 폴백·버전업 감사(release)·비전 프롬프트.
+### `test_audit_budget_release.py` (49줄) — Opus 게이트(budget)·ask 폴백·버전업 감사(release)·비전 프롬프트.
 
-- functions: test_budget_call_cap, test_ask_falls_back_to_sonnet_when_opus_blocked, test_ask_records_opus_call, test_prompts_carry_vision_and_release_models_are_opus, test_release_due_and_run, test_release_failed_audit_not_marked
+- functions: test_budget_utilization_caps, test_ask_falls_back_to_sonnet_when_opus_blocked, test_prompts_carry_vision_and_release_models_are_opus, test_release_due_and_run, test_release_failed_audit_not_marked
 
 ### `test_audit_bundle_c.py` (115줄) — V2-AUDIT-INDIV 묶음 C(지표·웰니스·이야기·소스 비교) 서버 측 수정 테스트.
 
@@ -2394,13 +2394,17 @@
 
 - functions: test_frontend_screens_handles_dynamic_and_groups, test_real_routes_nonempty, test_cells_and_coverage, test_record_rejects_bad_status, test_diff_detects_added_removed, test_committed_inventory_matches_live
 
-### `test_audit_loop.py` (118줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
+### `test_audit_loop.py` (127줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
 
-- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_await_does_not_develop_until_approved, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked
+- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_user_blocked_items_do_not_stall_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked
 
 ### `test_audit_p5.py` (68줄) — P5 — 필수 브라우저 스윕 가드, 독립 검토 게이트, 사이클 요약.
 
 - functions: test_browser_sweep_fails_on_zero_cells, test_browser_sweep_ok_and_no_node, test_cycle_skips_agents_when_sweep_fails, test_cycle_runs_agents_with_review_after_sweep, test_parse_verdict_and_confirmed, test_review_uses_different_model_and_skips_non_real
+
+### `test_audit_progress.py` (10줄)
+
+- functions: test_mark_appends_line_and_returns_it
 
 ### `test_audit_sweep.py` (36줄) — 감사 스윕 러너의 순수 로직(경로 치환·원장 기록) 테스트.
 
@@ -4263,12 +4267,13 @@
 - functions: run
 
 ---
-총 932개 파일
+총 933개 파일
 
 ## docstring 누락
 
 - `tests/__init__.py`
 - `tests/test_audit_agents.py`
+- `tests/test_audit_progress.py`
 - `tests/test_chat_engine_cq.py`
 - `tests/test_coach_cq_context.py`
 - `tests/test_constraints.py`

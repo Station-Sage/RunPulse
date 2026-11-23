@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 from scripts.audit import inventory
-from scripts.audit import budget
+from scripts.audit import budget, progress
 from scripts.audit.perspectives import AUDIT_MODELS, RELEASE_MODELS, build_prompt
 
 FINDINGS_PATH = inventory.LEDGER_PATH.parent / "audit_findings.json"
@@ -65,7 +65,10 @@ def ask(prompt: str, model: str) -> str:
 
 def run_perspective(name: str, groups: dict[str, list[dict]], models: dict[str, str] | None = None) -> list[dict]:
     models = models or AUDIT_MODELS
-    return [{**f, "perspective": name} for f in parse_findings(ask(build_prompt(name, groups), models[name]))]
+    progress.mark(f"[감사] 관점 {name} 시작 ({models[name]})")
+    out = [{**f, "perspective": name} for f in parse_findings(ask(build_prompt(name, groups), models[name]))]
+    progress.mark(f"[감사] 관점 {name} 완료 — 후보 {len(out)}건")
+    return out
 
 
 def backlog_lines(findings: list[dict]) -> list[str]:
@@ -95,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
     findings = [f for n in names for f in run_perspective(n, groups, RELEASE_MODELS if args.release else None)]
     if args.review:
         from scripts.audit import review
+        progress.mark(f"[감사] 독립 검토 시작 — {len(findings)}건")
         findings = review.review(findings, groups)
     FINDINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
     FINDINGS_PATH.write_text(json.dumps(findings, ensure_ascii=False, indent=1), encoding="utf-8")
