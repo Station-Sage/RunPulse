@@ -107,7 +107,16 @@ def STOP_FLAG() -> Path:
     return settings.STATE_DIR / "stop_after_round"
 
 
-def _end_round(st: dict, ship, msg: str) -> str:
+def _only_user_blocked_left(path: Path) -> bool:
+    items = queue.parse(path)
+    return queue.next_runnable(items) is None and any(it.stage == "blocked" for it in items)
+
+
+def _should_stop(path: Path) -> bool:
+    return STOP_FLAG().exists() or _only_user_blocked_left(path)
+
+
+def _end_round(st: dict, ship, msg: str, path: Path | None = None) -> str:
     """안쪽 루프 종료 — 통과 단위가 있으면 운영 반영(실패해도 루프는 계속, 알림만) 후 다음 감사로."""
     r = ship(st["units_done"])
     if r.get("ran"):
@@ -116,12 +125,11 @@ def _end_round(st: dict, ship, msg: str) -> str:
                     + ("" if ok else " (자동 반영 안 됨, 사람 확인 필요)"))
         msg += f" · 운영 반영 {'완료' if ok else '실패'}({r.get('reason')})"
     st.update(phase="audit", round=st["round"] + 1, units_done=0, unit=None)
-    flag = STOP_FLAG()
-    if flag.exists():
-        flag.unlink()
+    if _should_stop(path or settings.QUEUE_PATH):
+        STOP_FLAG().unlink(missing_ok=True)
         st["phase"] = "stopped"
-        notify.send(f"[루프] 라운드 {st['round'] - 1} 종료 — 단일 라운드 지정에 따라 새 감사 없이 정지")
-        msg += " · 단일 라운드 종료(정지)"
+        notify.send(f"[루프] 라운드 {st['round'] - 1} 종료 — 남은 개발 항목이 없거나 사용자 결정 대기뿐이라 새 감사 없이 정지(재개: --reset)")
+        msg += " · 정지(사용자 결정 대기 또는 단일 라운드)"
     return msg
 
 
@@ -168,15 +176,15 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
                         " 승인은 BACKLOG stage 를 queued 로.")
             return f"설계 {len(new)}건 — 자체 승인 {len(auto)}, 사용자 결정 {len(user)}"
         st["round"] += 1
-        if STOP_FLAG().exists():
-            STOP_FLAG().unlink()
+        if _should_stop(path):
+            STOP_FLAG().unlink(missing_ok=True)
             st["phase"] = "stopped"
             notify.send("[루프] 새 후보 없음 — 단일 라운드 지정에 따라 정지")
             return "새 후보 없음 — 단일 라운드 종료(정지)"
         return "새 후보 없음 — 라운드 종료"
     if ph in ("await", "develop"):
         if queue.next_runnable(queue.parse(path)) is None:
-            return _end_round(st, ship, "열린 단위 없음 — 다음 감사로")
+            return _end_round(st, ship, "열린 단위 없음 — 다음 감사로", path)
         if st["units_done"] >= UNIT_CAP:
             return _end_round(st, ship, f"라운드 단위 상한 {UNIT_CAP} — 다음 감사로")
         nxt = queue.next_runnable(queue.parse(path))

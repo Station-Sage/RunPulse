@@ -181,3 +181,14 @@ def test_stop_flag_honored_when_no_new_candidates(tmp_path, monkeypatch):
     st = _st("design")
     assert "정지" in loop.step(st, path=_backlog(tmp_path, "done"))
     assert st["phase"] == "stopped" and not flag.exists()
+
+
+def test_only_user_blocked_left_stops_without_flag(tmp_path, monkeypatch):
+    monkeypatch.setattr(loop.notify, "send", lambda t: True)
+    monkeypatch.setattr(loop.pacing, "check", lambda n: type("P", (), {"allowed": True, "reason": ""})())
+    st = _st("develop")
+    loop.step(st, path=_backlog(tmp_path, "blocked"), act={"deploy": lambda n: {"ran": False}})
+    assert st["phase"] == "stopped"
+    st = _st("develop")
+    loop.step(st, path=_backlog(tmp_path, "done"), act={"deploy": lambda n: {"ran": False}})
+    assert st["phase"] == "audit"
