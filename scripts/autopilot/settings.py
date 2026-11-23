@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -55,7 +56,17 @@ CIRCUIT_BREAKER_FAILS = 2       # 연속 실패 시 정지
 # ── 격리 실행 위치 ──
 BASE_BRANCH = "renew/data-architecture"   # 매 실행 전 이 브랜치 최신으로 rebase
 AUTOPILOT_BRANCH = "autopilot/phase7"
-WORKTREE_DIR = PROJECT_ROOT / ".claude" / "worktrees" / "autopilot-phase7"
+def _main_checkout() -> Path:
+    """메인 체크아웃(git common dir 의 부모) — 어느 워크트리에서 실행해도 autopilot 워크트리는 한 곳에 둔다."""
+    try:
+        r = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], cwd=PROJECT_ROOT,
+                           capture_output=True, text=True, timeout=10, check=True)
+        return Path(r.stdout.strip()).parent
+    except (OSError, subprocess.SubprocessError):
+        return PROJECT_ROOT
+
+
+WORKTREE_DIR = _main_checkout() / ".claude" / "worktrees" / "autopilot-phase7"
 STATE_DIR = PROJECT_ROOT / ".claude" / "autopilot"   # untracked (gitignore)
 LEDGER_PATH = STATE_DIR / "ledger.jsonl"
 LOCK_PATH = STATE_DIR / "run.lock"
