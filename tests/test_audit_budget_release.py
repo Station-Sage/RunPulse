@@ -5,32 +5,19 @@ from scripts.audit import agents, budget, perspectives, release, review, triage
 from scripts.audit.vision import VISION
 
 
-def test_budget_call_cap(tmp_path):
-    p = tmp_path / "c.json"
-    assert budget.opus_allowed(entries=[], path=p)[0]
-    for _ in range(budget.OPUS_CALLS_PER_WEEK):
-        budget.record_call(path=p)
-    ok, why = budget.opus_allowed(entries=[], path=p)
-    assert not ok and "소진" in why
+def test_budget_utilization_caps():
+    now = 1_000_000.0
+    ob = lambda w, u: {"rate_limit": {"rateLimitType": w, "utilization": u, "resetsAt": now + 3600}}  # noqa: E731
+    assert budget.opus_allowed(now, entries=[])[0]
+    assert not budget.opus_allowed(now, entries=[ob("seven_day", 0.6)])[0]
 
 
 def test_ask_falls_back_to_sonnet_when_opus_blocked(monkeypatch):
-    used = []
     monkeypatch.setattr(agents.budget, "opus_allowed", lambda *a, **k: (False, "x"))
-    monkeypatch.setattr(agents.budget, "record_call", lambda *a, **k: used.append("rec"))
     seen = []
     monkeypatch.setattr(agents.subprocess, "run", lambda cmd, **k: seen.append(cmd) or type("R", (), {"returncode": 0, "stdout": "ok"})())
     agents.ask("p", "opus")
-    assert "sonnet" in seen[0] and "opus" not in seen[0] and not used
-
-
-def test_ask_records_opus_call(monkeypatch):
-    used = []
-    monkeypatch.setattr(agents.budget, "opus_allowed", lambda *a, **k: (True, ""))
-    monkeypatch.setattr(agents.budget, "record_call", lambda *a, **k: used.append(1))
-    monkeypatch.setattr(agents.subprocess, "run", lambda cmd, **k: type("R", (), {"returncode": 0, "stdout": "ok"})())
-    agents.ask("p", "opus")
-    assert used == [1]
+    assert "sonnet" in seen[0] and "opus" not in seen[0]
 
 
 def test_prompts_carry_vision_and_release_models_are_opus():

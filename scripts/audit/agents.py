@@ -54,8 +54,6 @@ def ask(prompt: str, model: str) -> str:
     """읽기 전용(도구 없음) claude -p 1회 호출 — 실패·타임아웃은 빈 문자열. opus 는 budget 허용 시만(아니면 sonnet)."""
     if model == "opus":
         model = "opus" if budget.opus_allowed()[0] else "sonnet"
-        if model == "opus":
-            budget.record_call()
     cmd = ["claude", "-p", prompt, "--model", model, "--output-format", "json",
            "--no-session-persistence", "--allowed-tools", "", "--permission-mode", "default"]
     try:
