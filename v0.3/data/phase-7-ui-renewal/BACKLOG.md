@@ -3777,3 +3777,6 @@ DONE으로 옮긴다.
 - U9 B-6 `basis_change` ◇ 이벤트 완료(2026-10-05): /trend events + TrendChart 마커·판독. Phase 3 잔여 없음.
 
 - U15 완료(2026-10-05, 운영 반영 완료): 활동 피드백(RPE·통증·메모)·동기화 원장 v2·오류 상태 error-auth/access/upstream·사용자 설정 API. 다음은 U16(계획 엔진 v2) — U16a~i 완료, 다음 U16j.
+
+- **[AUD-4eee31]** (B안 적용: 오류 분기 고정 h1) [ux] no-h1: The error views of coach/[threadId], data/sources/[provider] and library/[id]/laps have no h1. Screen-reader users get no page title, and sighted users get no context for which page failed. → Keep the page h1 (or a fallback title) in the error branch. Render the error message below it, with a retry button and a link back to the parent list.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/routes/coach/[threadId]/+page.svelte", "frontend/src/routes/data/sources/[provider]/+page.svelte", "frontend/src/routes/library/[id]/laps/+page.svelte", "frontend/tests/errorBranchH1.test.mjs"], "verify": "cd frontend && node --test tests/errorBranchH1.test.mjs"} -->

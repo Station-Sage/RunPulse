@@ -23,6 +23,9 @@
 
 <PageHead title="랩" heading={null} />
 
+{#if data.laps.length === 0}
+	<h1 class="sr-only">랩</h1>
+{/if}
 {#if data.failure && data.laps.length === 0}
 	<LoadFailure failure={data.failure} retryKey={`app:activity:${data.activityId}`} backHref="{base}/library/{data.activityId}" backLabel="‹ 활동으로 돌아가기" notFoundText="활동을 찾을 수 없어요" />
 {:else if data.laps.length === 0}

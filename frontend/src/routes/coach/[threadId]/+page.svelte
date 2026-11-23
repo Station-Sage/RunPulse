@@ -193,6 +193,7 @@
 
 {#if !thread}
 	<div class="flex flex-col items-center gap-3 px-4 py-20 text-center">
+		<h1 class="sr-only">Coach 대화</h1>
 		<p class="text-lg text-fg-secondary">대화를 찾을 수 없습니다</p>
 		{#if data.errorMessage}
 			<p class="text-xs text-fg-muted">{data.errorMessage}</p>

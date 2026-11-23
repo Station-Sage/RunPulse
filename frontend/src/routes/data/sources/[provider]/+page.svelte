@@ -48,6 +48,9 @@
 <div class="flex flex-col gap-5 px-4 py-4">
 	<a href="{base}{backTarget('/data/sources/x', page.url.searchParams.get('from'), base, '/data/sources')}" class="text-xs text-fg-muted hover:text-fg-secondary" data-testid="source-back">‹ {page.url.searchParams.get('from') ? '이전' : '소스'}</a>
 
+	{#if data.notFound || !d || !line}
+		<h1 class="sr-only">{syncProviderName(data.provider)}</h1>
+	{/if}
 	{#if data.notFound}
 		<EmptyState title="알 수 없는 소스예요" actionLabel="소스 목록" actionHref="{base}/data/sources" />
 	{:else if !d || !line}
