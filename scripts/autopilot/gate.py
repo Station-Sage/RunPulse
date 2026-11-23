@@ -1,7 +1,7 @@
 """실행 전 안전 게이트 — 하나라도 막히면 실행하지 않는다(fail-closed).
 
 run_unit.py의 진입점에서만 호출한다. 확인 순서(싼 것 → 비싼 것):
-STOP/PAUSE 파일 → 시간대 → 최근 활동(유휴) → 연속 실패(circuit breaker) → 예산(원장).
+STOP/PAUSE 파일 → 시간대 → 최근 활동(유휴) → 연속 실패(circuit breaker) → 페이싱(실제 rate_limit 관측, pacing.py).
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import ledger, settings
+from . import ledger, pacing, settings
 
 _KST = ZoneInfo("Asia/Seoul")
 # 이 프로젝트의 실제(대화형) 세션 transcript 위치. autopilot 자신의 claude -p 실행은
@@ -78,7 +78,7 @@ def _check_circuit_breaker() -> GateResult | None:
 
 
 def _check_budget() -> GateResult | None:
-    decision = ledger.check_budget()
+    decision = pacing.check()
     if not decision.allowed:
         return GateResult(False, decision.reason)
     return None

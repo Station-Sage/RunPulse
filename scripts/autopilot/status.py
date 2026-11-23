@@ -7,7 +7,7 @@ from __future__ import annotations
 import time
 from datetime import datetime, timezone
 
-from . import gate, ledger, queue, settings, worktree
+from . import gate, ledger, pacing, queue, settings, worktree
 
 
 def _fmt_ts(ts: float) -> str:
@@ -21,6 +21,12 @@ def main() -> None:
     week = ledger.total_cost(ledger.since(24 * 7, entries))
     print(f"오늘   ${today:.2f} / ${settings.DAILY_MAX_USD:.2f}")
     print(f"이번주 ${week:.2f} / ${settings.WEEKLY_MAX_USD:.2f}")
+    now = time.time()
+    for rtype, label in (("five_hour", "5시간 세션"), ("seven_day", "주간")):
+        o = pacing.latest_observation(entries, rtype, now)
+        extra = f" (리셋 {_fmt_ts(o['resetsAt'])})" if o else ""
+        print(f"{label} 사용률 {o.get('utilization', 0):.0%}{extra}" if o else f"{label} 사용률 관측 없음(대체 한도 적용)")
+    print(f"주간 균등 목표 {pacing.weekly_target(now):.0%}  (목 22:00 KST 리셋)")
     print(f"실행당 상한 ${settings.PER_RUN_MAX_USD:.2f} (총 실행 {len(entries)}건)")
 
     print("\n=== 최근 실행 5건 ===")

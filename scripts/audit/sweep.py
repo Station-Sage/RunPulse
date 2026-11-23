@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from scripts.audit import inventory  # noqa: E402
+from scripts.audit import inventory, procs  # noqa: E402
 
 VIEWPORT_SIZE = {"390": {"width": 390, "height": 844}, "desktop": {"width": 1280, "height": 800}}
 _PARAM = re.compile(r"\[(\w+)\]")
@@ -74,6 +74,7 @@ def _free_port() -> int:
 
 def stop(proc: subprocess.Popen) -> None:
     """서버 종료 — terminate 후 5초 안에 안 죽으면 kill, 반드시 wait 로 회수."""
+    procs.unregister(proc.pid)
     if proc.poll() is None:
         proc.terminate()
         try:
@@ -87,6 +88,7 @@ def _serve(db: Path) -> tuple[subprocess.Popen, str]:
     port = _free_port()
     proc = subprocess.Popen([sys.executable, str(ROOT / "scripts/synth_smoke/serve_synth.py"), str(db), str(port)],
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    procs.register(proc.pid, "serve_synth.py")
     base = f"http://127.0.0.1:{port}"
     for _ in range(60):
         try:

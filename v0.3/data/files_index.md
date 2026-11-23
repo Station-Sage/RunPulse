@@ -2374,6 +2374,10 @@
 
 - functions: test_display_meta_formats_m10_m21, test_josa_m31, test_merge_reasons_groups_same_input_m31, test_explain_avg7d_uses_seven_days_m11, test_compare_basis_partial_month_m14, test_story_future_month_has_no_next_and_no_compare_m16, test_risk_peak_carries_grade_m15, test_headline_adds_cirs_caveat_m17, test_signed_pct_and_lagging_m19, test_second_batch_descriptions_m07, test_trend_reports_source_m08
 
+### `test_audit_cycle.py` (42줄) — audit.procs 레지스트리와 audit.cycle 스킵 판정.
+
+- functions: test_reap_kills_only_registered_matching, test_cycle_skips_below_min_interval, test_cycle_logs_skip_when_pacing_blocks
+
 ### `test_audit_e_plan_coach.py` (175줄) — V2-AUDIT-INDIV 묶음 E — 훈련 계획·코치 서버 쪽(P-10·P-12·P-16, C-05·C-11·C-14·C-16).
 
 - functions: test_acwr_range_comes_from_metric_definition, test_ctl_scale_uses_one_year_peak, test_finish_goal_templates_skip_achievability, test_finish_goal_summary_mentions_short_period, test_target_pace_error, app, test_templates_and_create_reject_impossible_target, test_save_empty_session_note_deletes, test_derive_title_strips_markdown_and_spaces, test_coach_service_reexports_title, test_list_threads_tie_breaks_by_id, test_list_threads_page_has_more, test_threads_route_paging_and_validation, test_unexpected_exception_is_not_network, test_run_chain_marks_unexpected
@@ -2410,9 +2414,13 @@
 
 - functions: test_trigger_uses_reloaded_config, test_trigger_falls_back_on_reload_failure, test_trigger_skips_when_all_disabled, test_restart_keeps_thread_running
 
-### `test_autopilot_gate.py` (32줄) — tests/test_autopilot_gate.py — gate.check()의 ignore_budget 옵션 테스트.
+### `test_autopilot_gate.py` (33줄) — tests/test_autopilot_gate.py — gate.check()의 ignore_budget 옵션 테스트.
 
 - functions: test_ignore_budget_false_blocks_when_over_daily_cap, test_ignore_budget_true_skips_budget_check
+
+### `test_autopilot_pacing.py` (56줄) — pacing.py — 세션·주간 rate_limit 기반 페이싱 판정.
+
+- functions: test_week_start_is_previous_thursday_22, test_session_ceiling_blocks_until_reset, test_expired_observation_ignored, test_weekly_pace_target_grows_with_time, test_weekly_over_target_blocks_and_under_allows, test_fallback_when_no_session_observation
 
 ### `test_autopilot_queue.py` (124줄) — scripts/autopilot/queue.py 테스트 — kind="code" 확장(scope/verify) 라운드트립 중심.
 
@@ -4239,7 +4247,7 @@
 - functions: run
 
 ---
-총 926개 파일
+총 928개 파일
 
 ## docstring 누락
 

@@ -17,11 +17,12 @@ def _write_ledger(tmp_path, monkeypatch, entries: list[dict]) -> None:
 
 def test_ignore_budget_false_blocks_when_over_daily_cap(tmp_path, monkeypatch):
     _write_ledger(tmp_path, monkeypatch, [
-        {"ts": time.time(), "cost_usd": settings.DAILY_MAX_USD + 1, "outcome": "success"},
+        {"ts": time.time(), "cost_usd": 1, "outcome": "success",
+         "rate_limit": {"rateLimitType": "five_hour", "utilization": 0.95, "resetsAt": time.time() + 3600}},
     ])
     result = gate.check(ignore_night_window=True, ignore_idle=True, ignore_budget=False)
     assert result.allowed is False
-    assert "예산" in result.reason
+    assert "세션" in result.reason
 
 
 def test_ignore_budget_true_skips_budget_check(tmp_path, monkeypatch):

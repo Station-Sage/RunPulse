@@ -1,8 +1,8 @@
 """자율 실행 비용 원장 — claude -p 실행마다 비용/토큰을 append-only로 기록하고 예산을 판정한다.
 
-Claude Code는 5시간 창의 rate_limit_event는 내보내지만(utilization은 정상 상태에서
-비어있음) 주간(seven_day) 상태는 관측되지 않는다(2026-09-22 스파이크 확인) — 그래서
-이 원장이 예산 판단의 유일한 근거다. 기록 위치는 untracked 런타임 상태
+각 항목의 rate_limit 필드에 실제 계정 사용률(five_hour/seven_day utilization·resetsAt)이 담긴다
+(2026-11 재확인 — 과거 '주간 관측 불가' 판단은 폐기). 실행 여부 판정은 pacing.py 가 이를 쓰고,
+USD 합계(check_budget)는 보조 지표다. 기록 위치는 untracked 런타임 상태
 (.claude/autopilot/ledger.jsonl) — 실행 이력이므로 git 추적 대상이 아니다.
 """
 from __future__ import annotations

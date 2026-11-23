@@ -29,6 +29,15 @@ PER_RUN_MAX_USD = 1.0          # --max-budget-usd (kind="docs")
 DAILY_MAX_USD = 20.0           # 하루 누적 상한 (ledger 기준, docs/code 공통)
 WEEKLY_MAX_USD = 30.0          # 주 누적 상한 (seven_day 사용률을 직접 관측할 수 없어 자체 집계)
 
+# ── 페이싱(pacing.py) — 실제 rate_limit 관측 기반. 게이트는 이것을 쓰고 위 USD 상한은 status 표시용 ──
+SESSION_CEILING = 0.8           # 5시간 세션 사용률이 이 이상이면 리셋까지 양보(사람 몫 20% 보존)
+WEEK_CEILING = 0.85             # 주간 사용률 절대 상한
+PACE_FLOOR = 0.15               # 주 시작 직후에도 허용하는 최소 목표선
+PACE_SLACK = 0.70               # 목표선 = FLOOR + 경과비율 × SLACK (주말에 FLOOR+SLACK=0.85)
+FALLBACK_SESSION_MAX_RUNS = 6   # 5시간 관측이 없을 때 창 내 최대 실행 수
+FALLBACK_SESSION_MAX_USD = 8.0
+CYCLE_MIN_INTERVAL_MIN = 90     # 감사 사이클 최소 간격(분) — 페이싱 통과해도 이보다 자주 돌지 않는다
+
 # kind="code" 전용 — 파일 읽기/쓰기 외에 테스트·빌드 왕복이 들어가 turn 수가 늘어난다.
 # 실측치 없음(2026-09-22 최초 도입) — 관측 모드 원칙(위 주석)과 동일하게, 첫 실측 후
 # ledger 근거로 재조정한다. docs 대비 2~3배로 보수적으로 잡음.
