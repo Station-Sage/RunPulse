@@ -1,11 +1,19 @@
 """P6 — 판단 등급 분류(위험 가드·교차 검토·결정 보고서)와 loop 설계 단계 연동."""
 import json
 
+import pytest
+
 from scripts.audit import loop, triage
 
 F = {"perspective": "ux", "kind": "tap", "verdict": "real", "impact": "버튼 작음", "fix": "키움"}
 DESIGN = {"grade": "auto", "summary": "패딩 확대", "scope": ["frontend/src/a.svelte"], "verify": ["true"],
           "options": [{"name": "패딩", "pros": "간단", "cons": "없음"}], "recommendation": "패딩", "reason": "국소"}
+
+
+@pytest.fixture(autouse=True)
+def _no_opus(monkeypatch):
+    from scripts.audit import budget
+    monkeypatch.setattr(budget, "opus_allowed", lambda *a, **k: (False, "test"))
 
 
 def _ask(design, verdict="agree"):
@@ -63,3 +71,25 @@ def test_design_phase_splits_auto_and_user(tmp_path, monkeypatch):
     its = queue.parse(p)
     assert [i.stage for i in its] == ["queued", "blocked"] and its[0].scope == DESIGN["scope"]
     assert st["phase"] == "develop" and "판단" in (tmp_path / "pending.md").read_text(encoding="utf-8")
+
+
+BIG = {**DESIGN, "scope": [f"frontend/src/lib/components/c{i}.svelte" for i in range(4)]}
+
+
+def test_is_large():
+    assert not triage.is_large(DESIGN)
+    assert triage.is_large(BIG)
+    assert triage.is_large({**DESIGN, "grade": "user"})
+    assert triage.is_large({**DESIGN, "scope": ["frontend/src/routes/a/x.svelte", "frontend/src/routes/b/y.svelte"]})
+
+
+def test_large_design_escalates_to_opus_with_sonnet_reviewer():
+    a = _ask(BIG)
+    d = triage.decide(F, ask_fn=a, opus_ok=lambda: True)
+    assert d["author"] == "opus" and a.calls == ["sonnet", "opus", "sonnet"]
+
+
+def test_large_design_stays_sonnet_when_opus_not_allowed():
+    a = _ask(BIG)
+    d = triage.decide(F, ask_fn=a, opus_ok=lambda: False)
+    assert d["author"] == "sonnet" and "opus" not in a.calls

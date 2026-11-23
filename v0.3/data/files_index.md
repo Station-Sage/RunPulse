@@ -2370,6 +2370,10 @@
 
 - functions: test_group_issues_and_prompt, test_parse_findings_graceful, test_backlog_lines_dedup_and_models
 
+### `test_audit_budget_release.py` (62줄) — Opus 게이트(budget)·ask 폴백·버전업 감사(release)·비전 프롬프트.
+
+- functions: test_budget_call_cap, test_ask_falls_back_to_sonnet_when_opus_blocked, test_ask_records_opus_call, test_prompts_carry_vision_and_release_models_are_opus, test_release_due_and_run, test_release_failed_audit_not_marked
+
 ### `test_audit_bundle_c.py` (115줄) — V2-AUDIT-INDIV 묶음 C(지표·웰니스·이야기·소스 비교) 서버 측 수정 테스트.
 
 - functions: test_display_meta_formats_m10_m21, test_josa_m31, test_merge_reasons_groups_same_input_m31, test_explain_avg7d_uses_seven_days_m11, test_compare_basis_partial_month_m14, test_story_future_month_has_no_next_and_no_compare_m16, test_risk_peak_carries_grade_m15, test_headline_adds_cirs_caveat_m17, test_signed_pct_and_lagging_m19, test_second_batch_descriptions_m07, test_trend_reports_source_m08
@@ -2390,9 +2394,9 @@
 
 - functions: test_frontend_screens_handles_dynamic_and_groups, test_real_routes_nonempty, test_cells_and_coverage, test_record_rejects_bad_status, test_diff_detects_added_removed, test_committed_inventory_matches_live
 
-### `test_audit_loop.py` (90줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
+### `test_audit_loop.py` (118줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
 
-- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_await_does_not_develop_until_approved, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block
+- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_await_does_not_develop_until_approved, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked
 
 ### `test_audit_p5.py` (68줄) — P5 — 필수 브라우저 스윕 가드, 독립 검토 게이트, 사이클 요약.
 
@@ -2402,9 +2406,9 @@
 
 - functions: test_resolve_path_uses_db_sample_and_defaults, test_apply_results_records_ledger, test_stop_kills_stubborn_process
 
-### `test_audit_triage.py` (65줄) — P6 — 판단 등급 분류(위험 가드·교차 검토·결정 보고서)와 loop 설계 단계 연동.
+### `test_audit_triage.py` (95줄) — P6 — 판단 등급 분류(위험 가드·교차 검토·결정 보고서)와 loop 설계 단계 연동.
 
-- functions: test_parse_design_and_check_conservative, test_risk_keyword_forces_user_without_calling_models, test_auto_requires_cross_review_with_other_model, test_disagree_or_bad_scope_or_missing_verify_is_user, test_report_has_options_and_reason, test_design_phase_splits_auto_and_user
+- functions: test_parse_design_and_check_conservative, test_risk_keyword_forces_user_without_calling_models, test_auto_requires_cross_review_with_other_model, test_disagree_or_bad_scope_or_missing_verify_is_user, test_report_has_options_and_reason, test_design_phase_splits_auto_and_user, test_is_large, test_large_design_escalates_to_opus_with_sonnet_reviewer, test_large_design_stays_sonnet_when_opus_not_allowed
 
 ### `test_auth_cf.py` (241줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
@@ -4259,7 +4263,7 @@
 - functions: run
 
 ---
-총 931개 파일
+총 932개 파일
 
 ## docstring 누락
 

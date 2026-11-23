@@ -3,6 +3,8 @@
 자체 승인(auto)은 네 조건을 모두 만족할 때만: ① 위험 키워드 없음 ② 설계 작성 모델이 auto 등급·범위(scope)·검증(verify)을 제시
 ③ scope 가 ALLOWED_SCOPE 안 ④ 작성자와 다른 모델의 교차 검토가 agree. 하나라도 어긋나면 user — 설명·선택지 장단점·추천안을
 담은 결정 보고서를 만들어 사람에게 넘긴다. 응답 파싱 실패는 항상 user 쪽으로 기운다(보수적).
+큰 설계(is_large: 파일 4개 이상·공용 컴포넌트·여러 라우트·설계자가 user 로 분류)는 Sonnet 초안을 Opus 가 다시 설계한다
+(budget.opus_allowed 한도 안에서만 — 아니면 Sonnet 그대로). 교차 검토는 항상 작성자와 다른 모델이다.
 """
 from __future__ import annotations
 
@@ -10,17 +12,21 @@ import json
 import re
 
 from scripts.audit.agents import ask
-from scripts.audit.review import pick_model
+from scripts.audit.vision import VISION
 
 ALLOWED_SCOPE = ("frontend/src/", "tests/")
 RISK = re.compile(r"스키마|schema|DDL|migrat|마이그레이션|삭제|delete|drop|auth|인증|권한|결제|config|ADR|decisions|"
                   r"알고리즘|calculator|메트릭 정의|예측|개인정보|배포|deploy|API 계약|breaking", re.I)
-_DESIGN = """너는 설계자다. 아래 결함의 수정안을 설계하라. 코드는 쓰지 말고 JSON 한 개만 출력.
+_DESIGN = VISION + """
+
+너는 설계자다. 아래 결함의 수정안을 설계하라. 코드는 쓰지 말고 JSON 한 개만 출력.
 결함: kind=%s / 영향: %s / 제안: %s
 {"grade":"auto|user","summary":"한 줄 설계","scope":["수정할 파일의 순수 경로만(설명·괄호 금지)"],"verify":["검증 셸 커맨드"],
  "options":[{"name":"","pros":"","cons":""}],"recommendation":"추천 선택지와 이유","reason":"등급 근거"}
 auto = 되돌리기 쉽고 국소적이며 제품 의미·데이터·권한을 바꾸지 않는 수정. 조금이라도 설계 판단이 갈리면 user."""
-_CHECK = """너는 독립 교차 검토자다. 아래 설계를 자체 승인(사람 확인 없이 개발)해도 되는지 반증을 시도하라.
+_CHECK = VISION + """
+
+너는 독립 교차 검토자다. 아래 설계를 자체 승인(사람 확인 없이 개발)해도 되는지 반증을 시도하라.
 결함: %s
 설계: %s
 범위: %s / 검증: %s
@@ -52,14 +58,33 @@ def parse_check(text: str) -> dict:
             "reason": str(d.get("reason", ""))[:200]}
 
 
-def decide(finding: dict, author: str = "sonnet", ask_fn=ask) -> dict:
-    """후보 1건의 등급 결정 — {tier: auto|user, why, design, check}. 외부 호출은 ask_fn 으로 주입."""
+def is_large(design: dict) -> bool:
+    sc = design["scope"]
+    routes = {s.split("/")[3] for s in sc if s.startswith("frontend/src/routes/") and s.count("/") >= 4}
+    return (len(sc) >= 4 or any("lib/components" in s for s in sc) or len(routes) >= 2
+            or design["grade"] == "user")
+
+
+def _reviewer(author: str) -> str:
+    return "haiku" if author == "sonnet" else "sonnet"
+
+
+def decide(finding: dict, author: str = "sonnet", ask_fn=ask, opus_ok=None) -> dict:
+    """후보 1건의 등급 결정 — {tier: auto|user, why, design, check, author}. 외부 호출은 ask_fn, Opus 허용은 opus_ok 로 주입."""
+    if opus_ok is None:
+        from scripts.audit import budget
+        opus_ok = lambda: budget.opus_allowed()[0]  # noqa: E731
     what = f"{finding['kind']} / {finding.get('impact', '')} / {finding.get('fix', '')}"
     if RISK.search(what):
         return {"tier": "user", "why": "위험 키워드(스키마·권한·알고리즘 등) — 사람 결정 필요", "design": {}, "check": {}}
-    design = parse_design(ask_fn(_DESIGN % (finding["kind"], finding.get("impact", ""), finding.get("fix", "")), author))
-    reviewer = "haiku" if author == "sonnet" else "sonnet"
-    out = {"tier": "user", "why": "", "design": design, "check": {}}
+    prompt = _DESIGN % (finding["kind"], finding.get("impact", ""), finding.get("fix", ""))
+    design = parse_design(ask_fn(prompt, author))
+    if author != "opus" and is_large(design) and opus_ok():
+        big = parse_design(ask_fn(prompt, "opus"))
+        if big["summary"]:
+            author, design = "opus", big
+    reviewer = _reviewer(author)
+    out = {"tier": "user", "why": "", "design": design, "check": {}, "author": author}
     if design["grade"] != "auto":
         out["why"] = f"설계자가 사용자 결정으로 분류: {design['reason']}"
     elif not design["scope"] or not design["verify"]:

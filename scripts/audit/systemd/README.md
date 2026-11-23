@@ -1,4 +1,4 @@
-# 감사 사이클 스케줄 (미설치 상태로 제공)
+# 감사 사이클 스케줄 (설치됨: runpulse-audit.timer — 부팅 15분 후, 이후 직전 실행 종료 100분 뒤마다)
 
     mkdir -p ~/.config/systemd/user && cp scripts/audit/systemd/runpulse-audit.* ~/.config/systemd/user/
     systemctl --user daemon-reload && systemctl --user enable --now runpulse-audit.timer

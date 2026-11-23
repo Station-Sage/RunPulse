@@ -44,7 +44,7 @@ def skip_reason(now: float, force: bool = False) -> str | None:
     return f"최소 간격 미달 — {wait / 60:.0f}분 후" if wait > 0 else None
 
 
-def run_cycle(force: bool = False, perspectives: str | None = None, limit: int | None = None) -> dict:
+def run_cycle(force: bool = False, perspectives: str | None = None, limit: int | None = None, release: bool = False) -> dict:
     now = time.time()
     entry: dict = {"ts": now, "ran": False}
     reason = skip_reason(now, force)
@@ -54,6 +54,7 @@ def run_cycle(force: bool = False, perspectives: str | None = None, limit: int |
         return entry
     entry["reaped"] = procs.reap()
     entry["ran"] = True
+    entry["release"] = release
     swept, err = browser_sweep(limit)
     entry["swept"] = swept
     if err:
@@ -62,7 +63,7 @@ def run_cycle(force: bool = False, perspectives: str | None = None, limit: int |
         notify.send(f"[감사] 브라우저 스윕 실패 — 에이전트 감사 생략: {err}")
         return entry
     groups = agents.group_issues(inventory.load_ledger())
-    args = ["--backlog", "--review"] + (["--perspectives", perspectives] if perspectives else [])
+    args = ["--backlog", "--review"] + (["--perspectives", perspectives] if perspectives else []) + (["--release"] if release else [])
     entry["issue_kinds"] = {k: len(v) for k, v in groups.items()}
     entry["agents_rc"] = agents.main(args)
     entry["outcome"] = "done"

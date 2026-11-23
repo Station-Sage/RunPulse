@@ -2,7 +2,7 @@
 
 사용: .venv/bin/python -m scripts.audit.loop [--force] [--reset] [--status]
 호출 1회 = 단계 1개만 수행하고 끝난다. 위치는 cycle_state.json + BACKLOG 항목 stage 로 복원하므로 언제 끊겨도 이어진다.
-  audit  : cycle.run_cycle (스윕 필수 + 관점 감사 + 독립 검토) → design
+  audit  : 버전이 바뀌었으면 release.run(Opus 전 관점, 한도 내) 먼저, 아니면 cycle.run_cycle (스윕 필수 + 관점 감사 + 독립 검토) → design
   design : 확인된 후보를 BACKLOG 에 stage=blocked 항목으로만 제안 → await (사람이 승인할 때까지 개발 금지)
   await  : 사람이 BACKLOG 에서 stage 를 queued 로 바꾸면(승인 태그, scope/verify 채움) develop 으로
   develop: run_unit.run_once 1건 → review 면 test, blocked 면 알리고 다음 항목
@@ -18,7 +18,7 @@ import json
 import time
 from pathlib import Path
 
-from scripts.audit import agents, cycle, inventory, triage
+from scripts.audit import agents, cycle, inventory, release, triage
 from scripts.autopilot import notify, pacing, queue, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
@@ -101,6 +101,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     path = path or settings.QUEUE_PATH
     act = act or {}
     audit = act.get("audit", lambda: cycle.run_cycle(force=force))
+    rel = act.get("release", release.run)
     develop = act.get("develop", _develop)
     sweep = act.get("sweep", lambda: cycle.browser_sweep())
     ph = st["phase"]
@@ -111,7 +112,11 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         if not p.allowed:
             return f"pacing 대기: {p.reason}"
     if ph == "audit":
-        e = audit()
+        e = rel() if release.due() else {"ran": False}
+        if e.get("ran"):
+            notify.send(f"[루프] 버전 {release.version()} 릴리스 감사(Opus) 실행")
+        else:
+            e = audit()
         if not e.get("ran"):
             return f"감사 생략: {e.get('reason')}"
         if e.get("outcome") != "done":

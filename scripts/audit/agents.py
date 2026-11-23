@@ -13,7 +13,8 @@ import sys
 from pathlib import Path
 
 from scripts.audit import inventory
-from scripts.audit.perspectives import AUDIT_MODELS, build_prompt
+from scripts.audit import budget
+from scripts.audit.perspectives import AUDIT_MODELS, RELEASE_MODELS, build_prompt
 
 FINDINGS_PATH = inventory.LEDGER_PATH.parent / "audit_findings.json"
 TIMEOUT_SEC = 300
@@ -50,7 +51,11 @@ def parse_findings(text: str) -> list[dict]:
 
 
 def ask(prompt: str, model: str) -> str:
-    """읽기 전용(도구 없음) claude -p 1회 호출 — 실패·타임아웃은 빈 문자열."""
+    """읽기 전용(도구 없음) claude -p 1회 호출 — 실패·타임아웃은 빈 문자열. opus 는 budget 허용 시만(아니면 sonnet)."""
+    if model == "opus":
+        model = "opus" if budget.opus_allowed()[0] else "sonnet"
+        if model == "opus":
+            budget.record_call()
     cmd = ["claude", "-p", prompt, "--model", model, "--output-format", "json",
            "--no-session-persistence", "--allowed-tools", "", "--permission-mode", "default"]
     try:
@@ -60,8 +65,9 @@ def ask(prompt: str, model: str) -> str:
         return ""
 
 
-def run_perspective(name: str, groups: dict[str, list[dict]]) -> list[dict]:
-    return [{**f, "perspective": name} for f in parse_findings(ask(build_prompt(name, groups), AUDIT_MODELS[name]))]
+def run_perspective(name: str, groups: dict[str, list[dict]], models: dict[str, str] | None = None) -> list[dict]:
+    models = models or AUDIT_MODELS
+    return [{**f, "perspective": name} for f in parse_findings(ask(build_prompt(name, groups), models[name]))]
 
 
 def backlog_lines(findings: list[dict]) -> list[str]:
@@ -80,6 +86,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--dry-run", action="store_true", help="프롬프트만 출력")
     ap.add_argument("--backlog", action="store_true", help="real 판정을 BACKLOG 후보 문구로 출력")
     ap.add_argument("--review", action="store_true", help="real 후보를 다른 모델이 독립 검토(P5)")
+    ap.add_argument("--release", action="store_true", help="버전업 감사 — 전 관점 Opus(budget 한도 안에서)")
     args = ap.parse_args(argv)
     groups = group_issues(inventory.load_ledger())
     names = [n for n in args.perspectives.split(",") if n in AUDIT_MODELS]
@@ -87,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
         for n in names:
             print(f"=== {n} ({AUDIT_MODELS[n]}) ===\n{build_prompt(n, groups)}")
         return 0
-    findings = [f for n in names for f in run_perspective(n, groups)]
+    findings = [f for n in names for f in run_perspective(n, groups, RELEASE_MODELS if args.release else None)]
     if args.review:
         from scripts.audit import review
         findings = review.review(findings, groups)

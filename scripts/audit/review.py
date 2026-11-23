@@ -9,9 +9,12 @@ import json
 import re
 
 from scripts.audit.agents import ask
+from scripts.audit.vision import VISION
 
 REVIEW_MODEL = "sonnet"     # 작성자가 sonnet 이면 haiku 로 교차 — pick_model 참고
-_PROMPT = """너는 감사 결과의 독립 검토자다. 아래 후보가 실제 결함인지 반증을 시도하라(합성 DB·테스트 환경 산물이면 reject).
+_PROMPT = VISION + """
+
+너는 감사 결과의 독립 검토자다. 아래 후보가 실제 결함인지 반증을 시도하라(합성 DB·테스트 환경 산물이면 reject).
 후보: kind=%s / 영향: %s / 제안: %s
 증거(셀: 노트):
 %s

@@ -66,7 +66,7 @@ RUN_LOG_DIR = STATE_DIR / "runs"
 QUEUE_PATH = PROJECT_ROOT / "v0.3" / "data" / "phase-7-ui-renewal" / "BACKLOG.md"
 DECISIONS_PATH = PROJECT_ROOT / "v0.3" / "data" / "phase-7-ui-renewal" / "DECISIONS.md"
 
-MODEL = "sonnet"                # 자동 실행은 Sonnet만 (Opus 주간 버킷은 수동 작업용 보호)
+MODEL = "sonnet"                # 자동 실행은 Sonnet 기본 — Opus 는 큰 설계·릴리스 감사에만 scripts/audit/budget.py 한도 안에서
 RUN_TIMEOUT_SEC = 20 * 60
 
 ALLOWED_TOOLS = [
