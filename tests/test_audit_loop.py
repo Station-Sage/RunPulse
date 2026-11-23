@@ -141,3 +141,13 @@ def test_round_end_deploys_when_units_done_and_reports_failure(tmp_path, monkeyp
     st = _st("develop", units_done=1)
     msg = loop.step(st, path=_backlog(tmp_path, "done"), act={"deploy": bad})
     assert "운영 반영 실패" in msg and st["phase"] == "audit" and "사람 확인" in sent[-1]
+
+
+def test_run_until_stop_chains_steps_and_stops_on_skip(tmp_path, monkeypatch):
+    monkeypatch.setattr(loop.notify, "send", lambda t: True)
+    monkeypatch.setattr(loop, "agents_confirmed", lambda: [])
+    monkeypatch.setattr(loop.pacing, "check", lambda n: type("P", (), {"allowed": True, "reason": ""})())
+    act = {"audit": lambda: {"ran": False, "reason": "간격"}}
+    out = loop.run_until_stop(_st("design"), path=_backlog(tmp_path, "done"), act=act)
+    assert len(out) == 2 and out[0].startswith("새 후보 없음") and out[1].startswith("감사 생략")
+    assert len(loop.run_until_stop(_st("design"), path=_backlog(tmp_path, "done"), act=act, once=True)) == 1

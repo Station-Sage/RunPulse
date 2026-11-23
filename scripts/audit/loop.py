@@ -1,7 +1,7 @@
 """중첩 반복 오케스트레이터 — {감사 → 설계 → (개발 → 테스트(브라우저 스윕) → 버그수정) ↺ 작은 반복} ↺ 전체 반복.
 
 사용: .venv/bin/python -m scripts.audit.loop [--force] [--reset] [--status]
-호출 1회 = 단계 1개만 수행하고 끝난다. 위치는 cycle_state.json + BACKLOG 항목 stage 로 복원하므로 언제 끊겨도 이어진다.
+호출 1회 = 멈춤 조건(pacing 대기·정지·감사 생략·MAX_STEPS)까지 단계를 연속 수행(--once 면 1개). 위치는 cycle_state.json + BACKLOG 항목 stage 로 복원하므로 언제 끊겨도 이어진다.
   audit  : 버전이 바뀌었으면 release.run(Opus 전 관점, 한도 내) 먼저, 아니면 cycle.run_cycle (스윕 필수 + 관점 감사 + 독립 검토) → design
   design : 확인된 후보를 BACKLOG 에 제안(자체 승인=queued, 사용자 결정=blocked) → develop
   (사용자 결정 대기 항목은 막지 않는다 — blocked 로 남기고 나머지 단위는 계속 진행. 사람이 stage 를 queued 로 바꾸면 다음 develop 에서 집어간다)
@@ -22,7 +22,7 @@ from scripts.audit import agents, cycle, deploy, inventory, progress, release, t
 from scripts.autopilot import notify, pacing, queue, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
-FAIL_LIMIT, FIX_LIMIT, UNIT_CAP = 3, 2, 5
+FAIL_LIMIT, FIX_LIMIT, UNIT_CAP, MAX_STEPS = 3, 2, 5, 40
 _INIT = {"phase": "audit", "unit": None, "round": 1, "units_done": 0, "fails": 0, "fix": {}}
 
 
@@ -197,17 +197,35 @@ def _develop() -> int:
     return run_unit.run_once(ignore_night=True, ignore_idle=True, ignore_budget=True)
 
 
+STOP_MARKERS = ("pacing 대기", "정지 상태", "감사 생략", "알 수 없는")
+
+
+def run_until_stop(st: dict, *, force: bool = False, once: bool = False, act: dict | None = None,
+                   path: Path | None = None, max_steps: int = MAX_STEPS) -> list[str]:
+    """단계를 연속 수행한다. 멈춤: pacing 대기·halted·감사 생략·MAX_STEPS·(단계 상태 저장은 매 단계)."""
+    out = []
+    for _ in range(1 if once else max_steps):
+        r = step(st, act=act, path=path, force=force)
+        progress.mark("[루프] 결과: " + r)
+        save_state(st) if path is None else None
+        out.append(r)
+        if st["phase"] == "halted" or r.startswith(STOP_MARKERS):
+            break
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--force", action="store_true", help="pacing·간격 무시(수동 점검용)")
     ap.add_argument("--reset", action="store_true", help="정지 상태 해제(감사부터 재개)")
     ap.add_argument("--status", action="store_true")
+    ap.add_argument("--once", action="store_true", help="단계 1개만 수행(기본은 멈춤 조건까지 연속)")
     a = ap.parse_args(argv)
     st = load_state()
     if a.reset:
         st.update(phase="audit", fails=0, unit=None)
     if not a.status:
-        progress.mark("[루프] 결과: " + step(st, force=a.force))
+        run_until_stop(st, force=a.force, once=a.once)
     save_state(st)
     print(json.dumps(st, ensure_ascii=False))
     return 0

@@ -2398,9 +2398,9 @@
 
 - functions: test_frontend_screens_handles_dynamic_and_groups, test_real_routes_nonempty, test_cells_and_coverage, test_record_rejects_bad_status, test_diff_detects_added_removed, test_committed_inventory_matches_live
 
-### `test_audit_loop.py` (143줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
+### `test_audit_loop.py` (153줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
 
-- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_user_blocked_items_do_not_stall_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure
+- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_user_blocked_items_do_not_stall_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip
 
 ### `test_audit_p5.py` (68줄) — P5 — 필수 브라우저 스윕 가드, 독립 검토 게이트, 사이클 요약.
 
