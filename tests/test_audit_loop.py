@@ -59,7 +59,7 @@ def test_user_blocked_items_do_not_stall_loop(tmp_path, monkeypatch):
     called = []
     st = _st("develop")
     msg = loop.step(st, path=p, act={"develop": lambda: called.append(1) or 0})
-    assert not called and st["phase"] == "audit" and "다음 감사" in msg
+    assert not called and st["phase"] == "stopped" and "정지" in msg
 
 
 def test_legacy_await_state_resumes_like_develop(tmp_path, monkeypatch):
@@ -167,7 +167,7 @@ def test_stop_flag_ends_after_round_without_new_audit(tmp_path, monkeypatch):
     ship = lambda n: {"ran": True, "outcome": "done", "commits": 1, "reason": "ok"}
     st = _st("develop", units_done=1)
     msg = loop.step(st, path=_backlog(tmp_path, "done"), act={"deploy": ship})
-    assert st["phase"] == "stopped" and "단일 라운드 종료" in msg and not flag.exists()
+    assert st["phase"] == "stopped" and "정지" in msg and not flag.exists()
     assert loop.step(st, path=_backlog(tmp_path, "done")).startswith("정지 상태")
 
 
