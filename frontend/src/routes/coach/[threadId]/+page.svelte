@@ -27,7 +27,6 @@
 	import { openDrill } from '$lib/drillStack';
 	import { TAPER_TOKEN } from '$lib/drillSpecial';
 	import { localDateString } from '$lib/asOf';
-
 	let { data }: { data: ThreadPageData } = $props();
 
 	const thread = $derived(data.detail?.thread ?? null);
