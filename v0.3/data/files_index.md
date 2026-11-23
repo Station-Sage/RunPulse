@@ -2382,6 +2382,10 @@
 
 - functions: test_frontend_screens_handles_dynamic_and_groups, test_real_routes_nonempty, test_cells_and_coverage, test_record_rejects_bad_status, test_diff_detects_added_removed, test_committed_inventory_matches_live
 
+### `test_audit_sweep.py` (24줄) — 감사 스윕 러너의 순수 로직(경로 치환·원장 기록) 테스트.
+
+- functions: test_resolve_path_uses_db_sample_and_defaults, test_apply_results_records_ledger
+
 ### `test_auth_cf.py` (241줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
 - functions: dev_app, prod_app, test_dev_cf_header_sets_session, test_dev_no_header_fallback_to_dev_user, test_dev_session_reused_without_reparse, test_dev_email_with_special_chars, test_prod_cf_header_sets_session, test_prod_no_header_returns_401, test_prod_empty_header_returns_401, test_invalid_cf_email_403_no_session_masked_log, test_invalid_cf_email_in_prod_is_403_not_401, test_invalid_cf_email_on_envelope_path_is_json_403, test_session_with_invalid_stored_uid_is_403_and_key_cleared, test_session_with_valid_uid_still_passes, test_invalid_dev_user_id_is_403_no_default_fallback, test_invalid_svc_user_is_403, test_valid_svc_user_still_passes, test_get_db_path_value_error_does_not_become_html_500, test_app_level_handler_registered_in_create_app
@@ -4166,9 +4170,9 @@
 
 - functions: parse_ddl_tables, parse_db_schema, parse_arch_categories, check_all, main
 
-### `check_docs.py` (1024줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 6 확장판).
+### `check_docs.py` (1044줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 6 확장판).
 
-- functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, check_phase2_extractors, check_phase3_sync, check_phase4_metrics, check_phase5_services, check_phase6_load_validate, main
+- functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, check_phase2_extractors, check_phase3_sync, check_phase4_metrics, check_phase5_services, check_phase6_load_validate, check_audit_inventory, main
 
 ### `check_race_invariants.py` (32줄) — 대회 캘린더 불변식 3·4 검사 (check_data_consistency 에서 호출) — 3: 활성 목표의 대회는 A·planned|done, 4: 목표 캐시 = 대회 값.
 
@@ -4231,7 +4235,7 @@
 - functions: run
 
 ---
-총 924개 파일
+총 925개 파일
 
 ## docstring 누락
 

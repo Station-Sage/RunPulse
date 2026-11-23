@@ -39,7 +39,7 @@
 
 - **[MENUDRAWER-POST-V1]** v1 일몰(UI·라우트) 후 MenuDrawer 정보 구조 — **설계·구현 완료(2026-11-12, S4-90, 추천 B)**: `design-2026-11-features/menudrawer-post-v1.md`. 드로어 = 데이터(주 탭 없는 영역)·설정·바로가기 3그룹(`menuLinks.ts` `MENU_GROUPS`), 탭 루트 중복(오늘·AI 코치) 제거, 데이터·설정 하위 화면 직접 링크. 남은 것: C안(Data 주 탭) 여부는 사용자 결정.
 
-- **[AUTOPILOT-AUDIT]** (2026-11-23 사용자 지시, 사용자 직접 지시로 NEXT 한도 초과 등록) 조사→기획→설계→개발→감사 반복 자동화. P1 커버리지 인벤토리 **완료**(`scripts/audit/inventory.py`: 화면 47·API 144 자동 추출, 화면×상태 4×뷰포트 2 = 376셀, 원장 `.claude/autopilot/coverage_ledger.json`, `check_docs` 21번 검사). 남은 단계: P2 기계 감지 감사 러너(pw/*.mjs 공통화) / P3 관점별 감사 에이전트(UI·UX·데이터·값 검증·페르소나, 관점별 모델 `AUDIT_MODELS`) / P4 사이클 로그·루프 연결 + **예산 재설계(USD 프록시 → 5시간 세션·주간(목 22:00 KST 리셋) 인지 페이싱)** / P5 독립 검토 게이트·텔레그램 요약. 확정 이슈는 `(판단 필요)` 로 BACKLOG 에만 올린다(자동 수정 금지).
+- **[AUTOPILOT-AUDIT]** (2026-11-23 사용자 지시, 사용자 직접 지시로 NEXT 한도 초과 등록) 조사→기획→설계→개발→감사 반복 자동화. P1 커버리지 인벤토리 **완료**(`scripts/audit/inventory.py`: 화면 47·API 144 자동 추출, 화면×상태 4×뷰포트 2 = 376셀, 원장 `.claude/autopilot/coverage_ledger.json`, `check_docs` 21번 검사). P2 기계 감지 스윕 **완료**(`sweep.py`+`sweep_pw.mjs`, 합성 DB empty/small/error × 390/desktop 282셀 13분, 확인 90·이슈 192 — tap-target·error-state 누락·no-h1 위주, large 상태는 시드 없어 미구현). 남은 단계: P3 관점별 감사 에이전트(UI·UX·데이터·값 검증·페르소나, 관점별 모델 `AUDIT_MODELS`) / P4 사이클 로그·루프 연결 + **예산 재설계(USD 프록시 → 5시간 세션·주간(목 22:00 KST 리셋) 인지 페이싱)** / P5 독립 검토 게이트·텔레그램 요약. 확정 이슈는 `(판단 필요)` 로 BACKLOG 에만 올린다(자동 수정 금지).
 
 - **[SYNC-STATE-RETIRE]** R0~R5 완료(2026-10-10, ADR-044): `utils/sync_state.py` 삭제, 원장·`sync_gates` 일원화. 구 `sync_jobs` 잔재·이관 코드·json 파일 제거 완료(2026-10-11, ADR-047, 스키마 v36).
 
