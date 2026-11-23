@@ -7,6 +7,7 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { afterNavigate, goto, replaceState } from '$app/navigation';
+	import { navFromPath } from '$lib/navFrom';
 	import { closeAction, isAtMinMonth, monthSlice } from '$lib/monthNav';
 	import type { MonthPageData } from './+page';
 	import DrillPanel from '$lib/components/DrillPanel.svelte';
@@ -54,7 +55,7 @@
 	// 들어오기 직전 경로 — 딥링크·새 탭이면 null(T-23).
 	let fromPath: string | null = null;
 	afterNavigate(({ from }) => {
-		if (fromPath === null) fromPath = from?.url.pathname ?? null;
+		if (fromPath === null) fromPath = navFromPath(from);
 	});
 
 	function close() {
