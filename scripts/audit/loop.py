@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import time
 from pathlib import Path
 
@@ -47,11 +48,17 @@ def propose(findings: list[dict], path: Path, decide=None, tiers: dict | None = 
 
     decide(finding)→triage 결과가 auto 면 stage=queued(scope·verify 채움, 자체 승인), 아니면 blocked(사람 결정)
     + 결정 보고서를 PENDING_PATH 에 추가. decide 가 없으면 전부 blocked. tiers 에 {id: tier} 를 채운다.
+    열린 단위의 텍스트에 "(커버: kind)" 가 있으면 같은 kind 후보는 중복으로 보고 제안하지 않는다.
     """
     from scripts.audit import triage
-    have = {it.item_id for it in queue.parse(path)}
+    items = queue.parse(path)
+    have = {it.item_id for it in items}
+    covered = {m for it in items if it.stage not in ("done", "blocked") for m in re.findall(r"\(커버: ([\w,\- ]+)\)", it.text)
+               for m in re.split(r"[, ]+", m) if m}
     new, lines, reports = [], [], []
     for f in findings:
+        if f["kind"] in covered:
+            continue
         ln = agents.backlog_lines([f])[0]
         iid = "AUD-" + hashlib.sha1(ln.encode()).hexdigest()[:6]
         if iid in have:

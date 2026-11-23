@@ -93,3 +93,17 @@ def test_large_design_stays_sonnet_when_opus_not_allowed():
     a = _ask(BIG)
     d = triage.decide(F, ask_fn=a, opus_ok=lambda: False)
     assert d["author"] == "sonnet" and "opus" not in a.calls
+
+
+def test_open_unit_covering_kind_suppresses_duplicate_finding(tmp_path, monkeypatch):
+    monkeypatch.setattr(loop, "PENDING_PATH", tmp_path / "pending.md")
+    p = tmp_path / "B.md"
+    p.write_text('- **[AUD-aaaaaa-1]** (커버: no-h1, other) 단위\n  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->\n', encoding="utf-8")
+    f = {**F, "kind": "no-h1", "perspective": "ux", "verdict": "real"}
+    called = []
+    new = loop.propose([f], p, lambda x: called.append(x) or {"tier": "user", "why": "", "design": {}})
+    assert new == [] and called == []
+
+
+def test_design_prompt_asks_for_root_cause_and_recommendation():
+    assert "근본원인" in triage._DESIGN and "추천안 하나" in triage._DESIGN
