@@ -75,7 +75,7 @@ def check(now: float | None = None, entries: list[dict] | None = None) -> Pacing
         if wk.get("status") == "rejected" or wk.get("utilization", 0) >= target:
             return Pacing(False, f"주간 사용률 {wk.get('utilization', 1):.0%} ≥ 균등 목표 {target:.0%} — 페이싱 대기", wk["resetsAt"])
     if not sess:
-        recent = ledger.since(SESSION_SEC / 3600, entries)
+        recent = ledger.since(SESSION_SEC / 3600, entries, now)
         if len(recent) >= settings.FALLBACK_SESSION_MAX_RUNS or ledger.total_cost(recent) >= settings.FALLBACK_SESSION_MAX_USD:
             return Pacing(False, "5시간 관측 없음 — 대체 한도(실행 수·USD) 도달", recent[0]["ts"] + SESSION_SEC)
     return Pacing(True)
