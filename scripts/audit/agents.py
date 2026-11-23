@@ -14,6 +14,7 @@ from pathlib import Path
 
 from scripts.audit import inventory
 from scripts.audit import budget, progress
+from scripts.autopilot import ledger, pacing
 from scripts.audit.perspectives import AUDIT_MODELS, RELEASE_MODELS, build_prompt
 
 FINDINGS_PATH = inventory.LEDGER_PATH.parent / "audit_findings.json"
@@ -50,17 +51,45 @@ def parse_findings(text: str) -> list[dict]:
     return [d for d in data if isinstance(d, dict) and d.get("verdict") in ok and d.get("kind")]
 
 
+class PacingHold(Exception):
+    """사용량 페이싱이 막아 claude 호출을 하지 않음 — 루프는 상태를 바꾸지 않고 대기로 끝낸다."""
+
+
+def _parse_stream(raw: str) -> tuple[str, dict | None, float | None]:
+    text, rl, cost = "", None, None
+    for line in raw.splitlines():
+        try:
+            d = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(d, dict):
+            continue
+        if d.get("type") == "rate_limit_event":
+            rl = d.get("rate_limit_info")
+        elif d.get("type") == "result":
+            text, cost = d.get("result", ""), d.get("total_cost_usd")
+    return text, rl, cost
+
+
 def ask(prompt: str, model: str) -> str:
-    """읽기 전용(도구 없음) claude -p 1회 호출 — 실패·타임아웃은 빈 문자열. opus 는 budget 허용 시만(아니면 sonnet)."""
+    """읽기 전용(도구 없음) claude -p 1회 호출 — 실패·타임아웃은 빈 문자열. opus 는 budget 허용 시만(아니면 sonnet).
+
+    호출 전 페이싱 검사(막히면 PacingHold), 호출 후 rate_limit 관측을 원장에 기록해 다음 검사의 입력이 되게 한다."""
+    p = pacing.check()
+    if not p.allowed:
+        raise PacingHold(p.reason)
     if model == "opus":
         model = "opus" if budget.opus_allowed()[0] else "sonnet"
-    cmd = ["claude", "-p", prompt, "--model", model, "--output-format", "json",
+    cmd = ["claude", "-p", prompt, "--model", model, "--output-format", "stream-json", "--verbose",
            "--no-session-persistence", "--allowed-tools", "", "--permission-mode", "default"]
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT_SEC, stdin=subprocess.DEVNULL)
-        return json.loads(r.stdout).get("result", "") if r.returncode == 0 else ""
-    except (subprocess.TimeoutExpired, json.JSONDecodeError):
+    except subprocess.TimeoutExpired:
         return ""
+    text, rl, cost = _parse_stream(r.stdout or "")
+    ledger.append({"unit_id": f"audit-ask:{model}", "outcome": "success" if r.returncode == 0 else "error",
+                   "cost_usd": cost, "rate_limit": rl})
+    return text if r.returncode == 0 else ""
 
 
 def run_perspective(name: str, groups: dict[str, list[dict]], models: dict[str, str] | None = None) -> list[dict]:

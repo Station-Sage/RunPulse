@@ -183,7 +183,10 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
             return "새 후보 없음 — 단일 라운드 종료(정지)"
         return "새 후보 없음 — 라운드 종료"
     if ph in ("await", "develop"):
-        if queue.next_runnable(queue.parse(path)) is None:
+        items = queue.parse(path)
+        if queue.next_runnable(items) is None:
+            from collections import Counter
+            progress.mark(f"[루프] 실행 가능 단위 없음 — 항목 {len(items)}건, (단계,모드) 분포 {dict(Counter((i.stage, i.mode) for i in items))}")
             return _end_round(st, ship, "열린 단위 없음 — 다음 감사로", path)
         if st["units_done"] >= UNIT_CAP:
             return _end_round(st, ship, f"라운드 단위 상한 {UNIT_CAP} — 다음 감사로")
@@ -237,7 +240,13 @@ def run_until_stop(st: dict, *, force: bool = False, once: bool = False, act: di
     """단계를 연속 수행한다. 멈춤: pacing 대기·halted·감사 생략·MAX_STEPS·(단계 상태 저장은 매 단계)."""
     out = []
     for _ in range(1 if once else max_steps):
-        r = step(st, act=act, path=path, force=force)
+        try:
+            r = step(st, act=act, path=path, force=force)
+        except agents.PacingHold as e:
+            r = f"pacing 대기: {e}"
+        except Exception as e:  # 한 단계의 예외가 상태 전환을 잃게 하지 않는다 — 실패 집계(FAIL_LIMIT 시 halted)
+            progress.mark(f"[루프] 예외: {type(e).__name__}: {e}")
+            r = _fail(st, f"예외 {type(e).__name__}: {e}")
         progress.mark("[루프] 결과: " + r)
         save_state(st) if path is None else None
         out.append(r)

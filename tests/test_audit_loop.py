@@ -192,3 +192,14 @@ def test_only_user_blocked_left_stops_without_flag(tmp_path, monkeypatch):
     st = _st("develop")
     loop.step(st, path=_backlog(tmp_path, "done"), act={"deploy": lambda n: {"ran": False}})
     assert st["phase"] == "audit"
+
+
+def test_run_until_stop_converts_exception_and_pacinghold(monkeypatch, tmp_path):
+    from scripts.audit import agents, loop
+    st = {"phase": "audit", "fails": 0, "round": 1, "units_done": 0}
+    monkeypatch.setattr(loop, "step", lambda *a, **k: (_ for _ in ()).throw(agents.PacingHold("x")))
+    assert loop.run_until_stop(st, path=tmp_path / "q.md")[0].startswith("pacing 대기")
+    monkeypatch.setattr(loop, "step", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(loop.notify, "send", lambda *a, **k: None)
+    out = loop.run_until_stop(st, path=tmp_path / "q.md", max_steps=5)
+    assert st["phase"] == "halted" and "boom" in out[-1]

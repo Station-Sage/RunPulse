@@ -47,3 +47,29 @@ def test_release_failed_audit_not_marked(tmp_path):
     pkg, st = _pkg(tmp_path, "0.2.0"), tmp_path / "st.json"
     release.run(pkg, st, audit=lambda: {"ran": True, "outcome": "sweep_failed"}, allowed=lambda: (True, ""))
     assert release.due(pkg, st)
+
+
+def test_ask_records_rate_limit_and_pacing_blocks(monkeypatch, tmp_path):
+    from scripts.audit import agents
+    from scripts.autopilot import ledger, pacing, settings
+    monkeypatch.setattr(settings, "STATE_DIR", tmp_path)
+    monkeypatch.setattr(settings, "LEDGER_PATH", tmp_path / "ledger.jsonl")
+    monkeypatch.setattr(agents.budget, "opus_allowed", lambda: (True, ""))
+    out = ('{"type":"rate_limit_event","rate_limit_info":{"rateLimitType":"five_hour","utilization":0.95,'
+           '"status":"allowed","resetsAt":%d}}\n{"type":"result","result":"hi","total_cost_usd":0.1}\n') % (
+        __import__("time").time() + 3600)
+    monkeypatch.setattr(agents.subprocess, "run",
+                        lambda *a, **k: type("R", (), {"returncode": 0, "stdout": out})())
+    assert agents.ask("p", "sonnet") == "hi"
+    assert ledger.read_all()[-1]["rate_limit"]["utilization"] == 0.95
+    import pytest
+    with pytest.raises(agents.PacingHold):
+        agents.ask("p", "sonnet")
+
+
+def test_pacing_hold_until_file(monkeypatch, tmp_path):
+    import time
+    from scripts.autopilot import pacing, settings
+    monkeypatch.setattr(settings, "STATE_DIR", tmp_path)
+    (tmp_path / "hold_until").write_text(str(time.time() + 600))
+    assert not pacing.check(entries=[]).allowed

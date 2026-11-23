@@ -51,8 +51,20 @@ def weekly_target(now: float, reset_at: float | None = None) -> float:
     return min(settings.WEEK_CEILING, settings.PACE_FLOOR + elapsed * settings.PACE_SLACK)
 
 
+def hold_until(now: float) -> float | None:
+    """수동 보류 — STATE_DIR/hold_until 에 epoch 초(리셋 시각)를 적으면 그때까지 모든 실행을 막는다."""
+    try:
+        t = float((settings.STATE_DIR / "hold_until").read_text().strip())
+    except (OSError, ValueError):
+        return None
+    return t if t > now else None
+
+
 def check(now: float | None = None, entries: list[dict] | None = None) -> Pacing:
     now = now or time.time()
+    held = hold_until(now)
+    if held:
+        return Pacing(False, "수동 보류(hold_until)", held)
     entries = ledger.read_all() if entries is None else entries
     sess = latest_observation(entries, "five_hour", now)
     if sess and (sess.get("status") == "rejected" or sess.get("utilization", 0) >= settings.SESSION_CEILING):
