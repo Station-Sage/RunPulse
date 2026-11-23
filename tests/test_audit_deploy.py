@@ -46,3 +46,22 @@ def test_merge_builds_frontend_only_when_changed():
     r, log = run(**{"diff --name-only": (0, "src/x.py")})
     assert r["outcome"] == "done" and ["npm", "run", "build"] not in log
     assert run(**{"npm run build": (1, "err")})[0]["outcome"] == "failed"
+
+
+def test_full_pytest_gates_merge_with_lf_retry():
+    r, log = run(**{"pytest": (1, "F")})
+    assert r["outcome"] == "failed" and "테스트" in r["reason"] and not any(a[1] == "merge" for a in log)
+    assert any("--lf" in a for a in log)
+
+
+def test_flaky_failure_passes_on_lf_rerun():
+    calls = []
+
+    def sh(args, cwd):
+        s = " ".join(args)
+        if "pytest" in s:
+            calls.append(s)
+            return (0, "") if "--lf" in s else (1, "F")
+        return BASE.get(next((k for k in BASE if k in s), ""), (0, ""))
+    r = deploy.run(1, sh=sh, prod=Path("/prod"))
+    assert r["outcome"] == "done" and len(calls) == 2

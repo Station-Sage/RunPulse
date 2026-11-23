@@ -2382,9 +2382,9 @@
 
 - functions: test_reap_kills_only_registered_matching, test_cycle_skips_below_min_interval, test_cycle_logs_skip_when_pacing_blocks
 
-### `test_audit_deploy.py` (48줄) — audit/deploy.py — 운영 반영 가드·병합·빌드 분기 (git/npm 은 주입한 sh 로 대체).
+### `test_audit_deploy.py` (67줄) — audit/deploy.py — 운영 반영 가드·병합·빌드 분기 (git/npm 은 주입한 sh 로 대체).
 
-- functions: run, test_guards_leave_everything_untouched, test_diverged_and_merge_failure_report_failed, test_merge_builds_frontend_only_when_changed
+- functions: run, test_guards_leave_everything_untouched, test_diverged_and_merge_failure_report_failed, test_merge_builds_frontend_only_when_changed, test_full_pytest_gates_merge_with_lf_retry, test_flaky_failure_passes_on_lf_rerun
 
 ### `test_audit_e_plan_coach.py` (175줄) — V2-AUDIT-INDIV 묶음 E — 훈련 계획·코치 서버 쪽(P-10·P-12·P-16, C-05·C-11·C-14·C-16).
 

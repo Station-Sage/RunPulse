@@ -4,6 +4,7 @@ run(units_done, sh=...) → {"ran", "outcome", "reason", "commits"}. 안전 가�
   - 이번 라운드에 통과(done)한 단위가 1건 이상
   - 운영 폴더가 BASE_BRANCH 이고 추적 파일 변경 없음
   - autopilot 브랜치에 반영할 커밋이 있음, 그리고 BASE_BRANCH 의 후손(fast-forward 가능; 갈라졌으면 중단·알림)
+  - autopilot 워크트리에서 전체 pytest 통과(실패 시 실패 테스트만 1회 재실행 — 순서 의존 flaky 흡수; 그래도 실패면 병합 안 함)
 병합 후 frontend/ 가 바뀌었으면 운영 폴더에서 `npm run build` (gunicorn --reload 는 코드만 반영하므로 정적 빌드는 직접 생성).
 push 는 하지 않는다. 롤백 = 운영 폴더에서 `git reset --hard <이전 HEAD>`(결과의 prev 값).
 """
@@ -22,8 +23,22 @@ def prod_dir() -> Path:
 
 
 def _sh(args: list[str], cwd: Path) -> tuple[int, str]:
-    r = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=900)
+    slow = "pytest" in args
+    try:
+        r = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=3000 if slow else 900)
+    except subprocess.TimeoutExpired:
+        return 124, "시간 초과"
     return r.returncode, (r.stdout + r.stderr).strip()
+
+
+def _tests_pass(sh, prod: Path) -> tuple[bool, str]:
+    py = str(prod / ".venv" / "bin" / "python")
+    cmd = [py, "-m", "pytest", "tests/", "-q", "--no-header"]
+    rc, out = sh(cmd, settings.WORKTREE_DIR)
+    if not rc:
+        return True, ""
+    rc, out2 = sh([py, "-m", "pytest", "tests/", "-q", "--lf"], settings.WORKTREE_DIR)
+    return (not rc), (out2 or out)[-200:]
 
 
 def run(units_done: int, *, sh=_sh, prod: Path | None = None) -> dict:
@@ -44,6 +59,9 @@ def run(units_done: int, *, sh=_sh, prod: Path | None = None) -> dict:
         return {"ran": False, "reason": "반영할 커밋 없음"}
     if sh(["git", "merge-base", "--is-ancestor", base, br], prod)[0]:
         return {"ran": True, "outcome": "failed", "reason": f"{br} 가 {base} 의 후손이 아님(갈라짐) — 사람 확인 필요"}
+    ok, tail = _tests_pass(sh, prod)
+    if not ok:
+        return {"ran": True, "outcome": "failed", "commits": int(ahead), "reason": f"전체 테스트 실패 — 병합 안 함: {tail}"}
     _, prev = sh(["git", "rev-parse", "HEAD"], prod)
     rc, out = sh(["git", "merge", "--ff-only", br], prod)
     if rc:
