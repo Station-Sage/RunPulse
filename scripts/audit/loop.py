@@ -100,7 +100,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     """상태를 한 칸 진행하고 한 줄 결과를 반환한다. act 로 외부 동작(감사·개발·스윕)을 주입할 수 있다."""
     path = path or settings.QUEUE_PATH
     act = act or {}
-    audit = act.get("audit", lambda: cycle.run_cycle(force=force))
+    audit = act.get("audit", lambda: cycle.run_cycle(force=True))  # pacing 은 위에서 검사, 90분 간격은 단독 cycle 용(여기선 라운드 종료가 곧 간격)
     rel = act.get("release", release.run)
     develop = act.get("develop", _develop)
     sweep = act.get("sweep", lambda: cycle.browser_sweep())
