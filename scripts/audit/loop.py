@@ -8,7 +8,7 @@
   develop: run_unit.run_once 1건 → review 면 test, blocked 면 알리고 다음 항목
   test   : 브라우저 스윕(안쪽 루프) 통과 → done, 실패 → queued(버그수정 재개발), 상한 초과 → blocked
 정지 조건: 같은 단계 연속 실패 FAIL_LIMIT, 항목당 테스트 재시도 FIX_LIMIT, 라운드당 단위 UNIT_CAP, 단계 직전 pacing.
-열린 단위가 없으면 라운드가 끝나고 다음 감사(audit)로 돌아간다. 이 프로세스는 대화 세션에 쓸 수 없어 알림은 텔레그램이다.
+열린 단위가 없으면 라운드가 끝나고 다음 감사(audit)로 돌아간다 — 고정 최소 간격(90분)은 없고 라운드 종료 즉시 시작(pacing 만 게이트). 이 프로세스는 대화 세션에 쓸 수 없어 알림은 텔레그램이다.
 """
 from __future__ import annotations
 
