@@ -1,0 +1,955 @@
+{
+ "states": [
+  "empty",
+  "small",
+  "large",
+  "error"
+ ],
+ "viewports": [
+  "390",
+  "desktop"
+ ],
+ "screens": [
+  "/",
+  "/auth/login",
+  "/auth/pending",
+  "/coach",
+  "/coach/[threadId]",
+  "/coach/new",
+  "/coach/plan",
+  "/coach/plan/[id]",
+  "/coach/plan/[id]/session/[date]",
+  "/coach/plan/compare",
+  "/coach/plan/new",
+  "/coach/plan/replan",
+  "/data",
+  "/data/export",
+  "/data/import",
+  "/data/settings",
+  "/data/settings/ai",
+  "/data/settings/profile",
+  "/data/sources",
+  "/data/sources/[provider]",
+  "/data/sync",
+  "/demo",
+  "/landing",
+  "/library",
+  "/library/[id]",
+  "/library/[id]/laps",
+  "/library/[id]/metrics",
+  "/library/[id]/providers",
+  "/library/[id]/streams",
+  "/library/activities",
+  "/library/balance",
+  "/library/metrics",
+  "/library/metrics/[slug]",
+  "/library/milestones",
+  "/library/providers",
+  "/library/providers/[group]",
+  "/library/shoes",
+  "/library/shoes/[id]",
+  "/library/story/[period]",
+  "/library/wellness",
+  "/library/wellness/[date]",
+  "/today",
+  "/today/month/[ym]",
+  "/today/race",
+  "/today/race/calendar",
+  "/today/race/races",
+  "/welcome"
+ ],
+ "apis": [
+  {
+   "rule": "/api/context-episodes",
+   "methods": [
+    "GET",
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/context-episodes/<int:episode_id>",
+   "methods": [
+    "DELETE"
+   ]
+  },
+  {
+   "rule": "/api/context-episodes/<int:episode_id>/close",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/context-episodes/<int:episode_id>/confirm",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/context-episodes/<int:episode_id>/dismiss",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/context-episodes/consent",
+   "methods": [
+    "GET",
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/garmin/local-sync",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/ai/queue",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/ai/queue/ping",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/ai/queue/status",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/auth/invite",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/auth/session",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/activity-context",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/consent",
+   "methods": [
+    "PUT"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/deep",
+   "methods": [
+    "GET",
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/deep/cancel",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/engine",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/messages/<int:message_id>",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/messages/<int:message_id>/cancel",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/messages/<int:message_id>/regenerate",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/messages/<int:message_id>/stream",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/<int:goal_id>",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/<int:goal_id>/adjustments",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/<int:goal_id>/restore",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/<int:goal_id>/session/<session_date>",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/<int:goal_id>/weeks",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/active",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/adaptation",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/adherence-review",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/adjustment",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/adjustments/<int:adj_id>/accept",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/adjustments/<int:adj_id>/revert",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/advisories",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/draft",
+   "methods": [
+    "GET",
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/draft/apply",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/methods",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/methods/draft",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/methods/recommend",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/replan",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/replan/<int:replan_id>/garmin",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/replan/<int:replan_id>/garmin-cleanup",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/replan/<int:replan_id>/undo",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/replan/last",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/replan/preview",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/restorable",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/session/<session_date>/note",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/templates",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/workouts/<int:workout_id>/action",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/plan/workouts/<int:workout_id>/action/preview",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/suggestions",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/threads",
+   "methods": [
+    "GET",
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/threads/<int:thread_id>",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/coach/threads/<int:thread_id>/messages",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/csp-report",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/calendar-feed",
+   "methods": [
+    "DELETE",
+    "GET",
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/export",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/exports",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/exports/<job_id>/download",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/import",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/import/preview",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/imports",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/imports/<job_id>",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/jobs/<job_id>",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/profile",
+   "methods": [
+    "GET",
+    "PATCH"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/profile/preview",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/recompute",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/runs",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/settings/ai",
+   "methods": [
+    "GET",
+    "PATCH"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/settings/ai/test",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sources",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sources/<provider>",
+   "methods": [
+    "GET",
+    "PATCH"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sources/<provider>/connect",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sources/<provider>/disconnect",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sources/<provider>/test",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sources/garmin/connect",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sources/garmin/local-kit/env",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sources/garmin/local-kit/script",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sources/garmin/mfa",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sources/garmin/mfa/cancel",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sources/garmin/token",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/summary",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sync",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sync-state",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sync/auto",
+   "methods": [
+    "GET",
+    "PATCH"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sync/estimate",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/data/sync/runs/<run_id>/cancel",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/dev/switch-user",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/dev/users",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/insights",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/insights/<int:event_id>/dismiss",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/insights/<int:event_id>/seen",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/activities",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/activities/<int:activity_id>",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/activities/<int:activity_id>/export.gpx",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/activities/<int:activity_id>/feedback",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PUT"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/activities/<int:activity_id>/providers",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/activities/<int:activity_id>/shoe",
+   "methods": [
+    "DELETE",
+    "PUT"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/activities/<int:activity_id>/source-links",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/activities/<int:activity_id>/streams",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/activities/<path:raw>",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH",
+    "POST",
+    "PUT"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/activities/facets",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/activities/summary",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/archive",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/metrics",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/metrics/<slug>",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/metrics/<slug>/trend",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/metrics/training-balance",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/milestones",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/providers/coverage",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/providers/matrix",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/providers/pairs/<group>",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/providers/status",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/story/<period>",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/wellness",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/library/wellness/trend",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/me/preferences",
+   "methods": [
+    "GET",
+    "PATCH"
+   ]
+  },
+  {
+   "rule": "/api/v1/prediction/compare",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/prediction/profile",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/race-calendar",
+   "methods": [
+    "GET",
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/race-calendar/<int:race_id>",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH"
+   ]
+  },
+  {
+   "rule": "/api/v1/race-calendar/<int:race_id>/impact",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/race-calendar/<int:race_id>/plan",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/race-calendar/<int:race_id>/reopen",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/race-calendar/<int:race_id>/restore",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/races/<int:activity_id>/confirm",
+   "methods": [
+    "DELETE",
+    "PUT"
+   ]
+  },
+  {
+   "rule": "/api/v1/races/candidates",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/settings/mcp-tokens",
+   "methods": [
+    "GET",
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/settings/mcp-tokens/<token_id>",
+   "methods": [
+    "DELETE"
+   ]
+  },
+  {
+   "rule": "/api/v1/shoes",
+   "methods": [
+    "GET",
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/shoes/<int:shoe_id>",
+   "methods": [
+    "DELETE",
+    "GET",
+    "PATCH"
+   ]
+  },
+  {
+   "rule": "/api/v1/shoes/<int:shoe_id>/activities",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/shoes/<int:shoe_id>/assign",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/shoes/<int:shoe_id>/gear",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/shoes/<int:shoe_id>/gear/<int:gear_id>",
+   "methods": [
+    "DELETE"
+   ]
+  },
+  {
+   "rule": "/api/v1/shoes/<int:shoe_id>/merge",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/shoes/alert",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/shoes/import-gear",
+   "methods": [
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/shoes/unassigned",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/today",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/today/checkin",
+   "methods": [
+    "GET",
+    "POST"
+   ]
+  },
+  {
+   "rule": "/api/v1/today/milestones",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/today/narrative",
+   "methods": [
+    "GET"
+   ]
+  },
+  {
+   "rule": "/api/v1/today/race-hub",
+   "methods": [
+    "GET"
+   ]
+  }
+ ]
+}
