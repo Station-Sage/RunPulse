@@ -2366,6 +2366,10 @@
 
 - functions: test_months_back_crosses_year, test_empty_db, test_totals_monthly_heatmap_longest, test_personal_bests_pick_min_and_skip_missing, test_personal_bests_merge_race_results_with_source_labels
 
+### `test_audit_agents.py` (25줄)
+
+- functions: test_group_issues_and_prompt, test_parse_findings_graceful, test_backlog_lines_dedup_and_models
+
 ### `test_audit_bundle_c.py` (115줄) — V2-AUDIT-INDIV 묶음 C(지표·웰니스·이야기·소스 비교) 서버 측 수정 테스트.
 
 - functions: test_display_meta_formats_m10_m21, test_josa_m31, test_merge_reasons_groups_same_input_m31, test_explain_avg7d_uses_seven_days_m11, test_compare_basis_partial_month_m14, test_story_future_month_has_no_next_and_no_compare_m16, test_risk_peak_carries_grade_m15, test_headline_adds_cirs_caveat_m17, test_signed_pct_and_lagging_m19, test_second_batch_descriptions_m07, test_trend_reports_source_m08
@@ -2382,9 +2386,9 @@
 
 - functions: test_frontend_screens_handles_dynamic_and_groups, test_real_routes_nonempty, test_cells_and_coverage, test_record_rejects_bad_status, test_diff_detects_added_removed, test_committed_inventory_matches_live
 
-### `test_audit_sweep.py` (24줄) — 감사 스윕 러너의 순수 로직(경로 치환·원장 기록) 테스트.
+### `test_audit_sweep.py` (36줄) — 감사 스윕 러너의 순수 로직(경로 치환·원장 기록) 테스트.
 
-- functions: test_resolve_path_uses_db_sample_and_defaults, test_apply_results_records_ledger
+- functions: test_resolve_path_uses_db_sample_and_defaults, test_apply_results_records_ledger, test_stop_kills_stubborn_process
 
 ### `test_auth_cf.py` (241줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
@@ -4235,11 +4239,12 @@
 - functions: run
 
 ---
-총 925개 파일
+총 926개 파일
 
 ## docstring 누락
 
 - `tests/__init__.py`
+- `tests/test_audit_agents.py`
 - `tests/test_chat_engine_cq.py`
 - `tests/test_coach_cq_context.py`
 - `tests/test_constraints.py`
