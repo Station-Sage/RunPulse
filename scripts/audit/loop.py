@@ -103,6 +103,10 @@ def _fail(st: dict, why: str) -> str:
     return why
 
 
+def STOP_FLAG() -> Path:
+    return settings.STATE_DIR / "stop_after_round"
+
+
 def _end_round(st: dict, ship, msg: str) -> str:
     """안쪽 루프 종료 — 통과 단위가 있으면 운영 반영(실패해도 루프는 계속, 알림만) 후 다음 감사로."""
     r = ship(st["units_done"])
@@ -112,6 +116,12 @@ def _end_round(st: dict, ship, msg: str) -> str:
                     + ("" if ok else " (자동 반영 안 됨, 사람 확인 필요)"))
         msg += f" · 운영 반영 {'완료' if ok else '실패'}({r.get('reason')})"
     st.update(phase="audit", round=st["round"] + 1, units_done=0, unit=None)
+    flag = STOP_FLAG()
+    if flag.exists():
+        flag.unlink()
+        st["phase"] = "stopped"
+        notify.send(f"[루프] 라운드 {st['round'] - 1} 종료 — 단일 라운드 지정에 따라 새 감사 없이 정지")
+        msg += " · 단일 라운드 종료(정지)"
     return msg
 
 
@@ -126,6 +136,8 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     sweep = act.get("sweep", lambda: cycle.browser_sweep())
     ph = st["phase"]
     progress.mark(f"[루프] 라운드 {st['round']} · {ph} 단계 시작")
+    if ph == "stopped":
+        return "정지 상태 — 단일 라운드 완료(재개: --reset)"
     if ph == "halted":
         return "정지 상태 — 원인 확인 후 --reset"
     if not force:
@@ -216,7 +228,7 @@ def run_until_stop(st: dict, *, force: bool = False, once: bool = False, act: di
         progress.mark("[루프] 결과: " + r)
         save_state(st) if path is None else None
         out.append(r)
-        if st["phase"] == "halted" or r.startswith(STOP_MARKERS):
+        if st["phase"] in ("halted", "stopped") or r.startswith(STOP_MARKERS):
             break
     return out
 

@@ -151,3 +151,16 @@ def test_run_until_stop_chains_steps_and_stops_on_skip(tmp_path, monkeypatch):
     out = loop.run_until_stop(_st("design"), path=_backlog(tmp_path, "done"), act=act)
     assert len(out) == 2 and out[0].startswith("새 후보 없음") and out[1].startswith("감사 생략")
     assert len(loop.run_until_stop(_st("design"), path=_backlog(tmp_path, "done"), act=act, once=True)) == 1
+
+
+def test_stop_flag_ends_after_round_without_new_audit(tmp_path, monkeypatch):
+    monkeypatch.setattr(loop.notify, "send", lambda t: True)
+    monkeypatch.setattr(loop.pacing, "check", lambda n: type("P", (), {"allowed": True, "reason": ""})())
+    flag = tmp_path / "stop_after_round"
+    flag.write_text("1")
+    monkeypatch.setattr(loop, "STOP_FLAG", lambda: flag)
+    ship = lambda n: {"ran": True, "outcome": "done", "commits": 1, "reason": "ok"}
+    st = _st("develop", units_done=1)
+    msg = loop.step(st, path=_backlog(tmp_path, "done"), act={"deploy": ship})
+    assert st["phase"] == "stopped" and "단일 라운드 종료" in msg and not flag.exists()
+    assert loop.step(st, path=_backlog(tmp_path, "done")).startswith("정지 상태")
