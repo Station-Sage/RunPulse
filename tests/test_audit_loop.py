@@ -47,12 +47,21 @@ def test_propose_blocked_and_idempotent(tmp_path, monkeypatch):
     assert queue.next_runnable([new]) is None
 
 
-def test_await_does_not_develop_until_approved(tmp_path, monkeypatch):
+def test_user_blocked_items_do_not_stall_loop(tmp_path, monkeypatch):
     _quiet(monkeypatch)
     p = _backlog(tmp_path, "blocked")
     called = []
-    msg = loop.step(_st("await"), path=p, act={"develop": lambda: called.append(1) or 0})
-    assert "승인 대기" in msg and not called
+    st = _st("develop")
+    msg = loop.step(st, path=p, act={"develop": lambda: called.append(1) or 0})
+    assert not called and st["phase"] == "audit" and "다음 감사" in msg
+
+
+def test_legacy_await_state_resumes_like_develop(tmp_path, monkeypatch):
+    _quiet(monkeypatch)
+    p = _backlog(tmp_path, "queued")
+    called = []
+    loop.step(_st("await"), path=p, act={"develop": lambda: called.append(1) or 0})
+    assert called
 
 
 def test_develop_then_test_sweep_inside_inner_loop(tmp_path, monkeypatch):

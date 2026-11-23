@@ -3,8 +3,8 @@
 사용: .venv/bin/python -m scripts.audit.loop [--force] [--reset] [--status]
 호출 1회 = 단계 1개만 수행하고 끝난다. 위치는 cycle_state.json + BACKLOG 항목 stage 로 복원하므로 언제 끊겨도 이어진다.
   audit  : 버전이 바뀌었으면 release.run(Opus 전 관점, 한도 내) 먼저, 아니면 cycle.run_cycle (스윕 필수 + 관점 감사 + 독립 검토) → design
-  design : 확인된 후보를 BACKLOG 에 stage=blocked 항목으로만 제안 → await (사람이 승인할 때까지 개발 금지)
-  await  : 사람이 BACKLOG 에서 stage 를 queued 로 바꾸면(승인 태그, scope/verify 채움) develop 으로
+  design : 확인된 후보를 BACKLOG 에 제안(자체 승인=queued, 사용자 결정=blocked) → develop
+  (사용자 결정 대기 항목은 막지 않는다 — blocked 로 남기고 나머지 단위는 계속 진행. 사람이 stage 를 queued 로 바꾸면 다음 develop 에서 집어간다)
   develop: run_unit.run_once 1건 → review 면 test, blocked 면 알리고 다음 항목
   test   : 브라우저 스윕(안쪽 루프) 통과 → done, 실패 → queued(버그수정 재개발), 상한 초과 → blocked
 정지 조건: 같은 단계 연속 실패 FAIL_LIMIT, 항목당 테스트 재시도 FIX_LIMIT, 라운드당 단위 UNIT_CAP, 단계 직전 pacing.
@@ -107,7 +107,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     ph = st["phase"]
     if ph == "halted":
         return "정지 상태 — 원인 확인 후 --reset"
-    if not force and ph != "await":
+    if not force:
         p = pacing.check(time.time())
         if not p.allowed:
             return f"pacing 대기: {p.reason}"
@@ -128,7 +128,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         new = propose(agents_confirmed(), path, act.get("decide", triage.decide), tiers)
         auto = [i for i in new if tiers[i] == "auto"]
         user = [i for i in new if tiers[i] == "user"]
-        st.update(phase="develop" if auto else "await" if user else "audit", fails=0)
+        st.update(phase="develop" if new else "audit", fails=0)
         if new:
             notify.send(f"[루프] 설계 {len(new)}건 — 자체 승인(교차 검토 통과) {len(auto)}건 진행: {', '.join(auto) or '-'}"
                         f" / 사용자 결정 대기 {len(user)}건(장단점·추천은 {PENDING_PATH}): {', '.join(user) or '-'}."
@@ -138,8 +138,6 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         return "새 후보 없음 — 라운드 종료"
     if ph in ("await", "develop"):
         if queue.next_runnable(queue.parse(path)) is None:
-            if ph == "await":
-                return "승인 대기 중(BACKLOG 에서 blocked → queued)"
             st.update(phase="audit", round=st["round"] + 1, units_done=0, unit=None)
             return "열린 단위 없음 — 다음 감사로"
         if st["units_done"] >= UNIT_CAP:
