@@ -185,3 +185,9 @@ def _isolated_ops_db(tmp_path, monkeypatch):
     from src.services import heat_forecast
     heat_forecast.clear_cache()
     yield
+
+
+@pytest.fixture(autouse=True)
+def _isolate_progress_log(tmp_path, monkeypatch):
+    from scripts.audit import progress
+    monkeypatch.setattr(progress, "LOG_PATH", tmp_path / "progress.log")
