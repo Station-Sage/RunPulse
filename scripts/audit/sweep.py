@@ -72,6 +72,17 @@ def _free_port() -> int:
         return s.getsockname()[1]
 
 
+def stop(proc: subprocess.Popen) -> None:
+    """서버 종료 — terminate 후 5초 안에 안 죽으면 kill, 반드시 wait 로 회수."""
+    if proc.poll() is None:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+
+
 def _serve(db: Path) -> tuple[subprocess.Popen, str]:
     port = _free_port()
     proc = subprocess.Popen([sys.executable, str(ROOT / "scripts/synth_smoke/serve_synth.py"), str(db), str(port)],
@@ -83,7 +94,7 @@ def _serve(db: Path) -> tuple[subprocess.Popen, str]:
             return proc, base
         except Exception:
             time.sleep(0.5)
-    proc.terminate()
+    stop(proc)
     raise RuntimeError("synth server did not start")
 
 
@@ -109,8 +120,7 @@ def sweep_state(state: str, viewport: str, tmp: Path, limit: int | None) -> list
             raise RuntimeError(out.stderr[-500:])
         return json.loads(out.stdout.strip().splitlines()[-1])
     finally:
-        proc.terminate()
-        proc.wait(timeout=10)
+        stop(proc)
 
 
 def main(argv: list[str] | None = None) -> int:

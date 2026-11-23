@@ -22,3 +22,15 @@ def test_apply_results_records_ledger(tmp_path):
     led = inventory.load_ledger(p)
     assert led["/a|small|390"]["status"] == "확인"
     assert led["/b|small|390"]["status"] == "이슈" and "overflow-x" in led["/b|small|390"]["note"]
+
+
+def test_stop_kills_stubborn_process():
+    import subprocess
+    import sys
+    from scripts.audit.sweep import stop
+
+    p = subprocess.Popen([sys.executable, "-c", "import signal,time;signal.signal(signal.SIGTERM,signal.SIG_IGN);time.sleep(60)"])
+    import time
+    time.sleep(0.5)
+    stop(p)
+    assert p.poll() is not None
