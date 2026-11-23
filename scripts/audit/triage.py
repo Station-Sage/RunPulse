@@ -17,7 +17,7 @@ RISK = re.compile(r"스키마|schema|DDL|migrat|마이그레이션|삭제|delete
                   r"알고리즘|calculator|메트릭 정의|예측|개인정보|배포|deploy|API 계약|breaking", re.I)
 _DESIGN = """너는 설계자다. 아래 결함의 수정안을 설계하라. 코드는 쓰지 말고 JSON 한 개만 출력.
 결함: kind=%s / 영향: %s / 제안: %s
-{"grade":"auto|user","summary":"한 줄 설계","scope":["수정 허용 경로"],"verify":["검증 셸 커맨드"],
+{"grade":"auto|user","summary":"한 줄 설계","scope":["수정할 파일의 순수 경로만(설명·괄호 금지)"],"verify":["검증 셸 커맨드"],
  "options":[{"name":"","pros":"","cons":""}],"recommendation":"추천 선택지와 이유","reason":"등급 근거"}
 auto = 되돌리기 쉽고 국소적이며 제품 의미·데이터·권한을 바꾸지 않는 수정. 조금이라도 설계 판단이 갈리면 user."""
 _CHECK = """너는 독립 교차 검토자다. 아래 설계를 자체 승인(사람 확인 없이 개발)해도 되는지 반증을 시도하라.

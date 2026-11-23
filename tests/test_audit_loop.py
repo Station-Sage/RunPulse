@@ -30,7 +30,8 @@ def test_state_roundtrip_and_default(tmp_path):
     assert loop.load_state(p)["unit"] == "U1"
 
 
-def test_propose_blocked_and_idempotent(tmp_path):
+def test_propose_blocked_and_idempotent(tmp_path, monkeypatch):
+    monkeypatch.setattr(loop, "PENDING_PATH", tmp_path / "pending.md")
     p = _backlog(tmp_path)
     assert len(loop.propose(F, p)) == 1
     assert loop.propose(F, p) == []
