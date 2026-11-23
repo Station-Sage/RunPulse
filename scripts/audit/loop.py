@@ -168,6 +168,11 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
                         " 승인은 BACKLOG stage 를 queued 로.")
             return f"설계 {len(new)}건 — 자체 승인 {len(auto)}, 사용자 결정 {len(user)}"
         st["round"] += 1
+        if STOP_FLAG().exists():
+            STOP_FLAG().unlink()
+            st["phase"] = "stopped"
+            notify.send("[루프] 새 후보 없음 — 단일 라운드 지정에 따라 정지")
+            return "새 후보 없음 — 단일 라운드 종료(정지)"
         return "새 후보 없음 — 라운드 종료"
     if ph in ("await", "develop"):
         if queue.next_runnable(queue.parse(path)) is None:

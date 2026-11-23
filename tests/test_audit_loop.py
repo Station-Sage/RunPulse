@@ -169,3 +169,15 @@ def test_stop_flag_ends_after_round_without_new_audit(tmp_path, monkeypatch):
     msg = loop.step(st, path=_backlog(tmp_path, "done"), act={"deploy": ship})
     assert st["phase"] == "stopped" and "단일 라운드 종료" in msg and not flag.exists()
     assert loop.step(st, path=_backlog(tmp_path, "done")).startswith("정지 상태")
+
+
+def test_stop_flag_honored_when_no_new_candidates(tmp_path, monkeypatch):
+    monkeypatch.setattr(loop.notify, "send", lambda t: True)
+    monkeypatch.setattr(loop, "agents_confirmed", lambda: [])
+    monkeypatch.setattr(loop.pacing, "check", lambda n: type("P", (), {"allowed": True, "reason": ""})())
+    flag = tmp_path / "f"
+    flag.write_text("1")
+    monkeypatch.setattr(loop, "STOP_FLAG", lambda: flag)
+    st = _st("design")
+    assert "정지" in loop.step(st, path=_backlog(tmp_path, "done"))
+    assert st["phase"] == "stopped" and not flag.exists()
