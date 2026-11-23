@@ -84,7 +84,6 @@ test('모든 +page/+error 에 PageHead 또는 <title>', () => {
 const H1_IN_CHILD = [
 	'src/routes/demo/+page.svelte',
 	'src/routes/library/[id]/+page.svelte',
-	'src/routes/library/[id]/laps/+page.svelte',
 	'src/routes/library/[id]/metrics/+page.svelte',
 	'src/routes/library/[id]/providers/+page.svelte',
 	'src/routes/library/[id]/streams/+page.svelte',
