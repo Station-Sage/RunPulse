@@ -2,7 +2,7 @@
 """문서 정합성 검증 스크립트 (v0.3 Phase 6 확장판).
 
 검사 항목:
- 1. BACKLOG.md NOW 항목 수 (3개 이하)                    [general]
+ 1. BACKLOG.md NOW 항목 수 (5개 이하)                    [general]
  2. files_index.md 동기화 검증                            [code]
  3. 300줄 초과 파일 목록                                  [code]
  4. pytest 수집 수 출력                                   [code]
@@ -123,10 +123,10 @@ def check_backlog():
     if now_match:
         now_items = re.findall(r"^- \[ \]", now_match.group(1), re.MULTILINE)
         count = len(now_items)
-        if count <= 3:
-            ok(f"NOW 항목: {count}개 (최대 3개)")
+        if count <= 5:
+            ok(f"NOW 항목: {count}개 (최대 5개)")
         else:
-            warn(f"NOW 항목: {count}개 (최대 3개 권장)")
+            warn(f"NOW 항목: {count}개 (최대 5개 권장)")
     else:
         ok("NOW 섹션 없음 (정상)")
 

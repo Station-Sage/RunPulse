@@ -21,10 +21,10 @@
 6. `python scripts/check_docs.py` 실행 및 불일치 수정
 
 ## BACKLOG 운영
-- NOW 최대 3개, NEXT 최대 5개
+- NOW 최대 5개, NEXT 최대 10개
 - NOW 전부 완료 시 → NEXT에서 승격 (사용자 확인 후)
 - BUGS: 수정 완료 시 `DONE.md`로 이동. **(판단 필요)** 태그 항목은 사용자 지시 없이 진행 금지
-- DONE.md: 10건 초과 시 오래된 것부터 삭제 (git log에 이력 보존)
+- DONE.md: 20건 초과 시 오래된 것부터 삭제 (git log에 이력 보존)
 - 사용자가 미룬 항목 → `LATER.md` 기록. Claude가 자발적으로 읽지 않음
 - `LATER.md` → BACKLOG 승격은 사용자 지시로만
 - Hotfix: 긴급 1건은 직접 지시로 진행 가능. 완료 후 DONE.md 기록
