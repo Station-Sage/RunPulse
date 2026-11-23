@@ -976,6 +976,26 @@ def check_phase6_load_validate():
 
 
 # ════════════════════════════════════════
+#  21. 감사 커버리지 인벤토리 ↔ 실제 화면 라우트 일치 (API 는 pytest 가 검증)
+# ════════════════════════════════════════
+@check("21. 감사 커버리지 인벤토리 화면 목록 일치", ["code"])
+def check_audit_inventory():
+    import json
+    inv_path = ROOT / "v0.3" / "data" / "audit" / "coverage_inventory.json"
+    if not inv_path.exists():
+        error("coverage_inventory.json 없음 — `.venv/bin/python scripts/audit/inventory.py --write`")
+        return
+    sys.path.insert(0, str(ROOT))
+    from scripts.audit.inventory import frontend_screens
+    committed = set(json.loads(inv_path.read_text(encoding="utf-8"))["screens"])
+    live = set(frontend_screens())
+    if committed == live:
+        ok(f"인벤토리 화면 {len(live)}개 일치")
+    else:
+        error(f"인벤토리 불일치: 추가 {sorted(live - committed)}, 삭제 {sorted(committed - live)}")
+
+
+# ════════════════════════════════════════
 #  main
 # ════════════════════════════════════════
 def main():
