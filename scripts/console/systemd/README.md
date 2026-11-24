@@ -24,7 +24,7 @@
          - service: http_status:404
 
 3. `cloudflared tunnel route dns runpulse-console console.stationsage.dev`
-4. `cloudflared service install` 또는 user 서비스로 상시 실행.
+4. `runpulse-tunnel.service` 를 `~/.config/systemd/user/` 에 복사 후 `systemctl --user enable --now runpulse-tunnel` (Access 앱을 먼저 만든 뒤 3번 DNS 라우트를 공개할 것).
 5. Cloudflare Zero Trust → Access → Applications → Self-hosted: 도메인 `console.stationsage.dev`,
    정책 Allow = 본인 이메일 1개(원타임 PIN 또는 IdP). **Access 앱을 먼저 만든 뒤** DNS 라우트를 공개한다.
 6. 확인: 시크릿 창에서 접속 시 Access 로그인 화면이 떠야 하고, 로그인 후 콘솔이 보여야 한다.

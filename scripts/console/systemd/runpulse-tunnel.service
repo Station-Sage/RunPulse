@@ -1,0 +1,11 @@
+[Unit]
+Description=RunPulse 콘솔 cloudflared 터널
+After=network-online.target runpulse-console.service
+
+[Service]
+ExecStart=/usr/local/bin/cloudflared tunnel --config /home/ubuntu/.cloudflared/config.yml run runpulse-console
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
