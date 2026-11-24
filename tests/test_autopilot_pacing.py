@@ -54,3 +54,13 @@ def test_fallback_when_no_session_observation(monkeypatch):
     runs = [{"ts": now - 60, "cost_usd": 0.1}, {"ts": now - 30, "cost_usd": 0.1}]
     assert not pacing.check(now, runs).allowed
     assert pacing.check(now, runs[:1]).allowed
+
+
+def test_fallback_ignores_entries_before_expired_window_reset():
+    import time
+    from scripts.autopilot import pacing, settings
+    now = time.time()
+    rl = {"rateLimitType": "five_hour", "resetsAt": now - 600, "status": "allowed"}
+    old = [{"ts": now - 3000 - i, "unit_id": "u", "cost_usd": 0.01} for i in range(settings.FALLBACK_SESSION_MAX_RUNS)]
+    old[0]["rate_limit"] = rl
+    assert pacing.check(now, sorted(old, key=lambda e: e["ts"])).allowed
