@@ -44,6 +44,15 @@ def latest_observation(entries: list[dict], rtype: str, now: float) -> dict | No
     return None
 
 
+def last_session_reset(entries: list[dict]) -> float:
+    """가장 최근 five_hour 관측의 resetsAt — 만료됐다면 그 시각 이후가 새 세션 창이다."""
+    for e in reversed(entries):
+        rl = e.get("rate_limit") or {}
+        if rl.get("rateLimitType") == "five_hour":
+            return float(rl.get("resetsAt", 0))
+    return 0.0
+
+
 def weekly_target(now: float, reset_at: float | None = None) -> float:
     """균등 배분 목표 사용률(0~1) — 주 시작 직후에도 최소 PACE_FLOOR 는 허용."""
     reset_at = reset_at or week_start(now) + WEEK_SEC
@@ -75,7 +84,8 @@ def check(now: float | None = None, entries: list[dict] | None = None) -> Pacing
         if wk.get("status") == "rejected" or wk.get("utilization", 0) >= target:
             return Pacing(False, f"주간 사용률 {wk.get('utilization', 1):.0%} ≥ 균등 목표 {target:.0%} — 페이싱 대기", wk["resetsAt"])
     if not sess:
-        recent = ledger.since(SESSION_SEC / 3600, entries, now)
-        if len(recent) >= settings.FALLBACK_SESSION_MAX_RUNS or ledger.total_cost(recent) >= settings.FALLBACK_SESSION_MAX_USD:
+        reset = last_session_reset(entries)
+        recent = [e for e in ledger.since(SESSION_SEC / 3600, entries, now) if e["ts"] > reset and not str(e.get("unit_id", "")).startswith("audit-ask")]
+        if recent and (len(recent) >= settings.FALLBACK_SESSION_MAX_RUNS or ledger.total_cost(recent) >= settings.FALLBACK_SESSION_MAX_USD):
             return Pacing(False, "5시간 관측 없음 — 대체 한도(실행 수·USD) 도달", recent[0]["ts"] + SESSION_SEC)
     return Pacing(True)

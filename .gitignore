@@ -138,3 +138,11 @@ data/auth.db-*
 data/calendar_feeds.db
 data/mcp_tokens.db
 data/synth_20users.db
+
+# 스모크 산출물/백테스트 임시 출력
+scripts/synth_smoke/pw/out/
+scripts/synth_smoke/shots/
+shots/
+plan_backtest.json
+*.whl
+config.json.bak-*
