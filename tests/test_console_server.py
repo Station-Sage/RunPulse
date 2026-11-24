@@ -47,3 +47,26 @@ def test_http_origin_and_content_type():
         assert post({"Content-Type": "application/json"}) == 400
     finally:
         srv.shutdown()
+
+
+def test_static_files_served():
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        for path, needle in (("/", b"/api/overview"), ("/manifest.webmanifest", b"short_name"), ("/sw.js", b"fetch")):
+            body = urllib.request.urlopen(f"http://127.0.0.1:{srv.server_port}{path}").read()
+            assert needle in body
+    finally:
+        srv.shutdown()
+
+
+def test_timers_and_tunable_values(monkeypatch):
+    import json as _json
+    import subprocess as _sp
+
+    rows = [{"unit": "runpulse-audit.timer", "next": 1_700_000_100_000_000, "last": 1_700_000_000_000_000}]
+    monkeypatch.setattr(server.subprocess, "run", lambda *a, **k: _sp.CompletedProcess(a, 0, stdout=_json.dumps(rows)))
+    t = server.timers()
+    assert t["runpulse-audit"] == {"next": 1_700_000_100, "last": 1_700_000_000, "active": "active"}
+    assert t["runpulse-watch"]["next"] == 0
+    assert set(server.tunable_values()) == set(server.control.TUNABLES)

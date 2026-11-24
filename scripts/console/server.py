@@ -13,9 +13,12 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from scripts.audit import decisions, progress
+from scripts.autopilot import settings
 from scripts.console import control, overview
 
-STATIC = Path(__file__).parent / "static" / "index.html"
+STATIC_DIR = Path(__file__).parent / "static"
+FILES = {"/": ("index.html", "text/html"), "/index.html": ("index.html", "text/html"),
+         "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"), "/sw.js": ("sw.js", "application/javascript")}
 
 
 def log_tail(n: int = 80, path: Path | None = None) -> list[str]:
@@ -26,16 +29,23 @@ def log_tail(n: int = 80, path: Path | None = None) -> list[str]:
 
 
 def timers() -> dict:
-    """타이머별 다음 실행·마지막 실행 시각(systemctl show). 실패하면 빈 값."""
-    out = {}
-    for t in control.TIMERS:
-        try:
-            r = subprocess.run(["systemctl", "--user", "show", f"{t}.timer", "-p", "NextElapseUSecRealtime", "-p", "LastTriggerUSec", "-p", "ActiveState"],
-                               capture_output=True, text=True, timeout=10).stdout
-            out[t] = dict(line.split("=", 1) for line in r.splitlines() if "=" in line)
-        except (OSError, subprocess.SubprocessError):
-            out[t] = {}
+    """타이머별 다음·마지막 실행 시각(에폭 초)과 활성 상태(systemctl list-timers). 실패하면 빈 값."""
+    out = {t: {"next": 0, "last": 0, "active": "?"} for t in control.TIMERS}
+    try:
+        rows = json.loads(subprocess.run(["systemctl", "--user", "list-timers", "--all", "--output=json"],
+                                         capture_output=True, text=True, timeout=10).stdout or "[]")
+        for r in rows:
+            t = str(r.get("unit", "")).removesuffix(".timer")
+            if t in out:
+                out[t].update(next=int(r.get("next") or 0) // 1_000_000, last=int(r.get("last") or 0) // 1_000_000, active="active")
+    except (OSError, subprocess.SubprocessError, ValueError):
+        pass
     return out
+
+
+def tunable_values() -> dict:
+    """조정 가능 항목의 현재 유효값(tunables.json 덮어쓰기 → 기본값)."""
+    return {k: settings.tunable(k) for k in control.TUNABLES}
 
 
 def choose(iid: str, choice: str, dpath: Path | None = None) -> dict:
@@ -56,7 +66,7 @@ def choose(iid: str, choice: str, dpath: Path | None = None) -> dict:
 def route(method: str, path: str, body: dict | None = None) -> tuple[int, dict | list]:
     body = body or {}
     if method == "GET":
-        routes = {"/api/overview": overview.overview, "/api/decisions": overview.decision_list, "/api/log": log_tail, "/api/timers": timers}
+        routes = {"/api/overview": overview.overview, "/api/decisions": overview.decision_list, "/api/log": log_tail, "/api/timers": timers, "/api/tunables": tunable_values}
         fn = routes.get(path)
         return (200, fn()) if fn else (404, {"error": "not found"})
     if path == "/api/control":
@@ -84,9 +94,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         p = urlparse(self.path).path
-        if p in ("/", "/index.html"):
+        if p in FILES:
+            name, ctype = FILES[p]
             try:
-                return self._send(200, STATIC.read_bytes(), "text/html")
+                return self._send(200, (STATIC_DIR / name).read_bytes(), ctype)
             except OSError:
                 return self._send(404, {"error": "UI 없음"})
         self._send(*route("GET", p))
