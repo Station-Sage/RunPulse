@@ -34,7 +34,6 @@ const ALLOWED = new Set([
 	'src/routes/data/sync/+page.svelte',
 	'src/routes/demo/+page.svelte',
 	'src/routes/library/+page.svelte',
-	'src/routes/library/[id]/+page.svelte',
 	'src/routes/library/[id]/laps/+page.svelte',
 	'src/routes/library/[id]/metrics/+page.svelte',
 	'src/routes/library/[id]/providers/+page.svelte',
@@ -63,5 +62,12 @@ test('today: pageHeading(childOwns=[ok]) 로 empty·failed 가 보이는 h1 소�
 	const s = readFileSync('src/routes/today/+page.svelte', 'utf8');
 	assert.match(s, /import \{ pageHeading \} from '\$lib\/a11y\/pageHeading'/);
 	assert.match(s, /<PageHead title="Today" heading=\{pageHeading\([^}]*'Today', \['ok'\]\)\}/);
+	assert.doesNotMatch(s, /<PageHead[^>]*heading=\{null\}/);
+});
+
+test('library/[id]: 활동 없음 분기는 PageHead 가 보이는 h1 소유(ok 만 레이아웃 위임)', () => {
+	const s = readFileSync('src/routes/library/[id]/+page.svelte', 'utf8');
+	assert.match(s, /import \{ pageHeading \} from '\$lib\/a11y\/pageHeading'/);
+	assert.match(s, /heading=\{pageHeading\(core \? 'ok' : 'failed', '활동 상세', \['ok'\]\)\}/);
 	assert.doesNotMatch(s, /<PageHead[^>]*heading=\{null\}/);
 });

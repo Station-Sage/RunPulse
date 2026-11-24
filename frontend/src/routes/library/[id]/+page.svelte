@@ -1,5 +1,6 @@
 <script lang="ts">
 	import PageHead from '$lib/components/ui/PageHead.svelte';
+	import { pageHeading } from '$lib/a11y/pageHeading';
 	// 03c-library.md 3-C — 활동 상세 요약 탭. 나머지 탭은 별도 라우트(ActivityTabs).
 	import type { ActivityPageData } from './+page';
 	import RouteMap from '$lib/components/RouteMap.svelte';
@@ -99,7 +100,8 @@
 	}
 </script>
 
-<PageHead title={`${core?.name ?? '활동 상세'}`} heading={null} />
+<!-- ok 만 레이아웃 헤더가 h1(활동명)을 그린다. 활동을 못 찾은 분기는 PageHead 가 보이는 h1 소유. -->
+<PageHead title={`${core?.name ?? '활동 상세'}`} heading={pageHeading(core ? 'ok' : 'failed', '활동 상세', ['ok'])} />
 
 <DrillPanel scopeType="activity" scopeId={String(core?.id ?? '')}>
 
