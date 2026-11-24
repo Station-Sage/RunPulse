@@ -13,5 +13,5 @@
 	<h1 class="text-xl font-semibold text-fg-primary">로그인 또는 가입</h1>
 	<p class="text-sm text-fg-secondary">GitHub, Google, 이메일 코드 중 편한 방법으로 확인해요. 처음이면 다음 화면에서 초대코드를 입력해요.</p>
 	<a href={loginHref(next)} data-sveltekit-reload class="inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-fg-on-accent" data-testid="auth-login-go">로그인 또는 가입</a>
-	<a href="{base}/demo" class="text-center text-sm text-fg-secondary underline">샘플 러너로 둘러보기</a>
+	<a href="{base}/demo" class="tap inline-flex items-center justify-center text-sm text-fg-secondary underline">샘플 러너로 둘러보기</a>
 </main>

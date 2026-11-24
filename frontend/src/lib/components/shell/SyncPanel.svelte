@@ -35,7 +35,7 @@
 <div class="flex flex-col gap-3 p-4">
 	<div class="flex items-center justify-between">
 		<h2 id="sync-panel-h" class="text-sm font-medium">동기화</h2>
-		<button type="button" onclick={onClose} class="text-xs text-fg-muted hover:text-fg-primary">닫기</button>
+		<button type="button" onclick={onClose} class="tap inline-flex items-center justify-center text-xs text-fg-muted hover:text-fg-primary">닫기</button>
 	</div>
 	<ul class="flex flex-col gap-2">
 		{#each sync.sources as src (src.provider)}

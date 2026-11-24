@@ -19,5 +19,5 @@
 	{:else}
 		<ErrorState {failure} onRetry={() => invalidate(retryKey)} />
 	{/if}
-	<a href={backHref} class="text-xs text-fg-muted underline">{backLabel}</a>
+	<a href={backHref} class="tap inline-flex items-center text-xs text-fg-muted underline">{backLabel}</a>
 </div>
