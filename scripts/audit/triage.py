@@ -14,7 +14,7 @@ import re
 from scripts.audit.agents import ask
 from scripts.audit.vision import VISION
 
-ALLOWED_SCOPE = ("frontend/src/", "tests/")
+ALLOWED_SCOPE = ("frontend/src/", "frontend/tests/", "tests/")
 RISK = re.compile(r"스키마|schema|DDL|migrat|마이그레이션|삭제|delete|drop|auth|인증|권한|결제|config|ADR|decisions|"
                   r"알고리즘|calculator|메트릭 정의|예측|개인정보|배포|deploy|API 계약|breaking", re.I)
 _DESIGN = VISION + """
