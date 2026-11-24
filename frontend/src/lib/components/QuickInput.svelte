@@ -92,7 +92,7 @@
 		<div class="flex items-center justify-between">
 			<p class="text-sm text-fg-secondary">어떻게 느껴지나요?</p>
 			{#if dismissDate}
-				<button type="button" onclick={snooze} class="text-xs text-fg-muted hover:text-fg-primary">✕ 나중에</button>
+				<button type="button" onclick={snooze} class="tap inline-flex items-center justify-center text-xs text-fg-muted hover:text-fg-primary">✕ 나중에</button>
 			{/if}
 		</div>
 

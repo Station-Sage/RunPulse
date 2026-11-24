@@ -9,7 +9,7 @@
 	const tabs = navTabs(base);
 	const side = $derived(variant === 'side');
 	// S-06: 이동 중에는 목적지 탭을 먼저 활성 표시(aria-current 는 실제 현재 화면만)
-	const highlightPath = $derived(tabHighlightPath(page.url.pathname, navigating.to?.url.pathname));
+	const highlightPath = $derived(tabHighlightPath(page.url.pathname, navigating.to?.url?.pathname));
 </script>
 
 <nav

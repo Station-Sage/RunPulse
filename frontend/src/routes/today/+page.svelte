@@ -2,6 +2,7 @@
 	import InsightBanner from '$lib/components/InsightBanner.svelte';
 	import PageHead from '$lib/components/ui/PageHead.svelte';
 	import { say } from '$lib/a11y/say';
+	import { pageHeading } from '$lib/a11y/pageHeading';
 	// 10-today design §2 — B1 히어로 → B2 체크인 → B3 게이지 → B4 다음 세션 → B6 최근 활동 → B7 차트/내러티브.
 	import type { TodayPageData } from './+page';
 	import { toQuickInputExisting } from '$lib/checkinView';
@@ -99,7 +100,8 @@
 	});
 </script>
 
-<PageHead title="Today" heading={null} />
+<!-- ok 만 자식(TodayHero 등)이 h1 을 그린다. empty(EmptyState 는 h1 없음)·failed 는 PageHead 가 보이는 h1 소유. -->
+<PageHead title="Today" heading={pageHeading(data.today ? 'ok' : data.errorKind === 'failed' ? 'failed' : 'empty', 'Today', ['ok'])} />
 
 {#if !data.today}
 	{#if data.errorKind === 'failed'}

@@ -1164,3 +1164,12 @@ REVIEW-04 #S2(Coach 근거 없음, 입력창 미도킹) 해소. 근거 칩은 To
   - V3 Intervals CTL 대조(2025-05-04~2026-05-08, 370일): 일 변화 SD 비 2.31 → 1.15(합격 범위 0.9~1.2). 상관은 PMC만 교정 시 0.843(합격), TRIMP 계수까지 교정 시 0.765 — Intervals 부하 모델과 강도 가중 방식이 달라 생기는 차이로 판단(Banister 원식 채택, D2). 수준(CTL 절대값)이 약 19% 낮아진 것도 TRIMP 계수 교정 때문.
   - 마일스톤 신규 생성 0건.
 - 남은 데이터 결손: TRIMP가 있는 날이 1066일 중 340일(2025-09 이전은 심박 없는 활동 다수) — BUG DATA-CTL-WARMUP 원인은 재계산으로 해소되지 않음(심박 결측).
+
+## [AUD-295255-2] today empty 분기의 h1 소유자 불일치 — 명세("empty·ok 는 null")와 현행 컴포넌트가 충돌
+- **발견**: 명세는 today 를 `pageHeading(state,'Today',['ok','empty'])`(failed 만 제목)로 전환하라고 한다. 그러나 `TodayEmpty.svelte` → `EmptyState.svelte` 는 제목을 `<p>` 로만 그리고 h1 이 없다. 따라서 empty 에서 heading=null 이면 Today 빈 상태의 h1 이 0개가 되어, 이 단위가 고치려는 no-h1 결함이 남는다. ok 분기도 `TodayHero` 가 view 없음/broken 일 때 h1 을 그리지 않는 틈이 있다(ColdStartProgress 는 h1 있음).
+- **선택지**:
+  1. empty 도 제목 소유(`childOwns=['ok']`): empty·failed 에서 today PageHead 가 보이는 `Today` h1 을 그린다. 변경이 scope(+page.svelte, 계약 테스트) 안에 머문다. 명세의 "empty=null" 문구만 정정한다.
+  2. 명세 유지(`['ok','empty']`) + `TodayEmpty.svelte` 에 h1 추가: scope 밖 파일 수정이고 EmptyState 의 `<p>` 제목과 중복될 수 있다.
+  3. 명세 유지 + 계약 테스트 허용목록에 "today empty 는 h1 없음" 예외 기록: 결함을 남긴 채 허용하므로 비추천.
+- **권고**: 1번. ok 분기에서 TodayHero 가 h1 을 못 그리는 경우(broken)는 별도 단위로 다룬다. 승인되면 -2 를 `childOwns=['ok']` 기준으로 재실행한다.
+- **상태**: 코드 변경 없이 중단.

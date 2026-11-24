@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { afterNavigate, replaceState } from '$app/navigation';
 	import { base } from '$app/paths';
+	import { navFromPath } from '$lib/navFrom';
 	import type { Snippet } from 'svelte';
 	import ActivityTabs from '$lib/components/ActivityTabs.svelte';
 	import { providerBadgeClass } from '$lib/provider';
@@ -20,7 +21,7 @@
 	let cameFromApp = $state(false);
 	afterNavigate((nav) => {
 		canonicalize();
-		cameFromApp = nextCameFromApp(cameFromApp, nav.type, nav.from?.url?.pathname ?? null, `${base}/library/${page.params.id}`);
+		cameFromApp = nextCameFromApp(cameFromApp, nav.type, navFromPath(nav.from), `${base}/library/${page.params.id}`);
 	});
 	// 앞자리 0 등 같은 활동의 다른 표기는 정규 URL 로 바꾼다(A-21, history 를 쌓지 않음).
 	// 라우터 준비 뒤(afterNavigate)에만 replaceState 를 부를 수 있다.

@@ -26,7 +26,7 @@
 		<IconButton label="이전 달" onclick={() => onshift(-1)} class="rounded-full text-fg-secondary hover:bg-surface-3">‹</IconButton>
 		<span class="text-sm font-semibold">{label}</span>
 		<IconButton label="다음 달" disabled={!canNext} onclick={() => onshift(1)} class="rounded-full text-fg-secondary hover:bg-surface-3 disabled:opacity-30">›</IconButton>
-		<button type="button" onclick={onclear} class="ml-auto rounded-full border border-border-subtle px-3 py-1 text-xs text-fg-muted hover:text-fg-secondary">✕ {Number(month.slice(5))}월</button>
+		<button type="button" onclick={onclear} class="tap ml-auto rounded-full border border-border-subtle px-3 py-1 text-xs text-fg-muted hover:text-fg-secondary">✕ {Number(month.slice(5))}월</button>
 	</div>
 	{#if summary}
 		<p class="text-xs text-fg-muted">
