@@ -2382,6 +2382,10 @@
 
 - functions: test_reap_kills_only_registered_matching, test_cycle_skips_below_min_interval, test_cycle_logs_skip_when_pacing_blocks
 
+### `test_audit_decisions.py` (28줄) — A2 — 구조화 결정함(pending_decisions.json) build/append/choose.
+
+- functions: test_build_fields, test_append_dedup_and_load, test_choose
+
 ### `test_audit_deploy.py` (67줄) — audit/deploy.py — 운영 반영 가드·병합·빌드 분기 (git/npm 은 주입한 sh 로 대체).
 
 - functions: run, test_guards_leave_everything_untouched, test_diverged_and_merge_failure_report_failed, test_merge_builds_frontend_only_when_changed, test_full_pytest_gates_merge_with_lf_retry, test_flaky_failure_passes_on_lf_rerun
@@ -2406,9 +2410,9 @@
 
 - functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_needs_decision_items_do_not_stop_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_needs_decision_left_does_not_stop, test_run_until_stop_converts_exception_and_pacinghold
 
-### `test_audit_p5.py` (68줄) — P5 — 필수 브라우저 스윕 가드, 독립 검토 게이트, 사이클 요약.
+### `test_audit_p5.py` (82줄) — P5 — 필수 브라우저 스윕 가드, 독립 검토 게이트, 사이클 요약.
 
-- functions: test_browser_sweep_fails_on_zero_cells, test_browser_sweep_ok_and_no_node, test_cycle_skips_agents_when_sweep_fails, test_cycle_runs_agents_with_review_after_sweep, test_parse_verdict_and_confirmed, test_review_uses_different_model_and_skips_non_real
+- functions: test_browser_sweep_fails_on_zero_cells, test_browser_sweep_ok_and_no_node, test_cycle_skips_agents_when_sweep_fails, test_cycle_runs_agents_with_review_after_sweep, test_parse_verdict_and_confirmed, test_review_uses_different_model_and_skips_non_real, test_browser_sweep_retries_once_then_succeeds, test_browser_sweep_failure_reports_stderr_tail
 
 ### `test_audit_progress.py` (10줄)
 
@@ -2422,9 +2426,9 @@
 
 - functions: test_resolve_path_uses_db_sample_and_defaults, test_apply_results_records_ledger, test_stop_kills_stubborn_process
 
-### `test_audit_triage.py` (116줄) — P6 — 판단 등급 분류(위험 가드·교차 검토·결정 보고서)와 loop 설계 단계 연동.
+### `test_audit_triage.py` (144줄) — P6 — 판단 등급 분류(위험 가드·교차 검토·결정 보고서)와 loop 설계 단계 연동.
 
-- functions: test_parse_design_and_check_conservative, test_risk_keyword_forces_user_without_calling_models, test_auto_requires_cross_review_with_other_model, test_disagree_or_bad_scope_or_missing_verify_is_user, test_report_has_options_and_reason, test_design_phase_splits_auto_and_user, test_is_large, test_large_design_escalates_to_opus_with_sonnet_reviewer, test_large_design_stays_sonnet_when_opus_not_allowed, test_open_unit_covering_kind_suppresses_duplicate_finding, test_design_prompt_asks_for_root_cause_and_recommendation, test_normalize_verify_runs_frontend_tests_from_frontend_dir
+- functions: test_parse_design_and_check_conservative, test_risk_keyword_forces_user_without_calling_models, test_auto_requires_cross_review_with_other_model, test_disagree_or_bad_scope_or_missing_verify_is_user, test_report_has_options_and_reason, test_design_phase_splits_auto_and_user, test_is_large, test_large_design_escalates_to_opus_with_sonnet_reviewer, test_large_design_stays_sonnet_when_opus_not_allowed, test_open_unit_covering_kind_suppresses_duplicate_finding, test_design_prompt_asks_for_root_cause_and_recommendation, test_normalize_verify_runs_frontend_tests_from_frontend_dir, test_unsure_reasked_once_then_agree, test_disagree_not_reasked, test_design_parse_failure_retried_once, test_docs_scope_allowed
 
 ### `test_audit_watch.py` (26줄) — audit/watch.py — 문제 판정과 중복 알림 억제.
 
@@ -2454,9 +2458,9 @@
 
 - functions: test_ignore_budget_false_blocks_when_over_daily_cap, test_ignore_budget_true_skips_budget_check
 
-### `test_autopilot_pacing.py` (75줄) — pacing.py — 세션·주간 rate_limit 기반 페이싱 판정.
+### `test_autopilot_pacing.py` (83줄) — pacing.py — 세션·주간 rate_limit 기반 페이싱 판정.
 
-- functions: test_week_start_is_previous_thursday_22, test_session_ceiling_blocks_until_reset, test_expired_observation_ignored, test_weekly_pace_target_grows_with_time, test_weekly_over_target_blocks_and_under_allows, test_fallback_when_no_session_observation, test_fallback_ignores_entries_before_expired_window_reset, test_fallback_excludes_audit_ask_entries
+- functions: test_week_start_is_previous_thursday_22, test_session_ceiling_blocks_until_reset, test_expired_observation_ignored, test_weekly_pace_target_grows_with_time, test_weekly_over_target_blocks_and_under_allows, test_fallback_when_no_session_observation, test_fallback_ignores_entries_before_expired_window_reset, test_fallback_excludes_audit_ask_entries, test_fallback_limits_tunable_via_tunables_json
 
 ### `test_autopilot_queue.py` (145줄) — scripts/autopilot/queue.py 테스트 — kind="code" 확장(scope/verify) 라운드트립 중심.
 
@@ -4296,7 +4300,7 @@
 - functions: run
 
 ---
-총 940개 파일
+총 941개 파일
 
 ## docstring 누락
 

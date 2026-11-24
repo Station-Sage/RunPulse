@@ -66,3 +66,17 @@ def test_review_uses_different_model_and_skips_non_real(monkeypatch):
     out = review.review([{"verdict": "real", "kind": "k", "perspective": "ux"},
                          {"verdict": "noise", "kind": "k2"}], {"k": [{"cell": "a|b|c", "note": "n"}]})
     assert calls == ["haiku"] and out[0]["review"]["verdict"] == "reject" and "review" not in out[1]
+
+
+def test_browser_sweep_retries_once_then_succeeds(monkeypatch):
+    monkeypatch.setattr(cycle.shutil, "which", lambda n: "/usr/bin/node")
+    seq = iter([_cp("", 1, "a\nb\nc\nd"), _cp(json.dumps({"swept": 5, "failed": []}))])
+    monkeypatch.setattr(cycle.subprocess, "run", lambda *a, **k: next(seq))
+    assert cycle.browser_sweep() == (5, None)
+
+
+def test_browser_sweep_failure_reports_stderr_tail(monkeypatch):
+    monkeypatch.setattr(cycle.shutil, "which", lambda n: "/usr/bin/node")
+    monkeypatch.setattr(cycle.subprocess, "run", lambda *a, **k: _cp("", 1, "a\nb\nc\nd"))
+    n, err = cycle.browser_sweep()
+    assert "재시도 후에도 실패" in err and "b | c | d" in err and "a" not in err.split("실패: ")[1].split(" | ")[0]

@@ -93,10 +93,7 @@ def summary(e: dict) -> str:
             f"후보 {e.get('findings', 0)}건 중 독립 검토 통과 {e.get('confirmed', 0)}건 · {e.get('elapsed_sec', 0)}초")
 
 
-def browser_sweep(limit: int | None = None) -> tuple[int, str | None]:
-    """브라우저 스윕 실행 — (셀 수, 실패 사유). 사유가 None 일 때만 성공. 생략 경로는 없다."""
-    if not shutil.which("node"):
-        return 0, "node 없음"
+def _sweep_once(limit: int | None) -> tuple[int, str | None]:
     cmd = [sys.executable, "-m", "scripts.audit.sweep"] + (["--limit", str(limit)] if limit else [])
     r = subprocess.run(cmd, cwd=inventory.ROOT, capture_output=True, text=True)
     sys.stdout.write(r.stdout)
@@ -109,8 +106,20 @@ def browser_sweep(limit: int | None = None) -> tuple[int, str | None]:
         except ValueError:
             continue
     if r.returncode != 0 or swept == 0:
-        return swept, (failed[0] if failed else (r.stderr.strip().splitlines() or ["셀 0개"])[-1])[:200]
+        tail = " | ".join(r.stderr.strip().splitlines()[-3:])  # 마지막 3줄 — 원인 줄이 끝 한 줄이 아닌 경우가 많다
+        return swept, (str(failed[0]) if failed else tail or "셀 0개")[:300]
     return swept, None
+
+
+def browser_sweep(limit: int | None = None) -> tuple[int, str | None]:
+    """브라우저 스윕 — (셀 수, 실패 사유). 일시 실패(서버 기동·브라우저)는 1회 재시도, 사유엔 stderr 끝 3줄. 생략 경로는 없다."""
+    if not shutil.which("node"):
+        return 0, "node 없음"
+    swept, err = _sweep_once(limit)
+    if err:
+        swept, err2 = _sweep_once(limit)
+        err = None if err2 is None else f"재시도 후에도 실패: {err2}"
+    return swept, err
 
 
 def main(argv: list[str] | None = None) -> int:

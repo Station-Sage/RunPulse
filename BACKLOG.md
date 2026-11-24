@@ -9,6 +9,8 @@
 
 - **[AP-A1]** (2026-11-24) 오토파일럿 개선 A1 상태·정지 모델 정리 구현 완료(브랜치 feat/autopilot-a1-state, 미머지): `blocked` → `needs_decision`(사용자 결정, 루프 비정지·`pending_decisions` 노출)/`failed`(검증·수정 실패)로 분리, 정지 사유 enum(`scripts/audit/stopreason.py`)과 타이머 자동 재개 정책(pacing·step_cap·round_done 자동 / failed·stop_flag 는 `--reset`). 후속 A3(구현 완료 — 아래 [AP-A3])·A2(결정 JSON 스키마·자동 승인 완화, 별도 사용자 결정)·A4(sweep 재시도·pacing 폴백 완화) → 이후 관제 콘솔 4단계. 머지는 사용자 지시 시.
 - **[AP-A3]** (2026-11-24) 감사 신규성: `known.py` 알려진 이슈 장부(재발 방지·수정 후 재검증), `discover.py` 도구 사용 발견 감사(Read/Grep/Glob, 라운드당 상한 `AUDIT_TOOL_CALLS_PER_ROUND`=8 — 사용자 확정, `settings.tunable` 로 `tunables.json` 덮어쓰기 가능 → 관제 콘솔에서 수정). 브랜치 feat/autopilot-a1-state, 미머지. 다음: A2(별도 사용자 결정)·A4.
+- **[AP-A2]** (2026-11-24) 자동 승인 단계적 완화 + 구조화 결정함: 교차 검토 unsure 1회 재질의, 설계 파싱 실패 1회 재시도, 허용 범위에 docs/·scripts/audit/ 추가(RISK·disagree 는 그대로 사람). 자동 승인 항목에 `auto_approved` 메타(콘솔 사후 검토·되돌리기용), 결정 대기 건은 `pending_decisions.json`(옵션·추천·되돌리기 방법, `scripts/audit/decisions.py`)에 구조화 기록. 브랜치 feat/autopilot-a1-state, 미머지. 다음: A4.
+- **[AP-A4]** (2026-11-24) 중단 완화: 브라우저 스윕 일시 실패 1회 재시도·사유에 stderr 끝 3줄 기록(`cycle.browser_sweep`), 5시간 관측 없음 대체 한도 완화(실행 6→10, USD 8→12)하고 `tunables.json` 으로 관제에서 조정 가능. 브랜치 feat/autopilot-a1-state, 미머지. 다음: 관제 콘솔 1단계.
 
 ## BUGS
 
