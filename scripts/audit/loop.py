@@ -20,7 +20,7 @@ import re
 import time
 from pathlib import Path
 
-from scripts.audit import agents, cycle, deploy, inventory, progress, release, stopreason, triage
+from scripts.audit import agents, cycle, decisions, deploy, inventory, progress, release, stopreason, triage
 from scripts.autopilot import notify, pacing, queue, reconcile, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
@@ -57,7 +57,7 @@ def propose(findings: list[dict], path: Path, decide=None, tiers: dict | None = 
     have = {it.item_id for it in items}
     covered = {m for it in items if it.stage not in ("done", "needs_decision", "failed") for m in re.findall(r"\(커버: ([\w,\- ]+)\)", it.text)
                for m in re.split(r"[, ]+", m) if m}
-    new, lines, reports = [], [], []
+    new, lines, reports, recs = [], [], [], []
     for f in findings:
         if f["kind"] in covered:
             continue
@@ -69,9 +69,10 @@ def propose(findings: list[dict], path: Path, decide=None, tiers: dict | None = 
         meta = {"stage": "queued" if d["tier"] == "auto" else "needs_decision", "mode": "auto", "attempts": 0, "deps": [],
                 "kind": "code"}
         if d["tier"] == "auto":
-            meta.update(scope=d["design"]["scope"], verify=d["design"]["verify"])
+            meta.update(scope=d["design"]["scope"], verify=d["design"]["verify"], auto_approved=True)
         else:
             reports.append(f"## {iid}\n" + triage.report(f, d))
+            recs.append(decisions.build(iid, f, d))
         new.append(iid)
         if tiers is not None:
             tiers[iid] = d["tier"]
@@ -79,6 +80,7 @@ def propose(findings: list[dict], path: Path, decide=None, tiers: dict | None = 
     if lines:
         with path.open("a", encoding="utf-8") as fh:
             fh.write("\n" + "\n".join(lines) + "\n")
+    decisions.append(recs)
     if reports:
         PENDING_PATH.parent.mkdir(parents=True, exist_ok=True)
         with PENDING_PATH.open("a", encoding="utf-8") as fh:

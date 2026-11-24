@@ -14,7 +14,7 @@ import re
 from scripts.audit.agents import ask
 from scripts.audit.vision import VISION
 
-ALLOWED_SCOPE = ("frontend/src/", "frontend/tests/", "tests/")
+ALLOWED_SCOPE = ("frontend/src/", "frontend/tests/", "tests/", "docs/", "scripts/audit/")
 RISK = re.compile(r"스키마|schema|DDL|migrat|마이그레이션|삭제|delete|drop|auth|인증|권한|결제|config|ADR|decisions|"
                   r"알고리즘|calculator|메트릭 정의|예측|개인정보|배포|deploy|API 계약|breaking", re.I)
 _DESIGN = VISION + """
@@ -89,6 +89,8 @@ def decide(finding: dict, author: str = "sonnet", ask_fn=ask, opus_ok=None) -> d
         return {"tier": "user", "why": "위험 키워드(스키마·권한·알고리즘 등) — 사람 결정 필요", "design": {}, "check": {}}
     prompt = _DESIGN % (finding["kind"], finding.get("impact", ""), finding.get("fix", ""))
     design = parse_design(ask_fn(prompt, author))
+    if not design["summary"]:  # 파싱 실패는 1회 재시도 후에도 비면 user
+        design = parse_design(ask_fn(prompt, author))
     if author != "opus" and is_large(design) and opus_ok():
         big = parse_design(ask_fn(prompt, "opus"))
         if big["summary"]:
@@ -102,7 +104,10 @@ def decide(finding: dict, author: str = "sonnet", ask_fn=ask, opus_ok=None) -> d
     elif not all(s.startswith(ALLOWED_SCOPE) for s in design["scope"]):
         out["why"] = f"허용 범위 밖 경로 포함: {design['scope']}"
     else:
-        out["check"] = parse_check(ask_fn(_CHECK % (what, design["summary"], design["scope"], design["verify"]), reviewer))
+        cprompt = _CHECK % (what, design["summary"], design["scope"], design["verify"])
+        out["check"] = parse_check(ask_fn(cprompt, reviewer))
+        if out["check"]["verdict"] == "unsure":  # 1회 재질의, disagree 는 그대로 사람에게
+            out["check"] = parse_check(ask_fn(cprompt, reviewer))
         if out["check"]["verdict"] == "agree":
             out.update(tier="auto", why=f"교차 검토 통과({reviewer}): {out['check']['reason']}")
         else:
