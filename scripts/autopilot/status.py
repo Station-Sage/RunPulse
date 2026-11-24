@@ -48,6 +48,13 @@ def main() -> None:
         print(f"  ⚠ 메타 주석 파싱 의심 {len(malformed)}건 (조용히 manual 취급됐을 수 있음):")
         for w in malformed:
             print(f"    {w}")
+    missing = queue.find_missing_meta(settings.QUEUE_PATH)
+    if missing:
+        print(f"  ⚠ 메타 주석 없는 항목 {len(missing)}건 (수동 전용 — 자동 실행 안 됨, mode/stage 메타 필요):")
+        for w in missing[:10]:
+            print(f"    {w}")
+        if len(missing) > 10:
+            print(f"    … 외 {len(missing) - 10}건")
     items = queue.parse(settings.QUEUE_PATH)
     auto_items = [it for it in items if it.mode == "auto"]
     by_stage: dict[str, int] = {}

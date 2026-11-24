@@ -126,6 +126,7 @@ mode로 조사·설계 후 승인받아 진행). 이어서 `src/api/` Flask `/ap
   §9-4가 정한 구현 순서(S3→S2→S0)상 Phase 7a~7d 착수를 막지는 않지만, 03 화면 카탈로그에
   언젠가 반영해야 하는 남은 설계 작업. 2026-10-10 설계서(DESIGN-P7-REVIEW03-LIFECYCLE)
   완료, 사용자가 D-L1~D-L8 확정(사이트 공개, 나머지 추천안) → ADR-038. 구현 L1~L7 전부 완료(L7 문서는 03·03a·02 §2.4·05 §11.1에 이미 반영, 2026-10-10 감사 확인).
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 
 P7-IMPL-D2(`activity_groups` 마스터 테이블)·P7-IMPL-D1-REST(utrs/cirs 자식 메트릭,
 `P7-IMPL-D1-REST-UC`로 완료 — race_readiness는 별도 Calculator가 아니라 RRI 자신이고
@@ -174,14 +175,19 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   테이퍼 개인 반응. (5) **검증**: 과거 대회 전 훈련을 역으로 재현해 주기화 파라미터(램프율·감량 비율·롱런 피크)를 백테스트,
   LLM 보조 조정은 근거 표시·규칙 폴백 유지. 관련: `DECISIONS.md [P7-UI-REVIEW-0927]` 1번(남은 한계), `plan_structure.py`,
   `periodization.py`.
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 
-- **[P7-UXR-ROADMAP]** v2 UI/UX 심층 리뷰(2026-09-27~28) 통합 로드맵 — `ux-review-2026-09/99-summary.md §7`이
+- **[P7-UXR-ROADMAP]** (설계 단계: 코드 변경 금지, 설계 문서 DESIGN-UXR-ROADMAP.md 를 작성하고 사용자 결정이 필요한 갈림길은 DECISIONS.md 에 기록) v2 UI/UX 심층 리뷰(2026-09-27~28) 통합 로드맵 — `ux-review-2026-09/99-summary.md §7`이
   유일한 소스(Phase 0 핫픽스 → 1 수치 교정 → 2 공통 규격 §C → 3 탭별 트랙 A/B/C → 4 미구현·기본 진입 전환 G0~G6).
   결정은 `DECISIONS.md [P7-UX-REVIEW-0928]`. Phase 0은 완료(DONE 참조). 다음 착수 후보는 Phase 1-1 부하 모델
   재기준화(D1·D2, 전 기간 재계산 = 실 DB 변경이라 백업·사용자 확인 후). 각 Phase 착수 시 해당 탭 `design.md §9`로
   plan mode 확정.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": []} -->
 
-- **[P7-UXR-DESIGN-PENDING]** Phase 3 구현 중 "설계·사용자 판단이 필요해 손대지 않은" 항목 모음(2026-10-04 등록).
+- **[P7-UXR-ROADMAP-IMPL]** (P7-UXR-ROADMAP 설계 완료 후) Phase 1-1 부하 모델 재기준화 구현(DB 사본·백업 기준 검증만, 운영 DB 적용 금지). 설계 문서 DESIGN-UXR-ROADMAP.md 를 따른다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-UXR-ROADMAP"], "kind": "code", "scope": ["src/metrics/", "scripts/", "tests/"], "verify": ["python3 -m pytest tests/ -q"]} -->
+
+- **[P7-UXR-DESIGN-PENDING]** (설계 단계: 코드 변경 금지, 설계 문서 DESIGN-UXR-DESIGN-PENDING.md 를 작성하고 사용자 결정이 필요한 갈림길은 DECISIONS.md 에 기록) Phase 3 구현 중 "설계·사용자 판단이 필요해 손대지 않은" 항목 모음(2026-10-04 등록).
   착수 전 plan 승인 필수 — 각 항목은 해당 화면 작업 시 함께 꺼낸다. 출처는 `ux-review-2026-09/IMPL-PROGRESS.md`.
   **(판단 필요)**
   1. **UTRS 입력 항목 드릴**: explain API terms 중 `utrs_hrv`·`utrs_sleep`은 `drill`이 null이라 분해 패널에서 행 이동 불가
@@ -210,6 +216,10 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   `check_docs.py` 검사 19가 `def build_ai_context` 존재 확인) 삭제 여부 — 삭제 시 검사 19와 phase-5 문서도 정정.
   ② `HIGHER_IS_BETTER` 이동은 현 위치 유지(레이어 다름), `template_helpers.py` 28키 사본은 Jinja 폐기 시 정리.
   ③ ◆ 알고리즘 버전 마커(TrendChart): `metric_store`는 지표당 단일 algorithm_version(전 기간 재계산)이라 데이터로 파생 불가 — 버전 변경 이력(changelog) 소스 설계 후 구현. `x.taper` drill 패널은 Today 드릴 설계 필요(현재 `chipTarget`은 `/today/race`).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": []} -->
+
+- **[P7-UXR-DESIGN-PENDING-IMPL]** (P7-UXR-DESIGN-PENDING 설계 완료 후) ai_context 미사용 함수 삭제·◆ 마커·테이퍼 드릴·SWR 구현(설계 문서 기준). 설계 문서 DESIGN-UXR-DESIGN-PENDING.md 를 따른다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-UXR-DESIGN-PENDING"], "kind": "code", "scope": ["src/", "frontend/src/", "frontend/tests/", "tests/", "scripts/check_docs.py"], "verify": ["python3 -m pytest tests/ -q"]} -->
 
 - **S5 완료(2026-10-04)**: 웰니스 `/:date` 페이지·API(ADR-020). 다음 S6/S7.
 - **S6 완료(2026-10-05)**: 소스 비교 매트릭스·쌍 상세·메트릭 링크(ADR-021, 실 DB 사본 Playwright OK). 다음 S7.
@@ -219,7 +229,7 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   **확정·구현 완료(U17a, ADR-021, decisions.md:160; 이전 '보류' 표기는 stale)**: §8-1 훈련 부하를 scale ×r·경고 없음으로 표시 / §8-2 EF를 definition 행으로 / §8-3 단일 소스 행을 접힘 목록으로 /
   §8-4 U9 `SEMANTIC_GROUPS` `("training_load_score","intervals")`→`("training_load","intervals")` 수정. 후속 후보: 모바일 매트릭스 "차이" 열 가로 스크롤 개선.
 
-- **[P7-LLM-AGENT-CANDIDATES]** 규칙 기반으로 만든 기능 중 LLM 에이전트가 전문적으로 맡아야 할 후보(2026-10-07 식별, **설계·승인 전 구현 금지**).
+- **[P7-LLM-AGENT-CANDIDATES]** (설계 단계: 코드 변경 금지, 설계 문서 DESIGN-LLM-AGENT-CANDIDATES.md 를 작성하고 사용자 결정이 필요한 갈림길은 DECISIONS.md 에 기록) 규칙 기반으로 만든 기능 중 LLM 에이전트가 전문적으로 맡아야 할 후보(2026-10-07 식별, **설계·승인 전 구현 금지**).
   공통 설계 제약: ① 규칙 폴백 유지(키 없음·실패·검증 불합격 시) ② 모든 출력에 근거(입력 지표·날짜) 표시 ③ `ai_validator` 수치 정합성 검증
   ④ D8 외부 전송 동의 ⑤ 캐시 키·일일 호출 상한(`P7-IMPL-NARRATIVE-CACHE` 결정 승계) ⑥ 지표 계산은 LLM에 맡기지 않고 서버 값만 해석.
   **(판단 필요)** — 각 항목 착수 시 plan mode로 설계서부터(running-data-coach·product-architect 에이전트 검수 권장):
@@ -233,6 +243,10 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   7. **지표 설명 개인화**(`metric_label_texts.py` `action_hint`, B-5 "무엇을 바꾸면"): 정적 문구 → 개인 이력 기반 해석(정적 문구는 폴백·사용자 검수 유지).
   8. **레이스 전략·테이퍼 코멘트**(`x.taper` 시트, 레이스 허브): 시나리오 표 위에 코스·날씨·훈련 반응 기반 전략 서술.
   우선순위 제안: 3 → 2 → 1(가치·위험 균형). 선행 결정: 모델·비용 상한, 평가 방법(오프라인 골든 세트·사실 정합 검증), 개인 데이터 전송 범위.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": []} -->
+
+- **[P7-LLM-AGENT-CANDIDATES-IMPL]** (P7-LLM-AGENT-CANDIDATES 설계 완료 후) LLM 에이전트 후보 우선순위 3→2→1 중 설계 문서가 승인한 1단계만 구현(외부 API 실호출 금지, 모킹). 설계 문서 DESIGN-LLM-AGENT-CANDIDATES.md 를 따른다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-LLM-AGENT-CANDIDATES"], "kind": "code", "scope": ["src/", "tests/"], "verify": ["python3 -m pytest tests/ -q"]} -->
 
 (현재 NEXT 없음 — `P7-IMPL-COACH-PLAN-STATIC`은 하위 유닛
 `P7-IMPL-COACH-PLAN-ACTIVE`/`P7-IMPL-COACH-PLAN-CREATE` 둘 다 done이 되어
@@ -3118,13 +3132,17 @@ DONE으로 옮긴다.
   (2) `frontend/src/lib/components/QuickInput.svelte` — 피로도 1~10 버튼 묶음(`<div role="radiogroup" aria-label="피로도 (1~10)" class="flex flex-wrap gap-1">`)을 한 줄 눈금으로 바꾼다: 컨테이너 클래스를 `grid grid-cols-10 gap-1`로, 각 버튼 클래스의 `h-9 w-9`를 `h-11 min-w-0`로 바꾼다(나머지 `rounded border … text-sm` 조건 클래스는 그대로). 통증 묶음·메모·저장 마크업은 건드리지 않는다.
   리뷰: 워크트리 diff를 명세와 줄 단위 대조 — RecommendationCard가 L0 첫 자식, QuickInput `compact={true}`, 피로도 `grid grid-cols-10 gap-1` / `h-11 w-full` 모두 명세와 일치(이탈 없음). npm test:unit·check·build 통과. 실데이터 사본/합성 브라우저 확인은 병합 후.
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-IMPL-COACH-MARKDOWN"], "kind": "code", "scope": ["frontend/src/routes/today/+page.svelte", "frontend/src/lib/components/QuickInput.svelte"], "verify": ["cd frontend && npm install && npm run check && npm run build"]} -->
-- **[P7-DATA-STREAM-ELAPSED]** `activity_streams.elapsed_sec`가 시간이 아니라 샘플 인덱스로 저장된 활동이 있다 —
+- **[P7-DATA-STREAM-ELAPSED]** (설계 단계: 코드 변경 금지, 설계 문서 DESIGN-DATA-STREAM-ELAPSED.md 를 작성하고 사용자 결정이 필요한 갈림길은 DECISIONS.md 에 기록) `activity_streams.elapsed_sec`가 시간이 아니라 샘플 인덱스로 저장된 활동이 있다 —
   2026-09-24 실데이터 화면 리뷰에서 발견(활동 15302: 실제 8357초인데 1692점·elapsed 0..1691). 원인: `garmin_extractor.
   extract_activity_streams`가 `directElapsedDuration`이 없으면 `int(elapsed_raw) if … else i`(샘플 인덱스)를 쓴다 —
   Garmin 상세 스트림은 `maxChartSize`로 downsample돼 오기 때문. 수정 방향(판단 필요): descriptor의 시간 키(`directTimestamp`
   등) 차이로 실제 초를 계산하거나 총 시간에 비례 환산 + `source_payloads` raw로 **재처리(reprocess)해 기존 행 정정**.
   UI는 `P7-IMPL-STREAMS-TRUTH`가 저장값을 맹신하지 않도록 이미 방어함. Strava 추출기(`elapsed_sec: t`)는 시간 스트림을
   쓰므로 영향 없음 추정 — 확인 필요. **(판단 필요)** — 스키마·재처리(실데이터 갱신) 수반.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": []} -->
+
+- **[P7-DATA-STREAM-ELAPSED-IMPL]** (P7-DATA-STREAM-ELAPSED 설계 완료 후) 스트림 경과초 실측 계산 + 재처리 도구 구현(설계 문서 기준). 설계 문서 DESIGN-DATA-STREAM-ELAPSED.md 를 따른다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-DATA-STREAM-ELAPSED"], "kind": "code", "scope": ["src/sync/", "scripts/", "tests/"], "verify": [".venv/bin/python -m pytest tests/test_garmin_extractor.py tests/test_stream_time.py tests/test_stream_meta_backfill.py -q"]} -->
 
 - **[P7-IMPL-TREND-CHART]** 추세 차트에 축·공통 스케일·스크럽 추가 + 무의미한 % 변화 교정 — 프론트 전용, 2026-09-24 실데이터 화면 리뷰에서 발견, 설계 근거는 `DECISIONS.md`의 `[P7-IMPL-TREND-CHART]` 항목 필독. 현황(실데이터 스크린샷): (a) 메트릭 상세(`library/metrics/[slug]`)의 추세 차트는 선 하나뿐 — y축·값 눈금이 없고 어느 날 값이 얼마인지 볼 수 없다(P2 "데이터 포인트를 눌러 확인"이 불가). (b) 같은 화면의 "30일 변화"가 `+742.2%`(CTL이 4.5→37.9라 기준값이 작아 퍼센트가 무의미). (c) Today L2의 CTL·ATL 차트가 각자 자기 범위로 스케일돼 ATL이 실제보다 훨씬 출렁이는 것처럼 보이고(같은 축이 아님) 값을 읽을 수 없다. **이 명세의 코드는 그대로 구현할 것 — 구조를 바꾸고 싶으면 `DECISIONS.md`에 사유를 적고 중단.** **구현**:
   (1) 신규 `frontend/src/lib/trendChart.ts`(순수 함수, 다른 모듈 import 금지):
@@ -3642,11 +3660,15 @@ DONE으로 옮긴다.
 
 ## LATER
 
-- **[P7-DATA-MENU-ENTRY]** 상단 3선 메뉴 실제 진입점(`/v2/data/settings` 등) — Phase 7d
+- **[P7-DATA-MENU-ENTRY]** (설계 단계: 코드 변경 금지, 설계 문서 DESIGN-DATA-MENU-ENTRY.md 를 작성하고 사용자 결정이 필요한 갈림길은 DECISIONS.md 에 기록) 상단 3선 메뉴 실제 진입점(`/v2/data/settings` 등) — Phase 7d
   Data API(`GET /api/v1/data/sources` 등)가 있어야 채울 수 있음, 지금은 비활성 ☰ 버튼만
   존재(`P7-IMPL-SVELTE` 1차 참조).
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": []} -->
 
-- **[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT]** 5-F/5-G의 "조정 수락" 영속화 —
+- **[P7-DATA-MENU-ENTRY-IMPL]** (P7-DATA-MENU-ENTRY 설계 완료 후) 데이터 API + /v2/data/settings 진입점 구현(설계 문서 기준). 설계 문서 DESIGN-DATA-MENU-ENTRY.md 를 따른다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-DATA-MENU-ENTRY"], "kind": "code", "scope": ["src/api/", "frontend/src/", "frontend/tests/", "tests/"], "verify": ["python3 -m pytest tests/ -q"]} -->
+
+- **[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT]** (설계 단계: 코드 변경 금지, 설계 문서 DESIGN-COACH-PLAN-ADJUSTMENT-ACCEPT.md 를 작성하고 사용자 결정이 필요한 갈림길은 DECISIONS.md 에 기록) 5-F/5-G의 "조정 수락" 영속화 —
   현재 `adjust_todays_plan()`은 완전 읽기 전용(매 로드마다 재계산, DB
   미기록)이라 "수락" 버튼을 눌러도 반영할 데이터가 없음. `planned_workouts`
   에 조정 결과를 반영하는 쓰기 경로 신설 필요(예: `adjusted_distance_km`
@@ -3656,6 +3678,10 @@ DONE으로 옮긴다.
   adjustment`)로 배정해둠** — Phase 7b 범위인 지금 앞당겨 만들지 않음,
   ML 개인화 플랜 생성(7c)과 묶어서 재검토. `P7-IMPL-COACH-PLAN-ACTIVE`
   설계 근거는 `DECISIONS.md` 참조.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": []} -->
+
+- **[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT-IMPL]** (P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT 설계 완료 후) planned_workouts 영속화 + PUT accept-adjustment 구현(설계 문서 기준, 스키마 변경은 tmp DB 로만 검증). 설계 문서 DESIGN-COACH-PLAN-ADJUSTMENT-ACCEPT.md 를 따른다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": ["P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT"], "kind": "code", "scope": ["src/", "tests/"], "verify": ["python3 -m pytest tests/ -q"]} -->
 
 ---
 
@@ -3665,6 +3691,7 @@ DONE으로 옮긴다.
   `training_balance_service`·`training_balance_axes`(새 Calculator 없음, 표시 시점 계산), `GET /api/v1/library/metrics/training-balance`,
   조회 보강 `metrics_service.get_daily_metric_as_of/get_daily_series`·`plan_load.weekly_planned_km/longest_planned_long_km`,
   프런트 `BalanceRadar`·`BalanceTable`(상시 표)·`TrainingBalanceCard`(메트릭 브라우저 상단)·`/library/balance`. A4 레이스 분리(D3)는 후속.
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 - **[P7-UXR-P0]** UX 리뷰 Phase 0 핫픽스(2026-09-28): Coach 규칙 답변의 회복 등급 코드 불일치(`A/B/C` vs
   `excellent/good/moderate/poor`) 수정 + 상수화·회귀 테스트(항상 "피로 회복 필요"가 나오던 결함), 규칙 답변 페이스
   `초/km`→`m:ss/km`, 없는 목적지 문구("훈련 탭", "설정 > AI") 교체, gunicorn gthread 8스레드(워커 1 유지 — auto_sync·
@@ -3673,6 +3700,7 @@ DONE으로 옮긴다.
   `formatPace` 반올림("5:60" → "6:00"), 분해 시트 원시 부동소수 포맷, 페이스 스파크라인 반전(빠름=위), 고도 최소
   도메인 30m, 스플릿 부분 구간 스케일·최고 구간 제외, 근력 칩 `strength`. 남은 Phase 0: 틀린 Coach 답변 3건 배너
   (msg 8·12·14, 실 DB 대상이라 보류).
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 
 - **[P7-UI-REVIEW-0927]** 실계정 UI 점검 → 계획 기간·단계, 매칭·결과 라벨, 이행률, 예측 카드 정리,
   마일스톤 표시, 동기화 소스 토글(`sync_sources`) 정정(2026-09-27, 사용자 승인). 결정·근거는
@@ -3696,6 +3724,7 @@ DONE으로 옮긴다.
   `BACKLOG.md`의 `BUG-CHAT-RULE-FALLBACK`로 기록, 이 시점엔 범위 밖이라 수정 안 함.
   상세 판단 근거는 `06-data-layer-extensions.md` "구현 후기" 절. **(2026-09-22 후속 수정
   완료 — 최상위 `BACKLOG.md` DONE 참조, 아래 "진행 현황"도 갱신됨)**
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 - **[P7-IMPL-API]** Flask `/api/v1/` 블루프린트 9개 엔드포인트(2026-09-22, plan mode로 조사 후
   승인받아 진행). 범위는 사용자 확인으로 BACKLOG 한 줄 설명(Today/Library)보다 넓게
   확정 — 07 로드맵의 Phase 7a 산출물 체크리스트대로 Coach MVP 4개 포함. `src/api/`
@@ -3728,6 +3757,7 @@ DONE으로 옮긴다.
   완성, L2는 실제 조회 가능한 데이터만 표시하는 축약 스텁 — 03a-today.md 1-A' 문구 그대로가
   아니라 월간거리/준수율/다음세션처럼 아직 없는 데이터를 지어내지 않음, narrative/plan
   API는 7b) + Library/Coach는 "준비 중" 플레이스홀더.
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 
   **구현 중 발견한 문제 2건** (`today_service.py`에 순수 추가 — 기존 반환 구조 안 건드림):
   1) `today_service.get_today_status()`가 provider를 안 내려줘서 MetricCell(C2)의 P3(Provider
@@ -3750,6 +3780,7 @@ DONE으로 옮긴다.
   흡수, 03b/03d는 안내 스텁化. 04는 REVIEW-03 §5의 "신규 컴포넌트 필요성" 질문에 답함(불필요).
   05는 REVIEW-03 §10의 "인증·멀티테넌시 섹션" 요구를 충족(§11 신설). `check_docs.py` 0
   errors. 새로 발견한 미결 항목 5건은 "진행 현황" 보류 목록 참조.
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 - **[P7-REALIGN-SCOPE]** Phase 7a~7d 재정렬 — 00 §1.3/§4/§5.4, `07-migration-roadmap.md`
   전체를 REVIEW-03(하단 3탭) IA로 재정렬(2026-09-22, 이 세션에서 직접 판단·작성, 무인 실행
   아님 — 사용자가 "오토파일럿의 목적은 에이전트가 트레이드오프를 판단하는 것"이라며 사람이
@@ -3766,15 +3797,24 @@ DONE으로 옮긴다.
   `P7-AUTO-ALIGN-00-IA-AREAS`(00 §5.1/5.3/6/7 IA 영역 서술을 3탭+L0~L3 관여 모델로 갱신).
   1차 시도에서 worktree가 base 브랜치 갱신 없이 고정돼 있던 버그로 예산 초과 실패 1건 →
   `worktree.sync()` 추가로 수정 후 재시도 성공. 상세 커밋 이력은 `scripts/autopilot/` git log 참조.
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 - **[P7-07]** `07-migration-roadmap.md` v0.1 완료 — Phase 7a~7d 4단계 로드맵, 단계별 산출물·검증 기준·전환 조건, 롤백 전략, 기능 동등성 체크리스트, 위험 요소 5건
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 - **[P7-06]** `06-data-layer-extensions.md` v0.1 완료 — D1~D5 ADR 5건, DDL (user_inputs/ai_feedback/activity_groups/athlete_profile_snapshots), Calculator 수정 범위(4개), 마이그레이션 실행 순서, 영향 파일 목록, 테스트 요건
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 - **[P7-05]** `05-tech-architecture.md` v0.1 완료 — SvelteKit adapter-static + Flask 단일 프로세스, `/api/v1/` 엔드포인트 전체 목록, 빌드·배포 전략, PWA Cache-First 전략, 베타 토글 구현, ADR 6개, 구현 전제조건 체크리스트
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 - **[P7-04]** `04-component-catalog.md` v0.1 완료 — 7개 컴포넌트 props 인터페이스(TypeScript), 상태 테이블, 레이아웃 와이어프레임, 인터랙션 패턴, 공유 디자인 토큰(색상·타이포·간격), 접근성 원칙
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 - **[P7-03]** `03-screen-catalog.md` v0.1 완료 — 6개 영역 22개 화면 텍스트 와이어프레임, 공통 패턴 4개 (드릴다운 레벨, Provider 배지, EvidenceQuote 칩, 상태 기반 배지)
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 - **[P7-02]** `02-information-architecture.md` v0.1 완료 — 전체 라우트 트리, URL 스키마 규칙, 구↔신 URL 리다이렉트 매핑, 네비게이션 구조(데스크탑/모바일), 영역별 진입 흐름 5개, 영역 간 컨텍스트 유지 패턴, 딥링크, 마이그레이션 단계
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 - **[P7-01]** `01-design-principles.md` v0.1 완료 — 원칙 8개 상세 정의(적용/위반/준수 예시 포함), 우선순위, 충돌 해결 예시, 설계 완료 체크리스트
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 - **[P7-00]** `00-diagnostic-and-direction.md` v0.2 완료 — 현 UI 진단(3/10), 데이터 레이어 적합도(8.5/10), 분기점 A/B/C/D 확정, KPI 매핑 8개
 - U9 B-6 `basis_change` ◇ 이벤트 완료(2026-10-05): /trend events + TrendChart 마커·판독. Phase 3 잔여 없음.
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 
 - U15 완료(2026-10-05, 운영 반영 완료): 활동 피드백(RPE·통증·메모)·동기화 원장 v2·오류 상태 error-auth/access/upstream·사용자 설정 API. 다음은 U16(계획 엔진 v2) — U16a~i 완료, 다음 U16j.
 

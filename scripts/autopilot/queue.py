@@ -105,6 +105,30 @@ def find_malformed_meta(path: Path) -> list[str]:
     return warnings
 
 
+def find_missing_meta(path: Path) -> list[str]:
+    """메타 주석이 없는 항목(= 조용히 manual·queued 취급되어 무인 실행에서 빠지는 항목)을 찾는다.
+
+    완료된 옛 항목도 포함된다 — 의도적 수동 항목이면 `mode:"manual"` 메타를 붙여 경고를 끈다.
+    """
+    return [f"{it.line_no + 1}행 [{it.item_id}]" for it in parse(path) if it.meta_line_no < 0]
+
+
+def add_meta(path: Path, item_id: str, **fields) -> None:
+    """메타 주석이 없는 항목에 메타 줄을 새로 삽입(항목 본문 마지막 줄 바로 뒤)."""
+    target = next((it for it in parse(path) if it.item_id == item_id), None)
+    if target is None:
+        raise ValueError(f"항목 없음: {item_id}")
+    if target.meta_line_no >= 0:
+        raise ValueError(f"이미 메타 있음: {item_id}")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    end = target.line_no + 1
+    while end < len(lines) and lines[end].strip() and not _ITEM_RE.match(lines[end]):
+        end += 1
+    lines.insert(end, "  <!-- autopilot: {} -->")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    update_item(path, item_id, **{"stage": "queued", "mode": "manual", **fields})
+
+
 def next_runnable(items: list[QueueItem]) -> QueueItem | None:
     done = {it.item_id for it in items if it.stage == "done"}
     for it in items:

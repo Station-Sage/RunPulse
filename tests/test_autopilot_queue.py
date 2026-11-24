@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+import pytest
+
 from scripts.autopilot import queue
 
 
@@ -107,6 +109,25 @@ class TestFindMalformedMeta:
         items = queue.parse(p)
         assert items[0].mode == "manual"  # 의도한 auto가 아니라 manual로 조용히 빠짐
         assert queue.find_malformed_meta(p) != []  # 그래서 이 함수가 미리 잡아야 함
+
+
+class TestMissingMeta:
+    def test_find_and_add_meta(self, tmp_path):
+        p = tmp_path / "BACKLOG.md"
+        _write(p, "- **[A]** 설명\n  이어진 줄\n\n- **[B]** 다른\n")
+        assert [w for w in queue.find_missing_meta(p)] == ["1행 [A]", "4행 [B]"]
+        queue.add_meta(p, "A", stage="done")
+        items = queue.parse(p)
+        assert items[0].stage == "done" and items[0].mode == "manual"
+        assert items[1].meta_line_no < 0
+        assert queue.find_missing_meta(p) == ["5행 [B]"]
+        assert p.read_text(encoding="utf-8").splitlines()[2].lstrip().startswith("<!-- autopilot:")
+
+    def test_add_meta_rejects_existing(self, tmp_path):
+        p = tmp_path / "BACKLOG.md"
+        _write(p, '- **[A]** x\n  <!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[]} -->\n')
+        with pytest.raises(ValueError):
+            queue.add_meta(p, "A")
 
 
 class TestNextRunnableIgnoresKind:

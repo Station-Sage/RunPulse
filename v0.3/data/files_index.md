@@ -2450,12 +2450,13 @@
 
 - functions: test_week_start_is_previous_thursday_22, test_session_ceiling_blocks_until_reset, test_expired_observation_ignored, test_weekly_pace_target_grows_with_time, test_weekly_over_target_blocks_and_under_allows, test_fallback_when_no_session_observation, test_fallback_ignores_entries_before_expired_window_reset, test_fallback_excludes_audit_ask_entries
 
-### `test_autopilot_queue.py` (124줄) — scripts/autopilot/queue.py 테스트 — kind="code" 확장(scope/verify) 라운드트립 중심.
+### `test_autopilot_queue.py` (145줄) — scripts/autopilot/queue.py 테스트 — kind="code" 확장(scope/verify) 라운드트립 중심.
 
 - class **TestParseKindDefault**: test_missing_kind_defaults_to_docs
 - class **TestParseCodeKind**: test_reads_kind_scope_verify
 - class **TestUpdateItemPreservesCodeFields**: test_stage_update_keeps_scope_and_verify, test_docs_item_meta_shape_unchanged
 - class **TestFindMalformedMeta**: test_wrapped_meta_flagged, test_wellformed_meta_not_flagged, test_wrapped_meta_item_silently_becomes_manual
+- class **TestMissingMeta**: test_find_and_add_meta, test_add_meta_rejects_existing
 - class **TestNextRunnableIgnoresKind**: test_code_and_docs_both_runnable
 
 ### `test_autopilot_reconcile.py` (34줄) — review 항목 중 BASE_BRANCH 에 병합된 것만 done 으로 승격되는지.
