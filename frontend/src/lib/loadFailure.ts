@@ -45,6 +45,11 @@ export function failureCause(kind: FailureKind): string {
 	return '서버에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.';
 }
 
+// 잘못된 파라미터 등 화면이 직접 만드는 404 — 표준 Failure 형태로 통일한다.
+export function notFoundFailure(code: string): Failure {
+	return { kind: 'not_found', status: 404, code, detail: `404 ${code}` };
+}
+
 // 404 일 때만 null, 나머지 실패는 다시 던진다.
 export async function nullOn404<T>(p: Promise<T>): Promise<T | null> {
 	try {

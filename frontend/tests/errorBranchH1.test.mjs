@@ -5,8 +5,8 @@ import { readFileSync } from 'node:fs';
 
 const src = (p) => readFileSync(new URL(`../src/routes/${p}/+page.svelte`, import.meta.url), 'utf8');
 
-test('coach 스레드 오류 분기에 h1', () => {
-	assert.match(src('coach/[threadId]'), /<h1 class="sr-only">Coach 대화<\/h1>/);
+test('coach 스레드 오류 분기에 보이는 h1', () => {
+	assert.match(src('coach/[threadId]'), /\{#if !thread\}\s*<h1 class="[^"]*">Coach 대화<\/h1>\s*<LoadFailure/);
 });
 test('소스 상세 오류·미존재 분기에 h1', () => {
 	assert.match(src('data/sources/[provider]'), /data\.notFound \|\| !d \|\| !line\}\s*<h1 class="sr-only">\{syncProviderName\(data\.provider\)\}<\/h1>/);

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import PageHead from '$lib/components/ui/PageHead.svelte';
+	import LoadFailure from '$lib/components/LoadFailure.svelte';
+	import { notFoundFailure } from '$lib/loadFailure';
 	import { threadBackHref } from '$lib/activityEvidence';
 	// 03e-coach.md 5-B — 대화 스레드: 메시지 목록 + 입력 바.
 	// P7-IMPL-COACH-EVIDENCE-UI: 근거 칩(EvidenceQuote) + MetricBreakdown 드릴다운 + 입력창 하단 도킹.
@@ -32,7 +34,8 @@
 	const thread = $derived(data.detail?.thread ?? null);
 	const back = $derived(threadBackHref(thread?.context, base));
 	let messages = $state<ChatMessage[]>(data.detail?.messages ?? []);
-	let errorMessage = $state(data.errorMessage);
+	// 액션(전송·재생성·중단) 오류 전용 — load 실패(data.failure)와 분리한다.
+	let errorMessage = $state<string | null>(null);
 	let engine = $state<CoachEngine | null>(data.engine);
 
 	// 첫 LLM 전송 동의 게이트 — 동의 전에는 send를 보류하고 시트를 띄운다.
@@ -191,14 +194,14 @@
 <PageHead title="Coach 대화" heading={null} />
 
 {#if !thread}
-	<div class="flex flex-col items-center gap-3 px-4 py-20 text-center">
-		<h1 class="sr-only">Coach 대화</h1>
-		<p class="text-lg text-fg-secondary">대화를 찾을 수 없습니다</p>
-		{#if data.errorMessage}
-			<p class="text-xs text-fg-muted">{data.errorMessage}</p>
-		{/if}
-		<a href="{base}/coach" class="inline-flex min-h-11 items-center text-sm text-fg-secondary underline">‹ Coach로</a>
-	</div>
+	<h1 class="px-4 pt-4 text-lg font-semibold text-fg-primary">Coach 대화</h1>
+	<LoadFailure
+		failure={data.failure ?? notFoundFailure('NO_THREAD')}
+		retryKey={`app:coach-thread:${data.threadId}`}
+		backHref="{base}/coach"
+		backLabel="‹ Coach로"
+		notFoundText="대화를 찾을 수 없습니다"
+	/>
 {:else}
 <DrillPanel scopeType="daily" scopeId={localDateString()} {answerChip}>
 	<!-- 헤더 -->
