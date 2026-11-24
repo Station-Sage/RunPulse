@@ -21,7 +21,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import gate, ledger, leftovers, notify, queue, settings, size_followup, worktree
+from . import gate, ledger, leftovers, notify, queue, settings, size_followup, trailers, worktree
 
 _PROMPT_TEMPLATE_DOCS = """\
 당신은 RunPulse 프로젝트의 Phase 7 UI 재설계 설계 문서 작업을 무인(사람 없이)으로 수행합니다.
@@ -37,6 +37,7 @@ _PROMPT_TEMPLATE_DOCS = """\
   뒤 종료합니다. 이번 실행은 그것으로 완료된 것으로 간주합니다.
 - 작업을 마치면 (부분 완료라도) 반드시 git commit 하나 이상으로 마무리합니다. 커밋
   메시지는 conventional commits(docs:/feat: 등), 무엇을 끝냈고 무엇이 남았는지 명시.
+- 커밋 메시지에 Co-Authored-By·Anthropic 메일·"Generated with Claude Code" 같은 트레일러/서명 줄을 절대 넣지 않습니다.
 - push는 하지 않습니다. 이 브랜치({branch})는 검토 후 사람이 병합합니다.
 - 확신 없는 사실(DB 값, 기존 코드 동작)은 추측하지 말고, 확인할 수 없으면 문서에
   "TODO: 확인 필요"로 남기세요.
@@ -90,6 +91,7 @@ _PROMPT_TEMPLATE_CODE = """\
 - git은 현재 작업 디렉터리(워크트리)에서 `git add <파일>` / `git commit -m …`처럼 **`-C`
   옵션 없이** 실행하세요. `git -C <경로> …`는 허용 규칙(`git add:*` 등)과 매칭되지 않아
   승인 대기로 막히고 커밋이 안 됩니다(2026-09-24 ACTIVITY-ENV-CARD 실행이 이렇게 미커밋으로 끝남).
+- 커밋 메시지에 Co-Authored-By·Anthropic 메일·"Generated with Claude Code" 같은 트레일러/서명 줄을 절대 넣지 않습니다.
 - push는 하지 않습니다. 이 브랜치({branch})는 검토 후 사람이 병합합니다.
 
 이번 작업 [{item_id}]:
@@ -261,7 +263,10 @@ def run_once(
         queue.update_item(settings.QUEUE_PATH, item.item_id, stage="in_progress",
                           attempts=item.attempts + 1)
 
+        pre_head = worktree._run(["git", "rev-parse", "HEAD"], cwd=settings.WORKTREE_DIR).stdout.strip()
         outcome = _run_claude(item)
+        if pre_head:
+            trailers.scrub_range(settings.WORKTREE_DIR, pre_head)
         ledger.append({"unit_id": item.item_id, **outcome})
 
         verify_note = ""

@@ -4,7 +4,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from . import queue
+from . import queue, trailers
 
 
 def commit_leftovers(item: queue.QueueItem, cwd: Path) -> str:
@@ -26,8 +26,9 @@ def commit_leftovers(item: queue.QueueItem, cwd: Path) -> str:
         subprocess.run(["git", "add", "--", *in_scope], cwd=cwd, capture_output=True, text=True)
         r = subprocess.run(
             ["git", "commit", "-m",
-             f"chore(autopilot): {item.item_id} — 실행이 남긴 미커밋 scope 변경을 러너가 커밋 (리뷰 필요)\n\n"
-             + "\n".join(f"- {f}" for f in in_scope)],
+             trailers.strip_trailers(
+                 f"chore(autopilot): {item.item_id} — 실행이 남긴 미커밋 scope 변경을 러너가 커밋 (리뷰 필요)\n\n"
+                 + "\n".join(f"- {f}" for f in in_scope))],
             cwd=cwd, capture_output=True, text=True,
         )
         note = (f"미커밋 변경 {len(in_scope)}개를 러너가 커밋함" if r.returncode == 0
