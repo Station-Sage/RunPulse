@@ -2678,9 +2678,17 @@
 
 - functions: tmp_config, test_save_config_creates_file, test_save_config_roundtrip, test_save_config_overwrites, test_update_service_config_creates_file, test_update_service_config_partial_update, test_update_service_config_new_service, test_redact_masks_password, test_redact_masks_token, test_redact_does_not_mutate_original, test_redact_empty_value_unchanged
 
+### `test_console_control.py` (36줄) — 관제 제어 — 플래그·화이트리스트·타이머 drop-in·감사 로그.
+
+- functions: test_pause_resume_stop, test_tunables_validation, test_set_interval
+
 ### `test_console_overview.py` (25줄) — C1 — 관제 콘솔 overview/decision_list.
 
 - functions: test_queue_summary, test_overview_and_decisions
+
+### `test_console_server.py` (49줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
+
+- functions: test_choose_validation, test_log_tail_and_route, test_http_origin_and_content_type
 
 ### `test_constraints.py` (65줄)
 
@@ -4308,7 +4316,7 @@
 - functions: run
 
 ---
-총 943개 파일
+총 945개 파일
 
 ## docstring 누락
 
