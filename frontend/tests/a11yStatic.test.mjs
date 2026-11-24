@@ -88,7 +88,6 @@ const H1_IN_CHILD = [
 	'src/routes/library/[id]/providers/+page.svelte',
 	'src/routes/library/[id]/streams/+page.svelte',
 	'src/routes/library/wellness/[date]/+page.svelte',
-	'src/routes/today/+page.svelte',
 	'src/routes/welcome/+page.svelte'
 ];
 test('h1 ratchet — 라우트 파일에 h1 이 없는 페이지는 허용 목록에만', () => {
