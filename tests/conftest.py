@@ -191,3 +191,21 @@ def _isolated_ops_db(tmp_path, monkeypatch):
 def _isolate_progress_log(tmp_path, monkeypatch):
     from scripts.audit import progress
     monkeypatch.setattr(progress, "LOG_PATH", tmp_path / "progress.log")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_autopilot_state(tmp_path, monkeypatch):
+    """오토파일럿 상태 경로(원장·STOP·hold_until)를 테스트별 임시 경로로 격리 — 실 원장 PacingHold 방지."""
+    from scripts.autopilot import settings
+    state = tmp_path / "autopilot_state"
+    monkeypatch.setattr(settings, "STATE_DIR", state)
+    monkeypatch.setattr(settings, "LEDGER_PATH", state / "ledger.jsonl")
+
+
+@pytest.fixture(autouse=True)
+def _restore_db_setup_get_db_path():
+    """serve_synth.make_app 이 src.db_setup.get_db_path 를 직접 덮어쓰므로 테스트마다 원복한다."""
+    import src.db_setup as dbs
+    orig = dbs.get_db_path
+    yield
+    dbs.get_db_path = orig
