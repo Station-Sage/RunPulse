@@ -2378,6 +2378,10 @@
 
 - functions: test_display_meta_formats_m10_m21, test_josa_m31, test_merge_reasons_groups_same_input_m31, test_explain_avg7d_uses_seven_days_m11, test_compare_basis_partial_month_m14, test_story_future_month_has_no_next_and_no_compare_m16, test_risk_peak_carries_grade_m15, test_headline_adds_cirs_caveat_m17, test_signed_pct_and_lagging_m19, test_second_batch_descriptions_m07, test_trend_reports_source_m08
 
+### `test_audit_consume.py` (53줄) — C1 — 결정 소비(chosen→queued, redo→재제안·상한).
+
+- functions: test_chosen_promotes_to_queued, test_chosen_when_not_needs_decision_only_closes, test_redo_requests_new_proposal_then_hits_limit
+
 ### `test_audit_cycle.py` (42줄) — audit.procs 레지스트리와 audit.cycle 스킵 판정.
 
 - functions: test_reap_kills_only_registered_matching, test_cycle_skips_below_min_interval, test_cycle_logs_skip_when_pacing_blocks
@@ -2673,6 +2677,10 @@
 ### `test_config_utils.py` (99줄) — config.py 헬퍼 함수 테스트 — save_config, update_service_config, redact.
 
 - functions: tmp_config, test_save_config_creates_file, test_save_config_roundtrip, test_save_config_overwrites, test_update_service_config_creates_file, test_update_service_config_partial_update, test_update_service_config_new_service, test_redact_masks_password, test_redact_masks_token, test_redact_does_not_mutate_original, test_redact_empty_value_unchanged
+
+### `test_console_overview.py` (25줄) — C1 — 관제 콘솔 overview/decision_list.
+
+- functions: test_queue_summary, test_overview_and_decisions
 
 ### `test_constraints.py` (65줄)
 
@@ -4300,7 +4308,7 @@
 - functions: run
 
 ---
-총 941개 파일
+총 943개 파일
 
 ## docstring 누락
 

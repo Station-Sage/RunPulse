@@ -1,6 +1,6 @@
 """구조화 결정함(A2) — 사용자 결정 대기 건을 pending_decisions.json 에 기록한다. 관제 콘솔 결정함이 그대로 읽는다.
 
-레코드: {id, kind, status(open|chosen|redo), summary, why, options[{key,name,pros,cons}], recommendation, revert, created, choice}.
+레코드: {id, kind, status(open|chosen|redo|applied), finding, scope, verify, rounds, summary, why, options[{key,name,pros,cons}], recommendation, revert, created, choice}.
 마크다운 보고서(pending_decisions.md)는 사람이 파일로 읽을 때를 위해 유지한다.
 """
 from __future__ import annotations
@@ -19,6 +19,8 @@ def build(iid: str, finding: dict, d: dict) -> dict:
             for i, o in enumerate(dz.get("options", []))]
     return {"id": iid, "kind": finding["kind"], "status": "open", "summary": dz.get("summary", ""), "why": d.get("why", ""),
             "options": opts, "recommendation": dz.get("recommendation", ""), "revert": REVERT,
+            "finding": {k: finding.get(k, "") for k in ("kind", "impact", "fix")},
+            "scope": list(dz.get("scope", [])), "verify": list(dz.get("verify", [])), "rounds": 1,
             "created": time.strftime("%Y-%m-%dT%H:%M:%S"), "choice": None}
 
 
@@ -33,6 +35,12 @@ def append(recs: list[dict], path: Path | None = None) -> None:
     p = path or DECISIONS_PATH
     have = {r["id"] for r in load(p)}
     data = load(p) + [r for r in recs if r["id"] not in have]
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def save(data: list[dict], path: Path | None = None) -> None:
+    p = path or DECISIONS_PATH
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
 

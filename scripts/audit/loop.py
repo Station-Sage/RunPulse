@@ -20,7 +20,7 @@ import re
 import time
 from pathlib import Path
 
-from scripts.audit import agents, cycle, decisions, deploy, inventory, progress, release, stopreason, triage
+from scripts.audit import agents, consume, cycle, decisions, deploy, inventory, progress, release, stopreason, triage
 from scripts.autopilot import notify, pacing, queue, reconcile, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
@@ -194,6 +194,8 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
             return "새 후보 없음 — 단일 라운드 종료(정지)"
         return "새 후보 없음 — 라운드 종료"
     if ph in ("await", "develop"):
+        for m in consume.apply(path, act.get("decide", triage.decide)):
+            progress.mark(f"[루프] 결정 반영: {m}")
         promoted = reconcile.promote_merged(path)
         if promoted:
             progress.mark(f"[루프] 병합 완료된 review 항목 done 승격: {', '.join(promoted)}")
