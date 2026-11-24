@@ -64,7 +64,7 @@ def main() -> None:
     nr = queue.next_runnable(items)
     print(f"  다음 실행 대상: {nr.item_id if nr else '(없음)'}")
     for it in auto_items:
-        if it.stage in ("blocked", "review"):
+        if it.stage in ("needs_decision", "failed", "review"):
             print(f"    [{it.stage}/{it.kind}] {it.item_id}: {it.text[:60]}")
 
     print("\n=== worktree ===")

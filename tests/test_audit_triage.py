@@ -69,7 +69,7 @@ def test_design_phase_splits_auto_and_user(tmp_path, monkeypatch):
     loop.step(st, path=p, act={"decide": lambda f: next(seq)})
     from scripts.autopilot import queue
     its = queue.parse(p)
-    assert [i.stage for i in its] == ["queued", "blocked"] and its[0].scope == DESIGN["scope"]
+    assert [i.stage for i in its] == ["queued", "needs_decision"] and its[0].scope == DESIGN["scope"]
     assert st["phase"] == "develop" and "판단" in (tmp_path / "pending.md").read_text(encoding="utf-8")
 
 
@@ -114,3 +114,31 @@ def test_normalize_verify_runs_frontend_tests_from_frontend_dir():
         "cd frontend && node --test tests/a.test.mjs tests/b.test.mjs"
     assert triage.normalize_verify("python3 -m pytest tests/ -q") == "python3 -m pytest tests/ -q"
     assert triage.parse_design('{"verify":["node --test frontend/tests/x.test.mjs"]}')["verify"] == ["cd frontend && node --test tests/x.test.mjs"]
+
+
+def test_unsure_reasked_once_then_agree():
+    seq = iter(["unsure", "agree"])
+
+    def ask(prompt, model):
+        return json.dumps(DESIGN) if "설계자" in prompt else json.dumps({"verdict": next(seq), "reason": "ok"})
+    assert triage.decide(F, ask_fn=ask)["tier"] == "auto"
+
+
+def test_disagree_not_reasked():
+    assert triage.decide(F, ask_fn=_ask(DESIGN, "disagree"))["tier"] == "user"
+
+
+def test_design_parse_failure_retried_once():
+    n = {"d": 0}
+
+    def ask(prompt, model):
+        if "설계자" in prompt:
+            n["d"] += 1
+            return "garbage" if n["d"] == 1 else json.dumps(DESIGN)
+        return json.dumps({"verdict": "agree", "reason": "ok"})
+    assert triage.decide(F, ask_fn=ask)["tier"] == "auto"
+
+
+def test_docs_scope_allowed():
+    d = {**DESIGN, "scope": ["docs/a.md", "scripts/audit/x.py"]}
+    assert triage.decide(F, ask_fn=_ask(d))["tier"] == "auto"

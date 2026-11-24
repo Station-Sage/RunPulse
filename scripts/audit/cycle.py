@@ -14,7 +14,7 @@ import subprocess
 import sys
 import time
 
-from scripts.audit import agents, inventory, procs, progress
+from scripts.audit import agents, inventory, known, procs, progress
 from scripts.autopilot import notify, pacing, settings
 
 CYCLES_PATH = inventory.LEDGER_PATH.parent / "cycles.jsonl"
@@ -62,10 +62,11 @@ def run_cycle(force: bool = False, perspectives: str | None = None, limit: int |
     if err:
         entry.update(outcome="sweep_failed", reason=err, elapsed_sec=round(time.time() - now))
         _log(entry)
-        notify.send(f"[감사] 브라우저 스윕 실패 — 에이전트 감사 생략: {err}")
+        notify.send(f"[감사] 브라우저 스윕 실패 — 에이전트 감사 생략: {err}" + notify.console_hint())
         return entry
     groups = agents.group_issues(inventory.load_ledger())
-    args = ["--backlog", "--review"] + (["--perspectives", perspectives] if perspectives else []) + (["--release"] if release else [])
+    entry["reverify"] = {k: len(v) for k, v in known.reverify(groups).items()}
+    args = ["--backlog", "--review", "--discover"] + (["--perspectives", perspectives] if perspectives else []) + (["--release"] if release else [])
     entry["issue_kinds"] = {k: len(v) for k, v in groups.items()}
     progress.mark(f"[감사] 관점 감사 + 독립 검토 시작 — 이슈 유형 {len(groups)}종")
     entry["agents_rc"] = agents.main(args)
@@ -74,7 +75,7 @@ def run_cycle(force: bool = False, perspectives: str | None = None, limit: int |
     entry["confirmed"] = _count_findings(confirmed_only=True)
     entry["elapsed_sec"] = round(time.time() - now)
     _log(entry)
-    notify.send(summary(entry))
+    notify.send(summary(entry) + notify.console_hint())
     return entry
 
 
@@ -92,10 +93,7 @@ def summary(e: dict) -> str:
             f"후보 {e.get('findings', 0)}건 중 독립 검토 통과 {e.get('confirmed', 0)}건 · {e.get('elapsed_sec', 0)}초")
 
 
-def browser_sweep(limit: int | None = None) -> tuple[int, str | None]:
-    """브라우저 스윕 실행 — (셀 수, 실패 사유). 사유가 None 일 때만 성공. 생략 경로는 없다."""
-    if not shutil.which("node"):
-        return 0, "node 없음"
+def _sweep_once(limit: int | None) -> tuple[int, str | None]:
     cmd = [sys.executable, "-m", "scripts.audit.sweep"] + (["--limit", str(limit)] if limit else [])
     r = subprocess.run(cmd, cwd=inventory.ROOT, capture_output=True, text=True)
     sys.stdout.write(r.stdout)
@@ -108,8 +106,20 @@ def browser_sweep(limit: int | None = None) -> tuple[int, str | None]:
         except ValueError:
             continue
     if r.returncode != 0 or swept == 0:
-        return swept, (failed[0] if failed else (r.stderr.strip().splitlines() or ["셀 0개"])[-1])[:200]
+        tail = " | ".join(r.stderr.strip().splitlines()[-3:])  # 마지막 3줄 — 원인 줄이 끝 한 줄이 아닌 경우가 많다
+        return swept, (str(failed[0]) if failed else tail or "셀 0개")[:300]
     return swept, None
+
+
+def browser_sweep(limit: int | None = None) -> tuple[int, str | None]:
+    """브라우저 스윕 — (셀 수, 실패 사유). 일시 실패(서버 기동·브라우저)는 1회 재시도, 사유엔 stderr 끝 3줄. 생략 경로는 없다."""
+    if not shutil.which("node"):
+        return 0, "node 없음"
+    swept, err = _sweep_once(limit)
+    if err:
+        swept, err2 = _sweep_once(limit)
+        err = None if err2 is None else f"재시도 후에도 실패: {err2}"
+    return swept, err
 
 
 def main(argv: list[str] | None = None) -> int:

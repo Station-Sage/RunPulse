@@ -71,8 +71,8 @@ def _parse_stream(raw: str) -> tuple[str, dict | None, float | None]:
     return text, rl, cost
 
 
-def ask(prompt: str, model: str) -> str:
-    """읽기 전용(도구 없음) claude -p 1회 호출 — 실패·타임아웃은 빈 문자열. opus 는 budget 허용 시만(아니면 sonnet).
+def ask(prompt: str, model: str, tools: str = "") -> str:
+    """읽기 전용 claude -p 1회 호출(tools 는 읽기 도구만, 기본 없음) — 실패·타임아웃은 빈 문자열. opus 는 budget 허용 시만(아니면 sonnet).
 
     호출 전 페이싱 검사(막히면 PacingHold), 호출 후 rate_limit 관측을 원장에 기록해 다음 검사의 입력이 되게 한다."""
     p = pacing.check()
@@ -81,7 +81,7 @@ def ask(prompt: str, model: str) -> str:
     if model == "opus":
         model = "opus" if budget.opus_allowed()[0] else "sonnet"
     cmd = ["claude", "-p", prompt, "--model", model, "--output-format", "stream-json", "--verbose",
-           "--no-session-persistence", "--allowed-tools", "", "--permission-mode", "default"]
+           "--no-session-persistence", "--allowed-tools", tools, "--permission-mode", "default"]
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT_SEC, stdin=subprocess.DEVNULL)
     except subprocess.TimeoutExpired:
@@ -116,6 +116,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--dry-run", action="store_true", help="프롬프트만 출력")
     ap.add_argument("--backlog", action="store_true", help="real 판정을 BACKLOG 후보 문구로 출력")
     ap.add_argument("--review", action="store_true", help="real 후보를 다른 모델이 독립 검토(P5)")
+    ap.add_argument("--discover", action="store_true", help="도구 사용 발견 감사 추가(라운드당 상한 settings.AUDIT_TOOL_CALLS_PER_ROUND)")
     ap.add_argument("--release", action="store_true", help="버전업 감사 — 전 관점 Opus(budget 한도 안에서)")
     args = ap.parse_args(argv)
     groups = group_issues(inventory.load_ledger())
@@ -125,10 +126,17 @@ def main(argv: list[str] | None = None) -> int:
             print(f"=== {n} ({AUDIT_MODELS[n]}) ===\n{build_prompt(n, groups)}")
         return 0
     findings = [f for n in names for f in run_perspective(n, groups, RELEASE_MODELS if args.release else None)]
+    from scripts.audit import discover, known
+    kn, rnd = known.load(), known.current_round()
+    if args.discover:
+        progress.mark(f"[감사] 발견 감사 시작 — 잔여 호출 {discover.remaining(rnd)}")
+        findings += discover.run(rnd)
+    findings = known.filter_new(findings, kn)
     if args.review:
         from scripts.audit import review
         progress.mark(f"[감사] 독립 검토 시작 — {len(findings)}건")
         findings = review.review(findings, groups)
+    known.record([f for f in findings if f.get("verdict") == "real"], rnd)
     FINDINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
     FINDINGS_PATH.write_text(json.dumps(findings, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"findings {len(findings)} → {FINDINGS_PATH}")

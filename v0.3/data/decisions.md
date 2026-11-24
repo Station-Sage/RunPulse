@@ -526,3 +526,34 @@
 - 사용자 결정: HIIT 는 러닝이 아니다(NRA-7 확정). 러닝 타입 사본 10여 곳(analysis·training·metrics·services·weather·ai)과 `LIKE '%running%'` 을 `activity_types.RUN_TYPES`/`RUN_SQL`(= `family_raw_types("running")`) 하나로 통합.
 - 영향: 계획 매칭·주간 점수·추세·ACWR·존 분석에서 HIIT 활동 제외. engine·fearp·vdot·archive·race 후보 등 좁은 목록이던 곳은 `track_running`·`virtual_run` 등 러닝 변형을 포함하게 됨(Calculator 입력 확장 → 운영 반영 후 `recompute` 필요).
 - 미변경: `src/sync/*` 의 소스 raw 타입 집합(Strava/Intervals/Garmin 원본 표기, 정규화 이전 단계).
+
+## ADR-063: 오토파일럿 정지 모델 — needs_decision/failed 분리, stop_reason enum (2026-11-24, BACKLOG AP-A1)
+
+- 문제: `blocked` 하나가 사용자 결정 대기와 실패를 모두 뜻해, 결정 대기 항목만 남으면 루프가 멈추고 정지 원인을 자유 텍스트(STOP_MARKERS)로 추정했다.
+- 결정: 단계 `needs_decision`(사용자 결정, 루프 계속)·`failed`(검증·수정 한도 초과)로 분리. 레거시 `blocked` 는 `queue.parse` 에서 `needs_decision` 으로 정규화.
+- 정지 사유 enum(`stopreason.py`): pacing·round_done·step_cap 은 타이머가 자동 재개, failed·stop_flag 는 `--reset` 필요.
+- 편차: user_decision 은 정지 사유가 아니다(사용자 승인 사항). 결정 대기 건수는 `cycle_state.pending_decisions` 로 노출해 관제 콘솔 결정함이 읽는다.
+
+## ADR-064: 감사 신규성 — 알려진 이슈 장부·발견 감사·수정 후 재검증 (2026-11-24, BACKLOG AP-A3)
+
+- 문제: 감사가 이전 라운드와 같은 항목을 반복하고, 정적 관점만으로는 비전 기반 신규 이슈를 찾지 못했다.
+- 결정: (1) `known_issues.json` 장부로 open 이슈 재보고 차단, 스윕 재검증으로 사라진 종류는 resolved(재발 시 reopened). (2) `discover` 감사는 도구(Read/Grep/Glob)를 켠 모델 호출을 라운드당 N회로 제한. N 은 사용자 확정값 8, `tunables.json` 으로 관제에서 변경 가능.
+- 편차: 재검증은 모델 호출 없이 최신 스윕 그룹 존재 여부로만 판정(저비용).
+
+## ADR-065: 자동 승인 단계적 완화·구조화 결정함 (2026-11-24, BACKLOG AP-A2)
+
+- 문제: 자동 승인 조건이 너무 엄격해 많은 항목이 수동 개발로 넘어갔고, 결정 대기 건은 마크다운으로만 남아 콘솔이 읽을 수 없었다.
+- 결정: (1) unsure·파싱 실패는 1회 재시도 후 판정, 범위에 docs/·scripts/audit/ 허용. RISK 키워드·설계자 user 등급·교차 검토 disagree 는 완화하지 않는다. (2) 자동 승인 항목에 `auto_approved` 메타 — 막지 않고 사후 검토 표시. (3) 결정 대기 건은 `pending_decisions.json`(id·옵션·추천·되돌리기)로 구조화, 마크다운 보고서는 병행 유지.
+- 편차: 실제 에스컬레이션 사유 분포 데이터가 없어(로컬 pending 비어 있음) 코드 분석 기반 완화이며, 운영 데이터 쌓이면 재조정.
+
+## ADR-066: 스윕 재시도·페이싱 대체 한도 완화 (2026-11-24, BACKLOG AP-A4)
+
+- 문제: 스윕의 일시 실패가 곧 sweep_failed 로 사이클을 끊고, 사유도 stderr 마지막 한 줄뿐이라 원인 파악이 어려웠다. 5시간 관측이 없을 때의 대체 한도(6회·$8)가 빡빡해 루프가 자주 멈췄다.
+- 결정: 스윕 1회 재시도(재실패 시 stderr 끝 3줄 포함), 대체 한도 10회·$12 로 상향 + `settings.tunable` 로 관제에서 덮어쓰기.
+- 편차: 새 한도는 실측이 아닌 추정값 — 실제 사용량 데이터로 재조정.
+
+## ADR-067: 오토파일럿 관제 콘솔 — 호스트 서비스 + Cloudflare Access (2026-11-25, BACKLOG AP-C)
+
+- 문제: 진행상황·정지/재개·타이머·결정 대기를 파일로만 확인해야 했다.
+- 결정: stdlib http.server 단일 프로세스(Flask 와 분리, 127.0.0.1:8765)를 systemd user 서비스로 상시 구동하고, 외부 접근은 cloudflared 터널 + Cloudflare Access(인증은 앱 밖). 컨테이너가 아닌 호스트 서비스인 이유는 systemd 타이머·STATE_DIR·프로세스 종료를 직접 다뤄야 하기 때문. 쓰기는 JSON content-type + Origin 일치 + 락 + 감사 로그. 일시정지=현재 단계 완료 후 다음 단계부터 정지, 즉시 중지=STOP + 등록 PID 종료.
+- 편차: 실제 터널·Access 앱 생성은 사용자 수행(가이드만 제공). 인증 없는 앱이므로 Access 미설정 상태로 외부 공개 금지.

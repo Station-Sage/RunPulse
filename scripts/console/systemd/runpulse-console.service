@@ -1,0 +1,13 @@
+[Unit]
+Description=RunPulse 오토파일럿 관제 콘솔 (127.0.0.1:8765, 외부 노출은 cloudflared + Cloudflare Access)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/projects/RunPulse-p0
+ExecStart=/home/ubuntu/projects/RunPulse-p0/.venv/bin/python -m scripts.console.server 8765
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

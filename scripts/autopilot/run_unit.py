@@ -147,7 +147,7 @@ def run_once(
         worktree.ensure()
         sync_blocked = worktree.sync()
         if sync_blocked:
-            queue.update_item(settings.QUEUE_PATH, item.item_id, stage="blocked")
+            queue.update_item(settings.QUEUE_PATH, item.item_id, stage="failed")
             notify.send(f"[autopilot] {item.item_id} 차단: {sync_blocked}")
             print(f"[worktree] 차단: {sync_blocked}")
             return 2
@@ -164,17 +164,17 @@ def run_once(
         verify_note = ""
         if outcome["outcome"] == "success":
             if _decisions_changed():
-                new_stage = "blocked"
+                new_stage = "failed"
             else:
                 verified, verify_note = _post_verify(item)
-                new_stage = "review" if verified else "blocked"
+                new_stage = "review" if verified else "failed"
                 if verified and item.kind == "code":
                     verify_note = leftovers.commit_leftovers(item, settings.WORKTREE_DIR)
                     added = size_followup.append_followups(item, settings.WORKTREE_DIR, settings.QUEUE_PATH)
                     if added:
                         verify_note += f" 300줄 초과 후속 등록: {', '.join(added)}"
         elif item.attempts + 1 >= 2:
-            new_stage = "blocked"
+            new_stage = "failed"
         else:
             new_stage = "queued"  # 재시도 허용
         queue.update_item(settings.QUEUE_PATH, item.item_id, stage=new_stage)
@@ -184,11 +184,11 @@ def run_once(
         notify.send(
             f"[autopilot] {item.item_id} → {outcome['outcome']} (stage={new_stage}, "
             f"cost={cost_str}, {outcome['duration_s']:.0f}s)"
-            + (f"\n{'검증 실패' if new_stage == 'blocked' else '노트'}: {verify_note[:500]}" if verify_note else "")
+            + (f"\n{'검증 실패' if new_stage == 'failed' else '노트'}: {verify_note[:500]}" if verify_note else "")
         )
         print(f"[done] {item.item_id}: outcome={outcome['outcome']} stage={new_stage} cost={cost_str}")
         if verify_note:
-            print(f"[{'verify' if new_stage == 'blocked' else 'note'}] {verify_note[:1000]}")
+            print(f"[{'verify' if new_stage == 'failed' else 'note'}] {verify_note[:1000]}")
         return 0
     finally:
         settings.LOCK_PATH.unlink(missing_ok=True)

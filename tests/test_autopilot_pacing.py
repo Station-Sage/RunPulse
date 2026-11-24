@@ -73,3 +73,11 @@ def test_fallback_excludes_audit_ask_entries(monkeypatch):
             {"ts": now - 30, "unit_id": "audit-ask:sonnet", "cost_usd": 0.1},
             {"ts": now - 20, "unit_id": "AUD-1", "cost_usd": 0.1}]
     assert pacing.check(now, runs).allowed
+
+
+def test_fallback_limits_tunable_via_tunables_json(tmp_path, monkeypatch):
+    import json
+    monkeypatch.setattr(settings, "STATE_DIR", tmp_path)
+    (tmp_path / "tunables.json").write_text(json.dumps({"FALLBACK_SESSION_MAX_RUNS": 3}))
+    assert settings.tunable("FALLBACK_SESSION_MAX_RUNS") == 3
+    assert settings.tunable("FALLBACK_SESSION_MAX_USD") == settings.FALLBACK_SESSION_MAX_USD
