@@ -49,17 +49,18 @@ def test_propose_blocked_and_idempotent(tmp_path, monkeypatch):
     assert len(loop.propose(F, p)) == 1
     assert loop.propose(F, p) == []
     new = [i for i in queue.parse(p) if i.item_id.startswith("AUD-")][0]
-    assert new.stage == "blocked" and new.mode == "auto"
+    assert new.stage == "needs_decision" and new.mode == "auto"
     assert queue.next_runnable([new]) is None
 
 
-def test_user_blocked_items_do_not_stall_loop(tmp_path, monkeypatch):
+def test_needs_decision_items_do_not_stop_loop(tmp_path, monkeypatch):
     _quiet(monkeypatch)
-    p = _backlog(tmp_path, "blocked")
+    p = _backlog(tmp_path, "needs_decision")
     called = []
     st = _st("develop")
-    msg = loop.step(st, path=p, act={"develop": lambda: called.append(1) or 0})
-    assert not called and st["phase"] == "stopped" and "정지" in msg
+    loop.step(st, path=p, act={"develop": lambda: called.append(1) or 0})
+    assert not called and st["phase"] != "stopped" and st.get("stop_reason") is None
+    assert st["pending_decisions"] == 1
 
 
 def test_legacy_await_state_resumes_like_develop(tmp_path, monkeypatch):
@@ -90,7 +91,7 @@ def test_sweep_failure_requeues_then_blocks(tmp_path, monkeypatch):
         queue.update_item(p, "U1", stage="review")
         st["phase"] = "test"
     loop.step(st, path=p, act={"sweep": lambda: (10, "overflow")})
-    assert queue.parse(p)[0].stage == "blocked"
+    assert queue.parse(p)[0].stage == "failed"
 
 
 def test_round_ends_and_unit_cap(tmp_path, monkeypatch):
@@ -183,12 +184,12 @@ def test_stop_flag_honored_when_no_new_candidates(tmp_path, monkeypatch):
     assert st["phase"] == "stopped" and not flag.exists()
 
 
-def test_only_user_blocked_left_stops_without_flag(tmp_path, monkeypatch):
+def test_only_needs_decision_left_does_not_stop(tmp_path, monkeypatch):
     monkeypatch.setattr(loop.notify, "send", lambda t: True)
     monkeypatch.setattr(loop.pacing, "check", lambda n: type("P", (), {"allowed": True, "reason": ""})())
     st = _st("develop")
-    loop.step(st, path=_backlog(tmp_path, "blocked"), act={"deploy": lambda n: {"ran": False}})
-    assert st["phase"] == "stopped"
+    loop.step(st, path=_backlog(tmp_path, "needs_decision"), act={"deploy": lambda n: {"ran": False}})
+    assert st["phase"] != "stopped" and st.get("stop_reason") is None
     st = _st("develop")
     loop.step(st, path=_backlog(tmp_path, "done"), act={"deploy": lambda n: {"ran": False}})
     assert st["phase"] == "audit"

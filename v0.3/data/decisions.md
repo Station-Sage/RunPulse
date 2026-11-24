@@ -526,3 +526,10 @@
 - 사용자 결정: HIIT 는 러닝이 아니다(NRA-7 확정). 러닝 타입 사본 10여 곳(analysis·training·metrics·services·weather·ai)과 `LIKE '%running%'` 을 `activity_types.RUN_TYPES`/`RUN_SQL`(= `family_raw_types("running")`) 하나로 통합.
 - 영향: 계획 매칭·주간 점수·추세·ACWR·존 분석에서 HIIT 활동 제외. engine·fearp·vdot·archive·race 후보 등 좁은 목록이던 곳은 `track_running`·`virtual_run` 등 러닝 변형을 포함하게 됨(Calculator 입력 확장 → 운영 반영 후 `recompute` 필요).
 - 미변경: `src/sync/*` 의 소스 raw 타입 집합(Strava/Intervals/Garmin 원본 표기, 정규화 이전 단계).
+
+## ADR-063: 오토파일럿 정지 모델 — needs_decision/failed 분리, stop_reason enum (2026-11-24, BACKLOG AP-A1)
+
+- 문제: `blocked` 하나가 사용자 결정 대기와 실패를 모두 뜻해, 결정 대기 항목만 남으면 루프가 멈추고 정지 원인을 자유 텍스트(STOP_MARKERS)로 추정했다.
+- 결정: 단계 `needs_decision`(사용자 결정, 루프 계속)·`failed`(검증·수정 한도 초과)로 분리. 레거시 `blocked` 는 `queue.parse` 에서 `needs_decision` 으로 정규화.
+- 정지 사유 enum(`stopreason.py`): pacing·round_done·step_cap 은 타이머가 자동 재개, failed·stop_flag 는 `--reset` 필요.
+- 편차: user_decision 은 정지 사유가 아니다(사용자 승인 사항). 결정 대기 건수는 `cycle_state.pending_decisions` 로 노출해 관제 콘솔 결정함이 읽는다.

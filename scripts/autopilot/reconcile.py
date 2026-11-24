@@ -28,7 +28,7 @@ def promote_merged(path: Path | None = None, branch: str | None = None, cwd: Pat
 
 
 def prune_pending(path: Path, pending: Path, archive: Path | None = None) -> list[str]:
-    """pending 보고서에서 더는 blocked 가 아닌 항목의 `## ID` 섹션을 archive(기본 <pending>.resolved.md)로 옮긴다."""
+    """pending 보고서에서 더는 needs_decision 이 아닌 항목의 `## ID` 섹션을 archive(기본 <pending>.resolved.md)로 옮긴다."""
     if not pending.exists():
         return []
     stage = {it.item_id: it.stage for it in queue.parse(path)}
@@ -36,7 +36,7 @@ def prune_pending(path: Path, pending: Path, archive: Path | None = None) -> lis
     keep, moved, ids = [], [], []
     for p in parts:
         m = re.match(r"## (\S+)", p)
-        if m and stage.get(m.group(1)) != "blocked":
+        if m and stage.get(m.group(1)) != "needs_decision":
             moved.append(p)
             ids.append(m.group(1))
         else:

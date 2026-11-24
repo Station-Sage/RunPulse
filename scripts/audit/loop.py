@@ -3,10 +3,11 @@
 사용: .venv/bin/python -m scripts.audit.loop [--force] [--reset] [--status]
 호출 1회 = 멈춤 조건(pacing 대기·정지·감사 생략·MAX_STEPS)까지 단계를 연속 수행(--once 면 1개). 위치는 cycle_state.json + BACKLOG 항목 stage 로 복원하므로 언제 끊겨도 이어진다.
   audit  : 버전이 바뀌었으면 release.run(Opus 전 관점, 한도 내) 먼저, 아니면 cycle.run_cycle (스윕 필수 + 관점 감사 + 독립 검토) → design
-  design : 확인된 후보를 BACKLOG 에 제안(자체 승인=queued, 사용자 결정=blocked) → develop
-  (사용자 결정 대기 항목은 막지 않는다 — blocked 로 남기고 나머지 단위는 계속 진행. 사람이 stage 를 queued 로 바꾸면 다음 develop 에서 집어간다)
-  develop: run_unit.run_once 1건 → review 면 test, blocked 면 알리고 다음 항목
-  test   : 브라우저 스윕(안쪽 루프) 통과 → done, 실패 → queued(버그수정 재개발), 상한 초과 → blocked
+  design : 확인된 후보를 BACKLOG 에 제안(자체 승인=queued, 사용자 결정=needs_decision) → develop
+  (사용자 결정 대기 항목은 막지 않는다 — needs_decision 으로 남기고 state["pending_decisions"] 로만 노출, 나머지 단위는 계속 진행. 사람이 stage 를 queued 로 바꾸면 다음 develop 에서 집어간다)
+  develop: run_unit.run_once 1건 → review 면 test, failed 면 알리고 다음 항목
+  test   : 브라우저 스윕(안쪽 루프) 통과 → done, 실패 → queued(버그수정 재개발), 상한 초과 → failed
+정지는 stopreason.py 의 사유(pacing·step_cap·failed·stop_flag)로 기록하고 타이머 발화 시 사유별로 자동 재개한다.
 정지 조건: 같은 단계 연속 실패 FAIL_LIMIT, 항목당 테스트 재시도 FIX_LIMIT, 라운드당 단위 UNIT_CAP, 단계 직전 pacing.
 열린 단위가 없으면(또는 단위 상한) 라운드가 끝나며 통과 단위가 있으면 운영 반영(deploy.py) 후 다음 감사(audit)로 돌아간다 — 고정 최소 간격(90분)은 없고 라운드 종료 즉시 시작(pacing 만 게이트). 이 프로세스는 대화 세션에 쓸 수 없어 알림은 텔레그램이다.
 """
@@ -19,12 +20,13 @@ import re
 import time
 from pathlib import Path
 
-from scripts.audit import agents, cycle, deploy, inventory, progress, release, triage
+from scripts.audit import agents, cycle, deploy, inventory, progress, release, stopreason, triage
 from scripts.autopilot import notify, pacing, queue, reconcile, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
 FAIL_LIMIT, FIX_LIMIT, UNIT_CAP, MAX_STEPS = 3, 2, 5, 40
-_INIT = {"phase": "audit", "unit": None, "round": 1, "units_done": 0, "fails": 0, "fix": {}}
+_INIT = {"phase": "audit", "unit": None, "round": 1, "units_done": 0, "fails": 0, "fix": {},
+         "stop_reason": None, "pending_decisions": 0}
 
 
 def load_state(path: Path | None = None) -> dict:
@@ -46,14 +48,14 @@ PENDING_PATH = Path(".claude/autopilot/pending_decisions.md")
 def propose(findings: list[dict], path: Path, decide=None, tiers: dict | None = None) -> list[str]:
     """확인된 후보를 BACKLOG 끝에 제안한다(이미 있으면 건너뜀). 새 항목 ID 목록 반환.
 
-    decide(finding)→triage 결과가 auto 면 stage=queued(scope·verify 채움, 자체 승인), 아니면 blocked(사람 결정)
-    + 결정 보고서를 PENDING_PATH 에 추가. decide 가 없으면 전부 blocked. tiers 에 {id: tier} 를 채운다.
+    decide(finding)→triage 결과가 auto 면 stage=queued(scope·verify 채움, 자체 승인), 아니면 needs_decision(사람 결정)
+    + 결정 보고서를 PENDING_PATH 에 추가. decide 가 없으면 전부 needs_decision. tiers 에 {id: tier} 를 채운다.
     열린 단위의 텍스트에 "(커버: kind)" 가 있으면 같은 kind 후보는 중복으로 보고 제안하지 않는다.
     """
     from scripts.audit import triage
     items = queue.parse(path)
     have = {it.item_id for it in items}
-    covered = {m for it in items if it.stage not in ("done", "blocked") for m in re.findall(r"\(커버: ([\w,\- ]+)\)", it.text)
+    covered = {m for it in items if it.stage not in ("done", "needs_decision", "failed") for m in re.findall(r"\(커버: ([\w,\- ]+)\)", it.text)
                for m in re.split(r"[, ]+", m) if m}
     new, lines, reports = [], [], []
     for f in findings:
@@ -64,7 +66,7 @@ def propose(findings: list[dict], path: Path, decide=None, tiers: dict | None = 
         if iid in have:
             continue
         d = decide(f) if decide else {"tier": "user", "why": "등급 분류 미사용", "design": {}}
-        meta = {"stage": "queued" if d["tier"] == "auto" else "blocked", "mode": "auto", "attempts": 0, "deps": [],
+        meta = {"stage": "queued" if d["tier"] == "auto" else "needs_decision", "mode": "auto", "attempts": 0, "deps": [],
                 "kind": "code"}
         if d["tier"] == "auto":
             meta.update(scope=d["design"]["scope"], verify=d["design"]["verify"])
@@ -99,6 +101,7 @@ def _fail(st: dict, why: str) -> str:
     st["fails"] += 1
     if st["fails"] >= FAIL_LIMIT:
         st["phase"] = "halted"
+        stopreason.stop(st, stopreason.FAILED)
         notify.send(f"[루프] {FAIL_LIMIT}회 연속 실패로 정지 — {why} (--reset 으로 재개)")
     return why
 
@@ -107,13 +110,12 @@ def STOP_FLAG() -> Path:
     return settings.STATE_DIR / "stop_after_round"
 
 
-def _only_user_blocked_left(path: Path) -> bool:
-    items = queue.parse(path)
-    return queue.next_runnable(items) is None and any(it.stage == "blocked" for it in items)
+def _pending_decisions(path: Path) -> int:
+    return sum(1 for it in queue.parse(path) if it.stage == "needs_decision")
 
 
 def _should_stop(path: Path) -> bool:
-    return STOP_FLAG().exists() or _only_user_blocked_left(path)
+    return STOP_FLAG().exists()
 
 
 def _end_round(st: dict, ship, msg: str, path: Path | None = None) -> str:
@@ -125,11 +127,13 @@ def _end_round(st: dict, ship, msg: str, path: Path | None = None) -> str:
                     + ("" if ok else " (자동 반영 안 됨, 사람 확인 필요)"))
         msg += f" · 운영 반영 {'완료' if ok else '실패'}({r.get('reason')})"
     st.update(phase="audit", round=st["round"] + 1, units_done=0, unit=None)
+    st["pending_decisions"] = _pending_decisions(path or settings.QUEUE_PATH)
     if _should_stop(path or settings.QUEUE_PATH):
         STOP_FLAG().unlink(missing_ok=True)
         st["phase"] = "stopped"
-        notify.send(f"[루프] 라운드 {st['round'] - 1} 종료 — 남은 개발 항목이 없거나 사용자 결정 대기뿐이라 새 감사 없이 정지(재개: --reset)")
-        msg += " · 정지(사용자 결정 대기 또는 단일 라운드)"
+        stopreason.stop(st, stopreason.STOP_FLAG)
+        notify.send(f"[루프] 라운드 {st['round'] - 1} 종료 — 단일 라운드 지정에 따라 정지(재개: --reset)")
+        msg += " · 정지(단일 라운드)"
     return msg
 
 
@@ -145,12 +149,15 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     ph = st["phase"]
     progress.mark(f"[루프] 라운드 {st['round']} · {ph} 단계 시작")
     if ph == "stopped":
+        stopreason.stop(st, st.get("stop_reason") or stopreason.STOP_FLAG)
         return "정지 상태 — 단일 라운드 완료(재개: --reset)"
     if ph == "halted":
+        stopreason.stop(st, stopreason.FAILED)
         return "정지 상태 — 원인 확인 후 --reset"
     if not force:
         p = pacing.check(time.time())
         if not p.allowed:
+            stopreason.stop(st, stopreason.PACING)
             return f"pacing 대기: {p.reason}"
     if ph == "audit":
         e = rel() if release.due() else {"ran": False}
@@ -159,6 +166,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         else:
             e = audit()
         if not e.get("ran"):
+            stopreason.stop(st, stopreason.PACING)
             return f"감사 생략: {e.get('reason')}"
         if e.get("outcome") != "done":
             return _fail(st, f"감사 실패: {e.get('reason')}")
@@ -179,6 +187,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         if _should_stop(path):
             STOP_FLAG().unlink(missing_ok=True)
             st["phase"] = "stopped"
+            stopreason.stop(st, stopreason.STOP_FLAG)
             notify.send("[루프] 새 후보 없음 — 단일 라운드 지정에 따라 정지")
             return "새 후보 없음 — 단일 라운드 종료(정지)"
         return "새 후보 없음 — 라운드 종료"
@@ -197,7 +206,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         nxt = queue.next_runnable(queue.parse(path))
         rc = develop()
         stage = _stage(path, nxt.item_id)
-        if rc == 2 or stage == "blocked":
+        if rc == 2 or stage == "failed":
             notify.send(f"[루프] {nxt.item_id} 개발 차단 — 사람 확인 필요")
             st.update(phase="develop", unit=None)
             return _fail(st, f"{nxt.item_id} 개발 차단")
@@ -216,13 +225,14 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         tries = st["fix"].get(iid, 0) + 1
         st["fix"][iid] = tries
         if tries > FIX_LIMIT:
-            queue.update_item(path, iid, stage="blocked")
-            notify.send(f"[루프] {iid} 버그수정 {FIX_LIMIT}회 후에도 스윕 실패 — blocked: {err}")
+            queue.update_item(path, iid, stage="failed")
+            notify.send(f"[루프] {iid} 버그수정 {FIX_LIMIT}회 후에도 스윕 실패 — failed: {err}")
             st.update(phase="develop", unit=None)
-            return f"{iid} 수정 상한 초과 → blocked"
+            return f"{iid} 수정 상한 초과 → failed"
         queue.update_item(path, iid, stage="queued")
         st["phase"] = "develop"
         return f"{iid} 스윕 실패({err}) → 수정 재개발 {tries}/{FIX_LIMIT}"
+    stopreason.stop(st, stopreason.FAILED)
     return f"알 수 없는 단계 {ph}"
 
 
@@ -236,26 +246,30 @@ def _develop() -> int:
     return run_unit.run_once(ignore_night=True, ignore_idle=True, ignore_budget=True)
 
 
-STOP_MARKERS = ("pacing 대기", "정지 상태", "감사 생략", "알 수 없는")
-
-
 def run_until_stop(st: dict, *, force: bool = False, once: bool = False, act: dict | None = None,
                    path: Path | None = None, max_steps: int = MAX_STEPS) -> list[str]:
     """단계를 연속 수행한다. 멈춤: pacing 대기·halted·감사 생략·MAX_STEPS·(단계 상태 저장은 매 단계)."""
     out = []
-    for _ in range(1 if once else max_steps):
+    stopreason.resume(st) or out.append("정지 유지 — 자동 재개 불가 사유(" + str(st.get("stop_reason")) + ")")
+    if stopreason.is_stopped(st):
+        return out
+    for i in range(1 if once else max_steps):
         try:
             r = step(st, act=act, path=path, force=force)
         except agents.PacingHold as e:
             r = f"pacing 대기: {e}"
+            stopreason.stop(st, stopreason.PACING)
         except Exception as e:  # 한 단계의 예외가 상태 전환을 잃게 하지 않는다 — 실패 집계(FAIL_LIMIT 시 halted)
             progress.mark(f"[루프] 예외: {type(e).__name__}: {e}")
             r = _fail(st, f"예외 {type(e).__name__}: {e}")
         progress.mark("[루프] 결과: " + r)
         save_state(st) if path is None else None
         out.append(r)
-        if st["phase"] in ("halted", "stopped") or r.startswith(STOP_MARKERS):
+        if stopreason.is_stopped(st) or st["phase"] in ("halted", "stopped"):
             break
+        if not once and i == max_steps - 1:
+            stopreason.stop(st, stopreason.STEP_CAP)
+            save_state(st) if path is None else None
     return out
 
 
@@ -268,7 +282,7 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     st = load_state()
     if a.reset:
-        st.update(phase="audit", fails=0, unit=None)
+        st.update(phase="audit", fails=0, unit=None, stop_reason=None)
     if not a.status:
         run_until_stop(st, force=a.force, once=a.once)
     save_state(st)

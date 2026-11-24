@@ -10,7 +10,7 @@
       <!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[],"kind":"code","scope":["src/metrics/pmc.py","tests/test_pmc.py"],"verify":["python3 -m pytest tests/test_pmc.py -q"]} -->
 
 - mode: "auto"인 항목만 자동 실행 대상 (메타 줄이 없으면 사람 전용 항목 — 파서가 건너뜀).
-- stage: queued → in_progress → review → done. blocked는 사람 결정 대기(DECISIONS.md)
+- stage: queued → in_progress → review → done. needs_decision 은 사람 결정 대기(DECISIONS.md), failed 는 검증·수정 실패(레거시 blocked 는 needs_decision 으로 읽는다)
   또는 _post_verify() 실패(run_unit.py) — 둘 다 사람이 확인해야 다음으로 못 넘어간다.
 - deps: 이 ID들이 전부 stage=done이어야 실행 가능.
 - kind: "docs"(기본) | "code". code는 run_unit.py가 다른 프롬프트·도구 허용·검증
@@ -19,7 +19,7 @@
   제한한다(강제 아님, 안내). 비어있으면 프롬프트가 "위험하니 채워서 등록" 경고를 낸다.
 - verify: code 전용. 성공 판정에 쓸 셸 커맨드 목록 — claude -p가 성공을 보고해도
   run_unit.py가 워크트리에서 이 커맨드들을 독립적으로 다시 돌려 전부 0 종료해야
-  stage=review로 넘어간다(하나라도 실패하면 blocked). 비어있으면
+  stage=review로 넘어간다(하나라도 실패하면 failed). 비어있으면
   "python3 -m pytest tests/ -q" 기본값을 쓴다.
 
 기존 BACKLOG.md 포맷(`- **[ID]** ...`)을 그대로 쓰므로 사람이 읽는 문서 하나가
@@ -75,6 +75,8 @@ def parse(path: Path) -> list[QueueItem]:
                 except json.JSONDecodeError:
                     meta = {}
                 item.stage = meta.get("stage", "queued")
+                if item.stage == "blocked":  # 레거시: 사용자 결정 대기와 실패가 섞여 있었다 — 결정 대기로 읽는다
+                    item.stage = "needs_decision"
                 item.mode = meta.get("mode", "manual")
                 item.attempts = int(meta.get("attempts", 0))
                 item.deps = list(meta.get("deps", []))

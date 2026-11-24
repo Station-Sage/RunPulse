@@ -2,7 +2,7 @@
 
 사용: .venv/bin/python -m scripts.audit.watch [--status]   (타이머 runpulse-watch 가 30분마다 호출)
 점검: 타이머 비활성 / 루프 상태 halted / 루프 프로세스가 도는데 진행 로그가 STALL_MIN 분 넘게 없음 /
-      마지막 감사 사이클 실패 / 사용자 결정 대기·blocked 항목 수(정보용, 알림 사유 아님).
+      마지막 감사 사이클 실패 / 사용자 결정 대기·failed 항목 수(정보용, 알림 사유 아님).
 같은 문제 조합이 반복되면 재알림하지 않고, 해소되면 복구를 한 번 알린다.
 """
 from __future__ import annotations
@@ -44,7 +44,7 @@ def collect(now: float | None = None, run=_run) -> dict:
         "phase": st["phase"], "round": st["round"], "fails": st["fails"], "units_done": st["units_done"],
         "log_age_min": log_age,
         "last_cycle": _last_cycle().get("outcome"),
-        "blocked": sum(1 for i in items if i.item_id.startswith("AUD-") and i.stage == "blocked"),
+        "blocked": sum(1 for i in items if i.item_id.startswith("AUD-") and i.stage in ("needs_decision", "failed")),
         "queued": sum(1 for i in items if i.item_id.startswith("AUD-") and i.stage == "queued"),
     }
 
