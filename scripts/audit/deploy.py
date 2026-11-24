@@ -11,6 +11,7 @@ push 는 하지 않는다. 롤백 = 운영 폴더에서 `git reset --hard <이�
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 from scripts.autopilot import settings
@@ -32,7 +33,7 @@ def _sh(args: list[str], cwd: Path) -> tuple[int, str]:
 
 
 def _tests_pass(sh, prod: Path) -> tuple[bool, str]:
-    py = str(prod / ".venv" / "bin" / "python")
+    py = sys.executable  # 운영 폴더엔 .venv 가 없을 수 있다(루프를 돌리는 인터프리터 사용)
     cmd = [py, "-m", "pytest", "tests/", "-q", "--no-header"]
     rc, out = sh(cmd, settings.WORKTREE_DIR)
     if not rc:

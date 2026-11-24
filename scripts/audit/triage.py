@@ -14,7 +14,7 @@ import re
 from scripts.audit.agents import ask
 from scripts.audit.vision import VISION
 
-ALLOWED_SCOPE = ("frontend/src/", "tests/")
+ALLOWED_SCOPE = ("frontend/src/", "frontend/tests/", "tests/")
 RISK = re.compile(r"스키마|schema|DDL|migrat|마이그레이션|삭제|delete|drop|auth|인증|권한|결제|config|ADR|decisions|"
                   r"알고리즘|calculator|메트릭 정의|예측|개인정보|배포|deploy|API 계약|breaking", re.I)
 _DESIGN = VISION + """
@@ -45,12 +45,19 @@ def _json(text: str) -> dict:
     return d if isinstance(d, dict) else {}
 
 
+def normalize_verify(cmd: str) -> str:
+    """프론트 테스트는 cwd=frontend 기준 상대경로(src/…)를 읽는다 — 루트 실행 커맨드를 frontend 기준으로 바꾼다."""
+    if cmd.startswith("node --test ") and "frontend/" in cmd:
+        return "cd frontend && " + cmd.replace("frontend/", "")
+    return cmd
+
+
 def parse_design(text: str) -> dict:
     d = _json(text)
     return {"grade": d.get("grade") if d.get("grade") in ("auto", "user") else "user",
             "summary": str(d.get("summary", ""))[:300],
             "scope": [s for s in d.get("scope", []) if isinstance(s, str)] if isinstance(d.get("scope"), list) else [],
-            "verify": [s for s in d.get("verify", []) if isinstance(s, str)] if isinstance(d.get("verify"), list) else [],
+            "verify": [normalize_verify(s) for s in d.get("verify", []) if isinstance(s, str)] if isinstance(d.get("verify"), list) else [],
             "options": [o for o in d.get("options", []) if isinstance(o, dict)] if isinstance(d.get("options"), list) else [],
             "recommendation": str(d.get("recommendation", ""))[:300], "reason": str(d.get("reason", ""))[:300]}
 

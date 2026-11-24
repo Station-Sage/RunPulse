@@ -21,7 +21,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import gate, ledger, leftovers, notify, queue, settings, worktree
+from . import gate, ledger, leftovers, notify, queue, settings, size_followup, worktree
 
 _PROMPT_TEMPLATE_DOCS = """\
 당신은 RunPulse 프로젝트의 Phase 7 UI 재설계 설계 문서 작업을 무인(사람 없이)으로 수행합니다.
@@ -273,6 +273,9 @@ def run_once(
                 new_stage = "review" if verified else "blocked"
                 if verified and item.kind == "code":
                     verify_note = leftovers.commit_leftovers(item, settings.WORKTREE_DIR)
+                    added = size_followup.append_followups(item, settings.WORKTREE_DIR, settings.QUEUE_PATH)
+                    if added:
+                        verify_note += f" 300줄 초과 후속 등록: {', '.join(added)}"
         elif item.attempts + 1 >= 2:
             new_stage = "blocked"
         else:
