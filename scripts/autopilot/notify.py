@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import urllib.request
 from pathlib import Path
@@ -35,6 +36,12 @@ def _read_chat_ids() -> list[str]:
     except json.JSONDecodeError:
         return []
     return [str(c) for c in (data.get("allowFrom") or [])]
+
+
+def console_hint() -> str:
+    """관제 콘솔 URL(RUNPULSE_CONSOLE_URL) 이 설정돼 있으면 알림 말미에 붙일 안내 문구, 아니면 빈 문자열."""
+    url = os.environ.get("RUNPULSE_CONSOLE_URL", "").strip()
+    return f" 콘솔: {url}" if url else ""
 
 
 def send(text: str) -> bool:

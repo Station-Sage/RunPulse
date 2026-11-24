@@ -104,7 +104,7 @@ def _fail(st: dict, why: str) -> str:
     if st["fails"] >= FAIL_LIMIT:
         st["phase"] = "halted"
         stopreason.stop(st, stopreason.FAILED)
-        notify.send(f"[루프] {FAIL_LIMIT}회 연속 실패로 정지 — {why} (--reset 으로 재개)")
+        notify.send(f"[루프] {FAIL_LIMIT}회 연속 실패로 정지 — {why} (--reset 으로 재개)" + notify.console_hint())
     return why
 
 
@@ -183,7 +183,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         if new:
             notify.send(f"[루프] 설계 {len(new)}건 — 자체 승인(교차 검토 통과) {len(auto)}건 진행: {', '.join(auto) or '-'}"
                         f" / 사용자 결정 대기 {len(user)}건(장단점·추천은 {PENDING_PATH}): {', '.join(user) or '-'}."
-                        " 승인은 BACKLOG stage 를 queued 로.")
+                        " 승인은 콘솔 결정함 또는 BACKLOG stage 를 queued 로." + notify.console_hint())
             return f"설계 {len(new)}건 — 자체 승인 {len(auto)}, 사용자 결정 {len(user)}"
         st["round"] += 1
         if _should_stop(path):

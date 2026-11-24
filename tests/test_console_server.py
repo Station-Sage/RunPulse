@@ -70,3 +70,11 @@ def test_timers_and_tunable_values(monkeypatch):
     assert t["runpulse-audit"] == {"next": 1_700_000_100, "last": 1_700_000_000, "active": "active"}
     assert t["runpulse-watch"]["next"] == 0
     assert set(server.tunable_values()) == set(server.control.TUNABLES)
+
+
+def test_notify_console_hint(monkeypatch):
+    from scripts.autopilot import notify
+    monkeypatch.delenv("RUNPULSE_CONSOLE_URL", raising=False)
+    assert notify.console_hint() == ""
+    monkeypatch.setenv("RUNPULSE_CONSOLE_URL", "https://c.example")
+    assert "https://c.example" in notify.console_hint()
