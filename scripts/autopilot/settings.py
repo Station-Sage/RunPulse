@@ -104,3 +104,18 @@ CODE_ALLOWED_TOOLS = ALLOWED_TOOLS + [
     "Bash(npm install:*)", "Bash(npm ci:*)",
     "Bash(npm run build:*)", "Bash(npm run check:*)", "Bash(npm run test:unit:*)", "Bash(node --test:*)",
 ]
+
+# ── 감사 발견(discover) — 도구를 쓰는 감사 호출은 비싸므로 라운드당 상한을 둔다. 관제 콘솔이 STATE_DIR/tunables.json 으로 덮어쓴다 ──
+AUDIT_TOOL_CALLS_PER_ROUND = 8
+
+
+def tunable(name: str, default=None):
+    """STATE_DIR/tunables.json 의 덮어쓰기 값 → 없으면 이 모듈의 상수 → default. 관제에서 재시작 없이 조정."""
+    import json
+    try:
+        data = json.loads((STATE_DIR / "tunables.json").read_text(encoding="utf-8"))
+        if name in data:
+            return data[name]
+    except (OSError, ValueError):
+        pass
+    return globals().get(name, default)

@@ -533,3 +533,9 @@
 - 결정: 단계 `needs_decision`(사용자 결정, 루프 계속)·`failed`(검증·수정 한도 초과)로 분리. 레거시 `blocked` 는 `queue.parse` 에서 `needs_decision` 으로 정규화.
 - 정지 사유 enum(`stopreason.py`): pacing·round_done·step_cap 은 타이머가 자동 재개, failed·stop_flag 는 `--reset` 필요.
 - 편차: user_decision 은 정지 사유가 아니다(사용자 승인 사항). 결정 대기 건수는 `cycle_state.pending_decisions` 로 노출해 관제 콘솔 결정함이 읽는다.
+
+## ADR-064: 감사 신규성 — 알려진 이슈 장부·발견 감사·수정 후 재검증 (2026-11-24, BACKLOG AP-A3)
+
+- 문제: 감사가 이전 라운드와 같은 항목을 반복하고, 정적 관점만으로는 비전 기반 신규 이슈를 찾지 못했다.
+- 결정: (1) `known_issues.json` 장부로 open 이슈 재보고 차단, 스윕 재검증으로 사라진 종류는 resolved(재발 시 reopened). (2) `discover` 감사는 도구(Read/Grep/Glob)를 켠 모델 호출을 라운드당 N회로 제한. N 은 사용자 확정값 8, `tunables.json` 으로 관제에서 변경 가능.
+- 편차: 재검증은 모델 호출 없이 최신 스윕 그룹 존재 여부로만 판정(저비용).

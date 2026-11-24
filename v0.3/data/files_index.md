@@ -2398,6 +2398,10 @@
 
 - functions: test_frontend_screens_handles_dynamic_and_groups, test_real_routes_nonempty, test_cells_and_coverage, test_record_rejects_bad_status, test_diff_detects_added_removed, test_committed_inventory_matches_live
 
+### `test_audit_known_discover.py` (74줄) — audit.known(알려진 이슈 원장·재검증) 와 audit.discover(도구 사용 발견 감사·라운드 상한) 단위 테스트.
+
+- functions: test_key_stable_and_distinct, test_filter_new_skips_open_only, test_record_marks_reopened, test_reverify_resolves_and_keeps, test_current_round_reads_state, test_tunable_override, test_discover_respects_cap_and_round_reset, test_discover_drops_already_known
+
 ### `test_audit_loop.py` (206줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
 
 - functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_needs_decision_items_do_not_stop_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_needs_decision_left_does_not_stop, test_run_until_stop_converts_exception_and_pacinghold
@@ -4292,7 +4296,7 @@
 - functions: run
 
 ---
-총 939개 파일
+총 940개 파일
 
 ## docstring 누락
 

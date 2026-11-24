@@ -69,7 +69,7 @@ def test_design_phase_splits_auto_and_user(tmp_path, monkeypatch):
     loop.step(st, path=p, act={"decide": lambda f: next(seq)})
     from scripts.autopilot import queue
     its = queue.parse(p)
-    assert [i.stage for i in its] == ["queued", "blocked"] and its[0].scope == DESIGN["scope"]
+    assert [i.stage for i in its] == ["queued", "needs_decision"] and its[0].scope == DESIGN["scope"]
     assert st["phase"] == "develop" and "판단" in (tmp_path / "pending.md").read_text(encoding="utf-8")
 
 
