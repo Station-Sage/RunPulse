@@ -24,3 +24,10 @@ def test_check_alerts_on_change_only_and_reports_recovery(tmp_path):
     assert len(sent) == 2 and "복구" in sent[1]
     watch.check(OK, p, send)
     assert len(sent) == 2
+
+
+def test_check_problem_alert_includes_console_link(tmp_path, monkeypatch):
+    monkeypatch.setenv("RUNPULSE_CONSOLE_URL", "https://c.example")
+    sent = []
+    watch.check({**OK, "phase": "halted"}, tmp_path / "w.json", lambda t: sent.append(t) or True)
+    assert sent[0].endswith("콘솔: https://c.example")

@@ -68,7 +68,7 @@ def check(s: dict, path: Path | None = None, send=notify.send) -> list[str]:
     cur = problems(s)
     if cur != prev:
         if cur:
-            send("[루프 감시] 문제: " + " / ".join(cur))
+            send("[루프 감시] 문제: " + " / ".join(cur) + notify.console_hint())
         elif prev:
             send("[루프 감시] 복구됨 — 이상 없음")
         p.parent.mkdir(parents=True, exist_ok=True)

@@ -62,7 +62,7 @@ def run_cycle(force: bool = False, perspectives: str | None = None, limit: int |
     if err:
         entry.update(outcome="sweep_failed", reason=err, elapsed_sec=round(time.time() - now))
         _log(entry)
-        notify.send(f"[감사] 브라우저 스윕 실패 — 에이전트 감사 생략: {err}")
+        notify.send(f"[감사] 브라우저 스윕 실패 — 에이전트 감사 생략: {err}" + notify.console_hint())
         return entry
     groups = agents.group_issues(inventory.load_ledger())
     entry["reverify"] = {k: len(v) for k, v in known.reverify(groups).items()}
@@ -75,7 +75,7 @@ def run_cycle(force: bool = False, perspectives: str | None = None, limit: int |
     entry["confirmed"] = _count_findings(confirmed_only=True)
     entry["elapsed_sec"] = round(time.time() - now)
     _log(entry)
-    notify.send(summary(entry))
+    notify.send(summary(entry) + notify.console_hint())
     return entry
 
 
