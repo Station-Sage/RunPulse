@@ -2370,9 +2370,9 @@
 
 - functions: test_group_issues_and_prompt, test_parse_findings_graceful, test_backlog_lines_dedup_and_models
 
-### `test_audit_budget_release.py` (49줄) — Opus 게이트(budget)·ask 폴백·버전업 감사(release)·비전 프롬프트.
+### `test_audit_budget_release.py` (75줄) — Opus 게이트(budget)·ask 폴백·버전업 감사(release)·비전 프롬프트.
 
-- functions: test_budget_utilization_caps, test_ask_falls_back_to_sonnet_when_opus_blocked, test_prompts_carry_vision_and_release_models_are_opus, test_release_due_and_run, test_release_failed_audit_not_marked
+- functions: test_budget_utilization_caps, test_ask_falls_back_to_sonnet_when_opus_blocked, test_prompts_carry_vision_and_release_models_are_opus, test_release_due_and_run, test_release_failed_audit_not_marked, test_ask_records_rate_limit_and_pacing_blocks, test_pacing_hold_until_file
 
 ### `test_audit_bundle_c.py` (115줄) — V2-AUDIT-INDIV 묶음 C(지표·웰니스·이야기·소스 비교) 서버 측 수정 테스트.
 
@@ -2398,9 +2398,9 @@
 
 - functions: test_frontend_screens_handles_dynamic_and_groups, test_real_routes_nonempty, test_cells_and_coverage, test_record_rejects_bad_status, test_diff_detects_added_removed, test_committed_inventory_matches_live
 
-### `test_audit_loop.py` (153줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
+### `test_audit_loop.py` (205줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
 
-- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_user_blocked_items_do_not_stall_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip
+- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_user_blocked_items_do_not_stall_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_user_blocked_left_stops_without_flag, test_run_until_stop_converts_exception_and_pacinghold
 
 ### `test_audit_p5.py` (68줄) — P5 — 필수 브라우저 스윕 가드, 독립 검토 게이트, 사이클 요약.
 
@@ -2414,9 +2414,9 @@
 
 - functions: test_resolve_path_uses_db_sample_and_defaults, test_apply_results_records_ledger, test_stop_kills_stubborn_process
 
-### `test_audit_triage.py` (95줄) — P6 — 판단 등급 분류(위험 가드·교차 검토·결정 보고서)와 loop 설계 단계 연동.
+### `test_audit_triage.py` (116줄) — P6 — 판단 등급 분류(위험 가드·교차 검토·결정 보고서)와 loop 설계 단계 연동.
 
-- functions: test_parse_design_and_check_conservative, test_risk_keyword_forces_user_without_calling_models, test_auto_requires_cross_review_with_other_model, test_disagree_or_bad_scope_or_missing_verify_is_user, test_report_has_options_and_reason, test_design_phase_splits_auto_and_user, test_is_large, test_large_design_escalates_to_opus_with_sonnet_reviewer, test_large_design_stays_sonnet_when_opus_not_allowed
+- functions: test_parse_design_and_check_conservative, test_risk_keyword_forces_user_without_calling_models, test_auto_requires_cross_review_with_other_model, test_disagree_or_bad_scope_or_missing_verify_is_user, test_report_has_options_and_reason, test_design_phase_splits_auto_and_user, test_is_large, test_large_design_escalates_to_opus_with_sonnet_reviewer, test_large_design_stays_sonnet_when_opus_not_allowed, test_open_unit_covering_kind_suppresses_duplicate_finding, test_design_prompt_asks_for_root_cause_and_recommendation, test_normalize_verify_runs_frontend_tests_from_frontend_dir
 
 ### `test_audit_watch.py` (26줄) — audit/watch.py — 문제 판정과 중복 알림 억제.
 
@@ -2464,6 +2464,10 @@
 - class **TestBuildCmd**: test_docs_kind_uses_base_allowed_tools_and_budget, test_code_kind_uses_code_allowed_tools_and_budget
 - class **TestPostVerify**: test_docs_kind_skips_verification, test_code_kind_passes_when_command_succeeds, test_code_kind_fails_when_command_fails, test_code_kind_defaults_to_full_pytest_when_verify_empty
 - class **TestCommitLeftovers**: test_clean_worktree_is_noop, test_commits_in_scope_files_only, test_directory_scope_prefix_matches
+
+### `test_autopilot_size_followup.py` (15줄)
+
+- functions: test_oversize_becomes_followup
 
 ### `test_backfill_activity_groups.py` (84줄) — activity_groups 백필 스크립트 테스트.
 
@@ -4275,13 +4279,14 @@
 - functions: run
 
 ---
-총 935개 파일
+총 936개 파일
 
 ## docstring 누락
 
 - `tests/__init__.py`
 - `tests/test_audit_agents.py`
 - `tests/test_audit_progress.py`
+- `tests/test_autopilot_size_followup.py`
 - `tests/test_chat_engine_cq.py`
 - `tests/test_coach_cq_context.py`
 - `tests/test_constraints.py`
