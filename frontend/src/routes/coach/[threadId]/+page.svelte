@@ -39,10 +39,8 @@
 	let engine = $state<CoachEngine | null>(data.engine);
 
 	// 첫 LLM 전송 동의 게이트 — 동의 전에는 send를 보류하고 시트를 띄운다.
-	let scopeOpen = $state(false);
-	let afterConsent = $state<(() => void) | null>(null);
-	let reasonMsg = $state<ChatMessage | null>(null);
-	let regeneratingId = $state<number | null>(null);
+	let scopeOpen = $state(false), afterConsent = $state<(() => void) | null>(null);
+	let reasonMsg = $state<ChatMessage | null>(null), regeneratingId = $state<number | null>(null);
 
 	async function saveConsent(input: ConsentInput) {
 		const consent = await putConsent(input);
@@ -56,8 +54,7 @@
 	const closeScope = () => ((scopeOpen = false), (afterConsent = null));
 
 	const live = new CoachLive((m) => {
-		messages = messages.map((x) => (x.id === m.id ? { ...x, ...m } : x));
-		setTimeout(scrollToBottom, 50);
+		messages = messages.map((x) => (x.id === m.id ? { ...x, ...m } : x)); setTimeout(scrollToBottom, 50);
 	});
 	onMount(() => {
 		for (const m of messages) if (m.role === 'assistant' && isPendingStatus(m.status)) live.watch(m.id);
@@ -95,10 +92,8 @@
 		}
 	}
 
-	let inputText = $state('');
-	let sending = $state(false);
+	let inputText = $state(''), sending = $state(false);
 	let messagesEnd: HTMLDivElement | undefined = $state();
-
 	const lastMsg = $derived(messages[messages.length - 1] ?? null);
 
 	// MetricBreakdown 드릴다운 스택
