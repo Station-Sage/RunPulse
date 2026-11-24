@@ -2069,7 +2069,7 @@
 
 ## `tests/`
 
-### `conftest.py` (193줄) — pytest 공통 fixture — v0.3 스키마.
+### `conftest.py` (211줄) — pytest 공통 fixture — v0.3 스키마.
 
 - functions: isolated_users_root, db_conn, db_conn_default, db_conn_user, sample_config
 
@@ -2446,9 +2446,9 @@
 
 - functions: test_ignore_budget_false_blocks_when_over_daily_cap, test_ignore_budget_true_skips_budget_check
 
-### `test_autopilot_pacing.py` (56줄) — pacing.py — 세션·주간 rate_limit 기반 페이싱 판정.
+### `test_autopilot_pacing.py` (75줄) — pacing.py — 세션·주간 rate_limit 기반 페이싱 판정.
 
-- functions: test_week_start_is_previous_thursday_22, test_session_ceiling_blocks_until_reset, test_expired_observation_ignored, test_weekly_pace_target_grows_with_time, test_weekly_over_target_blocks_and_under_allows, test_fallback_when_no_session_observation
+- functions: test_week_start_is_previous_thursday_22, test_session_ceiling_blocks_until_reset, test_expired_observation_ignored, test_weekly_pace_target_grows_with_time, test_weekly_over_target_blocks_and_under_allows, test_fallback_when_no_session_observation, test_fallback_ignores_entries_before_expired_window_reset, test_fallback_excludes_audit_ask_entries
 
 ### `test_autopilot_queue.py` (124줄) — scripts/autopilot/queue.py 테스트 — kind="code" 확장(scope/verify) 라운드트립 중심.
 
@@ -2457,6 +2457,10 @@
 - class **TestUpdateItemPreservesCodeFields**: test_stage_update_keeps_scope_and_verify, test_docs_item_meta_shape_unchanged
 - class **TestFindMalformedMeta**: test_wrapped_meta_flagged, test_wellformed_meta_not_flagged, test_wrapped_meta_item_silently_becomes_manual
 - class **TestNextRunnableIgnoresKind**: test_code_and_docs_both_runnable
+
+### `test_autopilot_reconcile.py` (34줄) — review 항목 중 BASE_BRANCH 에 병합된 것만 done 으로 승격되는지.
+
+- functions: test_promote_merged, test_prune_pending
 
 ### `test_autopilot_run_unit.py` (141줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
 
@@ -2468,6 +2472,10 @@
 ### `test_autopilot_size_followup.py` (15줄)
 
 - functions: test_oversize_becomes_followup
+
+### `test_autopilot_trailers.py` (21줄)
+
+- functions: test_strip_trailers, test_scrub_range_rewrites
 
 ### `test_backfill_activity_groups.py` (84줄) — activity_groups 백필 스크립트 테스트.
 
@@ -4279,7 +4287,7 @@
 - functions: run
 
 ---
-총 936개 파일
+총 938개 파일
 
 ## docstring 누락
 
@@ -4287,6 +4295,7 @@
 - `tests/test_audit_agents.py`
 - `tests/test_audit_progress.py`
 - `tests/test_autopilot_size_followup.py`
+- `tests/test_autopilot_trailers.py`
 - `tests/test_chat_engine_cq.py`
 - `tests/test_coach_cq_context.py`
 - `tests/test_constraints.py`

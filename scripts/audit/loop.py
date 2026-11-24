@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 
 from scripts.audit import agents, cycle, deploy, inventory, progress, release, triage
-from scripts.autopilot import notify, pacing, queue, settings
+from scripts.autopilot import notify, pacing, queue, reconcile, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
 FAIL_LIMIT, FIX_LIMIT, UNIT_CAP, MAX_STEPS = 3, 2, 5, 40
@@ -183,6 +183,10 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
             return "새 후보 없음 — 단일 라운드 종료(정지)"
         return "새 후보 없음 — 라운드 종료"
     if ph in ("await", "develop"):
+        promoted = reconcile.promote_merged(path)
+        if promoted:
+            progress.mark(f"[루프] 병합 완료된 review 항목 done 승격: {', '.join(promoted)}")
+        reconcile.prune_pending(path, PENDING_PATH)
         items = queue.parse(path)
         if queue.next_runnable(items) is None:
             from collections import Counter

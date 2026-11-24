@@ -64,3 +64,12 @@ def test_fallback_ignores_entries_before_expired_window_reset():
     old = [{"ts": now - 3000 - i, "unit_id": "u", "cost_usd": 0.01} for i in range(settings.FALLBACK_SESSION_MAX_RUNS)]
     old[0]["rate_limit"] = rl
     assert pacing.check(now, sorted(old, key=lambda e: e["ts"])).allowed
+
+
+def test_fallback_excludes_audit_ask_entries(monkeypatch):
+    monkeypatch.setattr(settings, "FALLBACK_SESSION_MAX_RUNS", 2)
+    now = _ts(2026, 11, 23, 12)
+    runs = [{"ts": now - 60, "unit_id": "audit-ask:sonnet", "cost_usd": 0.1},
+            {"ts": now - 30, "unit_id": "audit-ask:sonnet", "cost_usd": 0.1},
+            {"ts": now - 20, "unit_id": "AUD-1", "cost_usd": 0.1}]
+    assert pacing.check(now, runs).allowed

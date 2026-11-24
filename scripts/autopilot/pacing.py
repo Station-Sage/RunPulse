@@ -85,7 +85,7 @@ def check(now: float | None = None, entries: list[dict] | None = None) -> Pacing
             return Pacing(False, f"주간 사용률 {wk.get('utilization', 1):.0%} ≥ 균등 목표 {target:.0%} — 페이싱 대기", wk["resetsAt"])
     if not sess:
         reset = last_session_reset(entries)
-        recent = [e for e in ledger.since(SESSION_SEC / 3600, entries, now) if e["ts"] > reset]
+        recent = [e for e in ledger.since(SESSION_SEC / 3600, entries, now) if e["ts"] > reset and not str(e.get("unit_id", "")).startswith("audit-ask")]
         if recent and (len(recent) >= settings.FALLBACK_SESSION_MAX_RUNS or ledger.total_cost(recent) >= settings.FALLBACK_SESSION_MAX_USD):
             return Pacing(False, "5시간 관측 없음 — 대체 한도(실행 수·USD) 도달", recent[0]["ts"] + SESSION_SEC)
     return Pacing(True)
