@@ -1,7 +1,8 @@
 """버전 계획 상태(원본) — 버전 → 이니셔티브 → 항목 구조. 사람이 읽는 사본은 v0.3/data/releases/<버전>/PLAN.md.
 
 파일: .claude/autopilot/release_plan.json
-  {"current": "v1", "versions": {"v1": {"title", "status": "active|planned|closed",
+  {"current": "v1", "versions": {"v1": {"title", "status": "active|planned|closed", "goal": "제품 목표 한 줄(선택)",
+     "phases": [{"id": "I", "title", "initiatives": [INI-id...]}](선택, planner 가 생성),
      "initiatives": {"INI-MAINT": {"title", "status": "proposed|approved|designed|done", "items": [BACKLOG ID...]}}}}}
 INI-MAINT 는 기존 감사 결함(AUD-*)을 묶는 상시 이니셔티브 — 어느 이니셔티브에도 속하지 않은 AUD 항목은 sync_maint 가 자동 편입한다.
 """
@@ -76,4 +77,20 @@ def rollup(plan: dict, queue_path: Path | None = None) -> dict:
             by[s] = by.get(s, 0) + 1
         out.append({"id": iid, "title": ini.get("title", iid), "status": ini.get("status", "proposed"),
                     "total": len(ini.get("items", [])), "done": by.get("done", 0), "by_stage": by})
-    return {"version": ver, "title": v.get("title", ver), "status": v.get("status", "active"), "initiatives": out}
+    return {"version": ver, "title": v.get("title", ver), "status": v.get("status", "active"), "goal": v.get("goal", ""),
+            "phases": _phase_rollup(v.get("phases"), out), "initiatives": out}
+
+
+def _phase_rollup(phases, inis: list[dict]) -> list[dict]:
+    """단계별 {id,title,total,done,active,initiatives} — active=아직 안 끝났고 첫 번째인 단계(진행 중)."""
+    by = {i["id"]: i for i in inis}
+    out = []
+    for p in phases or []:
+        mine = [by[i] for i in p.get("initiatives", []) if i in by]
+        out.append({"id": p.get("id", ""), "title": p.get("title", ""), "initiatives": mine,
+                    "total": sum(i["total"] for i in mine), "done": sum(i["done"] for i in mine), "active": False})
+    for p in out:
+        if p["done"] < p["total"] or not p["total"]:
+            p["active"] = True
+            break
+    return out

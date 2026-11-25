@@ -25,12 +25,14 @@ pre{white-space:pre-wrap;word-break:break-all;font-size:12px;color:var(--mut);ma
 #msg{position:fixed;top:8px;left:50%;transform:translateX(-50%);background:#065f46;padding:8px 14px;border-radius:10px;display:none;z-index:9}
 .hid{display:none}
 a,a:visited{color:var(--acc)}a.go{display:inline-block;min-height:36px;line-height:36px;padding:0 14px;margin-top:4px;border-radius:10px;background:var(--acc);color:#0b1220;font-weight:700;font-size:14px;text-decoration:none}
+.pwt{font-size:13px;color:#fbbf24}.pwh{font-size:28px;font-weight:700;color:#fbbf24;margin:2px 0}.pwc{font-size:16px;margin-bottom:4px}
 .flow{display:flex;align-items:flex-start;margin:10px 0}.stp{flex:1;text-align:center;font-size:12px;color:var(--mut);min-width:0}.stp .no{width:24px;height:24px;border-radius:50%;border:2px solid #374151;margin:0 auto 2px;line-height:20px;font-size:12px}.stp.done .no{background:var(--ok);border-color:var(--ok);color:#000}.stp.on .no{border-color:var(--ok);color:var(--ok);box-shadow:0 0 0 3px #10b98133}.stp.on{color:#fff}.stp .sub{font-size:11px;margin-top:2px}.stp .sub .done{color:var(--ok)}.stp .sub .active{color:var(--warn)}.ln{flex:0 0 12px;border-top:2px solid #374151;margin-top:12px}.ban{padding:6px 8px;border-radius:8px;font-size:12px;margin:6px 0}.ban.warn{background:#78350f;color:#fde68a}.ban.bad{background:#7f1d1d;color:#fecaca}
 </style></head><body>
 <header><h1>오토파일럿 관제</h1><span class="mut" id="upd">-</span></header>
 <div id="msg"></div>
 <main>
 <section id="t-now">
+ <div class="card" id="pw" style="display:none"></div>
  <div class="card" id="rel"></div>
  <div class="card" id="st"></div>
  <div class="card" id="roles"></div>
@@ -85,11 +87,18 @@ function flowHtml(o){
  <div class="flow">${steps}</div>${ban}
  <div class="mut">${wait?wait+' · ':''}검토 대기 ${rvw} · 결정함 ${dn} <a class="go" href="#todo">할 일 보기 →</a></div>
  <div class="mut">완료 ${esc(s.units_done)} · 실패 ${esc(s.fails)}</div>`}
-function tickEl(){document.querySelectorAll('[data-since]').forEach(e=>{e.textContent=dur(Date.now()/1000-Number(e.dataset.since))})}
+function tickEl(){document.querySelectorAll('[data-until]').forEach(e=>{const r=Number(e.dataset.until)-Date.now()/1000;e.textContent=r>0?'남은 시간 '+dur(r):'곧 재개'});document.querySelectorAll('[data-since]').forEach(e=>{e.textContent=dur(Date.now()/1000-Number(e.dataset.since))})}
+function iniRow(i){return `<div class="row"><span>${esc(i.title)} <span class="tag">${esc(i.status)}</span></span><span>${i.done}/${i.total}</span></div><div class="bar"><i style="width:${pct(i.done,i.total)}%"></i></div>`}
 function relHtml(r){
  if(!r)return'';const tot=r.initiatives.reduce((a,i)=>a+i.total,0),dn=r.initiatives.reduce((a,i)=>a+i.done,0);
+ const ph=r.phases||[],inPh=new Set(ph.flatMap(p=>p.initiatives.map(i=>i.id))),rest=r.initiatives.filter(i=>!inPh.has(i.id));
+ const cur=ph.find(p=>p.active);
  return `<div class="row"><b>${esc(r.version)} · ${esc(r.title)}</b><span class="tag">${esc(r.status)}</span></div>
- ${bar('범위 전체',dn,tot,dn+' / '+tot+'건')}`+r.initiatives.map(i=>`<div class="row"><span>${esc(i.title)} <span class="tag">${esc(i.status)}</span></span><span>${i.done}/${i.total}</span></div><div class="bar"><i style="width:${pct(i.done,i.total)}%"></i></div>`).join('')}
+ ${r.goal?`<div class="mut">목표: ${esc(r.goal)}</div>`:'<div class="mut">목표·단계 미설계 — 다음 감사/버전 계획 단계에서 생성됩니다</div>'}
+ ${cur?`<div class="mut">현재 진행: <b>${esc(cur.id)}. ${esc(cur.title)}</b></div>`:''}
+ ${bar('범위 전체',dn,tot,dn+' / '+tot+'건')}`
+ +ph.map(p=>`<div class="row"><b>${esc(p.id)}. ${esc(p.title)}</b><span>${p.active?'<span class="tag">진행 중</span> ':p.total&&p.done>=p.total?'<span class="tag">완료</span> ':''}${p.done}/${p.total}</span></div><div class="bar"><i style="width:${pct(p.done,p.total)}%"></i></div>`+p.initiatives.map(i=>`<div class="mut" style="margin-left:12px">${iniRow(i)}</div>`).join('')).join('')
+ +(rest.length?(ph.length?'<div class="mut">단계 밖</div>':'')+rest.map(iniRow).join(''):'')}
 const ROLE_KO={steward:'비전 관리',planner:'버전 계획',designer:'설계',developer:'개발',verifier:'검증',auditor:'감사',deployer:'배포'};
 const FLAG_KO={paused:'일시정지',skip:'건너뛰기',rerun:'재실행'};
 function rolesHtml(rs){rs=rs||{};
@@ -98,6 +107,9 @@ function rolesHtml(rs){rs=rs||{};
  '<div class="mut">일시정지 = 해당 단계 진입 시 정지(해제 후 재개) · 건너뛰기/재실행 = 다음 1회만 적용</div>'}
 function renderNow(o){
  const s=o.state,f=o.flags;
+ const pw=$('#pw'),pacing=s.stop_reason==='pacing'||(!o.budget.pacing_ok&&o.budget.pacing_resume_at);
+ pw.style.display=pacing?'':'none';
+ if(pacing){pw.innerHTML=`<div class="pwt">페이싱 대기 중</div><div class="pwh">${o.budget.pacing_resume_at?hhmm(o.budget.pacing_resume_at)+' 재개':'재개 시각 미정'}</div><div class="pwc" ${o.budget.pacing_resume_at?`data-until="${o.budget.pacing_resume_at}"`:''}></div><div class="mut">${esc(o.budget.pacing_reason||RSN.pacing||'')}</div>`}
  $('#rel').innerHTML=relHtml(o.release);$('#roles').innerHTML=rolesHtml(o.roles);
  $('#upd').textContent=new Date().toLocaleTimeString('ko-KR',{hour12:false});
  $('#st').innerHTML=flowHtml(o);
@@ -105,7 +117,7 @@ function renderNow(o){
  $('#qu').innerHTML=`<b>큐 (자동 ${q.total}건)</b><div>${Object.entries(b).map(([k,v])=>`<span class="tag">${k} ${v}</span> `).join('')}</div>
  <div class="mut">다음 실행: ${esc(q.next||'없음')}</div>`+q.attention.filter(a=>a.stage!=='review').map(a=>`<div class="row"><span>${esc(a.id)} <span class="tag">${a.stage}</span></span></div><div class="mut">${esc(a.text)}</div>`).join('');
  const g=o.budget;
- $('#bu').innerHTML=`<b>예산·페이싱</b>${bar('오늘($)',g.today_usd,g.daily_max)}${bar('이번 주($)',g.week_usd,g.weekly_max)}${win('5시간 세션 사용률',g.five_hour&&(g.five_hour.unifiedWindows||{}).five_hour||g.five_hour)}${win('7일 사용률 (균등 목표 '+Math.round(100*g.weekly_target)+'%)',(g.five_hour&&(g.five_hour.unifiedWindows||{}).seven_day)||g.seven_day)}
+ $('#bu').innerHTML=`<b>예산·페이싱</b>${bar('오늘 추정 비용($, 자체 집계)',g.today_usd,g.daily_max)}${win('5시간 세션 사용률',g.five_hour&&(g.five_hour.unifiedWindows||{}).five_hour||g.five_hour)}${win('7일 사용률 (균등 목표 '+Math.round(100*g.weekly_target)+'%)',(g.five_hour&&(g.five_hour.unifiedWindows||{}).seven_day)||g.seven_day)}
  <div class="mut">${g.pacing_ok?'진행 가능':'대기: '+esc(g.pacing_reason)+(g.pacing_resume_at?' · 재개 '+fmt(g.pacing_resume_at):'')}</div>`;
  const run=f.stop?'중지됨':f.pause?'일시중지됨 (다음 단계부터 멈춤)':s.stop_reason==='pacing'?'페이싱 대기 중':['stopped','halted'].includes(s.phase)?'정지 상태':'실행 중 ('+(s.phase||'-')+' 단계)';
  $('#flags').textContent='상태: '+run;

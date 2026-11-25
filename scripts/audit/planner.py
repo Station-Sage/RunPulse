@@ -24,7 +24,9 @@ _PROMPT = VISION + """
 evidence 는 실제 코드의 path:line 과 그 줄에 있는 문자열 일부(quote)여야 한다. 막연한 표현(전반적·다양한·고도화·최적화)은 금지.
 {"title":"버전 제목","initiatives":[{"id":"INI-slug","title":"","kind":"extend|new","principle":1,"question":"러너가 못 얻는 답",
  "goal":"한 줄 목표","evidence":[{"path":"src/x.py:12","quote":"그 줄의 일부"}],"verify":["완료 기준 셸 커맨드"]}],
- "gaps":"이 제안이 다루지 못하는 영역(누락 검토)"}"""
+ "goal":"이 버전의 제품 목표 한 줄","phases":[{"id":"I","title":"단계 이름","initiatives":["INI-slug"]}],
+ "gaps":"이 제안이 다루지 못하는 영역(누락 검토)"}
+phases 는 이니셔티브를 진행 순서대로 2~4개 단계(I, II, III…)로 묶는다. 모든 이니셔티브는 정확히 한 단계에 속해야 한다."""
 
 
 def next_version(cur: str) -> str:
@@ -77,11 +79,33 @@ def parse(text: str, root: Path = ROOT) -> tuple[dict, list[str]]:
             dropped.append(f"{ini.get('id', '?')}: {why}")
         else:
             ok.append(ini)
-    return {"title": str(d.get("title", ""))[:80], "initiatives": ok, "gaps": str(d.get("gaps", ""))[:300]}, dropped
+    return {"title": str(d.get("title", ""))[:80], "initiatives": ok, "gaps": str(d.get("gaps", ""))[:300],
+            "goal": str(d.get("goal", ""))[:200], "phases": _phases(d.get("phases"), {i["id"] for i in ok})}, dropped
+
+
+def _phases(raw, ids: set[str]) -> list[dict]:
+    """통과한 이니셔티브만 남긴 단계 목록 — 어느 단계에도 없는 이니셔티브는 마지막 단계(없으면 'I')에 붙인다."""
+    out = []
+    for p in raw if isinstance(raw, list) else []:
+        if isinstance(p, dict) and p.get("title"):
+            mine = [i for i in p.get("initiatives", []) if i in ids and not any(i in q["initiatives"] for q in out)]
+            out.append({"id": str(p.get("id") or len(out) + 1)[:6], "title": str(p["title"])[:60], "initiatives": mine})
+    rest = [i for i in sorted(ids) if not any(i in q["initiatives"] for q in out)]
+    if rest:
+        if out:
+            out[-1]["initiatives"] += rest
+        else:
+            out = [{"id": "I", "title": "전체", "initiatives": rest}]
+    return [q for q in out if q["initiatives"]]
 
 
 def render_plan(ver: str, prop: dict) -> str:
-    out = ["---", "status: proposed", "---", f"# {ver} — {prop['title'] or '제안'}", "", "## 이니셔티브"]
+    out = ["---", "status: proposed", "---", f"# {ver} — {prop['title'] or '제안'}", ""]
+    if prop.get("goal"):
+        out += ["## 제품 목표", prop["goal"], ""]
+    if prop.get("phases"):
+        out += ["## 단계"] + [f"- {p['id']}. {p['title']}: " + ", ".join(p["initiatives"]) for p in prop["phases"]] + [""]
+    out += ["## 이니셔티브"]
     for i in prop["initiatives"]:
         ev = ", ".join(f"`{e['path']}` “{e['quote']}”" for e in i["evidence"] if isinstance(e, dict))
         out += [f"### {i['id']} — {i.get('title', '')} ({i.get('kind', 'new')}, 원칙 {i['principle']})",
@@ -97,7 +121,8 @@ def apply_proposal(ver: str, prop: dict, plan_path: Path | None = None, root: Pa
     doc.parent.mkdir(parents=True, exist_ok=True)
     doc.write_text(render_plan(ver, prop), encoding="utf-8")
     plan = release_plan.load(plan_path)
-    plan["versions"][ver] = {"title": prop["title"] or ver, "status": "planned", "initiatives": {
+    plan["versions"][ver] = {"title": prop["title"] or ver, "status": "planned", "goal": prop.get("goal", ""),
+                             "phases": prop.get("phases", []), "initiatives": {
         i["id"]: {"title": i.get("title", i["id"]), "status": "proposed", "items": [], "goal": i["goal"], "verify": i["verify"]}
         for i in prop["initiatives"]}}
     release_plan.save(plan, plan_path)
@@ -106,7 +131,7 @@ def apply_proposal(ver: str, prop: dict, plan_path: Path | None = None, root: Pa
 
 def decision_record(ver: str, prop: dict) -> dict:
     names = ", ".join(i["id"] for i in prop["initiatives"])
-    d = {"design": {"summary": f"{ver} 이니셔티브 제안: {names}", "recommendation": "A — 제안 범위 그대로 승인",
+    d = {"design": {"summary": f"{ver} 이니셔티브 제안: {names}" + (f" — 목표: {prop['goal']}" if prop.get("goal") else "") + "".join(f" / {p['id']}. {p['title']}" for p in prop.get("phases", [])), "recommendation": "A — 제안 범위 그대로 승인",
                     "options": [{"name": "승인", "pros": "다음 버전 설계·개발 착수", "cons": "범위가 고정된다"},
                                 {"name": "보류", "pros": "추가 감사·논의 가능", "cons": "버전 진행이 멈춘다"}]},
          "why": f"안정화 게이트 통과 — 누락 검토: {prop['gaps'] or '-'}"}
