@@ -26,3 +26,11 @@ def test_choose(tmp_path):
     assert decisions.choose("AUD-1", "A", p)["status"] == "chosen"
     assert decisions.choose("AUD-1", "redo", p)["status"] == "redo"
     assert decisions.choose("nope", "A", p) is None
+
+
+def test_build_fallback_fills_summary_and_default_options():
+    f = {"kind": "tap", "impact": "작은 버튼", "fix": "패딩", "perspective": "ui", "cells": ["a|b|390"]}
+    r = decisions.build("AUD-2", f, {"tier": "user", "why": "등급 분류 미사용", "design": {}})
+    assert r["summary"] == "tap: 작은 버튼"
+    assert [o["key"] for o in r["options"]] == ["A", "B"] and r["options"][1]["name"] == "보류·무시"
+    assert r["finding"]["perspective"] == "ui" and r["finding"]["cells"] == ["a|b|390"]
