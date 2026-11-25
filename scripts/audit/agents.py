@@ -135,6 +135,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.review:
         from scripts.audit import review
         progress.mark(f"[감사] 독립 검토 시작 — {len(findings)}건")
+        progress.event("sub", step="review", state="start", n=len(findings))
         findings = review.review(findings, groups)
     known.record([f for f in findings if f.get("verdict") == "real"], rnd)
     FINDINGS_PATH.parent.mkdir(parents=True, exist_ok=True)

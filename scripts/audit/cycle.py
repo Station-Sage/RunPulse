@@ -56,7 +56,9 @@ def run_cycle(force: bool = False, perspectives: str | None = None, limit: int |
     entry["ran"] = True
     entry["release"] = release
     progress.mark(f"[감사] 브라우저 스윕 시작{' (릴리스·Opus)' if release else ''}")
+    progress.event("sub", step="sweep", state="start")
     swept, err = browser_sweep(limit)
+    progress.event("sub", step="sweep", state="end", ok=not err)
     entry["swept"] = swept
     progress.mark(f"[감사] 스윕 종료 — {swept}셀" + (f" 실패: {err}" if err else ""))
     if err:
@@ -69,7 +71,9 @@ def run_cycle(force: bool = False, perspectives: str | None = None, limit: int |
     args = ["--backlog", "--review", "--discover"] + (["--perspectives", perspectives] if perspectives else []) + (["--release"] if release else [])
     entry["issue_kinds"] = {k: len(v) for k, v in groups.items()}
     progress.mark(f"[감사] 관점 감사 + 독립 검토 시작 — 이슈 유형 {len(groups)}종")
+    progress.event("sub", step="audit", state="start")
     entry["agents_rc"] = agents.main(args)
+    progress.event("sub", step="review", state="end")
     entry["outcome"] = "done"
     entry["findings"] = _count_findings()
     entry["confirmed"] = _count_findings(confirmed_only=True)
