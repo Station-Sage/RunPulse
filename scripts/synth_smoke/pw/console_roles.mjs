@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 420, height: 900 } });
+const errs = []; pg.on('pageerror', e => errs.push(String(e))); pg.on('console', m => m.type() === 'error' && errs.push(m.text()));
+await pg.goto('http://127.0.0.1:8799/'); await pg.waitForSelector('#roles .row');
+const rows = await pg.locator('#roles .row').count();
+const rel = (await pg.locator('#rel').innerText()).slice(0, 80);
+await pg.click('[data-rl=designer][data-rf=paused]'); await pg.waitForSelector('#roles .tag');
+const tag = await pg.locator('#roles .tag').first().innerText();
+await pg.screenshot({ path: '/tmp/roles.png' });
+await pg.click('[data-rl=designer][data-rf=paused]'); await pg.waitForFunction(() => !document.querySelector('#roles .tag'));
+console.log(JSON.stringify({ rows, rel, tag, errs })); await b.close();

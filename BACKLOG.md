@@ -12,6 +12,7 @@
 - **[AP-A2]** (2026-11-24) 자동 승인 단계적 완화 + 구조화 결정함: 교차 검토 unsure 1회 재질의, 설계 파싱 실패 1회 재시도, 허용 범위에 docs/·scripts/audit/ 추가(RISK·disagree 는 그대로 사람). 자동 승인 항목에 `auto_approved` 메타(콘솔 사후 검토·되돌리기용), 결정 대기 건은 `pending_decisions.json`(옵션·추천·되돌리기 방법, `scripts/audit/decisions.py`)에 구조화 기록. 브랜치 feat/autopilot-a1-state, 미머지. 다음: A4.
 - **[AP-A4]** (2026-11-24) 중단 완화: 브라우저 스윕 일시 실패 1회 재시도·사유에 stderr 끝 3줄 기록(`cycle.browser_sweep`), 5시간 관측 없음 대체 한도 완화(실행 6→10, USD 8→12)하고 `tunables.json` 으로 관제에서 조정 가능. 브랜치 feat/autopilot-a1-state, 미머지. 다음: 관제 콘솔 1단계.
 - **[AP-C]** (2026-11-25) 오토파일럿 관제 콘솔 C1~C4 구현 완료(`scripts/console/`, 브랜치 feat/autopilot-a1-state, 미머지·미배포): 현황·제어·결정·검토 4탭 PWA, systemd user 서비스(`scripts/console/systemd/`), Telegram 알림에 콘솔 링크. 남은 일: 서비스 설치, cloudflared 터널 + Access 앱 생성(사용자), 머지 여부 결정. ADR-067
+- **[AP-V]** (2026-11-25) 오토파일럿 버전 사이클 S0~S5 구현 완료(브랜치 feat/autopilot-a1-state, 미커밋·미머지·미배포): release_plan·docs_ctx·orchestrator·planner·idesign·versioning·steward·roles + 콘솔 `#rel`·역할 패널(`/api/roles`). ADR-068. 치명 결함 우선 결정(2026-11-25): 큐 메타 critical, next_runnable 우선, plan·idesign 보류, 게이트 차단.
 
 ## BUGS
 

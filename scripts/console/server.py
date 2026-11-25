@@ -1,6 +1,6 @@
 """관제 콘솔 HTTP 서버(C2) — stdlib http.server, 127.0.0.1 전용(외부 노출은 cloudflared + Cloudflare Access 가 담당).
 
-GET  /api/overview /api/decisions /api/log /api/timers, POST /api/control /api/tunables /api/interval /api/decisions/<id>.
+GET  /api/overview /api/decisions /api/log /api/timers /api/roles, POST /api/control /api/tunables /api/interval /api/roles /api/decisions/<id>.
 라우팅은 route() 순수 함수로 분리해 소켓 없이 테스트한다. POST 는 JSON 만, Origin 이 있으면 Host 와 같아야 한다(CSRF 방어).
 """
 from __future__ import annotations
@@ -12,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from scripts.audit import decisions, progress
+from scripts.audit import decisions, loop, progress, roles, steward, versioning
 from scripts.autopilot import settings
 from scripts.console import control, overview
 
@@ -48,7 +48,7 @@ def tunable_values() -> dict:
     return {k: settings.tunable(k) for k in control.TUNABLES}
 
 
-def choose(iid: str, choice: str, dpath: Path | None = None) -> dict:
+def choose(iid: str, choice: str, dpath: Path | None = None, state_path: Path | None = None, plan_path: Path | None = None) -> dict:
     recs = decisions.load(dpath)
     rec = next((r for r in recs if r["id"] == iid), None)
     if rec is None:
@@ -60,17 +60,29 @@ def choose(iid: str, choice: str, dpath: Path | None = None) -> dict:
     with control.LOCK:
         decisions.choose(iid, choice, dpath)
         control.audit("decision", {"id": iid, "choice": choice}, True)
-    return {"ok": True, "id": iid, "choice": choice}
+        note = ""
+        if rec.get("kind") == "initiative":
+            cur = next(r for r in decisions.load(dpath) if r["id"] == iid)
+            st = loop.load_state(state_path)
+            note = versioning.apply_choice(cur, st, dpath=dpath, plan_path=plan_path)
+            loop.save_state(st, state_path)
+        elif rec.get("kind") == "vision":
+            note = steward.apply_choice(next(r for r in decisions.load(dpath) if r["id"] == iid), dpath=dpath)
+    return {"ok": True, "id": iid, "choice": choice, **({"note": note} if note else {})}
 
 
 def route(method: str, path: str, body: dict | None = None) -> tuple[int, dict | list]:
     body = body or {}
     if method == "GET":
-        routes = {"/api/overview": overview.overview, "/api/decisions": overview.decision_list, "/api/log": log_tail, "/api/timers": timers, "/api/tunables": tunable_values}
+        routes = {"/api/overview": overview.overview, "/api/decisions": overview.decision_list, "/api/log": log_tail, "/api/timers": timers, "/api/tunables": tunable_values, "/api/roles": roles.load}
         fn = routes.get(path)
         return (200, fn()) if fn else (404, {"error": "not found"})
     if path == "/api/control":
         r = control.act(str(body.get("action", "")))
+    elif path == "/api/roles":
+        with control.LOCK:
+            r = roles.set_flag(str(body.get("role", "")), str(body.get("flag", "")), bool(body.get("value")))
+            control.audit("roles", {k: body.get(k) for k in ("role", "flag", "value")}, bool(r.get("ok")))
     elif path == "/api/tunables":
         r = control.set_tunables(body.get("values") or {})
     elif path == "/api/interval":

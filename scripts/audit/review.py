@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import re
 
+from scripts.audit import docs_ctx
 from scripts.audit.agents import ask
 from scripts.audit.vision import VISION
 
@@ -44,7 +45,7 @@ def review(findings: list[dict], groups: dict[str, list[dict]]) -> list[dict]:
             out.append(f)
             continue
         ev = "\n".join(f"{g['cell']}: {g['note'][:120]}" for g in groups.get(f["kind"], [])[:6]) or "(증거 없음)"
-        text = ask(_PROMPT % (f["kind"], f.get("impact", ""), f.get("fix", ""), ev), pick_model(f.get("perspective", "")))
+        text = ask(docs_ctx.augment(_PROMPT % (f["kind"], f.get("impact", ""), f.get("fix", ""), ev), "auditor"), pick_model(f.get("perspective", "")))
         out.append({**f, "review": parse_verdict(text)})
     return out
 

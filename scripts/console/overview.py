@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from scripts.audit import decisions, loop
+from scripts.audit import roles, decisions, loop, release_plan
 from scripts.console import flow
 from scripts.autopilot import ledger, pacing, queue, settings
 
@@ -32,14 +32,22 @@ def budget_summary(now: float, entries: list[dict] | None = None) -> dict:
             "pacing_ok": pc.allowed, "pacing_reason": pc.reason, "pacing_resume_at": pc.resume_at}
 
 
+def release_summary(queue_path: Path | None = None, plan_path: Path | None = None) -> dict:
+    """버전 헤더·범위 카드 — 저장하지 않고 INI-MAINT 편입을 메모리에서만 반영한다."""
+    plan = release_plan.load(plan_path)
+    release_plan.sync_maint(plan, queue_path)
+    return release_plan.rollup(plan, queue_path)
+
+
 def overview(now: float | None = None, state_path: Path | None = None, queue_path: Path | None = None,
-             entries: list[dict] | None = None, dpath: Path | None = None) -> dict:
+             entries: list[dict] | None = None, dpath: Path | None = None, plan_path: Path | None = None) -> dict:
     now = now or time.time()
     st = loop.load_state(state_path)
     open_dec = [d for d in decisions.load(dpath) if d["status"] in ("open", "redo")]
     return {"now": now, "state": {k: st.get(k) for k in ("phase", "round", "unit", "units_done", "fails", "stop_reason")},
             "flags": {"pause": settings.PAUSE_PATH.exists(), "stop": settings.STOP_PATH.exists()},
             "queue": queue_summary(queue_path), "budget": budget_summary(now, entries), "decisions_open": len(open_dec),
+            "release": release_summary(queue_path, plan_path), "roles": roles.load(),
             "progress": flow.build(st, now, queue_path, unit_cap=loop.UNIT_CAP)}
 
 

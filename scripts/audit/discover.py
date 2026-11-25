@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.audit import agents, inventory, known
+from scripts.audit import agents, docs_ctx, inventory, known
 from scripts.audit.vision import VISION
 from scripts.autopilot import settings
 
@@ -28,8 +28,8 @@ _PROMPT = """{vision}
 이미 보고된 이슈(반복 금지):
 {known}
 
-규칙: 근거 파일·라인을 확인한 것만 보고한다. 장식·소셜·라이브 추적류 제안 금지. 최대 5건.
-출력은 JSON 배열만: [{{"kind":"...","verdict":"real","impact":"사용자 영향 한 줄","fix":"수정 방향 한 줄","cells":["파일:라인",...]}}]
+규칙: 근거 파일·라인을 확인한 것만 보고한다. 장식·소셜·라이브 추적류 제안 금지. 최대 5건. critical=true 는 데이터 손실·보안·핵심 기능 불능·잘못된 건강/훈련 수치 노출만(드물게).
+출력은 JSON 배열만: [{{"kind":"...","verdict":"real","impact":"사용자 영향 한 줄","fix":"수정 방향 한 줄","critical":false,"cells":["파일:라인",...]}}]
 """
 
 
@@ -59,6 +59,6 @@ def run(round_no: int, model: str = "sonnet", path: Path | None = None, known_pa
         if remaining(round_no, path) <= 0:
             break
         _spend(round_no, path)
-        prompt = _PROMPT.format(vision=VISION, theme=theme, known=known.render(seen))
+        prompt = docs_ctx.augment(_PROMPT.format(vision=VISION, theme=theme, known=known.render(seen)), "auditor")
         out += [{**f, "perspective": f"discover:{name}"} for f in agents.parse_findings(agents.ask(prompt, model, tools=TOOLS))]
     return known.filter_new(out, seen)

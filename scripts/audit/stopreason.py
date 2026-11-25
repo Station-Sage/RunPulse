@@ -3,12 +3,16 @@
 사유별 재개 정책(타이머 발화 시 `resume`):
   pacing·step_cap : 그대로 재개(상태 유지)    round_done : 새 라운드(감사)로 재개
   failed          : 재개 안 함(알림만, --reset 필요)    stop_flag : 사람이 요청한 정지 — 재개 안 함
-사용자 결정 대기(needs_decision)는 정지 사유가 아니다 — 그 항목만 건너뛰고 진행하며 state["pending_decisions"] 로만 노출한다.
+await_decision : 버전 계획·이니셔티브 승인 등 사용자 결정이 있어야 이어갈 수 있는 정지 — 자동 재개 안 함(결정 반영 시 콘솔이 해제)
+role_pause : 콘솔 역할 패널의 역할 일시정지 — 자동 재개 안 함, 사람이 '재개'하면 단계(phase)를 유지한 채 이어간다
+항목 단위 needs_decision 은 정지 사유가 아니다 — 그 항목만 건너뛰고 진행하며 state["pending_decisions"] 로만 노출한다.
 """
 from __future__ import annotations
 
 PACING, ROUND_DONE, FAILED, STOP_FLAG, STEP_CAP = "pacing", "round_done", "failed", "stop_flag", "step_cap"
-ALL = (PACING, ROUND_DONE, FAILED, STOP_FLAG, STEP_CAP)
+AWAIT_DECISION = "await_decision"
+ROLE_PAUSE = "role_pause"
+ALL = (PACING, ROUND_DONE, FAILED, STOP_FLAG, STEP_CAP, AWAIT_DECISION, ROLE_PAUSE)
 AUTO_RESUME = (PACING, ROUND_DONE, STEP_CAP)
 
 

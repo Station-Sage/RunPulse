@@ -4,6 +4,7 @@ import json
 import pytest
 
 from scripts.audit import loop, triage
+from scripts.audit import propose as propose_mod
 
 F = {"perspective": "ux", "kind": "tap", "verdict": "real", "impact": "버튼 작음", "fix": "키움"}
 DESIGN = {"grade": "auto", "summary": "패딩 확대", "scope": ["frontend/src/a.svelte"], "verify": ["true"],
@@ -60,7 +61,7 @@ def test_report_has_options_and_reason():
 def test_design_phase_splits_auto_and_user(tmp_path, monkeypatch):
     monkeypatch.setattr(loop.notify, "send", lambda t: True)
     monkeypatch.setattr(loop.pacing, "check", lambda n: type("P", (), {"allowed": True, "reason": ""})())
-    monkeypatch.setattr(loop, "PENDING_PATH", tmp_path / "pending.md")
+    monkeypatch.setattr(propose_mod, "PENDING_PATH", tmp_path / "pending.md")
     monkeypatch.setattr(loop, "agents_confirmed", lambda: [F, {**F, "kind": "other"}])
     p = tmp_path / "B.md"
     p.write_text("", encoding="utf-8")
@@ -96,7 +97,7 @@ def test_large_design_stays_sonnet_when_opus_not_allowed():
 
 
 def test_open_unit_covering_kind_suppresses_duplicate_finding(tmp_path, monkeypatch):
-    monkeypatch.setattr(loop, "PENDING_PATH", tmp_path / "pending.md")
+    monkeypatch.setattr(propose_mod, "PENDING_PATH", tmp_path / "pending.md")
     p = tmp_path / "B.md"
     p.write_text('- **[AUD-aaaaaa-1]** (커버: no-h1, other) 단위\n  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->\n', encoding="utf-8")
     f = {**F, "kind": "no-h1", "perspective": "ux", "verdict": "real"}
