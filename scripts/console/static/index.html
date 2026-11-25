@@ -19,6 +19,7 @@ button.b.p{background:var(--acc);color:#0b1220}button.b.d{background:var(--bad);
 input{min-height:44px;width:90px;border-radius:8px;border:1px solid #4b5563;background:#111827;color:var(--fg);padding:0 8px;font-size:15px}
 .bar{height:8px;background:#374151;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok)}
 .tag{display:inline-block;padding:0 8px;border-radius:8px;background:#374151;font-size:12px}
+pre#log{max-height:45vh;overflow:auto}.badge{display:inline-block;min-width:20px;height:20px;line-height:20px;padding:0 6px;margin-left:6px;border-radius:10px;background:var(--bad);color:#fff;font-size:12px;font-weight:700;text-align:center}
 pre{white-space:pre-wrap;word-break:break-all;font-size:12px;color:var(--mut);margin:0}
 .opt{border:1px solid #374151;border-radius:10px;padding:8px;margin:6px 0}.sec{margin:6px 0}.st{font-size:12px;color:var(--mut);margin-top:6px}.sec ul{margin:2px 0;padding-left:18px;font-size:13px}.opt.rec{border-color:var(--ok)}.tag.ok{background:var(--ok);color:#000}.pro{color:var(--ok)}.con{color:var(--bad)}
 #msg{position:fixed;top:8px;left:50%;transform:translateX(-50%);background:#065f46;padding:8px 14px;border-radius:10px;display:none;z-index:9}
@@ -29,24 +30,21 @@ pre{white-space:pre-wrap;word-break:break-all;font-size:12px;color:var(--mut);ma
 <main>
 <section id="t-now">
  <div class="card" id="st"></div>
- <div class="card" id="qu"></div>
- <div class="card" id="bu"></div>
-</section>
-<section id="t-ctl" class="hid">
  <div class="card"><b>실행 제어</b><div class="mut" id="flags"></div>
   <button class="b p" data-a="start">시작</button><button class="b p" data-a="resume">재개</button>
   <button class="b" data-a="pause">일시중지</button><button class="b d" data-a="stop">중지</button>
   <div class="mut">일시중지 = 현재 단계를 마치고 다음 단계부터 멈춤 · 중지 = 즉시 종료(등록된 프로세스 회수)</div></div>
+ <div class="card"><b>진행 로그</b> <span class="mut" id="logst">실시간</span><pre id="log"></pre></div>
+ <div class="card" id="qu"></div>
+ <div class="card" id="bu"></div>
  <div class="card"><b>자동 재개 타이머</b><div id="tm"></div>
   <div class="mut">간격(분, 10~1440)</div>
   <div id="tmset"></div></div>
  <div class="card"><b>한도 설정</b><div id="tun"></div></div>
- <div class="card"><b>진행 로그</b><pre id="log"></pre></div>
 </section>
-<section id="t-dec" class="hid"><div id="dl"></div></section>
-<section id="t-rev" class="hid"><div id="rv"></div></section>
+<section id="t-todo" class="hid"><div class="st">결정 대기</div><div id="dl"></div><div class="st">사후 검토</div><div id="rv"></div></section>
 </main>
-<nav><button data-t="now" class="on">현황</button><button data-t="ctl">제어</button><button data-t="dec">결정<span id="dn"></span></button><button data-t="rev">검토</button></nav>
+<nav><button data-t="now" class="on">현황/제어</button><button data-t="todo">결정/검토<span id="dn" class="badge hid"></span></button></nav>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const TUN={AUDIT_TOOL_CALLS_PER_ROUND:'감사 라운드당 도구 호출',FALLBACK_SESSION_MAX_RUNS:'세션 최대 실행 수',FALLBACK_SESSION_MAX_USD:'세션 최대 비용($)'};
@@ -74,8 +72,8 @@ function renderNow(o){
  $('#bu').innerHTML=`<b>예산·페이싱</b>${bar('오늘($)',g.today_usd,g.daily_max)}${bar('이번 주($)',g.week_usd,g.weekly_max)}
  <div class="mut">${g.pacing_ok?'진행 가능':'대기: '+esc(g.pacing_reason)+(g.pacing_resume_at?' · 재개 '+fmt(g.pacing_resume_at):'')}</div>`;
  $('#flags').textContent=`PAUSE ${f.pause?'ON':'off'} · STOP ${f.stop?'ON':'off'}`;
- $('#dn').textContent=o.decisions_open?` (${o.decisions_open})`:'';
  const rv=q.attention.filter(a=>a.stage==='review');
+ const n=(o.decisions_open||0)+rv.length,dn=$('#dn');dn.textContent=n>99?'99+':n;dn.classList.toggle('hid',!n);
  $('#rv').innerHTML=rv.length?rv.map(a=>`<div class="card"><b>${esc(a.id)}</b> <span class="tag">사후 검토</span><div class="mut">${esc(a.text)}</div></div>`).join(''):'<div class="card mut">검토 대기 항목 없음</div>';
 }
 function renderTimers(){
@@ -105,17 +103,26 @@ function renderDec(list){
   <div class="mut">${rec?'추천: '+esc(rec):'추천 없음 (분류기가 추천을 내지 않음)'}</div>
   ${sec('되돌리는 방법',esc(d.revert||''))}
   ${open?`<button class="b" data-dc="${esc(d.id)}" data-ch="redo">다른 제안 받기</button>`:`<div class="mut">선택: ${esc(d.choice||'-')}</div>`}</div>`}).join(''):'<div class="card mut">결정함이 비어 있음</div>'}
+function showLog(l){
+ if(!Array.isArray(l))return;const e=$('#log'),end=e.scrollHeight-e.scrollTop-e.clientHeight<24;
+ e.textContent=l.slice(-60).join('\n');if(end)e.scrollTop=e.scrollHeight}
+async function pollLog(){if(tab!=='now'||document.hidden)return;showLog(await api('/api/log'));$('#logst').textContent='실시간 · '+new Date().toLocaleTimeString('ko-KR',{hour12:false})}
+function setTab(k){
+ if(k!=='todo')k='now';tab=k;
+ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===k));
+ for(const x of['now','todo'])$('#t-'+x).classList.toggle('hid',x!==k);
+ if(k==='now')pollLog()}
+function tabFromHash(){const h=location.hash.slice(1);return h==='todo'||h==='dec'||h==='rev'?'todo':'now'}
 async function load(){
  const [o,d,l,t,tv]=await Promise.all([api('/api/overview'),api('/api/decisions'),api('/api/log'),api('/api/timers'),api('/api/tunables')]);
  if(o.state)renderNow(o);
  if(Array.isArray(d))renderDec(d);
- if(Array.isArray(l))$('#log').textContent=l.slice(-30).join('\n');
+ showLog(l);
  if(t&&typeof t==='object'){timers=t;renderTimers()}
  if(tv&&!typing)for(const[k,v]of Object.entries(tv)){const e=$('#tn-'+k);if(e&&document.activeElement!==e&&!e.value)e.value=v}}
 document.addEventListener('click',async e=>{
  const t=e.target.closest('button');if(!t)return;
- if(t.dataset.t){tab=t.dataset.t;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b===t));
-  for(const k of['now','ctl','dec','rev'])$('#t-'+k).classList.toggle('hid',k!==tab);return}
+ if(t.dataset.t){history.replaceState(null,'','#'+t.dataset.t);setTab(t.dataset.t);return}
  let r;
  if(t.dataset.a){if(t.dataset.a==='stop'&&!confirm('즉시 중지할까요? 실행 중 프로세스를 종료합니다.'))return;r=await api('/api/control',{action:t.dataset.a})}
  else if(t.dataset.iv){r=await api('/api/interval',{timer:t.dataset.iv,minutes:Number($('#iv-'+t.dataset.iv).value)})}
@@ -124,7 +131,8 @@ document.addEventListener('click',async e=>{
  else return;
  if(r&&r.ok)toast('적용됨');load()});
 document.addEventListener('focusin',e=>{typing=e.target.tagName==='INPUT'});
-buildSettings();load();
-setInterval(()=>{if(!typing)load()},15000);setInterval(tickTimers,1000);
+buildSettings();setTab(tabFromHash());load();
+addEventListener('hashchange',()=>setTab(tabFromHash()));document.addEventListener('visibilitychange',pollLog);
+setInterval(()=>{if(!typing)load()},15000);setInterval(tickTimers,1000);setInterval(pollLog,3000);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 </script></body></html>
