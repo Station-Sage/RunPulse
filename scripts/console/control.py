@@ -37,6 +37,19 @@ def audit(action: str, detail: dict, ok: bool, state_dir: Path | None = None) ->
         f.write(json.dumps({"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "action": action, "detail": detail, "ok": ok}, ensure_ascii=False) + "\n")
 
 
+def _clear_stopped(d: Path) -> None:
+    """사람이 시작/재개를 눌렀으면 cycle_state 의 정지(stopped/halted·stop_reason)를 풀어 감사부터 다시 돈다."""
+    p = d / "cycle_state.json"
+    try:
+        st = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if st.get("stop_reason") is None and st.get("phase") not in ("stopped", "halted"):
+        return
+    st.update(phase="audit", fails=0, unit=None, stop_reason=None)
+    p.write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
 def act(action: str, state_dir: Path | None = None, run=_sh, reap=None) -> dict:
     """start/resume/pause/stop. start 는 플래그를 지우고 감사 서비스를 즉시 1회 기동한다."""
     if action not in ACTIONS:
@@ -57,6 +70,7 @@ def act(action: str, state_dir: Path | None = None, run=_sh, reap=None) -> dict:
         else:
             pause.unlink(missing_ok=True)
             stop.unlink(missing_ok=True)
+            _clear_stopped(d)
             if action == "start":
                 run(["systemctl", "--user", "start", "--no-block", "runpulse-audit.service"])
         res = {"ok": True, "action": action, "killed": killed, "pause": pause.exists(), "stop": stop.exists()}

@@ -34,3 +34,20 @@ def test_set_interval(tmp_path):
     assert control.set_interval("runpulse-audit", 5, tmp_path, ud)["ok"] is False
     assert control.set_interval("evil", 30, tmp_path, ud)["ok"] is False
     assert control.set_interval("runpulse-audit", 30, tmp_path, ud, run=lambda c: False)["ok"] is False
+
+
+def test_start_clears_stopped_cycle_state(tmp_path):
+    import json
+    p = tmp_path / "cycle_state.json"
+    p.write_text(json.dumps({"phase": "stopped", "round": 7, "fails": 2, "unit": None, "stop_reason": "stop_flag"}))
+    control.act("start", tmp_path, run=lambda c: True)
+    st = json.loads(p.read_text())
+    assert (st["phase"], st["stop_reason"], st["fails"], st["round"]) == ("audit", None, 0, 7)
+
+
+def test_pause_keeps_cycle_state(tmp_path):
+    import json
+    p = tmp_path / "cycle_state.json"
+    p.write_text(json.dumps({"phase": "stopped", "stop_reason": "stop_flag"}))
+    control.act("pause", tmp_path)
+    assert json.loads(p.read_text())["stop_reason"] == "stop_flag"
