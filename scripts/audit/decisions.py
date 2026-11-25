@@ -13,14 +13,24 @@ DECISIONS_PATH = Path(".claude/autopilot/pending_decisions.json")
 REVERT = "git revert <커밋>; 관련 BACKLOG 항목 stage 를 needs_decision 으로 되돌림"
 
 
+DEFAULT_OPTIONS = [
+    {"name": "제안된 수정 진행", "pros": "발견된 문제가 해소된다", "cons": "설계안 없이 발견 내용의 fix 문구대로 진행하므로 범위가 넓을 수 있다"},
+    {"name": "보류·무시", "pros": "변경 없음, 위험 없음", "cons": "문제가 그대로 남고 다음 감사에서 다시 보고될 수 있다"},
+]
+
+
 def build(iid: str, finding: dict, d: dict) -> dict:
+    """결정 레코드. 설계안이 비어 있으면(등급 분류 미사용 등) 발견 내용으로 요약·기본 2안을 채운다."""
     dz = d.get("design", {}) or {}
+    raw = dz.get("options") or DEFAULT_OPTIONS
     opts = [{"key": chr(65 + i), "name": str(o.get("name", "")), "pros": str(o.get("pros", "")), "cons": str(o.get("cons", ""))}
-            for i, o in enumerate(dz.get("options", []))]
-    return {"id": iid, "kind": finding["kind"], "status": "open", "summary": dz.get("summary", ""), "why": d.get("why", ""),
-            "options": opts, "recommendation": dz.get("recommendation", ""), "revert": REVERT,
-            "finding": {k: finding.get(k, "") for k in ("kind", "impact", "fix")},
-            "scope": list(dz.get("scope", [])), "verify": list(dz.get("verify", [])), "rounds": 1,
+            for i, o in enumerate(raw)]
+    fnd = {k: finding.get(k, "") for k in ("kind", "impact", "fix", "perspective")}
+    fnd["cells"] = [str(c) for c in finding.get("cells", [])][:20]
+    return {"id": iid, "kind": finding["kind"], "status": "open",
+            "summary": dz.get("summary") or f"{finding['kind']}: {finding.get('impact', '')}".strip(": "),
+            "why": d.get("why", ""), "options": opts, "recommendation": dz.get("recommendation", ""), "revert": REVERT,
+            "finding": fnd, "scope": list(dz.get("scope", [])), "verify": list(dz.get("verify", [])), "rounds": 1,
             "created": time.strftime("%Y-%m-%dT%H:%M:%S"), "choice": None}
 
 
