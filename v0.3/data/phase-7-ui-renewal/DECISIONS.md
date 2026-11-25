@@ -1283,3 +1283,12 @@ REVIEW-04 #S2(Coach 근거 없음, 입력창 미도킹) 해소. 근거 칩은 To
   3. 외부 출력(ICS·garmin_push·caldav_push)까지 조정을 반영하는 구현을 포함(§8-4 추천과 반대, 설계 추가 필요).
 - **권고**: 1번. 기존 구현과 중복·충돌할 위험이 없고, 미결 결정을 사용자 확인으로 돌린다.
 - **상태**: 사용자 결정 대기. 코드 변경 없음, pytest 미실행.
+
+## [P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT-IMPL] 요청 명세(planned_workouts 영속화 + PUT accept-adjustment)는 확정 설계와 충돌 — 구현 보류 (2026-11-25)
+- **질문**: 항목은 `planned_workouts` 영속화 + `PUT accept-adjustment`를 요구하나, 확정 설계(ADR-035 A안)는 `plan_adjustments` 이력 테이블 + 읽을 때 오버레이이고 `POST /coach/plan/adjustments/<id>/accept|revert`가 이미 구현돼 있다. 어떻게 할까?
+- **선택지**:
+  1. 항목 종료(done)·코드 변경 없음. 미구현분(T4·T6·T7·T9)은 감사 후 별도 항목으로 분리.
+  2. 확정 설계를 번복하고 `planned_workouts` 직접 덮어쓰기 + PUT 경로 추가(되돌리기·이력 상실, ADR-035 번복 필요).
+  3. 기존 POST 계약을 유지한 채 PUT 별칭만 추가(중복 API, 가치 낮음).
+- **권고**: 1번. 설계 번복·중복 구현을 피한다. 앞선 `[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT]` 섹션의 §8 결정 4건 확정과 함께 답해 달라.
+- **상태**: 사용자 결정 대기. 코드 변경 없음.
