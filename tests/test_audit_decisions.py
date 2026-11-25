@@ -34,3 +34,8 @@ def test_build_fallback_fills_summary_and_default_options():
     assert r["summary"] == "tap: 작은 버튼"
     assert [o["key"] for o in r["options"]] == ["A", "B"] and r["options"][1]["name"] == "보류·무시"
     assert r["finding"]["perspective"] == "ui" and r["finding"]["cells"] == ["a|b|390"]
+
+
+def test_tests_do_not_touch_live_decisions_store():
+    from pathlib import Path
+    assert decisions.DECISIONS_PATH != Path(".claude/autopilot/pending_decisions.json")
