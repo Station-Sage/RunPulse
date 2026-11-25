@@ -44,7 +44,7 @@ pre{white-space:pre-wrap;word-break:break-all;font-size:12px;color:var(--mut);ma
 </section>
 <section id="t-todo" class="hid"><div class="st">결정 대기</div><div id="dl"></div><div class="st">사후 검토</div><div id="rv"></div></section>
 </main>
-<nav><button data-t="now" class="on">현황/제어</button><button data-t="todo">결정/검토<span id="dn" class="badge hid"></span></button></nav>
+<nav><button data-t="now" class="on">상황판</button><button data-t="todo">할 일<span id="dn" class="badge hid"></span></button></nav>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const TUN={AUDIT_TOOL_CALLS_PER_ROUND:'감사 라운드당 도구 호출',FALLBACK_SESSION_MAX_RUNS:'세션 최대 실행 수',FALLBACK_SESSION_MAX_USD:'세션 최대 비용($)'};
@@ -104,8 +104,8 @@ function renderDec(list){
   ${sec('되돌리는 방법',esc(d.revert||''))}
   ${open?`<button class="b" data-dc="${esc(d.id)}" data-ch="redo">다른 제안 받기</button>`:`<div class="mut">선택: ${esc(d.choice||'-')}</div>`}</div>`}).join(''):'<div class="card mut">결정함이 비어 있음</div>'}
 function showLog(l){
- if(!Array.isArray(l))return;const e=$('#log'),end=e.scrollHeight-e.scrollTop-e.clientHeight<24;
- e.textContent=l.slice(-60).join('\n');if(end)e.scrollTop=e.scrollHeight}
+ if(!Array.isArray(l))return;const e=$('#log'),top=e.scrollTop<24;
+ e.textContent=l.slice(-60).reverse().join('\n');if(top)e.scrollTop=0}
 async function pollLog(){if(tab!=='now'||document.hidden)return;showLog(await api('/api/log'));$('#logst').textContent='실시간 · '+new Date().toLocaleTimeString('ko-KR',{hour12:false})}
 function setTab(k){
  if(k!=='todo')k='now';tab=k;
