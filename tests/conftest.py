@@ -203,6 +203,14 @@ def _isolate_autopilot_state(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _isolate_decisions_store(tmp_path, monkeypatch):
+    """결정함 JSON·보고서 경로를 임시 경로로 격리 — 테스트 레코드가 운영 pending_decisions.json 에 쌓이는 것 방지."""
+    from scripts.audit import decisions, loop
+    monkeypatch.setattr(decisions, "DECISIONS_PATH", tmp_path / "pending_decisions.json")
+    monkeypatch.setattr(loop, "PENDING_PATH", tmp_path / "pending_decisions.md")
+
+
+@pytest.fixture(autouse=True)
 def _restore_db_setup_get_db_path():
     """serve_synth.make_app 이 src.db_setup.get_db_path 를 직접 덮어쓰므로 테스트마다 원복한다."""
     import src.db_setup as dbs
