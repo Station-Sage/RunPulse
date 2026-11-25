@@ -71,7 +71,7 @@ def test_phases_assign_orphans_and_drop_unknown():
     from scripts.audit import planner
     out = planner._phases([{"id": "I", "title": "a", "initiatives": ["INI-a", "INI-zz"]}], {"INI-a", "INI-b"})
     assert out == [{"id": "I", "title": "a", "initiatives": ["INI-a", "INI-b"]}]
-    assert planner._phases(None, {"INI-a"}) == [{"id": "I", "title": "전체", "initiatives": ["INI-a"]}]
+    assert planner._phases(None, {"INI-a"}) == [{"id": "1", "title": "전체", "initiatives": ["INI-a"]}]
 
 
 def test_render_plan_and_record_include_goal_phases():

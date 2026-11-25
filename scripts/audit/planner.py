@@ -24,9 +24,9 @@ _PROMPT = VISION + """
 evidence 는 실제 코드의 path:line 과 그 줄에 있는 문자열 일부(quote)여야 한다. 막연한 표현(전반적·다양한·고도화·최적화)은 금지.
 {"title":"버전 제목","initiatives":[{"id":"INI-slug","title":"","kind":"extend|new","principle":1,"question":"러너가 못 얻는 답",
  "goal":"한 줄 목표","evidence":[{"path":"src/x.py:12","quote":"그 줄의 일부"}],"verify":["완료 기준 셸 커맨드"]}],
- "goal":"이 버전의 제품 목표 한 줄","phases":[{"id":"I","title":"단계 이름","initiatives":["INI-slug"]}],
+ "goal":"이 버전의 제품 목표 한 줄","phases":[{"id":"단계 식별자(예: P1 또는 로마숫자, 자유)","title":"그 단계가 이루는 것","initiatives":["INI-slug"]}],
  "gaps":"이 제안이 다루지 못하는 영역(누락 검토)"}
-phases 는 이니셔티브를 진행 순서대로 2~4개 단계(I, II, III…)로 묶는다. 모든 이니셔티브는 정확히 한 단계에 속해야 한다."""
+phases 는 이니셔티브를 진행 순서대로, 이 버전의 성격에 맞는 개수·이름의 단계로 묶는다(개수·식별자는 정해진 것이 없고, 이니셔티브가 적으면 1단계도 가능). 모든 이니셔티브는 정확히 한 단계에 속해야 한다."""
 
 
 def next_version(cur: str) -> str:
@@ -84,7 +84,7 @@ def parse(text: str, root: Path = ROOT) -> tuple[dict, list[str]]:
 
 
 def _phases(raw, ids: set[str]) -> list[dict]:
-    """통과한 이니셔티브만 남긴 단계 목록 — 어느 단계에도 없는 이니셔티브는 마지막 단계(없으면 'I')에 붙인다."""
+    """통과한 이니셔티브만 남긴 단계 목록 — 어느 단계에도 없는 이니셔티브는 마지막 단계(없으면 새 단계 하나)에 붙인다."""
     out = []
     for p in raw if isinstance(raw, list) else []:
         if isinstance(p, dict) and p.get("title"):
@@ -95,7 +95,7 @@ def _phases(raw, ids: set[str]) -> list[dict]:
         if out:
             out[-1]["initiatives"] += rest
         else:
-            out = [{"id": "I", "title": "전체", "initiatives": rest}]
+            out = [{"id": "1", "title": "전체", "initiatives": rest}]
     return [q for q in out if q["initiatives"]]
 
 
