@@ -256,3 +256,13 @@ def test_step_records_cursor_and_reset_clears(tmp_path, monkeypatch):
     monkeypatch.setattr(loop, "STATE_PATH", sp)
     loop.main(["--reset", "--status"])
     assert loop.load_state(sp)["cursor"] is None
+
+
+def test_run_until_stop_saves_state_immediately_on_resume(monkeypatch, tmp_path):
+    saved = []
+    monkeypatch.setattr(loop, "save_state", lambda st, p=None: saved.append(st.get("stop_reason", "x")))
+    seen = []
+    monkeypatch.setattr(loop, "step", lambda st, **k: seen.append(list(saved)) or "ok")
+    st = _st("design", stop_reason="pacing")
+    loop.run_until_stop(st, once=True)
+    assert seen[0] == [None]
