@@ -1192,3 +1192,13 @@ REVIEW-04 #S2(Coach 근거 없음, 입력창 미도킹) 해소. 근거 칩은 To
   3. IMPL 을 폐기하고 트랙 C(3-13~3-15) 완결 확인 후 별도 설계 단위로 재등록.
 - **권고**: 1번(`[P7-UXR-ROADMAP]` 권고와 동일).
 - **상태**: 코드 변경 없이 중단. 사용자 결정 대기.
+
+## [P7-UXR-DESIGN-PENDING] 미사용 `ai_context` 3함수 삭제 여부 — 나머지 보류 항목은 모두 소멸 (2026-11-25)
+- **배경**: `DESIGN-UXR-DESIGN-PENDING.md`로 12개 보류 항목을 현재 코드와 대조한 결과, ◆ 마커·`x.taper` 드릴·SWR·다운샘플 등은 이미 구현·종료됐다. 남은 사용자 결정은 `src/ai/ai_context.py`의 `build_daily_briefing`·`build_activity_analysis`·`build_ai_context`(운영 호출처 없음, 테스트와 `check_docs.py` 검사 19만 참조) 삭제 여부 하나다. 삭제하면 테스트·검사 19·phase-5 문서 정정이 따른다.
+- **선택지**:
+  1. 삭제하고 `check_docs.py` 검사 19 대상을 `build_context`로 교체, 관련 테스트·phase-5 문서·files_index 정정.
+  2. 보존하고 docstring의 "Q1 판단 대기" 문구만 정리(dead code 약 186줄 유지).
+  3. 삭제 대신 별도 모듈로 격리(호출처 없음 상태 유지, 문서만 갱신).
+- **권고**: 1번. 호출처가 없어 유지 비용만 든다. phase-5 설계서에는 "삭제됨" 주석을 남겨 설계 이력은 보존한다.
+- **부수 확인 요청**: `DESIGN-ALGO-VERSION-MARKER.md` D-1(◆ 날짜=커밋일)·D-2(상위 지표 전파)는 구현에 그 방향이 이미 반영돼 있으나 사용자 승인 기록은 찾지 못했다(TODO: 확인 필요).
+- **상태**: 사용자 결정 대기. 코드 변경 없음. `[P7-UXR-DESIGN-PENDING-IMPL]`은 이 결정 전 착수하지 않는다.
