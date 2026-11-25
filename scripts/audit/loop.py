@@ -234,7 +234,10 @@ def run_until_stop(st: dict, *, force: bool = False, once: bool = False, act: di
                    path: Path | None = None, max_steps: int = MAX_STEPS) -> list[str]:
     """단계를 연속 수행한다. 멈춤: pacing 대기·halted·감사 생략·MAX_STEPS·(단계 상태 저장은 매 단계)."""
     out = []
+    was_stopped = stopreason.is_stopped(st)
     stopreason.resume(st) or out.append("정지 유지 — 자동 재개 불가 사유(" + str(st.get("stop_reason")) + ")")
+    if was_stopped and not stopreason.is_stopped(st) and path is None:
+        save_state(st)  # 재개 즉시 기록 — 단계가 끝나기 전에도 콘솔이 '정지'로 보이지 않게
     if stopreason.is_stopped(st):
         return out
     for i in range(1 if once else max_steps):
