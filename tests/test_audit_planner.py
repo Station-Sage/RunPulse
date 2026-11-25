@@ -65,3 +65,19 @@ def test_plan_all_dropped_stops(tmp_path):
     st = {}
     msg = planner.plan(st, ask=lambda *a, **k: "not json", root=r, dpath=tmp_path / "d.json", plan_path=tmp_path / "p.json")
     assert "0건" in msg and not (tmp_path / "d.json").exists()
+
+
+def test_phases_assign_orphans_and_drop_unknown():
+    from scripts.audit import planner
+    out = planner._phases([{"id": "I", "title": "a", "initiatives": ["INI-a", "INI-zz"]}], {"INI-a", "INI-b"})
+    assert out == [{"id": "I", "title": "a", "initiatives": ["INI-a", "INI-b"]}]
+    assert planner._phases(None, {"INI-a"}) == [{"id": "I", "title": "전체", "initiatives": ["INI-a"]}]
+
+
+def test_render_plan_and_record_include_goal_phases():
+    prop = {"title": "t", "gaps": "", "goal": "G목표", "phases": [{"id": "I", "title": "기반", "initiatives": ["INI-a"]}],
+            "initiatives": [{"id": "INI-a", "title": "a", "kind": "new", "principle": 1, "question": "q", "goal": "g",
+                             "evidence": [], "verify": ["v"]}]}
+    md = planner.render_plan("v2", prop)
+    assert "## 제품 목표\nG목표" in md and "- I. 기반: INI-a" in md
+    assert "G목표" in planner.decision_record("v2", prop)["summary"]

@@ -40,3 +40,14 @@ def test_rollup_counts(tmp_path):
     ini = r["initiatives"][0]
     assert (r["version"], ini["total"], ini["done"]) == ("v1", 3, 1)
     assert ini["by_stage"] == {"done": 1, "queued": 1, "missing": 1}
+
+
+def test_rollup_phases_active_and_goal(tmp_path):
+    q = tmp_path / "BACKLOG.md"
+    q.write_text(BL, encoding="utf-8")
+    plan = {"current": "v2", "versions": {"v2": {"title": "t", "goal": "G", "phases": [
+        {"id": "I", "title": "a", "initiatives": ["A"]}, {"id": "II", "title": "b", "initiatives": ["B"]}],
+        "initiatives": {"A": {"items": ["AUD-aaaaaa"]}, "B": {"items": ["AUD-bbbbbb"]}}}}}
+    r = rp.rollup(plan, q)
+    assert r["goal"] == "G"
+    assert [(p["id"], p["done"], p["total"], p["active"]) for p in r["phases"]] == [("I", 1, 1, False), ("II", 0, 1, True)]

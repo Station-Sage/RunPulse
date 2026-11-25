@@ -2426,17 +2426,17 @@
 
 - functions: test_browser_sweep_fails_on_zero_cells, test_browser_sweep_ok_and_no_node, test_cycle_skips_agents_when_sweep_fails, test_cycle_runs_agents_with_review_after_sweep, test_parse_verdict_and_confirmed, test_review_uses_different_model_and_skips_non_real, test_browser_sweep_retries_once_then_succeeds, test_browser_sweep_failure_reports_stderr_tail
 
-### `test_audit_planner.py` (67줄)
+### `test_audit_planner.py` (83줄)
 
-- functions: test_next_version, test_evidence_requires_real_quote_and_inside_root, test_valid_initiative_guards, test_parse_drops_invalid, test_plan_writes_doc_state_and_decision, test_plan_all_dropped_stops
+- functions: test_next_version, test_evidence_requires_real_quote_and_inside_root, test_valid_initiative_guards, test_parse_drops_invalid, test_plan_writes_doc_state_and_decision, test_plan_all_dropped_stops, test_phases_assign_orphans_and_drop_unknown, test_render_plan_and_record_include_goal_phases
 
 ### `test_audit_progress.py` (10줄)
 
 - functions: test_mark_appends_line_and_returns_it
 
-### `test_audit_release_plan.py` (42줄)
+### `test_audit_release_plan.py` (53줄)
 
-- functions: test_load_default_and_roundtrip, test_link_idempotent, test_sync_maint_links_only_unlinked_aud, test_rollup_counts
+- functions: test_load_default_and_roundtrip, test_link_idempotent, test_sync_maint_links_only_unlinked_aud, test_rollup_counts, test_rollup_phases_active_and_goal
 
 ### `test_audit_roles.py` (46줄)
 
@@ -2454,9 +2454,9 @@
 
 - functions: test_resolve_path_uses_db_sample_and_defaults, test_apply_results_records_ledger, test_stop_kills_stubborn_process
 
-### `test_audit_triage.py` (145줄) — P6 — 판단 등급 분류(위험 가드·교차 검토·결정 보고서)와 loop 설계 단계 연동.
+### `test_audit_triage.py` (149줄) — P6 — 판단 등급 분류(위험 가드·교차 검토·결정 보고서)와 loop 설계 단계 연동.
 
-- functions: test_parse_design_and_check_conservative, test_risk_keyword_forces_user_without_calling_models, test_auto_requires_cross_review_with_other_model, test_disagree_or_bad_scope_or_missing_verify_is_user, test_report_has_options_and_reason, test_design_phase_splits_auto_and_user, test_is_large, test_large_design_escalates_to_opus_with_sonnet_reviewer, test_large_design_stays_sonnet_when_opus_not_allowed, test_open_unit_covering_kind_suppresses_duplicate_finding, test_design_prompt_asks_for_root_cause_and_recommendation, test_normalize_verify_runs_frontend_tests_from_frontend_dir, test_unsure_reasked_once_then_agree, test_disagree_not_reasked, test_design_parse_failure_retried_once, test_docs_scope_allowed
+- functions: test_parse_design_and_check_conservative, test_risk_keyword_forces_user_without_calling_models, test_auto_requires_cross_review_with_other_model, test_disagree_or_bad_scope_or_missing_verify_is_user, test_report_has_options_and_reason, test_design_phase_splits_auto_and_user, test_is_large, test_large_design_escalates_to_opus_with_sonnet_reviewer, test_large_design_stays_sonnet_when_opus_not_allowed, test_open_unit_covering_kind_suppresses_duplicate_finding, test_design_prompt_asks_for_root_cause_and_recommendation, test_normalize_verify_runs_frontend_tests_from_frontend_dir, test_unsure_reasked_once_then_agree, test_disagree_not_reasked, test_design_parse_failure_retried_once, test_docs_scope_allowed, test_design_prompt_requires_korean
 
 ### `test_audit_versioning.py` (108줄)
 
