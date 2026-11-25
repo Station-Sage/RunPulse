@@ -2069,7 +2069,7 @@
 
 ## `tests/`
 
-### `conftest.py` (211줄) — pytest 공통 fixture — v0.3 스키마.
+### `conftest.py` (220줄) — pytest 공통 fixture — v0.3 스키마.
 
 - functions: isolated_users_root, db_conn, db_conn_default, db_conn_user, sample_config
 
@@ -2386,9 +2386,9 @@
 
 - functions: test_reap_kills_only_registered_matching, test_cycle_skips_below_min_interval, test_cycle_logs_skip_when_pacing_blocks
 
-### `test_audit_decisions.py` (28줄) — A2 — 구조화 결정함(pending_decisions.json) build/append/choose.
+### `test_audit_decisions.py` (41줄) — A2 — 구조화 결정함(pending_decisions.json) build/append/choose.
 
-- functions: test_build_fields, test_append_dedup_and_load, test_choose
+- functions: test_build_fields, test_append_dedup_and_load, test_choose, test_build_fallback_fills_summary_and_default_options, test_tests_do_not_touch_live_decisions_store
 
 ### `test_audit_deploy.py` (67줄) — audit/deploy.py — 운영 반영 가드·병합·빌드 분기 (git/npm 은 주입한 sh 로 대체).
 
@@ -2434,9 +2434,9 @@
 
 - functions: test_parse_design_and_check_conservative, test_risk_keyword_forces_user_without_calling_models, test_auto_requires_cross_review_with_other_model, test_disagree_or_bad_scope_or_missing_verify_is_user, test_report_has_options_and_reason, test_design_phase_splits_auto_and_user, test_is_large, test_large_design_escalates_to_opus_with_sonnet_reviewer, test_large_design_stays_sonnet_when_opus_not_allowed, test_open_unit_covering_kind_suppresses_duplicate_finding, test_design_prompt_asks_for_root_cause_and_recommendation, test_normalize_verify_runs_frontend_tests_from_frontend_dir, test_unsure_reasked_once_then_agree, test_disagree_not_reasked, test_design_parse_failure_retried_once, test_docs_scope_allowed
 
-### `test_audit_watch.py` (26줄) — audit/watch.py — 문제 판정과 중복 알림 억제.
+### `test_audit_watch.py` (33줄) — audit/watch.py — 문제 판정과 중복 알림 억제.
 
-- functions: test_problems_detects_each_failure, test_check_alerts_on_change_only_and_reports_recovery
+- functions: test_problems_detects_each_failure, test_check_alerts_on_change_only_and_reports_recovery, test_check_problem_alert_includes_console_link
 
 ### `test_auth_cf.py` (241줄) — auth_cf.py 테스트 — Cloudflare Zero Trust 헤더 기반 사용자 식별.
 
@@ -2678,9 +2678,13 @@
 
 - functions: tmp_config, test_save_config_creates_file, test_save_config_roundtrip, test_save_config_overwrites, test_update_service_config_creates_file, test_update_service_config_partial_update, test_update_service_config_new_service, test_redact_masks_password, test_redact_masks_token, test_redact_does_not_mutate_original, test_redact_empty_value_unchanged
 
-### `test_console_control.py` (36줄) — 관제 제어 — 플래그·화이트리스트·타이머 drop-in·감사 로그.
+### `test_console_control.py` (53줄) — 관제 제어 — 플래그·화이트리스트·타이머 drop-in·감사 로그.
 
-- functions: test_pause_resume_stop, test_tunables_validation, test_set_interval
+- functions: test_pause_resume_stop, test_tunables_validation, test_set_interval, test_start_clears_stopped_cycle_state, test_pause_keeps_cycle_state
+
+### `test_console_flow.py` (66줄) — 진행 흐름(flow.build) 계산 + 루프 이벤트 기록.
+
+- functions: test_build_from_events, test_deploy_stage_and_old_round_ignored, test_fallback_from_progress_log, test_loop_records_events, test_event_trims_large_file
 
 ### `test_console_overview.py` (25줄) — C1 — 관제 콘솔 overview/decision_list.
 
@@ -4316,7 +4320,7 @@
 - functions: run
 
 ---
-총 945개 파일
+총 946개 파일
 
 ## docstring 누락
 

@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 
 from scripts.audit import decisions, loop
+from scripts.console import flow
 from scripts.autopilot import ledger, pacing, queue, settings
 
 STAGES = ("queued", "in_progress", "review", "done", "needs_decision", "failed")
@@ -38,7 +39,8 @@ def overview(now: float | None = None, state_path: Path | None = None, queue_pat
     open_dec = [d for d in decisions.load(dpath) if d["status"] in ("open", "redo")]
     return {"now": now, "state": {k: st.get(k) for k in ("phase", "round", "unit", "units_done", "fails", "stop_reason")},
             "flags": {"pause": settings.PAUSE_PATH.exists(), "stop": settings.STOP_PATH.exists()},
-            "queue": queue_summary(queue_path), "budget": budget_summary(now, entries), "decisions_open": len(open_dec)}
+            "queue": queue_summary(queue_path), "budget": budget_summary(now, entries), "decisions_open": len(open_dec),
+            "progress": flow.build(st, now, queue_path, unit_cap=loop.UNIT_CAP)}
 
 
 def decision_list(dpath: Path | None = None) -> list[dict]:

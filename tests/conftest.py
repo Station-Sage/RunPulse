@@ -191,6 +191,7 @@ def _isolated_ops_db(tmp_path, monkeypatch):
 def _isolate_progress_log(tmp_path, monkeypatch):
     from scripts.audit import progress
     monkeypatch.setattr(progress, "LOG_PATH", tmp_path / "progress.log")
+    monkeypatch.setattr(progress, "EVENTS_PATH", tmp_path / "events.jsonl")
 
 
 @pytest.fixture(autouse=True)

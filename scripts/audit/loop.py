@@ -122,9 +122,11 @@ def _should_stop(path: Path) -> bool:
 
 def _end_round(st: dict, ship, msg: str, path: Path | None = None) -> str:
     """안쪽 루프 종료 — 통과 단위가 있으면 운영 반영(실패해도 루프는 계속, 알림만) 후 다음 감사로."""
+    progress.event("deploy_start", round=st["round"], units=st["units_done"])
     r = ship(st["units_done"])
+    ok = r.get("outcome") == "done"
+    progress.event("deploy_end", round=st["round"], ran=bool(r.get("ran")), ok=ok)
     if r.get("ran"):
-        ok = r.get("outcome") == "done"
         notify.send(f"[루프] 운영 반영 {'완료' if ok else '실패'} — {r.get('commits', 0)}커밋, {r.get('reason')}"
                     + ("" if ok else " (자동 반영 안 됨, 사람 확인 필요)"))
         msg += f" · 운영 반영 {'완료' if ok else '실패'}({r.get('reason')})"
@@ -150,6 +152,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     sweep = act.get("sweep", lambda: cycle.browser_sweep())
     ph = st["phase"]
     progress.mark(f"[루프] 라운드 {st['round']} · {ph} 단계 시작")
+    progress.event("phase", round=st["round"], phase=ph)
     if ph == "stopped":
         stopreason.stop(st, st.get("stop_reason") or stopreason.STOP_FLAG)
         return "정지 상태 — 단일 라운드 완료(재개: --reset)"
@@ -180,6 +183,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         auto = [i for i in new if tiers[i] == "auto"]
         user = [i for i in new if tiers[i] == "user"]
         st.update(phase="develop" if new else "audit", fails=0)
+        progress.event("design", round=st["round"], new=len(new), auto=len(auto), user=len(user))
         if new:
             notify.send(f"[루프] 설계 {len(new)}건 — 자체 승인(교차 검토 통과) {len(auto)}건 진행: {', '.join(auto) or '-'}"
                         f" / 사용자 결정 대기 {len(user)}건(장단점·추천은 {PENDING_PATH}): {', '.join(user) or '-'}."
@@ -208,6 +212,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         if st["units_done"] >= UNIT_CAP:
             return _end_round(st, ship, f"라운드 단위 상한 {UNIT_CAP} — 다음 감사로")
         nxt = queue.next_runnable(queue.parse(path))
+        progress.event("unit_start", round=st["round"], unit=nxt.item_id)
         rc = develop()
         stage = _stage(path, nxt.item_id)
         if rc == 2 or stage == "failed":
@@ -224,12 +229,14 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         n, err = sweep()
         if not err:
             queue.update_item(path, iid, stage="done")
+            progress.event("unit_end", round=st["round"], unit=iid, result="done")
             st.update(phase="develop", unit=None, units_done=st["units_done"] + 1, fails=0)
             return f"{iid} 테스트 통과({n}셀) → done"
         tries = st["fix"].get(iid, 0) + 1
         st["fix"][iid] = tries
         if tries > FIX_LIMIT:
             queue.update_item(path, iid, stage="failed")
+            progress.event("unit_end", round=st["round"], unit=iid, result="failed")
             notify.send(f"[루프] {iid} 버그수정 {FIX_LIMIT}회 후에도 스윕 실패 — failed: {err}")
             st.update(phase="develop", unit=None)
             return f"{iid} 수정 상한 초과 → failed"
