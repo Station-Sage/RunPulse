@@ -24,6 +24,7 @@ _DESIGN = VISION + """
 결함: kind=%s / 영향: %s / 제안: %s
 {"grade":"auto|user","summary":"한 줄 설계","scope":["수정할 파일의 순수 경로만(설명·괄호 금지)"],"verify":["검증 셸 커맨드"],
  "options":[{"name":"","pros":"","cons":""}],"recommendation":"추천 선택지와 이유","reason":"등급 근거"}
+summary·options(name·pros·cons)·recommendation·reason 은 모두 한국어로 쓴다(코드 식별자·파일 경로만 원문 유지).
 선택지가 갈려도 스스로 근거를 들어 추천안 하나를 정해 그 설계를 summary·scope 에 담아라(선택 자체는 user 사유가 아니다).
 auto = frontend/src·tests 안에서 끝나고 되돌리기 쉬우며 데이터·권한·알고리즘·제품 정책을 바꾸지 않는 수정.
 UI 문구·마크업·접근성·컴포넌트 구조처럼 기존 디자인 시스템 안의 판단은 auto 다.

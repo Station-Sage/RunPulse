@@ -143,3 +143,7 @@ def test_design_parse_failure_retried_once():
 def test_docs_scope_allowed():
     d = {**DESIGN, "scope": ["docs/a.md", "scripts/audit/x.py"]}
     assert triage.decide(F, ask_fn=_ask(d))["tier"] == "auto"
+
+
+def test_design_prompt_requires_korean():
+    assert "모두 한국어" in triage._DESIGN
