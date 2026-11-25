@@ -15,6 +15,7 @@
 - deps: 이 ID들이 전부 stage=done이어야 실행 가능.
 - kind: "docs"(기본) | "code". code는 run_unit.py가 다른 프롬프트·도구 허용·검증
   커맨드를 쓴다(settings.CODE_ALLOWED_TOOLS).
+- critical: true 면 치명 결함 — next_runnable 이 먼저 집고 버전 작업(plan·idesign)·안정화 게이트보다 우선(ADR-068).
 - scope: code 전용. 이 unit이 건드려도 되는 경로 목록 — 프롬프트에 그대로 박아 범위를
   제한한다(강제 아님, 안내). 비어있으면 프롬프트가 "위험하니 채워서 등록" 경고를 낸다.
 - verify: code 전용. 성공 판정에 쓸 셸 커맨드 목록 — claude -p가 성공을 보고해도
@@ -47,6 +48,7 @@ class QueueItem:
     kind: str = "docs"                              # "docs" | "code"
     scope: list[str] = field(default_factory=list)   # code 전용: 건드려도 되는 경로
     verify: list[str] = field(default_factory=list)  # code 전용: 성공 판정 커맨드
+    critical: bool = False   # 치명 결함 — 다른 항목·버전 작업보다 먼저 처리
     line_no: int = -1        # 항목 줄 번호 (0-indexed)
     meta_line_no: int = -1   # 메타 주석 줄 번호, 없으면 -1
 
@@ -83,6 +85,7 @@ def parse(path: Path) -> list[QueueItem]:
                 item.kind = meta.get("kind", "docs")
                 item.scope = list(meta.get("scope", []))
                 item.verify = list(meta.get("verify", []))
+                item.critical = bool(meta.get("critical", False))
                 item.meta_line_no = j
                 break
             j += 1
@@ -132,13 +135,10 @@ def add_meta(path: Path, item_id: str, **fields) -> None:
 
 
 def next_runnable(items: list[QueueItem]) -> QueueItem | None:
+    """실행 가능한 첫 항목 — 치명(critical) 항목이 있으면 파일 순서보다 먼저."""
     done = {it.item_id for it in items if it.stage == "done"}
-    for it in items:
-        if it.mode != "auto" or it.stage != "queued":
-            continue
-        if all(dep in done for dep in it.deps):
-            return it
-    return None
+    ready = [it for it in items if it.mode == "auto" and it.stage == "queued" and all(d in done for d in it.deps)]
+    return next((it for it in ready if it.critical), ready[0] if ready else None)
 
 
 def update_item(path: Path, item_id: str, **fields) -> None:
@@ -155,6 +155,7 @@ def update_item(path: Path, item_id: str, **fields) -> None:
     target.kind = fields.get("kind", target.kind)
     target.scope = fields.get("scope", target.scope)
     target.verify = fields.get("verify", target.verify)
+    target.critical = fields.get("critical", target.critical)
 
     lines = path.read_text(encoding="utf-8").splitlines()
     indent_m = _META_RE.match(lines[target.meta_line_no])
@@ -169,5 +170,7 @@ def update_item(path: Path, item_id: str, **fields) -> None:
         meta["scope"] = target.scope
     if target.verify:
         meta["verify"] = target.verify
+    if target.critical:
+        meta["critical"] = True
     lines[target.meta_line_no] = f"{indent}<!-- autopilot: {json.dumps(meta, ensure_ascii=False)} -->"
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

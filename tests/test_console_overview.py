@@ -23,3 +23,12 @@ def test_overview_and_decisions(tmp_path):
     o = overview.overview(now=1000.0, state_path=tmp_path / "none.json", queue_path=q, entries=[], dpath=dp)
     assert o["decisions_open"] == 1 and o["state"]["phase"] == "audit" and o["budget"]["pacing_ok"]
     assert [d["id"] for d in overview.decision_list(dp)] == ["AUD-2", "AUD-1"]
+
+
+def test_overview_has_release(tmp_path):
+    q = tmp_path / "BACKLOG.md"
+    q.write_text('- **[AUD-aaaaaa]** a\n  <!-- autopilot: {"stage":"done","mode":"auto","attempts":0,"deps":[]} -->\n', encoding="utf-8")
+    o = overview.overview(now=1.0, state_path=tmp_path / "n.json", queue_path=q, entries=[],
+                          dpath=tmp_path / "d.json", plan_path=tmp_path / "plan.json")
+    r = o["release"]
+    assert r["version"] == "v1" and r["initiatives"][0]["done"] == 1

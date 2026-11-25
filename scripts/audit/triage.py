@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import re
 
+from scripts.audit import docs_ctx
 from scripts.audit.agents import ask
 from scripts.audit.vision import VISION
 
@@ -87,7 +88,7 @@ def decide(finding: dict, author: str = "sonnet", ask_fn=ask, opus_ok=None) -> d
     what = f"{finding['kind']} / {finding.get('impact', '')} / {finding.get('fix', '')}"
     if RISK.search(what):
         return {"tier": "user", "why": "위험 키워드(스키마·권한·알고리즘 등) — 사람 결정 필요", "design": {}, "check": {}}
-    prompt = _DESIGN % (finding["kind"], finding.get("impact", ""), finding.get("fix", ""))
+    prompt = docs_ctx.augment(_DESIGN % (finding["kind"], finding.get("impact", ""), finding.get("fix", "")), "designer")
     design = parse_design(ask_fn(prompt, author))
     if not design["summary"]:  # 파싱 실패는 1회 재시도 후에도 비면 user
         design = parse_design(ask_fn(prompt, author))
@@ -104,7 +105,7 @@ def decide(finding: dict, author: str = "sonnet", ask_fn=ask, opus_ok=None) -> d
     elif not all(s.startswith(ALLOWED_SCOPE) for s in design["scope"]):
         out["why"] = f"허용 범위 밖 경로 포함: {design['scope']}"
     else:
-        cprompt = _CHECK % (what, design["summary"], design["scope"], design["verify"])
+        cprompt = docs_ctx.augment(_CHECK % (what, design["summary"], design["scope"], design["verify"]), "designer")
         out["check"] = parse_check(ask_fn(cprompt, reviewer))
         if out["check"]["verdict"] == "unsure":  # 1회 재질의, disagree 는 그대로 사람에게
             out["check"] = parse_check(ask_fn(cprompt, reviewer))

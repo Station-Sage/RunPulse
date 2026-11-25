@@ -30,7 +30,9 @@ pre{white-space:pre-wrap;word-break:break-all;font-size:12px;color:var(--mut);ma
 <div id="msg"></div>
 <main>
 <section id="t-now">
+ <div class="card" id="rel"></div>
  <div class="card" id="st"></div>
+ <div class="card" id="roles"></div>
  <div class="card"><b>실행 제어</b><div class="mut" id="flags"></div>
   <button class="b p" data-a="start">시작</button><button class="b p" data-a="resume">재개</button>
   <button class="b" data-a="pause">일시중지</button><button class="b d" data-a="stop">중지</button>
@@ -83,8 +85,19 @@ function flowHtml(o){
  <div class="mut">${wait?wait+' · ':''}검토 대기 ${rvw} · 결정함 ${dn} <a href="#todo">[할 일 →]</a></div>
  <div class="mut">완료 ${esc(s.units_done)} · 실패 ${esc(s.fails)}</div>`}
 function tickEl(){document.querySelectorAll('[data-since]').forEach(e=>{e.textContent=dur(Date.now()/1000-Number(e.dataset.since))})}
+function relHtml(r){
+ if(!r)return'';const tot=r.initiatives.reduce((a,i)=>a+i.total,0),dn=r.initiatives.reduce((a,i)=>a+i.done,0);
+ return `<div class="row"><b>${esc(r.version)} · ${esc(r.title)}</b><span class="tag">${esc(r.status)}</span></div>
+ ${bar('범위 전체',dn,tot,dn+' / '+tot+'건')}`+r.initiatives.map(i=>`<div class="row"><span>${esc(i.title)} <span class="tag">${esc(i.status)}</span></span><span>${i.done}/${i.total}</span></div><div class="bar"><i style="width:${pct(i.done,i.total)}%"></i></div>`).join('')}
+const ROLE_KO={steward:'비전 관리',planner:'버전 계획',designer:'설계',developer:'개발',verifier:'검증',auditor:'감사',deployer:'배포'};
+const FLAG_KO={paused:'일시정지',skip:'건너뛰기',rerun:'재실행'};
+function rolesHtml(rs){rs=rs||{};
+ return '<b>역할 패널</b>'+Object.keys(ROLE_KO).map(r=>{const f=rs[r]||{};
+  return `<div class="row"><span>${ROLE_KO[r]} ${Object.keys(FLAG_KO).filter(k=>f[k]).map(k=>`<span class="tag">${FLAG_KO[k]}</span>`).join(' ')}</span><span>${Object.keys(FLAG_KO).map(k=>`<button class="b" data-rl="${r}" data-rf="${k}" data-rv="${f[k]?0:1}">${f[k]?FLAG_KO[k]+' 해제':FLAG_KO[k]}</button>`).join('')}</span></div>`}).join('')+
+ '<div class="mut">일시정지 = 해당 단계 진입 시 정지(해제 후 재개) · 건너뛰기/재실행 = 다음 1회만 적용</div>'}
 function renderNow(o){
  const s=o.state,f=o.flags;
+ $('#rel').innerHTML=relHtml(o.release);$('#roles').innerHTML=rolesHtml(o.roles);
  $('#upd').textContent=new Date().toLocaleTimeString('ko-KR',{hour12:false});
  $('#st').innerHTML=flowHtml(o);
  const q=o.queue,b=q.by_stage;
@@ -150,6 +163,7 @@ document.addEventListener('click',async e=>{
  if(t.dataset.t){history.replaceState(null,'','#'+t.dataset.t);setTab(t.dataset.t);return}
  let r;
  if(t.dataset.a){if(t.dataset.a==='stop'&&!confirm('즉시 중지할까요? 실행 중 프로세스를 종료합니다.'))return;r=await api('/api/control',{action:t.dataset.a})}
+ else if(t.dataset.rl){r=await api('/api/roles',{role:t.dataset.rl,flag:t.dataset.rf,value:t.dataset.rv==='1'})}
  else if(t.dataset.iv){r=await api('/api/interval',{timer:t.dataset.iv,minutes:Number($('#iv-'+t.dataset.iv).value)})}
  else if(t.dataset.tn){r=await api('/api/tunables',{values:{[t.dataset.tn]:Number($('#tn-'+t.dataset.tn).value)}})}
  else if(t.dataset.dc){r=await api('/api/decisions/'+t.dataset.dc,{choice:t.dataset.ch})}

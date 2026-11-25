@@ -34,8 +34,8 @@ _PROMPT = """{vision}
 
 규칙:
 - 각 이슈 묶음(kind)을 실제 결함(real) / 감지기 노이즈(noise) / 판단 불가(unsure) 로 분류한다.
-- real 은 사용자에게 보이는 영향 한 줄과 수정 방향 한 줄을 쓴다. 추측으로 real 을 남발하지 않는다.
-- 출력은 JSON 배열만(설명·코드펜스 금지): [{{"kind":"...","verdict":"real|noise|unsure","impact":"...","fix":"...","cells":["셀id",...]}}]
+- real 은 사용자에게 보이는 영향 한 줄과 수정 방향 한 줄을 쓴다. 추측으로 real 을 남발하지 않는다. critical=true 는 데이터 손실·보안·핵심 기능 불능·잘못된 건강/훈련 수치 노출만(드물게).
+- 출력은 JSON 배열만(설명·코드펜스 금지): [{{"kind":"...","verdict":"real|noise|unsure","impact":"...","fix":"...","critical":false,"cells":["셀id",...]}}]
 
 기계 감지 이슈 묶음:
 {groups}

@@ -46,7 +46,10 @@ def _clear_stopped(d: Path) -> None:
         return
     if st.get("stop_reason") is None and st.get("phase") not in ("stopped", "halted"):
         return
-    st.update(phase="audit", fails=0, unit=None, stop_reason=None)
+    if st.get("stop_reason") == "role_pause":  # 역할 일시정지는 단계를 유지한 채 재개
+        st["stop_reason"] = None
+    else:
+        st.update(phase="audit", fails=0, unit=None, stop_reason=None, cursor=None)
     p.write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
 
 

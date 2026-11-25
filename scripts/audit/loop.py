@@ -14,19 +14,18 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import re
 import time
 from pathlib import Path
 
-from scripts.audit import agents, consume, cycle, decisions, deploy, inventory, progress, release, stopreason, triage
+from scripts.audit import agents, consume, cycle, deploy, idesign, inventory, orchestrator, planner, progress, release, release_plan, roles, steward, stopreason, triage, wake
+from scripts.audit.propose import PENDING_PATH, propose  # noqa: F401  (tests·외부 호환)
 from scripts.autopilot import notify, pacing, queue, reconcile, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
-FAIL_LIMIT, FIX_LIMIT, UNIT_CAP, MAX_STEPS = 3, 2, 5, 40
+FAIL_LIMIT, FIX_LIMIT, UNIT_CAP, MAX_STEPS, DESIGN_CAP = 3, 2, 5, 40, 6
 _INIT = {"phase": "audit", "unit": None, "round": 1, "units_done": 0, "fails": 0, "fix": {},
-         "stop_reason": None, "pending_decisions": 0}
+         "stop_reason": None, "pending_decisions": 0, "cursor": None}
 
 
 def load_state(path: Path | None = None) -> dict:
@@ -40,52 +39,6 @@ def save_state(st: dict, path: Path | None = None) -> None:
     p = path or STATE_PATH
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
-
-
-PENDING_PATH = Path(".claude/autopilot/pending_decisions.md")
-
-
-def propose(findings: list[dict], path: Path, decide=None, tiers: dict | None = None) -> list[str]:
-    """확인된 후보를 BACKLOG 끝에 제안한다(이미 있으면 건너뜀). 새 항목 ID 목록 반환.
-
-    decide(finding)→triage 결과가 auto 면 stage=queued(scope·verify 채움, 자체 승인), 아니면 needs_decision(사람 결정)
-    + 결정 보고서를 PENDING_PATH 에 추가. decide 가 없으면 전부 needs_decision. tiers 에 {id: tier} 를 채운다.
-    열린 단위의 텍스트에 "(커버: kind)" 가 있으면 같은 kind 후보는 중복으로 보고 제안하지 않는다.
-    """
-    from scripts.audit import triage
-    items = queue.parse(path)
-    have = {it.item_id for it in items}
-    covered = {m for it in items if it.stage not in ("done", "needs_decision", "failed") for m in re.findall(r"\(커버: ([\w,\- ]+)\)", it.text)
-               for m in re.split(r"[, ]+", m) if m}
-    new, lines, reports, recs = [], [], [], []
-    for f in findings:
-        if f["kind"] in covered:
-            continue
-        ln = agents.backlog_lines([f])[0]
-        iid = "AUD-" + hashlib.sha1(ln.encode()).hexdigest()[:6]
-        if iid in have:
-            continue
-        d = decide(f) if decide else {"tier": "user", "why": "등급 분류 미사용", "design": {}}
-        meta = {"stage": "queued" if d["tier"] == "auto" else "needs_decision", "mode": "auto", "attempts": 0, "deps": [],
-                "kind": "code"}
-        if d["tier"] == "auto":
-            meta.update(scope=d["design"]["scope"], verify=d["design"]["verify"], auto_approved=True)
-        else:
-            reports.append(f"## {iid}\n" + triage.report(f, d))
-            recs.append(decisions.build(iid, f, d))
-        new.append(iid)
-        if tiers is not None:
-            tiers[iid] = d["tier"]
-        lines += [f"- **[{iid}]** {ln[2:]}", f"  <!-- autopilot: {json.dumps(meta, ensure_ascii=False)} -->"]
-    if lines:
-        with path.open("a", encoding="utf-8") as fh:
-            fh.write("\n" + "\n".join(lines) + "\n")
-    decisions.append(recs)
-    if reports:
-        PENDING_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with PENDING_PATH.open("a", encoding="utf-8") as fh:
-            fh.write("\n".join(reports) + "\n")
-    return new
 
 
 def _load_findings() -> list[dict]:
@@ -131,6 +84,10 @@ def _end_round(st: dict, ship, msg: str, path: Path | None = None) -> str:
                     + ("" if ok else " (자동 반영 안 됨, 사람 확인 필요)"))
         msg += f" · 운영 반영 {'완료' if ok else '실패'}({r.get('reason')})"
     st.update(phase="audit", round=st["round"] + 1, units_done=0, unit=None)
+    gate = orchestrator.after_round(st, queue.parse(path or settings.QUEUE_PATH))
+    if gate:
+        notify.send(f"[루프] 안정화 게이트 통과({gate}) — 버전 계획 단계로" + notify.console_hint())
+        msg += f" · 게이트 통과({gate})"
     st["pending_decisions"] = _pending_decisions(path or settings.QUEUE_PATH)
     if _should_stop(path or settings.QUEUE_PATH):
         STOP_FLAG().unlink(missing_ok=True)
@@ -150,7 +107,10 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     develop = act.get("develop", _develop)
     ship = act.get("deploy", deploy.run)
     sweep = act.get("sweep", lambda: cycle.browser_sweep())
+    if st["phase"] == "await":
+        st["phase"] = "develop"
     ph = st["phase"]
+    st["cursor"] = {"phase": ph, "unit": st.get("unit"), "round": st["round"], "ts": int(time.time())}  # 재개 지점(콘솔 표시·재개 기준)
     progress.mark(f"[루프] 라운드 {st['round']} · {ph} 단계 시작")
     progress.event("phase", round=st["round"], phase=ph)
     if ph == "stopped":
@@ -159,6 +119,9 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     if ph == "halted":
         stopreason.stop(st, stopreason.FAILED)
         return "정지 상태 — 원인 확인 후 --reset"
+    g = roles.gate(st)
+    if g:
+        return g
     if not force:
         p = pacing.check(time.time())
         if not p.allowed:
@@ -179,25 +142,35 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         return f"감사 완료 — 후보 {e.get('confirmed', 0)}건"
     if ph == "design":
         tiers: dict = {}
-        new = propose(agents_confirmed(), path, act.get("decide", triage.decide), tiers)
+        new = propose(agents_confirmed(), path, act.get("decide", triage.decide), tiers, DESIGN_CAP)
+        st["round_new"] = st.get("round_new", 0) + len(new)
         auto = [i for i in new if tiers[i] == "auto"]
         user = [i for i in new if tiers[i] == "user"]
-        st.update(phase="develop" if new else "audit", fails=0)
+        st.update(phase="design" if len(new) >= DESIGN_CAP else "develop" if new else "audit", fails=0)
         progress.event("design", round=st["round"], new=len(new), auto=len(auto), user=len(user))
         if new:
             notify.send(f"[루프] 설계 {len(new)}건 — 자체 승인(교차 검토 통과) {len(auto)}건 진행: {', '.join(auto) or '-'}"
                         f" / 사용자 결정 대기 {len(user)}건(장단점·추천은 {PENDING_PATH}): {', '.join(user) or '-'}."
                         " 승인은 콘솔 결정함 또는 BACKLOG stage 를 queued 로." + notify.console_hint())
             return f"설계 {len(new)}건 — 자체 승인 {len(auto)}, 사용자 결정 {len(user)}"
-        st["round"] += 1
-        if _should_stop(path):
-            STOP_FLAG().unlink(missing_ok=True)
-            st["phase"] = "stopped"
-            stopreason.stop(st, stopreason.STOP_FLAG)
-            notify.send("[루프] 새 후보 없음 — 단일 라운드 지정에 따라 정지")
-            return "새 후보 없음 — 단일 라운드 종료(정지)"
-        return "새 후보 없음 — 라운드 종료"
-    if ph in ("await", "develop"):
+        return _end_round(st, ship, "새 후보 없음 — 라운드 종료", path)
+    if ph in ("plan", "idesign") and orchestrator.critical_open(queue.parse(path)):
+        progress.event("critical_first", round=st["round"], phase=ph)
+        st.update(phase="develop", unit=None)  # 치명 결함이 버전 작업보다 먼저
+        return "치명 결함 미처리 — 버전 작업 보류, 개발 단계로"
+    if ph == "plan":
+        try:
+            steward.step(**act.get("steward", {}))  # 비차단 — 실패해도 기획 진행
+        except Exception as e:
+            print(f"[steward] 건너뜀: {e}")
+        return orchestrator.plan_step(st, act.get("plan", planner.plan))
+    if ph == "idesign":
+        st["phase"] = "idesign"
+        r = idesign.design_step(st, **act.get("idesign", {}))
+        if st["phase"] == "idesign" and not idesign.undesigned(release_plan.load()):
+            st["phase"] = "develop"
+        return r
+    if ph == "develop":
         for m in consume.apply(path, act.get("decide", triage.decide)):
             progress.mark(f"[루프] 결정 반영: {m}")
         promoted = reconcile.promote_merged(path)
@@ -210,7 +183,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
             progress.mark(f"[루프] 실행 가능 단위 없음 — 항목 {len(items)}건, (단계,모드) 분포 {dict(Counter((i.stage, i.mode) for i in items))}")
             return _end_round(st, ship, "열린 단위 없음 — 다음 감사로", path)
         if st["units_done"] >= UNIT_CAP:
-            return _end_round(st, ship, f"라운드 단위 상한 {UNIT_CAP} — 다음 감사로")
+            return _end_round(st, ship, f"라운드 단위 상한 {UNIT_CAP} — 다음 감사로", path)
         nxt = queue.next_runnable(queue.parse(path))
         progress.event("unit_start", round=st["round"], unit=nxt.item_id)
         rc = develop()
@@ -281,6 +254,8 @@ def run_until_stop(st: dict, *, force: bool = False, once: bool = False, act: di
         if not once and i == max_steps - 1:
             stopreason.stop(st, stopreason.STEP_CAP)
             save_state(st) if path is None else None
+    if st.get("stop_reason") == stopreason.PACING and path is None and not force:
+        wake.schedule(pacing.check(time.time()).resume_at)
     return out
 
 
@@ -293,7 +268,7 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     st = load_state()
     if a.reset:
-        st.update(phase="audit", fails=0, unit=None, stop_reason=None)
+        st.update(phase="audit", fails=0, unit=None, stop_reason=None, cursor=None)
     if not a.status:
         run_until_stop(st, force=a.force, once=a.once)
     save_state(st)

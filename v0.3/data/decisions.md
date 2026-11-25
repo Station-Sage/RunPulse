@@ -557,3 +557,9 @@
 - 문제: 진행상황·정지/재개·타이머·결정 대기를 파일로만 확인해야 했다.
 - 결정: stdlib http.server 단일 프로세스(Flask 와 분리, 127.0.0.1:8765)를 systemd user 서비스로 상시 구동하고, 외부 접근은 cloudflared 터널 + Cloudflare Access(인증은 앱 밖). 컨테이너가 아닌 호스트 서비스인 이유는 systemd 타이머·STATE_DIR·프로세스 종료를 직접 다뤄야 하기 때문. 쓰기는 JSON content-type + Origin 일치 + 락 + 감사 로그. 일시정지=현재 단계 완료 후 다음 단계부터 정지, 즉시 중지=STOP + 등록 PID 종료.
 - 편차: 실제 터널·Access 앱 생성은 사용자 수행(가이드만 제공). 인증 없는 앱이므로 Access 미설정 상태로 외부 공개 금지.
+
+## ADR-068: 오토파일럿 버전 사이클 — 결정적 오케스트레이터 + 무상태 역할 (2026-11-25, BACKLOG AP-V)
+
+- 문제: 감사 루프가 결함 수정만 반복해 비전·버전 단위의 방향이 없고, 에이전트가 읽을 문서 구조도 정의되지 않았다.
+- 결정: (1) `loop.py` 를 확장한 단일 결정적 오케스트레이터가 단계 전이를 맡고, 역할(steward·planner·designer·developer·verifier·auditor·deployer)은 무상태 모델 호출. 사이클: plan → design → dev/test/deploy → 감사 반복 → 안정화 게이트 → 비전 개정 제안 → 다음 버전 plan. (2) 문서 트리 `v0.3/data/releases/<버전>/`(PLAN·initiatives/<INI>/DESIGN), 비전은 `VISION.md`; `docs_ctx` 가 역할별로 프롬프트에 주입. (3) 안정화 게이트 = 큐 비음 + 연속 2라운드 신규 결함 0 + 테스트 통과 + 최대 라운드 상한. (4) 버전 계획·이니셔티브 목록·VISION 개정은 항상 사용자 승인(AWAIT_DECISION). steward 는 diff 제안만. (5) 관제 콘솔 역할 패널: 역할별 일시정지(ROLE_PAUSE, 재개 시 단계 유지)·건너뛰기·재실행.
+- 결정(사용자, 2026-11-25): 치명 결함은 버전 작업보다 먼저. 감사·검토가 finding 에 `critical`(데이터 손실·보안·핵심 기능 불능·잘못된 건강/훈련 수치)을 표시 → propose 가 큐 메타 `critical:true` 로 기록 → `queue.next_runnable` 이 파일 순서보다 먼저 집고, plan·idesign 단계는 열린 치명 항목(queued·in_progress·review·failed)이 있으면 develop 으로 되돌리며(`loop.step`), 안정화 게이트도 통과시키지 않는다(`orchestrator.critical_open`). 사용자 결정 대기(needs_decision) 치명 항목은 작업할 수 없으므로 되돌림에서만 제외(게이트는 열린 항목으로 계속 막음). 라운드 상한(MAX_ROUNDS) 안전판은 치명 항목보다 우선.

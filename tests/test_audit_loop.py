@@ -4,6 +4,7 @@ import json
 import pytest
 
 from scripts.audit import loop
+from scripts.audit import propose as propose_mod
 from scripts.autopilot import queue
 
 F = [{"perspective": "ux", "kind": "tap", "verdict": "real", "impact": "작음", "fix": "키움"}]
@@ -44,7 +45,7 @@ def test_state_roundtrip_and_default(tmp_path):
 
 
 def test_propose_blocked_and_idempotent(tmp_path, monkeypatch):
-    monkeypatch.setattr(loop, "PENDING_PATH", tmp_path / "pending.md")
+    monkeypatch.setattr(propose_mod, "PENDING_PATH", tmp_path / "pending.md")
     p = _backlog(tmp_path)
     assert len(loop.propose(F, p)) == 1
     assert loop.propose(F, p) == []
@@ -204,3 +205,54 @@ def test_run_until_stop_converts_exception_and_pacinghold(monkeypatch, tmp_path)
     monkeypatch.setattr(loop.notify, "send", lambda *a, **k: None)
     out = loop.run_until_stop(st, path=tmp_path / "q.md", max_steps=5)
     assert st["phase"] == "halted" and "boom" in out[-1]
+
+
+def test_propose_keeps_design_summary(tmp_path):
+    p = tmp_path / "BACKLOG.md"
+    p.write_text("# b\n", encoding="utf-8")
+    d = lambda f: {"tier": "auto", "why": "", "design": {"scope": ["tests/x.py"], "verify": ["true"], "summary": "근본 설계"}}  # noqa: E731
+    loop.propose(F, p, d)
+    assert '"summary": "근본 설계"' in p.read_text(encoding="utf-8")
+
+
+def test_no_candidate_design_goes_through_end_round(tmp_path, monkeypatch):
+    _quiet(monkeypatch)
+    calls = []
+    monkeypatch.setattr(loop.deploy, "run", lambda n: calls.append(n) or {"ran": False, "reason": "t"})
+    monkeypatch.setattr(loop, "agents_confirmed", lambda: [])
+    st = _st("design", round=3, units_done=2)
+    loop.step(st, path=_backlog(tmp_path, "done"))
+    assert calls == [2] and st["phase"] == "audit" and st["round"] == 4 and st["units_done"] == 0
+
+
+def test_propose_limit_and_checkpoint(tmp_path, monkeypatch):
+    monkeypatch.setattr(propose_mod, "PENDING_PATH", tmp_path / "pend.md")
+    monkeypatch.setattr(propose_mod.decisions, "append", lambda r: None)
+    p = tmp_path / "B.md"
+    p.write_text("", encoding="utf-8")
+    fs = [{**F[0], "kind": f"k{i}"} for i in range(3)]
+    boom = {"n": 0}
+
+    def decide(f):
+        boom["n"] += 1
+        if boom["n"] == 3:
+            raise RuntimeError("끊김")
+        return {"tier": "user", "why": "t", "design": {}}
+
+    with pytest.raises(RuntimeError):
+        propose_mod.propose(fs, p, decide)
+    assert len(queue.parse(p)) == 2
+    assert len(propose_mod.propose(fs, p, lambda f: {"tier": "user", "why": "t", "design": {}}, limit=5)) == 1
+    assert len(propose_mod.propose(fs, p, None, limit=1)) == 0
+
+
+def test_step_records_cursor_and_reset_clears(tmp_path, monkeypatch):
+    _quiet(monkeypatch)
+    st = _st("test", unit="U1", round=3)
+    loop.step(st, path=_backlog(tmp_path), act={"sweep": lambda: {"ok": True, "failed": []}})
+    assert st["cursor"]["phase"] == "test" and st["cursor"]["unit"] == "U1" and st["cursor"]["round"] == 3
+    sp = tmp_path / "s.json"
+    loop.save_state(st, sp)
+    monkeypatch.setattr(loop, "STATE_PATH", sp)
+    loop.main(["--reset", "--status"])
+    assert loop.load_state(sp)["cursor"] is None

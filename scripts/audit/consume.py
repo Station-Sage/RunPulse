@@ -45,6 +45,8 @@ def apply(path: Path, decide, dpath: Path | None = None) -> list[str]:
     stages = {i.item_id: i.stage for i in queue.parse(path)}
     out = []
     for rec in data:
+        if rec.get("kind") in ("initiative", "vision"):
+            continue  # 버전 전환·비전 개정은 versioning/steward.apply_choice 가 처리
         if rec["status"] == "chosen":
             if stages.get(rec["id"]) == "needs_decision":
                 out.append(_promote(rec, path))
