@@ -1,5 +1,6 @@
 <script lang="ts">
 	import PageHead from '$lib/components/ui/PageHead.svelte';
+	import { pageHeading } from '$lib/a11y/pageHeading';
 	// 03c-library.md 3-C 메트릭 탭 — 이 활동의 대표(is_primary) 메트릭 전체를 카테고리별로.
 	// 행을 누르면 계산 분해(DrillPanel, scope=activity)가 열린다(P2). 소스는 배지로 항상 표기(P3).
 	import type { MetricsTabPageData } from './+page';
@@ -28,7 +29,7 @@
 	);
 </script>
 
-<PageHead title="활동 메트릭" heading={null} />
+<PageHead title="활동 메트릭" heading={pageHeading(data.failure && total === 0 ? 'failed' : 'ok', '활동 메트릭', ['ok'])} />
 
 <DrillPanel scopeType="activity" scopeId={String(data.activityId)}>
 
