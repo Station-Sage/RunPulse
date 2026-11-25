@@ -1273,3 +1273,13 @@ REVIEW-04 #S2(Coach 근거 없음, 입력창 미도킹) 해소. 근거 칩은 To
   3. 02 원칙에 맞춰 드로어 '바로가기' 그룹 축소(S4-90 번복, 사용자 판단 필요).
 - **권고**: 1번.
 - **상태**: 사용자 결정 대기. 코드 변경 없음.
+
+## [P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT] 조정 수락 영속화는 이미 설계·구현됨 — 후속 IMPL 항목을 어떻게 처리할지 (2026-11-25)
+- **배경**: `DESIGN-PLAN-ADJUSTMENTS.md`(ADR-035, A안)가 이미 있고, `plan_adjustments` 테이블(v31→v37), `plan_overlay.py`, `plan_adjustment_service.py`, `routes_plan_adjust.py`(accept/revert/list)가 존재한다. BACKLOG의 "읽기 전용·쓰기 경로 없음·`PUT accept-adjustment`·Phase 7c 이연" 전제는 낡았다. 요청된 `DESIGN-COACH-PLAN-ADJUSTMENT-ACCEPT.md`는 새 설계 대신 현황 포인터로 작성했다. `DESIGN-PLAN-ADJUSTMENTS.md` §8의 결정 4건은 DECISIONS.md에 확정 기록이 없다.
+- **질문**: `[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT-IMPL]`(kind=code, scope src/·tests/)을 어떻게 처리할까?
+- **선택지**:
+  1. 코드 구현 취소. T4·T6·T7·T9 구현 여부를 감사해 미구현분만 새 항목으로 쪼개고, §8 결정 4건은 추천안으로 확정할지 사용자가 답한다(kind=doc).
+  2. 항목 종료(done). 미구현분은 별도 하우스키핑에 맡긴다.
+  3. 외부 출력(ICS·garmin_push·caldav_push)까지 조정을 반영하는 구현을 포함(§8-4 추천과 반대, 설계 추가 필요).
+- **권고**: 1번. 기존 구현과 중복·충돌할 위험이 없고, 미결 결정을 사용자 확인으로 돌린다.
+- **상태**: 사용자 결정 대기. 코드 변경 없음, pytest 미실행.
