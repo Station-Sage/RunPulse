@@ -36,7 +36,7 @@ def parse(text: str) -> tuple[str, list[dict]]:
 
 
 def undesigned(plan: dict) -> list[str]:
-    return [i for i, ini in release_plan.initiatives(plan).items() if ini.get("status") == "approved" and i != release_plan.MAINT]
+    return [i for i, ini in release_plan.initiatives(plan).items() if ini.get("status") == "approved" and i != release_plan.MAINT and not ini.get("auto")]
 
 
 def write_design(ver: str, ini_id: str, ini: dict, body: str, releases: Path | None = None) -> Path:

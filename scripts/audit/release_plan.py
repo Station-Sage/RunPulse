@@ -20,6 +20,9 @@ _INIT = {"current": "v1", "versions": {"v1": {"title": "현행 기준선", "stat
     MAINT: {"title": "유지보수 결함 처리", "status": "approved", "items": []}}}}}
 
 
+UNLINKED = "UNLINKED"
+
+
 def load(path: Path | None = None) -> dict:
     try:
         d = json.loads((path or PLAN_PATH).read_text(encoding="utf-8"))
@@ -64,11 +67,39 @@ def sync_maint(plan: dict, queue_path: Path | None = None) -> list[str]:
             if it.item_id.startswith("AUD-") and link(plan, MAINT, it.item_id)]
 
 
+GROUP_TITLES = {"SPLIT": "파일 분리(300줄 규칙)", "P7": "Phase 7 UI 리뉴얼"}
+
+
+def prefix_of(item_id: str) -> str:
+    return item_id.split("-", 1)[0] if "-" in item_id else ""
+
+
+def sync_groups(plan: dict, queue_path: Path | None = None) -> list[str]:
+    """어느 이니셔티브에도 없는 자동 항목을 접두사별 자동 이니셔티브(INI-<접두사>, auto)에 편입 — 새 접두사도 설정 없이 묶인다.
+    AUD 는 기존대로 INI-MAINT. 접두사가 없는 항목은 편입하지 않고 rollup 의 UNLINKED 로 남는다."""
+    done = []
+    ini = initiatives(plan)
+    ini.setdefault(MAINT, {"title": "유지보수 결함 처리", "status": "approved", "items": []})
+    for it in queue.parse(queue_path or settings.QUEUE_PATH):
+        pre = prefix_of(it.item_id)
+        if pre == "AUD":
+            gid = MAINT
+        elif it.mode == "auto" and pre:
+            gid = f"INI-{pre}"
+            ini.setdefault(gid, {"title": GROUP_TITLES.get(pre, f"{pre} 항목(자동 그룹)"), "status": "approved", "auto": True, "items": []})
+        else:
+            continue
+        if link(plan, gid, it.item_id):
+            done.append(it.item_id)
+    return done
+
+
 def rollup(plan: dict, queue_path: Path | None = None) -> dict:
     """현재 버전의 이니셔티브별 항목 진행 집계 — {version, title, status, initiatives:[{id,title,status,total,done,by_stage}]}."""
     ver = current(plan)
     v = plan["versions"][ver]
-    stage = {it.item_id: it.stage for it in queue.parse(queue_path or settings.QUEUE_PATH)}
+    parsed = queue.parse(queue_path or settings.QUEUE_PATH)
+    stage = {it.item_id: it.stage for it in parsed}
     out = []
     for iid, ini in v.get("initiatives", {}).items():
         by: dict[str, int] = {}
@@ -77,6 +108,14 @@ def rollup(plan: dict, queue_path: Path | None = None) -> dict:
             by[s] = by.get(s, 0) + 1
         out.append({"id": iid, "title": ini.get("title", iid), "status": ini.get("status", "proposed"),
                     "total": len(ini.get("items", [])), "done": by.get("done", 0), "by_stage": by})
+    linked = linked_ids(plan)
+    loose = [it for it in parsed if it.mode == "auto" and it.item_id not in linked]
+    if loose:  # 어느 이니셔티브에도 없는 자동 항목 — 개발항목 탭 전체 건수와 맞추기 위해 별도 행으로 집계
+        by = {}
+        for it in loose:
+            by[it.stage] = by.get(it.stage, 0) + 1
+        out.append({"id": UNLINKED, "title": "이니셔티브 미연결 항목", "status": "unassigned",
+                    "total": len(loose), "done": by.get("done", 0), "by_stage": by})
     return {"version": ver, "title": v.get("title", ver), "status": v.get("status", "active"), "goal": v.get("goal", ""),
             "phases": _phase_rollup(v.get("phases"), out), "initiatives": out}
 
