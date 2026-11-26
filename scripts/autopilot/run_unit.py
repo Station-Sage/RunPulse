@@ -122,7 +122,7 @@ def _post_verify(item: queue.QueueItem) -> tuple[bool, str]:
         cmd_str = _abs_venv(cmd_str)
         r = subprocess.run(
             cmd_str, shell=True, cwd=settings.WORKTREE_DIR,
-            capture_output=True, text=True, timeout=1200,
+            capture_output=True, text=True, timeout=1200, env=worktree.verify_env(),
         )
         if r.returncode != 0:
             tail = (r.stdout[-1500:] + "\n" + r.stderr[-1500:]).strip()
@@ -206,7 +206,17 @@ def run_once(
                     rc = 127 if "종료코드 127" in verify_note else None
                     extra = {"fail_kind": fail_handling.classify_verify(rc, verify_note),
                              "fail_reason": verify_note[:300]}
-                    _register_failed_card(item, extra["fail_kind"], verify_note)
+                    if extra["fail_kind"] == "env" and item.attempts + 1 < 2:
+                        fixed = worktree.provision()  # 환경 원인(링크 누락)을 고치고 재시도 — 못 고치면 재시도해도 같으니 바로 실패
+                        if fixed:
+                            new_stage = "queued"
+                            extra["fail_reason"] = f"환경 자동 복구({', '.join(fixed)}) 후 재시도: {extra['fail_reason']}"[:300]
+                        else:
+                            _register_failed_card(item, extra["fail_kind"], verify_note)
+                    elif extra["fail_kind"] == "verify" and item.attempts + 1 < 2:
+                        new_stage = "queued"  # 개발 결과 미흡은 1회 자동 재시도 — 카드는 최종 실패 때만
+                    else:
+                        _register_failed_card(item, extra["fail_kind"], verify_note)
                 if verified and item.kind == "code":
                     verify_note = leftovers.commit_leftovers(item, settings.WORKTREE_DIR)
                     added = size_followup.append_followups(item, settings.WORKTREE_DIR, settings.QUEUE_PATH)

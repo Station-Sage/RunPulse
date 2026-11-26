@@ -147,3 +147,46 @@ def test_abs_venv_rewrites_relative_venv_python():
     assert run_unit._abs_venv("true") == "true"
     out = run_unit._abs_venv("python3 -m pytest tests/ -q")
     assert out.endswith(".venv/bin/python -m pytest tests/ -q") and out.startswith("/")
+
+
+class TestVerifyFailureRequeue:
+    def _run(self, monkeypatch, tmp_path, attempts, note):
+        recorded = {}
+        cards = []
+        monkeypatch.setattr(run_unit.gate, "check", lambda **k: type("G", (), {"allowed": True, "reason": ""})())
+        monkeypatch.setattr(run_unit.queue, "parse", lambda p: [_code_item(attempts=attempts)])
+        monkeypatch.setattr(run_unit.queue, "next_runnable", lambda items: items[0])
+        monkeypatch.setattr(run_unit.worktree, "ensure", lambda: None)
+        monkeypatch.setattr(run_unit.worktree, "sync", lambda: None)
+        monkeypatch.setattr(run_unit.worktree, "_run", lambda *a, **k: type("R", (), {"stdout": ""})())
+        monkeypatch.setattr(run_unit, "_run_claude", lambda it: {"outcome": "success", "duration_s": 1})
+        monkeypatch.setattr(run_unit, "_decisions_changed", lambda: False)
+        monkeypatch.setattr(run_unit, "_post_verify", lambda it: (False, note))
+        monkeypatch.setattr(run_unit, "_register_failed_card", lambda it, k, r: cards.append(k))
+        monkeypatch.setattr(run_unit.ledger, "append", lambda e: None)
+        monkeypatch.setattr(run_unit.notify, "send", lambda m: None)
+        monkeypatch.setattr(run_unit.queue, "update_item",
+                            lambda path, iid, **kw: recorded.update(kw))
+        monkeypatch.setattr(run_unit.settings, "STATE_DIR", tmp_path)
+        monkeypatch.setattr(run_unit.settings, "LOCK_PATH", tmp_path / "lock")
+        run_unit.run_once()
+        return recorded, cards
+
+    def test_first_verify_failure_requeues_without_card(self, monkeypatch, tmp_path):
+        rec, cards = self._run(monkeypatch, tmp_path, 0, "`x` 종료코드 1\nFAILED")
+        assert rec["stage"] == "queued" and rec["fail_kind"] == "verify" and cards == []
+
+    def test_env_failure_provisions_then_requeues_without_card(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(run_unit.worktree, "provision", lambda: [".venv"])
+        rec, cards = self._run(monkeypatch, tmp_path, 0, "Cannot find module 'playwright'")
+        assert rec["stage"] == "queued" and rec["fail_kind"] == "env" and cards == []
+        assert ".venv" in rec["fail_reason"]
+
+    def test_env_failure_unfixable_fails_with_card(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(run_unit.worktree, "provision", lambda: [])
+        rec, cards = self._run(monkeypatch, tmp_path, 0, "Cannot find module 'playwright'")
+        assert rec["stage"] == "failed" and cards == ["env"]
+
+    def test_second_verify_failure_fails_with_card(self, monkeypatch, tmp_path):
+        rec, cards = self._run(monkeypatch, tmp_path, 1, "`x` 종료코드 1\nFAILED")
+        assert rec["stage"] == "failed" and cards == ["verify"]

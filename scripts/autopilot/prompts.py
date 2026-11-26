@@ -88,7 +88,11 @@ def _format_list(items: list[str], empty: str) -> str:
 
 def build_prompt(item: queue.QueueItem) -> str:
     note = fail_handling.answered_note(item)
-    return _build(item) + (f"\n답변 완료된 결정:\n{note}\n" if note else "")
+    prev = ""
+    if item.attempts and item.fail_kind == "verify" and item.fail_reason:
+        prev = (f"\n직전 시도는 독립 verify 에서 실패했습니다(같은 실수를 반복하지 마세요). verify 가 가리키는 테스트 파일이 없으면 "
+                f"직접 만들고 통과시키세요:\n  {item.fail_reason}\n")
+    return _build(item) + prev + (f"\n답변 완료된 결정:\n{note}\n" if note else "")
 
 
 def _build(item: queue.QueueItem) -> str:
