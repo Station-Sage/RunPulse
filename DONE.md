@@ -1,5 +1,6 @@
 # DONE — 완료된 버그
 
+- **[CONSOLE-NOW-REDESIGN]** 관제 상황판 탭 재설계(핫픽스, 2026-11-27) — 요약 카드·흐름/범위/예산 카드·접이식 설정·제어·역할 행 탭 토글로 정리, CSS/JS 를 `console.css`·`now.js`·`app.js` 로 분리(API·기능 불변).
 - **[V2-AI-CLAUDE-QUEUE]** 호스트 워커 `claude -p` 영속 세션 큐(E1~E5) 완료(2026-11-21, E4-f 운영 확인 사용자 완료) — 코치·이행·내러티브·플랜 초안(opus)·오늘 상세 분석·지표 안내 사전 생성, AI 분석을 코치 스레드로 통합, `ai.fallback_order`. 설계 `v0.3/data/phase-7-ui-renewal/DESIGN-V2-AI-CLAUDE-QUEUE.md`.
 - **[AUDIT-SERVICE-LAYER]** 서비스 계층 감사·v1 퇴역 완료(2026-11-21 확인) — 0~3단계(S4-89~91)·4단계(S4-92 테스트 전용 함수, S4-98 `ai_parser`·`ai_schema`·`replanner`·`sync_cli`·`unified_view`, S4-99 `analyze.py`·analysis 퇴역, S4-97 `/connect/garmin*` 퇴역) 모두 반영. 운영 접근 로그에 퇴역 v1 URL 호출 0건. 유지: `plan.py` CLI.
 - **[V2-AUDIT-INDIV]** v2 점검 개별 버그 161건 처리 완료(2026-11-21, 추천안 일괄) — 배치 T·A·M·D·P·C·E·S 전부 처리. 의도적 미변경: S-18 start_time 형식 혼재(데이터 재작성 없이 읽기 시 환산 S-17 유지), E-20 초대 mailto(기본안 유지). 미검증: T-01 주간 스트립 시각 확인(플랜 있는 DB 필요) — 플랜 있는 화면 점검 때 함께 확인. 기록 `ux-review-2026-10/08-supplement.md`.

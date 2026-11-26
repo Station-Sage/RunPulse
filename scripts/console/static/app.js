@@ -1,0 +1,121 @@
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const TUN={WEEKLY_PACING_ENABLED:'주간 페이싱 대기 (1=켜짐, 0=꺼짐)',AUDIT_TOOL_CALLS_PER_ROUND:'감사 라운드당 도구 호출',FALLBACK_SESSION_MAX_RUNS:'세션 최대 실행 수',FALLBACK_SESSION_MAX_USD:'세션 최대 비용($)'};
+let timers={},tab='now',typing=false,drafts={};
+async function api(p,body){
+ const o=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{};
+ const r=await fetch(p,o);let j={};try{j=await r.json()}catch(e){}
+ if(!r.ok&&body)toast(j.error||j.reason||'실패 '+r.status,true);return j}
+function toast(t,bad){const m=$('#msg');m.textContent=t;m.style.background=bad?'#7f1d1d':'#065f46';m.style.display='block';setTimeout(()=>m.style.display='none',2500)}
+function fmt(ts){return ts?new Date(ts*1000).toLocaleString('ko-KR',{hour12:false}):'-'}
+function left(us){const t=Number(us)/1e6;if(!t)return'-';const s=Math.round(t-Date.now()/1000);if(s<=0)return'곧 실행';return Math.floor(s/60)+'분 '+s%60+'초 후'}
+function pct(a,b){return b?Math.min(100,Math.round(100*a/b)):0}
+function bar(l,a,b,txt){const p=pct(a,b);return `<div class="row"><span>${l}</span><span>${txt||a+' / '+b}</span></div><div class="bar ${p>=90?'bad':p>=75?'warn':''}"><i style="width:${p}%"></i></div>`}
+function win(l,w){if(!w)return bar(l,0,100,'데이터 없음');if(w.expired)return bar(l,0,100,'리셋됨 ('+hhmm(w.resetsAt)+') · 새 창 대기');if(w.utilization==null)return bar(l,0,100,'사용률 관측 없음 · 리셋 '+hhmm(w.resetsAt));const u=Math.round(100*w.utilization);return bar(l,u,100,u+'% · 리셋 '+hhmm(w.resetsAt))}
+function pickWin(g,k){const now=Date.now()/1000;let old=null;for(const r of [g[k],g.five_hour,g.seven_day]){let w=r&&(r.rateLimitType===k?r:null);const nw=r&&(r.unifiedWindows||{})[k];if(nw&&(!w||w.utilization==null))w=w?{...w,...nw}:nw;if(!w)continue;if(w.resetsAt>now)return w;old=old||w}return old&&{...old,expired:1}}
+const RSN={pacing:'페이싱 대기'};
+const STG=['감사','설계','개발·테스트','반영'],SUBN={sweep:'스윕',audit:'관점 감사',review:'독립 검토'};
+function dur(sec){sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);return h?h+'시간 '+m+'분':m?m+'분 '+sec%60+'초':sec+'초'}
+function hhmm(ts){return ts?new Date(ts*1000).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}):'-'}
+function sec(t,body){return body?`<div class="sec"><div class="st">${t}</div>${body}</div>`:''}
+function lst(a){return a&&a.length?'<ul>'+a.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}
+function renderDec(list){
+ $('#dl').innerHTML=list.length?list.map(d=>{
+  const open=d.status==='open',waiting=d.status==='redo';
+  const chg=!open&&!waiting&&!['initiative','vision'].includes(d.kind);
+  const act=open||chg;
+  const f=typeof d.finding==='object'&&d.finding?d.finding:{impact:d.finding||''};
+  const rec=d.recommendation;
+  return `<div class="card"><b>${esc(d.summary||d.id)}</b> <span class="tag${waiting?' warn':''}">${waiting?'재제안 대기':esc(d.status)}</span> <span class="mut">${esc(d.id)}</span>
+  ${sec('무엇이 문제인가',(f.perspective?`<span class="tag">${esc(f.perspective)}</span> `:'')+esc(f.impact||''))}
+  ${sec('제안된 수정',esc(f.fix||''))}
+  ${sec('발견된 곳',lst(f.cells))}
+  ${sec('결정이 필요한 이유',esc(d.why||''))}
+  ${sec('영향 범위',lst(d.scope))}
+  ${sec('검증 방법',lst(d.verify))}
+  <div class="st">선택지</div>
+  ${act?`<textarea class="tx" id="tx-${esc(d.id)}" placeholder="의견·새 verify 커맨드·재정의 지시 (선택)"></textarea>`:''}
+  ${!open&&d.text?`<div class="mut">내 의견: ${esc(d.text)}</div>`:''}
+  ${(d.options||[]).map(o=>`<div class="opt${o.key===rec?' rec':''}${!open&&o.key===d.choice?' sel':''}"><b>${esc(o.key)}. ${esc(o.name)}</b>${o.key===rec?' <span class="tag ok">추천</span>':''}${!open&&o.key===d.choice?' <span class="tag ok">내 선택</span>':''}<div class="pro">+ ${esc(o.pros)}</div><div class="con">- ${esc(o.cons)}</div>
+   ${act&&!(chg&&o.key===d.choice)?`<button class="b p" data-dc="${esc(d.id)}" data-ch="${esc(o.key)}">${open?'이 안으로 진행':'이 안으로 변경'}</button>`:''}</div>`).join('')||'<div class="mut">선택지 없음 — "다른 제안 받기"로 상세 안을 요청</div>'}
+  <div class="mut">${rec?'추천: '+esc(rec):'추천 없음 (분류기가 추천을 내지 않음)'}</div>
+  ${sec('되돌리는 방법',esc(d.revert||''))}
+  ${open?`<button class="b" data-dc="${esc(d.id)}" data-ch="redo">다른 제안 받기</button>`:waiting?'<div class="mut">다른 제안을 준비 중 — 새 안이 올라오면 다시 표시됩니다</div>':`<div class="mut">선택: ${esc(d.choice||'-')}${chg?' · 개발이 시작되기 전까지 다른 안으로 바꿀 수 있습니다':''}</div>`}</div>`}).join(''):'<div class="card mut">결정함이 비어 있음</div>'}
+const ISTG={in_progress:'진행중',queued:'대기',needs_decision:'결정 필요',failed:'실패',review:'사후 검토',done:'완료'};
+let openIt={},istage='';
+const PSTEP=[['design','설계'],['develop','개발'],['test','테스트'],['commit','커밋'],['deploy','운영반영']];
+function pipeHtml(x){if(!x||!x.steps)return'';
+ return `<div class="pipe">${PSTEP.map(([k,n])=>`<span class="${x.steps[k]?'ok':'no'}">${x.steps[k]?'✔':'·'} ${n}</span>`).join(' ')}${x.running?' <span class="tag warn">진행중</span>':''}</div>`}
+let pipeMap={};
+function kv(t,v){return v?`<div class="row"><span class="mut">${t}</span><span style="text-align:right">${esc(v)}</span></div>`:''}
+function detailHtml(d){
+ const i=d.item,r=d.review,dc=d.decision,rp=d.report||{};
+ const dcs=dc?`<div class="mut">${esc(dc.kind||'')} · ${esc(dc.status)}${dc.choice?' · 선택 '+esc(dc.choice):''}</div>${sec('요약',esc(dc.summary||''))}${sec('결정 이유',esc(dc.why||''))}${sec('내 의견',esc(dc.text||''))}${(dc.options||[]).map(o=>`<div class="opt${o.key===dc.choice?' sel':''}"><b>${esc(o.key)}. ${esc(o.name)}</b>${o.key===dc.recommendation?' <span class="tag ok">추천</span>':''}${o.key===dc.choice?' <span class="tag ok">선택</span>':''}</div>`).join('')}`:'<div class="mut">결정 기록 없음 — 사용자 결정 없이 자동 큐에 올라온 항목</div>';
+ const runs=(d.runs||[]).map(x=>`<div class="mut">${fmt(x.ts)} · ${esc(x.outcome)} · ${x.num_turns??'-'}턴 · ${Math.round(x.duration_s||0)}초 · $${(x.cost_usd||0).toFixed(2)}</div>`).join('')||'<div class="mut">실행 기록 없음</div>';
+ const tl=(d.timeline||[]).map(x=>`<div class="mut">${fmt(x.ts)} ${esc(x.kind)}${x.round?' · 라운드 '+x.round:''}${x.result?' · '+esc(x.result):''}</div>`).join('');
+ const au=(d.audit||[]).map(x=>`<div class="mut">${esc(x.ts)} ${esc(x.action)} ${esc(JSON.stringify(x.detail))}</div>`).join('');
+ const rvw=['review','done'].includes(i.stage)?`<div class="st">사후 검토</div>${sec('검토 대상',esc(r.what))}${sec('검토 방법(verify)',lst(r.verify_cmds))}${sec('검토 경과',esc(r.how))}${sec('발견된 문제',r.problems.length?lst(r.problems):'<span class="pro">기록된 문제 없음</span>')}${sec('추가로 볼 것',lst(r.remaining))}`:'';
+ return `<div class="opt"><span class="tag">${ISTG[i.stage]||esc(i.stage)}</span>${pipeHtml(pipeMap[i.id])} <span class="mut">시도 ${i.attempts}회${i.critical?' · critical':''}${i.resolution?' · '+esc(i.resolution):''}</span>
+ ${sec('무엇인가',esc(i.full_text))}${sec('범위',lst(i.scope))}${sec('verify',lst(i.verify))}${i.deps.length?sec('선행 항목',esc(i.deps.join(', '))):''}
+ <div class="st">어떻게 결정되었나</div>${dcs}
+ <div class="st">어떻게 개발되었나</div>${runs}${tl?`<div class="sl">${tl}</div>`:''}${sec('최종 실행 보고',rp.report?`<pre>${esc(rp.report)}</pre>`:'')}${au?sec('콘솔 조작 이력',au):''}${rvw}</div>`}
+async function toggleIt(id){
+ const el=document.getElementById('dt-'+id);if(!el)return;
+ if(openIt[id]){delete openIt[id];el.innerHTML='';return}
+ el.innerHTML='<div class="mut">불러오는 중…</div>';
+ const d=await api('/api/item/'+encodeURIComponent(id));
+ if(d&&d.item){openIt[id]=1;el.innerHTML=detailHtml(d)}else el.innerHTML='<div class="mut">'+esc((d&&d.error)||'불러오기 실패')+'</div>'}
+function renderItems(r){
+ if(!r||!r.items)return;
+ const c=r.counts;
+ $('#ih').innerHTML=`<b>개발 항목 ${r.total}건 · 완료 ${r.done_pct}%</b><div class="bar" style="margin:6px 0"><i style="width:${r.done_pct}%"></i></div>`+Object.keys(ISTG).map(k=>`<a class="go tag${k==='failed'&&c[k]?' bad':''}${istage===k?' warn':''}" href="#items?stage=${k}">${ISTG[k]} ${c[k]||0}</a> `).join('')+(istage?` <a class="go" href="#items">필터 해제 ✕</a>`:'');
+ pipeMap={};for(const it of r.items)pipeMap[it.id]=it;
+ let cur='';const body=[];
+ for(const it of r.items.filter(x=>!istage||x.stage===istage)){
+  if(it.stage!==cur){cur=it.stage;body.push(`<div class="st">${ISTG[cur]||esc(cur)} (${c[cur]||0})</div>`)}
+  body.push(`<div class="card" style="padding:8px 12px"><div class="row" data-it="${esc(it.id)}" style="cursor:pointer"><span><b>${esc(it.id)}</b> <span class="tag${it.stage==='failed'?' bad':''}">${ISTG[it.stage]||esc(it.stage)}</span></span><span class="mut">▾</span></div>${pipeHtml(it)}<div class="mut">${esc(it.text)}</div><div id="dt-${esc(it.id)}"></div></div>`)}
+ $('#il').innerHTML=body.length?body.join(''):`<div class="card mut">${istage?esc(ISTG[istage]||istage)+' 상태의 항목이 없습니다.':'항목이 없습니다.'}</div>`;
+ reopenIt()}
+function reopenIt(){for(const id of Object.keys(openIt)){const el=document.getElementById('dt-'+id);if(el&&!el.innerHTML){delete openIt[id];toggleIt(id)}}}
+async function loadItems(){const r=await api('/api/items');if(r&&r.items){pipeMap={};for(const it of r.items)pipeMap[it.id]=it}if(tab==='items')renderItems(r)}
+function showLog(l){
+ if(!Array.isArray(l))return;const e=$('#log'),top=e.scrollTop<24;
+ e.textContent=l.slice(-60).reverse().join('\n');if(top)e.scrollTop=0}
+async function pollLog(){if(tab!=='log'||document.hidden)return;showLog(await api('/api/log'));$('#logst').textContent='실시간 · '+new Date().toLocaleTimeString('ko-KR',{hour12:false})}
+const TABS=['now','log','items','dec','rev'];
+function fitLog(){const l=$('#log');if(!l||$('#t-log').classList.contains('hid'))return;l.style.height=Math.max(200,innerHeight-l.getBoundingClientRect().top-scrollY-62)+'px'}
+addEventListener('resize',fitLog);
+function setTab(k){
+ if(!TABS.includes(k))k='now';tab=k;
+ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===k));
+ for(const x of TABS)$('#t-'+x).classList.toggle('hid',x!==k);
+ fitLog();if(k==='log')pollLog();if(k==='items')loadItems()}
+function tabFromHash(){const[h,q]=location.hash.slice(1).split('?');istage=(new URLSearchParams(q||'').get('stage'))||'';return h==='todo'?'dec':h}
+async function load(){
+ const [o,d,l,t,tv]=await Promise.all([api('/api/overview'),api('/api/decisions'),api('/api/log'),api('/api/timers'),api('/api/tunables')]);
+ if(o.state)renderNow(o);
+ if(Array.isArray(d))renderDec(d);
+ for(const[k,v]of Object.entries(drafts)){const e=document.getElementById(k);if(e&&!e.value)e.value=v}
+ showLog(l);loadItems();
+ if(t&&typeof t==='object'){timers=t;renderTimers()}
+ if(tv&&!typing)for(const[k,v]of Object.entries(tv)){const e=$('#tn-'+k);if(e&&document.activeElement!==e&&!e.value)e.value=v}}
+document.addEventListener('click',async e=>{
+ const rr=e.target.closest('[data-rr]');if(rr){openRole[rr.dataset.rr]=!openRole[rr.dataset.rr];if(window.lastO)renderNow(window.lastO);return}
+ const g=e.target.closest('[data-tg]');if(g){openPh[g.dataset.tg]=!openPh[g.dataset.tg];if(window.lastO)renderNow(window.lastO);return}
+ const it=e.target.closest('[data-it]');if(it){toggleIt(it.dataset.it);return}
+ const t=e.target.closest('button');if(!t)return;
+ if(t.dataset.t){history.replaceState(null,'','#'+t.dataset.t);setTab(t.dataset.t);return}
+ let r;
+ if(t.dataset.a){if(t.dataset.a==='stop'&&!confirm('즉시 중지할까요? 실행 중 프로세스를 종료합니다.'))return;r=await api('/api/control',{action:t.dataset.a})}
+ else if(t.dataset.rl){r=await api('/api/roles',{role:t.dataset.rl,flag:t.dataset.rf,value:t.dataset.rv==='1'})}
+ else if(t.dataset.iv){r=await api('/api/interval',{timer:t.dataset.iv,minutes:Number($('#iv-'+t.dataset.iv).value)})}
+ else if(t.dataset.tn){r=await api('/api/tunables',{values:{[t.dataset.tn]:Number($('#tn-'+t.dataset.tn).value)}})}
+ else if(t.dataset.dc){r=await api('/api/decisions/'+t.dataset.dc,{choice:t.dataset.ch,text:(($('#tx-'+t.dataset.dc)||{}).value||'')})}
+ else if(t.dataset.fid){if(t.dataset.fa==='drop'&&!confirm('폐기할까요?'))return;r=await api('/api/failed/'+t.dataset.fid,{action:t.dataset.fa,text:(($('#fx-'+t.dataset.fid)||{}).value||'')})}
+ else if(t.dataset.rv){if(t.dataset.ra==='rework'&&!confirm('재작업 큐로 되돌릴까요?'))return;r=await api('/api/review/'+t.dataset.rv,{action:t.dataset.ra})}
+ else return;
+ if(r&&r.ok){toast(t.dataset.fid&&t.dataset.fa==='requeue'?'의견을 지시로 추가하고 큐에 넣었습니다':'적용됨');for(const k of['tx-'+t.dataset.dc,'fx-'+t.dataset.fid])delete drafts[k]}else if(r&&r.error)toast(r.error);load()});
+document.addEventListener('focusin',e=>{typing=e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'});
+document.addEventListener('input',e=>{const i=e.target.id||'';if(/^(tx|fx)-/.test(i))drafts[i]=e.target.value});
+buildSettings();setTab(tabFromHash());load();
+addEventListener('hashchange',()=>{setTab(tabFromHash());if(tab==='items')loadItems()});document.addEventListener('visibilitychange',pollLog);
+setInterval(()=>{if(!typing)load()},15000);setInterval(()=>{tickTimers();tickEl()},1000);setInterval(pollLog,3000);

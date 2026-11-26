@@ -2753,7 +2753,7 @@
 
 - functions: test_queue_summary, test_overview_and_decisions, test_overview_has_release, test_redo_not_counted_and_closed_capped
 
-### `test_console_server.py` (145줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
+### `test_console_server.py` (147줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
 
 - functions: test_choose_validation, test_log_tail_and_route, test_http_origin_and_content_type, test_static_files_served, test_timers_and_tunable_values, test_notify_console_hint, test_change_choice_from_chosen_and_blocked_kinds, test_change_choice_applied_reopen_fail, test_review_action, test_failed_action, test_review_text_not_truncated
 

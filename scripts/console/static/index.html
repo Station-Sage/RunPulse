@@ -3,51 +3,27 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/console.css">
 <title>오토파일럿 관제</title>
-<style>
-:root{--bg:#111827;--card:#1f2937;--fg:#f3f4f6;--mut:#9ca3af;--ok:#34d399;--warn:#fbbf24;--bad:#f87171;--acc:#60a5fa}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif;padding-bottom:64px}
-header{padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
-h1{font-size:17px;margin:0}main{padding:0 12px}
-.card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px}
-.row{display:flex;justify-content:space-between;gap:8px;padding:2px 0}.mut{color:var(--mut);font-size:13px}
-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#0b1220}
-nav button{flex:1;font-size:14px;padding:0;min-height:52px;background:none;border:0;border-top:2px solid transparent;color:#d1d5db;font-size:16px;font-weight:600}
-nav button.on{color:var(--acc);border-top:2px solid var(--acc)}
-button.b{min-height:44px;min-width:44px;padding:0 14px;border-radius:10px;border:0;background:#374151;color:var(--fg);font-size:15px;margin:3px 3px 3px 0}
-button.b.p{background:var(--acc);color:#0b1220}button.b.d{background:var(--bad);color:#0b1220}
-input{min-height:44px;width:90px;border-radius:8px;border:1px solid #4b5563;background:#111827;color:var(--fg);padding:0 8px;font-size:15px}
-.bar.warn i{background:var(--warn)}.bar.bad i{background:var(--bad)}button.b:disabled{opacity:.35}.bar{height:8px;background:#374151;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok)}
-.pipe{font-size:12px;margin:4px 0}.pipe .ok{color:#34d399}.pipe .no{color:var(--mut)}.tag.warn{background:#92400e}
-.tag{display:inline-block;padding:0 8px;border-radius:8px;background:#374151;font-size:12px}
-.tag.bad{background:#7f1d1d}.tx{width:100%;min-height:40px;margin:6px 0;background:#111827;color:inherit;border:1px solid #374151;border-radius:6px;padding:6px}
-pre#log{min-height:200px;overflow:auto}.badge{display:inline-block;min-width:20px;height:20px;line-height:20px;padding:0 6px;margin-left:6px;border-radius:10px;background:var(--bad);color:#fff;font-size:12px;font-weight:700;text-align:center}
-pre{white-space:pre-wrap;word-break:break-all;font-size:12px;color:var(--mut);margin:0}
-.opt{border:1px solid #374151;border-radius:10px;padding:8px;margin:6px 0}.sec{margin:6px 0}.st{font-size:12px;color:var(--mut);margin-top:6px}.sec ul{margin:2px 0;padding-left:18px;font-size:13px}.opt.rec{border-color:var(--ok)}.tag.ok{background:var(--ok);color:#000}.tag.warn{background:var(--warn,#d97706);color:#000}.opt.sel{border-color:var(--ok);border-width:2px}.pro{color:var(--ok)}.con{color:var(--bad)}
-#msg{position:fixed;top:8px;left:50%;transform:translateX(-50%);background:#065f46;padding:8px 14px;border-radius:10px;display:none;z-index:9}
-.hid{display:none}
-a,a:visited{color:var(--acc)}a.go{display:inline-block;min-height:36px;line-height:36px;padding:0 14px;margin-top:4px;border-radius:10px;background:var(--acc);color:#0b1220;font-weight:700;font-size:14px;text-decoration:none}
-.pwt{font-size:13px;color:#fbbf24}.pwh{font-size:28px;font-weight:700;color:#fbbf24;margin:2px 0}.pwc{font-size:16px;margin-bottom:4px}
-.sm{cursor:pointer;font-size:12px;margin:4px 0}.sl{font-size:11px;color:var(--mut);margin:2px 0 6px 12px}.sl .cu{color:var(--warn);font-weight:700}.bd{color:var(--bad)}.flow{display:flex;align-items:flex-start;margin:10px 0}.stp{flex:1;text-align:center;font-size:12px;color:var(--mut);min-width:0}.stp .no{width:24px;height:24px;border-radius:50%;border:2px solid #374151;margin:0 auto 2px;line-height:20px;font-size:12px}.stp.done .no{background:var(--ok);border-color:var(--ok);color:#000}.stp.on .no{border-color:var(--ok);color:var(--ok);box-shadow:0 0 0 3px #10b98133}.stp.on{color:#fff}.stp .sub{font-size:11px;margin-top:2px}.stp .sub .done{color:var(--ok)}.stp .sub .active{color:var(--warn)}.ln{flex:0 0 12px;border-top:2px solid #374151;margin-top:12px}.ban{padding:6px 8px;border-radius:8px;font-size:12px;margin:6px 0}.ban.warn{background:#78350f;color:#fde68a}.ban.bad{background:#7f1d1d;color:#fecaca}
-</style></head><body>
+</head><body>
 <header><h1>오토파일럿 관제</h1><span class="mut" id="upd">-</span></header>
 <div id="msg"></div>
 <main>
 <section id="t-now">
+ <div class="card"><div class="hd"><span class="sx"><span class="dot" id="dot"></span><b id="flags">-</b></span>
+  <span><button class="b p" data-a="start">시작</button><button class="b p" data-a="resume">재개</button><button class="b" data-a="pause">일시중지</button><button class="b d" data-a="stop">중지</button></span></div>
+  <div class="mut">일시중지 = 현재 단계 후 멈춤 · 중지 = 즉시 종료</div></div>
  <div class="card" id="pw" style="display:none"></div>
- <div class="card" id="rel"></div>
  <div class="card" id="st"></div>
- <div class="card" id="roles"></div>
- <div class="card"><b>실행 제어</b><div class="mut" id="flags"></div>
-  <button class="b p" data-a="start">시작</button><button class="b p" data-a="resume">재개</button>
-  <button class="b" data-a="pause">일시중지</button><button class="b d" data-a="stop">중지</button>
-  <div class="mut">일시중지 = 현재 단계를 마치고 다음 단계부터 멈춤 · 중지 = 즉시 종료(등록된 프로세스 회수)</div></div>
- <div class="card" id="qu"></div>
+ <div class="card" id="rel"></div>
  <div class="card" id="bu"></div>
- <div class="card"><b>자동 재개 타이머</b><div id="tm"></div>
-  <div class="mut">간격(분, 10~1440)</div>
-  <div id="tmset"></div></div>
- <div class="card"><b>한도 설정</b><div id="tun"></div></div>
+ <div id="bk" class="hid"></div>
+ <details class="cfg"><summary>설정·제어</summary>
+  <div class="card" id="qu"></div>
+  <div class="card" id="roles"></div>
+  <div class="card"><b>자동 재개 타이머</b><div id="tm"></div><div class="fm" id="tmset"></div></div>
+  <div class="card"><b>한도 설정</b><div class="fm" id="tun"></div></div>
+ </details>
 </section>
 <section id="t-log" class="hid"><div class="card"><b>진행 로그</b> <span class="mut" id="logst">실시간</span><pre id="log"></pre></div></section>
 <section id="t-items" class="hid"><div class="card" id="ih"></div><div id="il"></div></section>
@@ -55,198 +31,6 @@ a,a:visited{color:var(--acc)}a.go{display:inline-block;min-height:36px;line-heig
 <section id="t-rev" class="hid"><div id="rv"></div></section>
 </main>
 <nav><button data-t="now" class="on">상황판</button><button data-t="log">로그</button><button data-t="items">개발항목</button><button data-t="dec">결정<span id="dn" class="badge hid"></span></button><button data-t="rev">사후 검토<span id="rn" class="badge hid"></span></button></nav>
-<script>
-const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const TUN={WEEKLY_PACING_ENABLED:'주간 페이싱 대기 (1=켜짐, 0=꺼짐)',AUDIT_TOOL_CALLS_PER_ROUND:'감사 라운드당 도구 호출',FALLBACK_SESSION_MAX_RUNS:'세션 최대 실행 수',FALLBACK_SESSION_MAX_USD:'세션 최대 비용($)'};
-let timers={},tab='now',typing=false,drafts={};
-async function api(p,body){
- const o=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{};
- const r=await fetch(p,o);let j={};try{j=await r.json()}catch(e){}
- if(!r.ok&&body)toast(j.error||j.reason||'실패 '+r.status,true);return j}
-function toast(t,bad){const m=$('#msg');m.textContent=t;m.style.background=bad?'#7f1d1d':'#065f46';m.style.display='block';setTimeout(()=>m.style.display='none',2500)}
-function fmt(ts){return ts?new Date(ts*1000).toLocaleString('ko-KR',{hour12:false}):'-'}
-function left(us){const t=Number(us)/1e6;if(!t)return'-';const s=Math.round(t-Date.now()/1000);if(s<=0)return'곧 실행';return Math.floor(s/60)+'분 '+s%60+'초 후'}
-function pct(a,b){return b?Math.min(100,Math.round(100*a/b)):0}
-function bar(l,a,b,txt){const p=pct(a,b);return `<div class="row"><span>${l}</span><span>${txt||a+' / '+b}</span></div><div class="bar ${p>=90?'bad':p>=75?'warn':''}"><i style="width:${p}%"></i></div>`}
-function win(l,w){if(!w)return bar(l,0,100,'데이터 없음');if(w.expired)return bar(l,0,100,'리셋됨 ('+hhmm(w.resetsAt)+') · 새 창 대기');if(w.utilization==null)return bar(l,0,100,'사용률 관측 없음 · 리셋 '+hhmm(w.resetsAt));const u=Math.round(100*w.utilization);return bar(l,u,100,u+'% · 리셋 '+hhmm(w.resetsAt))}
-function pickWin(g,k){const now=Date.now()/1000;let old=null;for(const r of [g[k],g.five_hour,g.seven_day]){let w=r&&(r.rateLimitType===k?r:null);const nw=r&&(r.unifiedWindows||{})[k];if(nw&&(!w||w.utilization==null))w=w?{...w,...nw}:nw;if(!w)continue;if(w.resetsAt>now)return w;old=old||w}return old&&{...old,expired:1}}
-const RSN={pacing:'페이싱 대기'};
-const STG=['감사','설계','개발·테스트','반영'],SUBN={sweep:'스윕',audit:'관점 감사',review:'독립 검토'};
-function dur(sec){sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);return h?h+'시간 '+m+'분':m?m+'분 '+sec%60+'초':sec+'초'}
-function hhmm(ts){return ts?new Date(ts*1000).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}):'-'}
-const openPh={};
-function stepsHtml(p,ph){const st=p.steps||[];if(!st.length)return '';
- const last=st[st.length-1],bad=st.filter(x=>x.bad),open=!!openPh[ph],t=x=>new Date(x.ts*1000).toLocaleTimeString('ko-KR',{hour12:false});
- const sum=`${esc(ph||'-')} 단계 · ${esc(last.text)}${bad.length?` · <span class="bd">실패 ${bad.length}</span>`:''}`;
- return `<div class="sm" data-tg="${esc(ph||'')}">${open?'▼':'▶'} ${sum}</div>`+(open?'<div class="sl">'+st.map((x,i)=>`<div class="${x.bad?'bd':i===st.length-1?'cu':''}">${t(x)} ${esc(x.text)}</div>`).join('')+'</div>':'')}
-function flowHtml(o){
- const s=o.state,f=o.flags,p=o.progress||{},q=o.queue,cur=p.stage||0;
- const el=ts=>ts?`<span class="el" data-since="${ts}">${dur(Date.now()/1000-ts)}</span>`:'-';
- const steps=STG.map((n,i)=>{const k=i+1,c=k<cur?'done':k===cur?'on':'';
-  let sub='';
-  if(k===1&&p.subs&&cur===1)sub='<div class="sub">'+Object.keys(SUBN).map(x=>{const v=p.subs[x];return `<span class="${v.state}">${v.state==='done'?'✔':v.state==='active'?'▶':'·'} ${SUBN[x]}</span>`}).join(' ')+'</div>';
-  if(k===2&&p.design)sub=`<div class="sub">후보 ${p.design.new}</div>`;
-  if(k===3&&p.units){const u=p.units;sub=`<div class="sub"><a class="go" href="#items">단위 ${u.done}/${u.total}</a></div><div class="bar"><i style="width:${pct(u.done,u.total)}%"></i></div>`}
-  if(k===4&&p.deploy&&p.deploy.ok!=null)sub=`<div class="sub">${p.deploy.ok?'완료':p.deploy.ran?'실패':'생략'}</div>`;
-  return `<div class="stp ${c}"><div class="no">${k}</div><div class="nm">${n}</div>${sub}</div>`}).join('<div class="ln"></div>');
- const ban=f.stop?`<div class="ban bad">중지됨${s.stop_reason?' — '+esc(s.stop_reason):''}</div>`:f.pause?`<div class="ban warn">일시중지${s.stop_reason?' — '+esc(s.stop_reason):''}</div>`:s.stop_reason?`<div class="ban warn">${esc(RSN[s.stop_reason]||s.stop_reason)}${s.stop_reason==='pacing'&&o.budget.pacing_resume_at?' · '+hhmm(o.budget.pacing_resume_at)+' 이후 재개':''}</div>`:'';
- const d=p.design,wait=d?`후보 ${d.new} → 자체 승인 ${d.auto} · 결정 대기 ${d.user}`:'',rvw=p.review_waiting||0,dn=o.decisions_open||0,bk=(o.queue||{}).blocked_count||0,wt=(o.queue||{}).waiting_count||0;
- return `<b>라운드 ${esc(s.round)}</b> <span class="tag">${cur?'현재 '+cur+'/4':esc(s.phase||'-')}</span>${p.inferred?' <span class="mut">(로그 추정)</span>':''}
- <div class="row"><span>시작 ${hhmm(p.round_started)}</span><span>경과 ${el(p.round_started)}</span></div>
- <div class="row"><span>${esc(s.phase||'-')} 단계 시작 ${hhmm(p.phase_started)}</span><span>${el(p.phase_started)}</span></div>
- <div class="flow">${steps}</div>${stepsHtml(p,s.phase)}${ban}
- <div class="mut">${wait?wait+' · ':''}<a class="go" href="#rev">사후 검토 대기 ${rvw} →</a> · <a class="go" href="#dec">결정함 ${dn}</a></div>
- ${bk?`<div class="ban warn"><a class="go" href="#items?stage=failed">막힌 항목 ${bk}건</a> — 응답 필요 <a class="go" href="#dec">결정 보기 →</a></div>`:''}
- ${wt?`<div class="ban"><a class="go" href="#dec">결정 대기 ${wt}건</a> — 개발은 계속 진행됩니다</div>`:''}
- <div class="mut"><a class="go" href="#items?stage=done">완료 ${esc(s.units_done)}</a> · <a class="go" href="#items?stage=failed">실패 ${esc(s.fails)}</a> · <a class="go" href="#items?stage=in_progress">진행중 항목</a></div>`}
-function tickEl(){document.querySelectorAll('[data-until]').forEach(e=>{const r=Number(e.dataset.until)-Date.now()/1000;e.textContent=r>0?'남은 시간 '+dur(r):'곧 재개'});document.querySelectorAll('[data-since]').forEach(e=>{e.textContent=dur(Date.now()/1000-Number(e.dataset.since))})}
-function iniRow(i){return `<div class="row"><span>${esc(i.title)} <span class="tag">${esc(i.status)}</span></span><span>${i.done}/${i.total}</span></div><div class="bar"><i style="width:${pct(i.done,i.total)}%"></i></div>`}
-function relHtml(r){
- if(!r)return'';const tot=r.initiatives.reduce((a,i)=>a+i.total,0),dn=r.initiatives.reduce((a,i)=>a+i.done,0);
- const ph=r.phases||[],inPh=new Set(ph.flatMap(p=>p.initiatives.map(i=>i.id))),rest=r.initiatives.filter(i=>!inPh.has(i.id));
- const cur=ph.find(p=>p.active);
- return `<div class="row"><b>${esc(r.version)} · ${esc(r.title)}</b><span class="tag">${esc(r.status)}</span></div>
- ${r.goal?`<div class="mut">목표: ${esc(r.goal)}</div>`:'<div class="mut">목표·단계 미설계 — 다음 감사/버전 계획 단계에서 생성됩니다</div>'}
- ${cur?`<div class="mut">현재 진행: <b>${esc(cur.id)}. ${esc(cur.title)}</b></div>`:''}
- ${bar('범위 전체',dn,tot,dn+' / '+tot+'건')}`
- +ph.map(p=>`<div class="row"><b>${esc(p.id)}. ${esc(p.title)}</b><span>${p.active?'<span class="tag">진행 중</span> ':p.total&&p.done>=p.total?'<span class="tag">완료</span> ':''}${p.done}/${p.total}</span></div><div class="bar"><i style="width:${pct(p.done,p.total)}%"></i></div>`+p.initiatives.map(i=>`<div class="mut" style="margin-left:12px">${iniRow(i)}</div>`).join('')).join('')
- +(rest.length?(ph.length?'<div class="mut">단계 밖</div>':'')+rest.map(iniRow).join(''):'')}
-const ROLE_KO={steward:'비전 관리',planner:'버전 계획',designer:'설계',developer:'개발',verifier:'검증',auditor:'감사',deployer:'배포'};
-const FLAG_KO={paused:'일시정지',skip:'건너뛰기',rerun:'재실행'};
-function rolesHtml(rs){rs=rs||{};
- return '<b>역할 패널</b>'+Object.keys(ROLE_KO).map(r=>{const f=rs[r]||{};
-  return `<div class="row"><span>${ROLE_KO[r]} ${Object.keys(FLAG_KO).filter(k=>f[k]).map(k=>`<span class="tag">${FLAG_KO[k]}</span>`).join(' ')}</span><span>${Object.keys(FLAG_KO).map(k=>`<button class="b" data-rl="${r}" data-rf="${k}" data-rv="${f[k]?0:1}">${f[k]?FLAG_KO[k]+' 해제':FLAG_KO[k]}</button>`).join('')}</span></div>`}).join('')+
- '<div class="mut">일시정지 = 해당 단계 진입 시 정지(해제 후 재개) · 건너뛰기 = 해제할 때까지 유지 · 재실행 = 다음 1회만 적용</div>'}
-function renderNow(o){window.lastO=o;
- const s=o.state,f=o.flags;
- const pw=$('#pw'),pacing=s.stop_reason==='pacing'||(!o.budget.pacing_ok&&o.budget.pacing_resume_at);
- pw.style.display=pacing?'':'none';
- if(pacing){const lifted=o.budget.pacing_ok;pw.innerHTML=`<div class="pwt">${lifted?'페이싱 해제 — 재개 대기':'페이싱 대기 중'}</div><div class="pwh">${o.budget.pacing_resume_at?hhmm(o.budget.pacing_resume_at)+' 재개':lifted?'한도 리셋됨 · 재개 타이머가 곧 시작합니다(최대 1~2분)':'재개 시각 계산 중'}</div><div class="pwc" ${o.budget.pacing_resume_at?`data-until="${o.budget.pacing_resume_at}"`:''}></div><div class="mut">${esc(o.budget.pacing_reason||RSN.pacing||'')}</div>`}
- $('#rel').innerHTML=relHtml(o.release);$('#roles').innerHTML=rolesHtml(o.roles);
- $('#upd').textContent=new Date().toLocaleTimeString('ko-KR',{hour12:false});
- $('#st').innerHTML=flowHtml(o);
- const q=o.queue,b=q.by_stage;
- $('#qu').innerHTML=`<b>큐 (자동 ${q.total}건)</b><div>${Object.entries(b).map(([k,v])=>`<span class="tag">${k} ${v}</span> `).join('')}</div>
- <div class="mut">다음 실행: ${esc(q.next||'없음')}</div>`+q.attention.filter(a=>a.stage!=='review').map(a=>`<div class="row"><span>${esc(a.id)} <span class="tag">${a.stage}</span></span></div><div class="mut">${esc(a.text)}</div>`).join('')+(q.blocked||[]).map(a=>`<div class="row"><span>${esc(a.id)} <span class="tag bad">failed · ${esc(a.kind||'-')}</span></span></div><div class="mut" style="white-space:pre-wrap;word-break:break-word">${esc(a.text)}</div><div class="mut">사유: ${esc(a.reason||'기록 없음(이전 버전 실패 — 시도 '+a.attempts+'회)')}</div><input id="fx-${esc(a.id)}" placeholder="의견·추가 지시(선택)" style="width:100%"><button class="b p" data-fa="requeue" data-fid="${esc(a.id)}">큐에 다시 넣기</button> <button class="b" data-fa="drop" data-fid="${esc(a.id)}">폐기</button>`).join('');
- const g=o.budget;
- $('#bu').innerHTML=`<b>예산·페이싱</b>${win('5시간 세션 사용률',pickWin(g,'five_hour'))}${win('7일 사용률 (균등 목표 '+Math.round(100*g.weekly_target)+'%)',pickWin(g,'seven_day'))}
- <div class="mut">${g.pacing_ok?'진행 가능':'대기: '+esc(g.pacing_reason)+(g.pacing_resume_at?' · 재개 '+fmt(g.pacing_resume_at):'')}</div>`;
- const run=f.stop?'중지됨':f.pause?'일시중지됨 (다음 단계부터 멈춤)':s.stop_reason==='pacing'?'페이싱 대기 중':['stopped','halted'].includes(s.phase)?'정지 상태':'실행 중 ('+(s.phase||'-')+' 단계)';
- $('#flags').textContent='상태: '+run;
- document.querySelector('[data-a=pause]').disabled=!!(f.pause||f.stop);document.querySelector('[data-a=stop]').disabled=!!f.stop;
- document.querySelector('[data-a=resume]').disabled=!(f.pause||f.stop||s.stop_reason);
- const rv=q.attention.filter(a=>a.stage==='review');
- for(const[id,n]of[['#dn',o.decisions_open||0],['#rn',rv.length]]){const b=$(id);b.textContent=n>99?'99+':n;b.classList.toggle('hid',!n)}
- $('#rv').innerHTML=rv.length?rv.map(a=>`<div class="card"><b>${esc(a.id)}</b> <span class="tag">사후 검토</span><div class="mut" style="white-space:pre-wrap;word-break:break-word">${esc(a.text)}</div>${pipeHtml(pipeMap[a.id])}<div class="mut">개발·검증 완료 — 브랜치 병합 전 확인 대기</div><button class="b" data-it="${esc(a.id)}">상세 ▾</button> <button class="b p" data-rv="${esc(a.id)}" data-ra="done">확인 완료</button> <button class="b" data-rv="${esc(a.id)}" data-ra="rework">재작업</button><div id="dt-${esc(a.id)}"></div></div>`).join(''):'<div class="card mut">검토 대기 항목 없음</div>';reopenIt();
-}
-function renderTimers(){
- $('#tm').innerHTML=Object.entries(timers).map(([k,v])=>`<div class="row"><span>${k.replace('runpulse-','')} <span class="tag">${esc(v.active||'?')}</span></span><span data-next="${esc(v.next||0)}"></span></div>`).join('');
- tickTimers()}
-function tickTimers(){document.querySelectorAll('[data-next]').forEach(e=>{e.textContent=left(Number(e.dataset.next)*1e6)})}
-function buildSettings(){
- $('#tmset').innerHTML=['runpulse-audit','runpulse-watch'].map(t=>`<div class="row"><span>${t.replace('runpulse-','')}</span><span><input type="number" min="10" max="1440" placeholder="분" id="iv-${t}"><button class="b" data-iv="${t}">적용</button></span></div>`).join('');
- $('#tun').innerHTML=Object.entries(TUN).map(([k,l])=>`<div class="row"><span>${l}</span><span><input type="number" step="any" id="tn-${k}"><button class="b" data-tn="${k}">적용</button></span></div>`).join('')}
-function sec(t,body){return body?`<div class="sec"><div class="st">${t}</div>${body}</div>`:''}
-function lst(a){return a&&a.length?'<ul>'+a.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}
-function renderDec(list){
- $('#dl').innerHTML=list.length?list.map(d=>{
-  const open=d.status==='open',waiting=d.status==='redo';
-  const chg=!open&&!waiting&&!['initiative','vision'].includes(d.kind);
-  const act=open||chg;
-  const f=typeof d.finding==='object'&&d.finding?d.finding:{impact:d.finding||''};
-  const rec=d.recommendation;
-  return `<div class="card"><b>${esc(d.summary||d.id)}</b> <span class="tag${waiting?' warn':''}">${waiting?'재제안 대기':esc(d.status)}</span> <span class="mut">${esc(d.id)}</span>
-  ${sec('무엇이 문제인가',(f.perspective?`<span class="tag">${esc(f.perspective)}</span> `:'')+esc(f.impact||''))}
-  ${sec('제안된 수정',esc(f.fix||''))}
-  ${sec('발견된 곳',lst(f.cells))}
-  ${sec('결정이 필요한 이유',esc(d.why||''))}
-  ${sec('영향 범위',lst(d.scope))}
-  ${sec('검증 방법',lst(d.verify))}
-  <div class="st">선택지</div>
-  ${act?`<textarea class="tx" id="tx-${esc(d.id)}" placeholder="의견·새 verify 커맨드·재정의 지시 (선택)"></textarea>`:''}
-  ${!open&&d.text?`<div class="mut">내 의견: ${esc(d.text)}</div>`:''}
-  ${(d.options||[]).map(o=>`<div class="opt${o.key===rec?' rec':''}${!open&&o.key===d.choice?' sel':''}"><b>${esc(o.key)}. ${esc(o.name)}</b>${o.key===rec?' <span class="tag ok">추천</span>':''}${!open&&o.key===d.choice?' <span class="tag ok">내 선택</span>':''}<div class="pro">+ ${esc(o.pros)}</div><div class="con">- ${esc(o.cons)}</div>
-   ${act&&!(chg&&o.key===d.choice)?`<button class="b p" data-dc="${esc(d.id)}" data-ch="${esc(o.key)}">${open?'이 안으로 진행':'이 안으로 변경'}</button>`:''}</div>`).join('')||'<div class="mut">선택지 없음 — "다른 제안 받기"로 상세 안을 요청</div>'}
-  <div class="mut">${rec?'추천: '+esc(rec):'추천 없음 (분류기가 추천을 내지 않음)'}</div>
-  ${sec('되돌리는 방법',esc(d.revert||''))}
-  ${open?`<button class="b" data-dc="${esc(d.id)}" data-ch="redo">다른 제안 받기</button>`:waiting?'<div class="mut">다른 제안을 준비 중 — 새 안이 올라오면 다시 표시됩니다</div>':`<div class="mut">선택: ${esc(d.choice||'-')}${chg?' · 개발이 시작되기 전까지 다른 안으로 바꿀 수 있습니다':''}</div>`}</div>`}).join(''):'<div class="card mut">결정함이 비어 있음</div>'}
-const ISTG={in_progress:'진행중',queued:'대기',needs_decision:'결정 필요',failed:'실패',review:'사후 검토',done:'완료'};
-let openIt={},istage='';
-const PSTEP=[['design','설계'],['develop','개발'],['test','테스트'],['commit','커밋'],['deploy','운영반영']];
-function pipeHtml(x){if(!x||!x.steps)return'';
- return `<div class="pipe">${PSTEP.map(([k,n])=>`<span class="${x.steps[k]?'ok':'no'}">${x.steps[k]?'✔':'·'} ${n}</span>`).join(' ')}${x.running?' <span class="tag warn">진행중</span>':''}</div>`}
-let pipeMap={};
-function kv(t,v){return v?`<div class="row"><span class="mut">${t}</span><span style="text-align:right">${esc(v)}</span></div>`:''}
-function detailHtml(d){
- const i=d.item,r=d.review,dc=d.decision,rp=d.report||{};
- const dcs=dc?`<div class="mut">${esc(dc.kind||'')} · ${esc(dc.status)}${dc.choice?' · 선택 '+esc(dc.choice):''}</div>${sec('요약',esc(dc.summary||''))}${sec('결정 이유',esc(dc.why||''))}${sec('내 의견',esc(dc.text||''))}${(dc.options||[]).map(o=>`<div class="opt${o.key===dc.choice?' sel':''}"><b>${esc(o.key)}. ${esc(o.name)}</b>${o.key===dc.recommendation?' <span class="tag ok">추천</span>':''}${o.key===dc.choice?' <span class="tag ok">선택</span>':''}</div>`).join('')}`:'<div class="mut">결정 기록 없음 — 사용자 결정 없이 자동 큐에 올라온 항목</div>';
- const runs=(d.runs||[]).map(x=>`<div class="mut">${fmt(x.ts)} · ${esc(x.outcome)} · ${x.num_turns??'-'}턴 · ${Math.round(x.duration_s||0)}초 · $${(x.cost_usd||0).toFixed(2)}</div>`).join('')||'<div class="mut">실행 기록 없음</div>';
- const tl=(d.timeline||[]).map(x=>`<div class="mut">${fmt(x.ts)} ${esc(x.kind)}${x.round?' · 라운드 '+x.round:''}${x.result?' · '+esc(x.result):''}</div>`).join('');
- const au=(d.audit||[]).map(x=>`<div class="mut">${esc(x.ts)} ${esc(x.action)} ${esc(JSON.stringify(x.detail))}</div>`).join('');
- const rvw=['review','done'].includes(i.stage)?`<div class="st">사후 검토</div>${sec('검토 대상',esc(r.what))}${sec('검토 방법(verify)',lst(r.verify_cmds))}${sec('검토 경과',esc(r.how))}${sec('발견된 문제',r.problems.length?lst(r.problems):'<span class="pro">기록된 문제 없음</span>')}${sec('추가로 볼 것',lst(r.remaining))}`:'';
- return `<div class="opt"><span class="tag">${ISTG[i.stage]||esc(i.stage)}</span>${pipeHtml(pipeMap[i.id])} <span class="mut">시도 ${i.attempts}회${i.critical?' · critical':''}${i.resolution?' · '+esc(i.resolution):''}</span>
- ${sec('무엇인가',esc(i.full_text))}${sec('범위',lst(i.scope))}${sec('verify',lst(i.verify))}${i.deps.length?sec('선행 항목',esc(i.deps.join(', '))):''}
- <div class="st">어떻게 결정되었나</div>${dcs}
- <div class="st">어떻게 개발되었나</div>${runs}${tl?`<div class="sl">${tl}</div>`:''}${sec('최종 실행 보고',rp.report?`<pre>${esc(rp.report)}</pre>`:'')}${au?sec('콘솔 조작 이력',au):''}${rvw}</div>`}
-async function toggleIt(id){
- const el=document.getElementById('dt-'+id);if(!el)return;
- if(openIt[id]){delete openIt[id];el.innerHTML='';return}
- el.innerHTML='<div class="mut">불러오는 중…</div>';
- const d=await api('/api/item/'+encodeURIComponent(id));
- if(d&&d.item){openIt[id]=1;el.innerHTML=detailHtml(d)}else el.innerHTML='<div class="mut">'+esc((d&&d.error)||'불러오기 실패')+'</div>'}
-function renderItems(r){
- if(!r||!r.items)return;
- const c=r.counts;
- $('#ih').innerHTML=`<b>개발 항목 ${r.total}건 · 완료 ${r.done_pct}%</b><div class="bar" style="margin:6px 0"><i style="width:${r.done_pct}%"></i></div>`+Object.keys(ISTG).map(k=>`<a class="go tag${k==='failed'&&c[k]?' bad':''}${istage===k?' warn':''}" href="#items?stage=${k}">${ISTG[k]} ${c[k]||0}</a> `).join('')+(istage?` <a class="go" href="#items">필터 해제 ✕</a>`:'');
- pipeMap={};for(const it of r.items)pipeMap[it.id]=it;
- let cur='';const body=[];
- for(const it of r.items.filter(x=>!istage||x.stage===istage)){
-  if(it.stage!==cur){cur=it.stage;body.push(`<div class="st">${ISTG[cur]||esc(cur)} (${c[cur]||0})</div>`)}
-  body.push(`<div class="card" style="padding:8px 12px"><div class="row" data-it="${esc(it.id)}" style="cursor:pointer"><span><b>${esc(it.id)}</b> <span class="tag${it.stage==='failed'?' bad':''}">${ISTG[it.stage]||esc(it.stage)}</span></span><span class="mut">▾</span></div>${pipeHtml(it)}<div class="mut">${esc(it.text)}</div><div id="dt-${esc(it.id)}"></div></div>`)}
- $('#il').innerHTML=body.length?body.join(''):`<div class="card mut">${istage?esc(ISTG[istage]||istage)+' 상태의 항목이 없습니다.':'항목이 없습니다.'}</div>`;
- reopenIt()}
-function reopenIt(){for(const id of Object.keys(openIt)){const el=document.getElementById('dt-'+id);if(el&&!el.innerHTML){delete openIt[id];toggleIt(id)}}}
-async function loadItems(){const r=await api('/api/items');if(r&&r.items){pipeMap={};for(const it of r.items)pipeMap[it.id]=it}if(tab==='items')renderItems(r)}
-function showLog(l){
- if(!Array.isArray(l))return;const e=$('#log'),top=e.scrollTop<24;
- e.textContent=l.slice(-60).reverse().join('\n');if(top)e.scrollTop=0}
-async function pollLog(){if(tab!=='log'||document.hidden)return;showLog(await api('/api/log'));$('#logst').textContent='실시간 · '+new Date().toLocaleTimeString('ko-KR',{hour12:false})}
-const TABS=['now','log','items','dec','rev'];
-function fitLog(){const l=$('#log');if(!l||$('#t-log').classList.contains('hid'))return;l.style.height=Math.max(200,innerHeight-l.getBoundingClientRect().top-scrollY-62)+'px'}
-addEventListener('resize',fitLog);
-function setTab(k){
- if(!TABS.includes(k))k='now';tab=k;
- document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===k));
- for(const x of TABS)$('#t-'+x).classList.toggle('hid',x!==k);
- fitLog();if(k==='log')pollLog();if(k==='items')loadItems()}
-function tabFromHash(){const[h,q]=location.hash.slice(1).split('?');istage=(new URLSearchParams(q||'').get('stage'))||'';return h==='todo'?'dec':h}
-async function load(){
- const [o,d,l,t,tv]=await Promise.all([api('/api/overview'),api('/api/decisions'),api('/api/log'),api('/api/timers'),api('/api/tunables')]);
- if(o.state)renderNow(o);
- if(Array.isArray(d))renderDec(d);
- for(const[k,v]of Object.entries(drafts)){const e=document.getElementById(k);if(e&&!e.value)e.value=v}
- showLog(l);loadItems();
- if(t&&typeof t==='object'){timers=t;renderTimers()}
- if(tv&&!typing)for(const[k,v]of Object.entries(tv)){const e=$('#tn-'+k);if(e&&document.activeElement!==e&&!e.value)e.value=v}}
-document.addEventListener('click',async e=>{
- const g=e.target.closest('[data-tg]');if(g){openPh[g.dataset.tg]=!openPh[g.dataset.tg];if(window.lastO)renderNow(window.lastO);return}
- const it=e.target.closest('[data-it]');if(it){toggleIt(it.dataset.it);return}
- const t=e.target.closest('button');if(!t)return;
- if(t.dataset.t){history.replaceState(null,'','#'+t.dataset.t);setTab(t.dataset.t);return}
- let r;
- if(t.dataset.a){if(t.dataset.a==='stop'&&!confirm('즉시 중지할까요? 실행 중 프로세스를 종료합니다.'))return;r=await api('/api/control',{action:t.dataset.a})}
- else if(t.dataset.rl){r=await api('/api/roles',{role:t.dataset.rl,flag:t.dataset.rf,value:t.dataset.rv==='1'})}
- else if(t.dataset.iv){r=await api('/api/interval',{timer:t.dataset.iv,minutes:Number($('#iv-'+t.dataset.iv).value)})}
- else if(t.dataset.tn){r=await api('/api/tunables',{values:{[t.dataset.tn]:Number($('#tn-'+t.dataset.tn).value)}})}
- else if(t.dataset.dc){r=await api('/api/decisions/'+t.dataset.dc,{choice:t.dataset.ch,text:(($('#tx-'+t.dataset.dc)||{}).value||'')})}
- else if(t.dataset.fid){if(t.dataset.fa==='drop'&&!confirm('폐기할까요?'))return;r=await api('/api/failed/'+t.dataset.fid,{action:t.dataset.fa,text:(($('#fx-'+t.dataset.fid)||{}).value||'')})}
- else if(t.dataset.rv){if(t.dataset.ra==='rework'&&!confirm('재작업 큐로 되돌릴까요?'))return;r=await api('/api/review/'+t.dataset.rv,{action:t.dataset.ra})}
- else return;
- if(r&&r.ok){toast(t.dataset.fid&&t.dataset.fa==='requeue'?'의견을 지시로 추가하고 큐에 넣었습니다':'적용됨');for(const k of['tx-'+t.dataset.dc,'fx-'+t.dataset.fid])delete drafts[k]}else if(r&&r.error)toast(r.error);load()});
-document.addEventListener('focusin',e=>{typing=e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'});
-document.addEventListener('input',e=>{const i=e.target.id||'';if(/^(tx|fx)-/.test(i))drafts[i]=e.target.value});
-buildSettings();setTab(tabFromHash());load();
-addEventListener('hashchange',()=>{setTab(tabFromHash());if(tab==='items')loadItems()});document.addEventListener('visibilitychange',pollLog);
-setInterval(()=>{if(!typing)load()},15000);setInterval(()=>{tickTimers();tickEl()},1000);setInterval(pollLog,3000);
-if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
-</script></body></html>
+<script src="/now.js"></script>
+<script src="/app.js"></script>
+</body></html>
