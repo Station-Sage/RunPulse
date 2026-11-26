@@ -116,3 +116,16 @@ def test_complete_counts_tool_calls_in_stats(monkeypatch):
     stats = {}
     assert prov.complete("gemini", "hi", CFG, conn=object(), tools=True, stats=stats) == "최종"
     assert stats["tool_calls"] == 1
+
+
+def test_tool_calls_capped_per_request(monkeypatch):
+    many = [{"id": str(i), "function": {"name": "get_fitness", "arguments": "{}"}} for i in range(10)]
+    calls = iter([_Resp(200, {"choices": [{"message": {"content": None, "tool_calls": many}}]}),
+                  _ok("최종")])
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: next(calls))
+    import src.ai.tools as tools
+    executed = []
+    monkeypatch.setattr(tools, "execute_tool", lambda conn, n, a: executed.append(n) or "{}")
+    stats = {}
+    assert prov.complete("gemini", "hi", CFG, conn=object(), tools=True, stats=stats) == "최종"
+    assert len(executed) == prov.MAX_TOOL_CALLS == stats["tool_calls"]
