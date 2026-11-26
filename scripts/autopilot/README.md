@@ -73,6 +73,11 @@ python3 -m scripts.autopilot.status
 ```
 
 메타 줄이 없는 항목(기존 BACKLOG 대부분)은 사람 전용이며 자동 실행에서 건너뛴다.
+**verify 닥터**(`verify_doctor.py`): 큐 진입 전 `lint`가 verify 를 점검하고(없는 테스트 파일·
+`! grep` 부정 검사의 오타 등), verify 실패 시 원인을 missing_target/usage/absence_hit/real(+env)로
+진단해 재시도 프롬프트에 힌트를 넣는다. 재시도 예산은 3회이며 missing_target·usage 가 반복되면
+즉시 실패 카드(진단·조치 포함)로 올린다.
+
 `stage`: `queued → in_progress → review|blocked → done`. `blocked`은
 `DECISIONS.md`에 사람 결정이 올라갔거나(모든 kind), `verify` 검증에 실패했다는 뜻
 (`kind:"code"`만 해당).

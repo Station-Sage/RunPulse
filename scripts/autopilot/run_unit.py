@@ -25,7 +25,7 @@ from pathlib import Path
 from scripts.audit import decisions
 
 from .prompts import build_cmd as _build_cmd, build_prompt as _build_prompt
-from . import fail_handling, gate, ledger, leftovers, notify, queue, settings, size_followup, trailers, worktree
+from . import fail_handling, gate, ledger, leftovers, notify, queue, settings, size_followup, trailers, verify_doctor, worktree
 
 
 def _parse_stream(raw: str) -> dict:
@@ -125,9 +125,31 @@ def _post_verify(item: queue.QueueItem) -> tuple[bool, str]:
             capture_output=True, text=True, timeout=1200, env=worktree.verify_env(),
         )
         if r.returncode != 0:
-            tail = (r.stdout[-1500:] + "\n" + r.stderr[-1500:]).strip()
+            tail = (r.stdout[-2000:] + "\n" + r.stderr[-2000:]).strip()
             return False, f"`{cmd_str}` 종료코드 {r.returncode}\n{tail}"
     return True, ""
+
+
+def _handle_verify_failure(item: queue.QueueItem, note: str) -> tuple[str, dict]:
+    """verify 실패를 진단해 재시도(복구 조치 포함) 또는 실패 카드로 분기."""
+    m = re.match(r"`(.*)` 종료코드 (\d+)\n?", note, re.S)
+    cmd, rc, out = (m.group(1), int(m.group(2)), note[m.end():]) if m else ("", None, note)
+    kind = verify_doctor.diagnose(cmd, rc, out)
+    done = item.attempts + 1
+    extra: dict = {"fail_kind": "env" if kind == "env" else "verify", "fail_reason": verify_doctor.tag_reason(kind, out)}
+    if kind == "env":
+        fixed = worktree.provision() if done < 2 else []  # 환경 원인(링크 누락) 복구 — 못 고치면 재시도해도 같다
+        if fixed:
+            extra["fail_reason"] = f"환경 자동 복구({', '.join(fixed)}) 후 재시도: {out[:200]}"
+            return "queued", extra
+    elif not verify_doctor.should_stop(done, kind, item.fail_reason):
+        if kind == "missing_target":  # 없는 테스트 파일은 개발자가 만들어야 하므로 scope 에 허용
+            target = verify_doctor.missing_file(cmd, out)
+            if target and target not in item.scope:
+                extra["scope"] = list(item.scope) + [target]
+        return "queued", extra
+    _register_failed_card(item, extra["fail_kind"], f"[진단 {kind}] 자동 재시도 {done}회 후 중단({verify_doctor.STOP_NOTE.get(kind, '재시도 한도 도달')}). {note}")
+    return "failed", extra
 
 
 def _register_failed_card(item: queue.QueueItem, kind: str, reason: str) -> None:
@@ -203,20 +225,7 @@ def run_once(
                 verified, verify_note = _post_verify(item)
                 new_stage = "review" if verified else "failed"
                 if not verified:
-                    rc = 127 if "종료코드 127" in verify_note else None
-                    extra = {"fail_kind": fail_handling.classify_verify(rc, verify_note),
-                             "fail_reason": verify_note[:300]}
-                    if extra["fail_kind"] == "env" and item.attempts + 1 < 2:
-                        fixed = worktree.provision()  # 환경 원인(링크 누락)을 고치고 재시도 — 못 고치면 재시도해도 같으니 바로 실패
-                        if fixed:
-                            new_stage = "queued"
-                            extra["fail_reason"] = f"환경 자동 복구({', '.join(fixed)}) 후 재시도: {extra['fail_reason']}"[:300]
-                        else:
-                            _register_failed_card(item, extra["fail_kind"], verify_note)
-                    elif extra["fail_kind"] == "verify" and item.attempts + 1 < 2:
-                        new_stage = "queued"  # 개발 결과 미흡은 1회 자동 재시도 — 카드는 최종 실패 때만
-                    else:
-                        _register_failed_card(item, extra["fail_kind"], verify_note)
+                    new_stage, extra = _handle_verify_failure(item, verify_note)
                 if verified and item.kind == "code":
                     verify_note = leftovers.commit_leftovers(item, settings.WORKTREE_DIR)
                     added = size_followup.append_followups(item, settings.WORKTREE_DIR, settings.QUEUE_PATH)

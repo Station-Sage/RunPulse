@@ -10,10 +10,14 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 
 from scripts.audit import docs_ctx
 from scripts.audit.agents import ask
 from scripts.audit.vision import VISION
+from scripts.autopilot import verify_doctor
+
+ROOT = Path(__file__).resolve().parents[2]
 
 ALLOWED_SCOPE = ("frontend/src/", "frontend/tests/", "tests/", "docs/", "scripts/audit/")
 RISK = re.compile(r"스키마|schema|DDL|migrat|마이그레이션|삭제|delete|drop|auth|인증|권한|결제|config|ADR|decisions|"
@@ -22,12 +26,13 @@ _DESIGN = VISION + """
 
 너는 설계자다. 아래 결함을 '증상 땜질'이 아니라 근본원인 제거 방식으로 설계하라(공통 계약·헬퍼·정적 가드로 재발 방지). 코드는 쓰지 말고 JSON 한 개만 출력.
 결함: kind=%s / 영향: %s / 제안: %s
-{"grade":"auto|user","summary":"한 줄 설계","scope":["수정할 파일의 순수 경로만(설명·괄호 금지)"],"verify":["검증 셸 커맨드"],
+{"grade":"auto|user","summary":"한 줄 설계","scope":["수정할 파일의 순수 경로만(설명·괄호 금지)"],"verify":["검증 셸 커맨드(독립 실행 가능해야 함)"],
  "options":[{"name":"","pros":"","cons":""}],"recommendation":"추천 선택지와 이유","reason":"등급 근거"}
 summary·options(name·pros·cons)·recommendation·reason 은 모두 한국어로 쓴다(코드 식별자·파일 경로만 원문 유지).
 선택지가 갈려도 스스로 근거를 들어 추천안 하나를 정해 그 설계를 summary·scope 에 담아라(선택 자체는 user 사유가 아니다).
 auto = frontend/src·tests 안에서 끝나고 되돌리기 쉬우며 데이터·권한·알고리즘·제품 정책을 바꾸지 않는 수정.
 UI 문구·마크업·접근성·컴포넌트 구조처럼 기존 디자인 시스템 안의 판단은 auto 다.
+verify 규칙: ① 인자·환경 없이 단독 실행되는 명령만(스크립트는 이미 존재하고 인자 없이 도는 것) ② verify 에 쓰는 테스트 파일은 반드시 scope 에 포함(없으면 개발자가 만든다) ③ 부재 검사는 `! grep -rn 패턴 경로` 형태이고 패턴이 정상 코드와 겹치지 않게 좁힌다.
 user = 스키마·데이터·인증·예측 알고리즘·되돌릴 수 없는 제품 정책을 바꿔야만 해결되는 경우로 한정."""
 _CHECK = VISION + """
 
@@ -105,6 +110,8 @@ def decide(finding: dict, author: str = "sonnet", ask_fn=ask, opus_ok=None) -> d
         out["why"] = "범위(scope) 또는 검증(verify)이 비어 있음"
     elif not all(s.startswith(ALLOWED_SCOPE) for s in design["scope"]):
         out["why"] = f"허용 범위 밖 경로 포함: {design['scope']}"
+    elif (bad := verify_doctor.lint(design["verify"], design["scope"], ROOT)):
+        out["why"] = "verify 실행 불가: " + "; ".join(bad)
     else:
         cprompt = docs_ctx.augment(_CHECK % (what, design["summary"], design["scope"], design["verify"]), "designer")
         out["check"] = parse_check(ask_fn(cprompt, reviewer))
