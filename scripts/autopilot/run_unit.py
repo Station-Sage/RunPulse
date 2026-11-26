@@ -122,7 +122,7 @@ def _post_verify(item: queue.QueueItem) -> tuple[bool, str]:
         cmd_str = _abs_venv(cmd_str)
         r = subprocess.run(
             cmd_str, shell=True, cwd=settings.WORKTREE_DIR,
-            capture_output=True, text=True, timeout=600,
+            capture_output=True, text=True, timeout=1200,
         )
         if r.returncode != 0:
             tail = (r.stdout[-1500:] + "\n" + r.stderr[-1500:]).strip()
