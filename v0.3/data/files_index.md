@@ -2406,7 +2406,7 @@
 
 - functions: test_acwr_range_comes_from_metric_definition, test_ctl_scale_uses_one_year_peak, test_finish_goal_templates_skip_achievability, test_finish_goal_summary_mentions_short_period, test_target_pace_error, app, test_templates_and_create_reject_impossible_target, test_save_empty_session_note_deletes, test_derive_title_strips_markdown_and_spaces, test_coach_service_reexports_title, test_list_threads_tie_breaks_by_id, test_list_threads_page_has_more, test_threads_route_paging_and_validation, test_unexpected_exception_is_not_network, test_run_chain_marks_unexpected
 
-### `test_audit_failed_handling.py` (101줄) — failed 처리 — 분류·asked 카드·선택 반영(consume)·프롬프트 주입·콘솔 요약.
+### `test_audit_failed_handling.py` (102줄) — failed 처리 — 분류·asked 카드·선택 반영(consume)·프롬프트 주입·콘솔 요약.
 
 - functions: test_classify_verify, test_parse_and_asked_card, test_scope_choice_appends_scope_and_answered, test_done_and_dropped, test_failed_env_retry_resets_verify, test_redefine_text_becomes_scope, test_sync_has_only_drop_option, test_console_blocked_split, test_migrate_failed
 
@@ -2532,12 +2532,13 @@
 
 - functions: test_promote_merged, test_prune_pending
 
-### `test_autopilot_run_unit.py` (149줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
+### `test_autopilot_run_unit.py` (192줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
 
 - class **TestBuildPrompt**: test_docs_kind_uses_docs_template, test_code_kind_uses_code_template_with_scope_and_verify, test_code_kind_prompt_requires_following_embedded_spec, test_code_kind_prompt_forbids_git_dash_c, test_code_kind_missing_scope_warns_instead_of_empty
 - class **TestBuildCmd**: test_docs_kind_uses_base_allowed_tools_and_budget, test_code_kind_uses_code_allowed_tools_and_budget
 - class **TestPostVerify**: test_docs_kind_skips_verification, test_code_kind_passes_when_command_succeeds, test_code_kind_fails_when_command_fails, test_code_kind_defaults_to_full_pytest_when_verify_empty
 - class **TestCommitLeftovers**: test_clean_worktree_is_noop, test_commits_in_scope_files_only, test_directory_scope_prefix_matches
+- class **TestVerifyFailureRequeue**: test_first_verify_failure_requeues_without_card, test_env_failure_provisions_then_requeues_without_card, test_env_failure_unfixable_fails_with_card, test_second_verify_failure_fails_with_card
 - functions: test_abs_venv_rewrites_relative_venv_python
 
 ### `test_autopilot_size_followup.py` (15줄)
@@ -2547,6 +2548,10 @@
 ### `test_autopilot_trailers.py` (21줄)
 
 - functions: test_strip_trailers, test_scrub_range_rewrites
+
+### `test_autopilot_worktree_provision.py` (76줄) — worktree.provision — 워크트리에 없는 untracked 의존성(.venv·node_modules)을 메인 체크아웃에서 링크.
+
+- functions: test_links_missing_paths_and_excludes, test_idempotent, test_replaces_broken_link, test_skips_existing_real_dir_and_missing_source, test_noop_when_same_dir_or_missing_wt, test_verify_env_normalizes_minimal_systemd_env, test_retry_prompt_includes_previous_verify_failure
 
 ### `test_backfill_activity_groups.py` (84줄) — activity_groups 백필 스크립트 테스트.
 
@@ -4378,7 +4383,7 @@
 - functions: run
 
 ---
-총 960개 파일
+총 961개 파일
 
 ## docstring 누락
 

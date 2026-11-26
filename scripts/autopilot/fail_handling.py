@@ -25,8 +25,8 @@ _FIELD = re.compile(r"^-\s*\*\*([^*]+)\*\*\s*:?\s*(.*)$")
 
 
 def classify_verify(rc: int | None, output: str) -> str:
-    """verify 실패 출력 → 'env'(명령/pytest 부재) 또는 'verify'."""
-    if rc == 127 or "No module named pytest" in output or "command not found" in output:
+    """verify 실패 출력 → 'env'(명령/pytest/node 모듈 부재) 또는 'verify'."""
+    if rc == 127 or any(m in output for m in ("No module named pytest", "command not found", "Cannot find module", "MODULE_NOT_FOUND")):
         return "env"
     return "verify"
 

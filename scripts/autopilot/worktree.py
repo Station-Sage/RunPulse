@@ -7,9 +7,63 @@
 """
 from __future__ import annotations
 
+import os
+import shutil
 import subprocess
+from pathlib import Path
 
 from . import settings
+
+# git 에 추적되지 않는 실행 의존성 — verify 가 격리 워크트리에서 돌려면 메인 체크아웃 것을 심볼릭 링크로 걸어야 한다.
+PROVISION_PATHS = (".venv", "frontend/node_modules", "scripts/synth_smoke/pw/node_modules")
+
+
+def provision(wt: Path | None = None, src: Path | None = None) -> list[str]:
+    """누락된 untracked 의존성(.venv·node_modules)을 메인 체크아웃에서 링크한다. 새로 건 경로 목록을 반환.
+
+    깨진 링크는 다시 건다. 링크는 `node_modules/` 패턴에 안 걸리므로 워크트리 info/exclude 에 올려 dirty 판정을 막는다.
+    """
+    wt, src = wt or settings.WORKTREE_DIR, src or settings._main_checkout()
+    done: list[str] = []
+    if not wt.exists() or wt.resolve() == src.resolve():
+        return done
+    for rel in PROVISION_PATHS:
+        target, link = src / rel, wt / rel
+        if not target.exists() or link.exists():
+            continue
+        if link.is_symlink():
+            link.unlink()
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(target)
+        done.append(rel)
+    if done:
+        ex = _run(["git", "rev-parse", "--path-format=absolute", "--git-path", "info/exclude"], cwd=wt).stdout.strip()
+        if ex:
+            exp = Path(ex)
+            exp.parent.mkdir(parents=True, exist_ok=True)
+            cur = exp.read_text(encoding="utf-8") if exp.exists() else ""
+            add = [r for r in PROVISION_PATHS if r not in cur.splitlines()]
+            if add:
+                exp.write_text(cur + ("" if cur.endswith("\n") or not cur else "\n") + "\n".join(add) + "\n", encoding="utf-8")
+    return done
+
+
+def verify_env(base: dict | None = None) -> dict:
+    """verify 서브프로세스용 환경 — systemd 의 최소 PATH 에서도 venv·node·bun 이 잡히고 HOME 이 보장되도록 정규화한다."""
+    env = dict(base if base is not None else os.environ)
+    home = env.get("HOME") or str(Path.home())
+    extra = [str(settings.PROJECT_ROOT / ".venv/bin"), f"{home}/.local/bin", f"{home}/.bun/bin", "/usr/local/bin", "/usr/bin", "/bin"]
+    node = shutil.which("node", path=env.get("PATH"))
+    if node:
+        extra.insert(0, str(Path(node).parent))
+    cur = [p for p in env.get("PATH", "").split(":") if p]
+    env["PATH"] = ":".join(dict.fromkeys(extra + cur))
+    env["HOME"] = home
+    env["VIRTUAL_ENV"] = str(settings.PROJECT_ROOT / ".venv")
+    env["CI"] = "1"
+    for k in ("PYTHONHOME", "PYTHONPATH", "NODE_OPTIONS"):
+        env.pop(k, None)
+    return env
 
 
 def _run(args: list[str], cwd=None) -> subprocess.CompletedProcess:
@@ -19,6 +73,7 @@ def _run(args: list[str], cwd=None) -> subprocess.CompletedProcess:
 def ensure() -> None:
     """worktree가 없으면 만든다. 브랜치가 없으면 현재 HEAD에서 새로 만든다."""
     if settings.WORKTREE_DIR.exists():
+        provision()
         return
     settings.WORKTREE_DIR.parent.mkdir(parents=True, exist_ok=True)
     branch_exists = _run(
@@ -30,6 +85,7 @@ def ensure() -> None:
     r = _run(args, cwd=settings.PROJECT_ROOT)
     if r.returncode != 0:
         raise RuntimeError(f"worktree 생성 실패: {r.stderr}")
+    provision()
 
 
 def is_clean() -> bool:

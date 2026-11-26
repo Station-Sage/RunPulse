@@ -28,6 +28,7 @@ def _card(tmp_path, card):
 def test_classify_verify():
     assert fh.classify_verify(127, "") == "env"
     assert fh.classify_verify(1, "No module named pytest") == "env"
+    assert fh.classify_verify(1, "Error: Cannot find module './x.mjs'") == "env"
     assert fh.classify_verify(1, "FAILED x") == "verify"
 
 
