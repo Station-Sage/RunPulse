@@ -51,3 +51,23 @@ def test_apply_choice_B_rejects(tmp_path):
     decisions.choose("VIS-v2", "B", d)
     assert "기각" in steward.apply_choice(decisions.load(d)[0], dpath=d, root=root)
     assert "옛 본문" in (root / "VISION.md").read_text(encoding="utf-8")
+
+
+def test_apply_choice_A_supersedes_planned_version_only(tmp_path):
+    from scripts.audit import release_plan
+    root, d, pl = _env(tmp_path)
+    steward.step(ask=lambda *a, **k: YES, root=root, dpath=d, plan_path=pl)
+    plan = release_plan.load(pl)
+    plan["versions"]["v1"] = {"title": "a", "status": "active", "initiatives": {}}
+    plan["versions"]["v3"] = {"title": "b", "status": "planned", "initiatives": {}}
+    release_plan.save(plan, pl)
+    (root / "v3").mkdir()
+    (root / "v3" / "PLAN.md").write_text("---\nstatus: proposed\n---\n", encoding="utf-8")
+    decisions.append([{"id": "VER-v3", "kind": "initiative", "status": "open", "title": "t", "options": []}], d)
+    decisions.choose("VIS-v2", "A", d)
+    rec = next(r for r in decisions.load(d) if r["id"] == "VIS-v2")
+    note = steward.apply_choice(rec, dpath=d, root=root, plan_path=pl)
+    vs = release_plan.load(pl)["versions"]
+    assert "v3" not in vs and "v1" in vs and "v3" in note
+    assert [r["id"] for r in decisions.load(d)] == ["VIS-v2"]
+    assert "superseded" in (root / "v3" / "PLAN.md").read_text(encoding="utf-8")

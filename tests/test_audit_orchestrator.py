@@ -50,7 +50,7 @@ def test_end_round_routes_to_plan_when_gate_passes(tmp_path):
     st = {**loop._INIT, "gate": {"clean_rounds": 1, "version_rounds": 1}, "fix": {}}
     loop._end_round(st, lambda n: {"ran": False}, "x", q)
     assert st["phase"] == "plan" and st["gate"]["clean_rounds"] == 2
-    msg = loop.step(st, path=q, act={"plan": lambda s: "기획 완료"}, force=True)
+    msg = loop.step(st, path=q, act={"plan": lambda s: "기획 완료", "dpath": tmp_path / "d.json"}, force=True)
     assert msg == "기획 완료"
 
 
@@ -94,3 +94,16 @@ def test_propose_carries_critical(tmp_path, monkeypatch):
     f = {"kind": "k1", "verdict": "real", "perspective": "p", "impact": "i", "fix": "x", "critical": True}
     propose.propose([f], q)
     assert queue.parse(q)[0].critical is True
+
+
+def test_plan_step_waits_while_vision_decision_pending(tmp_path):
+    from scripts.audit import decisions
+    d = tmp_path / "d.json"
+    decisions.append([{"id": "VIS-v2", "kind": "vision", "status": "open", "title": "t", "options": []}], d)
+    called = []
+    st = {}
+    o.plan_step(st, lambda s: called.append(1), d)
+    assert st["stop_reason"] == stopreason.AWAIT_DECISION and not called
+    decisions.choose("VIS-v2", "B", d)
+    decisions.save([{**r, "status": "applied"} for r in decisions.load(d)], d)
+    assert o.plan_step({}, lambda s: "계획", d) == "계획"
