@@ -42,7 +42,13 @@ def latest_observation(entries: list[dict], rtype: str, now: float) -> dict | No
     for e in reversed(entries):
         rl = e.get("rate_limit") or {}
         if rl.get("rateLimitType") == rtype:
-            return rl if rl.get("resetsAt", 0) > now else None
+            if rl.get("resetsAt", 0) <= now:
+                return None
+            if "utilization" not in rl:  # 최상위 관측에 사용률이 없으면 unifiedWindows 의 같은 창 값을 보강
+                nw = (rl.get("unifiedWindows") or {}).get(rtype) or {}
+                if "utilization" in nw:
+                    return {**rl, "utilization": nw["utilization"]}
+            return rl
         nested = (rl.get("unifiedWindows") or {}).get(rtype)  # 다른 유형 관측에 함께 실려 온 창
         if nested and nested.get("resetsAt", 0) > now:
             return nested

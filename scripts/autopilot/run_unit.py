@@ -212,6 +212,9 @@ def run_once(
                     added = size_followup.append_followups(item, settings.WORKTREE_DIR, settings.QUEUE_PATH)
                     if added:
                         verify_note += f" 300줄 초과 후속 등록: {', '.join(added)}"
+        elif settings.STOP_PATH.exists():  # 콘솔 즉시중지로 끊김 — 실패가 아니므로 시도 횟수를 되돌리고 재개 시 처음부터 다시
+            new_stage = "queued"
+            extra = {"fail_kind": "", "fail_reason": "", "attempts": item.attempts}
         elif item.attempts + 1 >= 2:
             new_stage = "failed"
             extra = {"fail_kind": "exec", "fail_reason": f"claude 실행 {outcome['outcome']} 2회 연속"}

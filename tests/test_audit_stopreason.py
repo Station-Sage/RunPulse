@@ -42,3 +42,18 @@ def test_legacy_blocked_normalized(tmp_path):
     p.write_text('- **[U1]** x\n  <!-- autopilot: {"stage": "blocked", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->\n', encoding="utf-8")
     items = queue.parse(p)
     assert items and items[0].stage == "needs_decision"
+
+
+def test_resume_at_recorded_once_and_restored_by_human():
+    st = {"phase": "develop", "unit": "A-1", "round": 3, "fails": 2}
+    sr.stop(st, sr.FAILED)
+    sr.stop(st, sr.STOP_FLAG)  # 두 번째 stop 은 resume_at 을 덮지 않는다
+    assert st["resume_at"] == {"phase": "develop", "unit": "A-1", "round": 3}
+    assert sr.resume(st, human=True) is True
+    assert st["phase"] == "develop" and st["unit"] == "A-1" and st["fails"] == 0 and "resume_at" not in st
+
+
+def test_resume_timer_refuses_stop_flag_but_keeps_state():
+    st = {"phase": "test", "unit": "A-2", "round": 1}
+    sr.stop(st, sr.STOP_FLAG)
+    assert sr.resume(st) is False and st["stop_reason"] == sr.STOP_FLAG

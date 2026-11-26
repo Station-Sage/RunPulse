@@ -2435,6 +2435,10 @@
 - class **_Proc**: wait
 - functions: test_browser_sweep_fails_on_zero_cells, test_browser_sweep_ok_and_no_node, test_cycle_skips_agents_when_sweep_fails, test_cycle_runs_agents_with_review_after_sweep, test_parse_verdict_and_confirmed, test_review_uses_different_model_and_skips_non_real, test_browser_sweep_retries_once_then_succeeds, test_browser_sweep_failure_reports_stderr_tail
 
+### `test_audit_pacing.py` (7줄)
+
+- functions: test_latest_observation_fills_utilization_from_unified_windows
+
 ### `test_audit_planner.py` (83줄)
 
 - functions: test_next_version, test_evidence_requires_real_quote_and_inside_root, test_valid_initiative_guards, test_parse_drops_invalid, test_plan_writes_doc_state_and_decision, test_plan_all_dropped_stops, test_phases_assign_orphans_and_drop_unknown, test_render_plan_and_record_include_goal_phases
@@ -2455,9 +2459,9 @@
 
 - functions: test_parse, test_step_creates_proposal_and_decision_once, test_step_no_change_writes_nothing, test_apply_choice_A_replaces_vision_with_backup, test_apply_choice_B_rejects
 
-### `test_audit_stopreason.py` (44줄) — stopreason: 정지 사유 enum 과 자동 재개 정책.
+### `test_audit_stopreason.py` (59줄) — stopreason: 정지 사유 enum 과 자동 재개 정책.
 
-- functions: test_stop_rejects_unknown_reason, test_is_stopped_follows_reason, test_resume_auto_reasons, test_resume_refused_for_failed_and_flag, test_resume_without_reason_is_noop_true, test_legacy_blocked_normalized
+- functions: test_stop_rejects_unknown_reason, test_is_stopped_follows_reason, test_resume_auto_reasons, test_resume_refused_for_failed_and_flag, test_resume_without_reason_is_noop_true, test_legacy_blocked_normalized, test_resume_at_recorded_once_and_restored_by_human, test_resume_timer_refuses_stop_flag_but_keeps_state
 
 ### `test_audit_sweep.py` (36줄) — 감사 스윕 러너의 순수 로직(경로 치환·원장 기록) 테스트.
 
@@ -2507,9 +2511,9 @@
 
 - functions: test_ignore_budget_false_blocks_when_over_daily_cap, test_ignore_budget_true_skips_budget_check
 
-### `test_autopilot_pacing.py` (128줄) — pacing.py — 세션·주간 rate_limit 기반 페이싱 판정.
+### `test_autopilot_pacing.py` (136줄) — pacing.py — 세션·주간 rate_limit 기반 페이싱 판정.
 
-- functions: test_week_start_is_previous_thursday_22, test_session_ceiling_blocks_until_reset, test_expired_observation_ignored, test_weekly_pace_target_grows_with_time, test_weekly_over_target_blocks_and_under_allows, test_fallback_when_no_session_observation, test_fallback_ignores_entries_before_expired_window_reset, test_fallback_excludes_audit_ask_entries, test_fallback_limits_tunable_via_tunables_json, test_weekly_block_resumes_at_nearer_five_hour_reset, test_weekly_target_is_ceiling_in_final_day, test_weekly_block_resumes_when_target_reaches_utilization, test_weekly_block_at_ceiling_resumes_at_reset, test_weekly_pacing_toggle_off_skips_weekly_gate
+- functions: test_week_start_is_previous_thursday_22, test_session_ceiling_blocks_until_reset, test_expired_observation_ignored, test_weekly_pace_target_grows_with_time, test_weekly_over_target_blocks_and_under_allows, test_fallback_when_no_session_observation, test_fallback_ignores_entries_before_expired_window_reset, test_fallback_excludes_audit_ask_entries, test_fallback_limits_tunable_via_tunables_json, test_weekly_block_resumes_at_nearer_five_hour_reset, test_weekly_target_is_ceiling_in_final_day, test_weekly_block_resumes_when_target_reaches_utilization, test_weekly_block_at_ceiling_resumes_at_reset, test_weekly_pacing_toggle_off_skips_weekly_gate, test_nested_unified_window_used_when_weekly_expired
 
 ### `test_autopilot_queue.py` (145줄) — scripts/autopilot/queue.py 테스트 — kind="code" 확장(scope/verify) 라운드트립 중심.
 
@@ -2524,7 +2528,7 @@
 
 - functions: test_promote_merged, test_prune_pending
 
-### `test_autopilot_run_unit.py` (147줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
+### `test_autopilot_run_unit.py` (149줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
 
 - class **TestBuildPrompt**: test_docs_kind_uses_docs_template, test_code_kind_uses_code_template_with_scope_and_verify, test_code_kind_prompt_requires_following_embedded_spec, test_code_kind_prompt_forbids_git_dash_c, test_code_kind_missing_scope_warns_instead_of_empty
 - class **TestBuildCmd**: test_docs_kind_uses_base_allowed_tools_and_budget, test_code_kind_uses_code_allowed_tools_and_budget
@@ -2731,6 +2735,10 @@
 ### `test_console_flow.py` (106줄) — 진행 흐름(flow.build) 계산 + 루프 이벤트 기록.
 
 - functions: test_build_from_events, test_deploy_stage_and_old_round_ignored, test_fallback_from_progress_log, test_loop_records_events, test_event_trims_large_file, test_sub_states_reset_on_new_audit_pass, test_steps_only_current_phase_with_failures, test_sweep_stream_emits_step_events
+
+### `test_console_items.py` (70줄) — 개발 항목 목록·상세(items) + 라우팅.
+
+- functions: test_item_list_groups_and_counts, test_item_detail_review_and_report, test_routes, test_pipeline_steps_from_stage_ledger_and_git, test_git_facts_parses_ids_and_base
 
 ### `test_console_overview.py` (47줄) — C1 — 관제 콘솔 overview/decision_list.
 
@@ -4366,7 +4374,7 @@
 - functions: run
 
 ---
-총 957개 파일
+총 959개 파일
 
 ## docstring 누락
 
@@ -4374,6 +4382,7 @@
 - `tests/test_audit_agents.py`
 - `tests/test_audit_docs_ctx.py`
 - `tests/test_audit_orchestrator.py`
+- `tests/test_audit_pacing.py`
 - `tests/test_audit_planner.py`
 - `tests/test_audit_progress.py`
 - `tests/test_audit_release_plan.py`
