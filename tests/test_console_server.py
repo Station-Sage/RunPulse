@@ -20,7 +20,8 @@ def test_choose_validation(tmp_path, monkeypatch):
     assert server.choose("zz", "A", p)["ok"] is False
     assert server.choose("d1", "Z", p)["ok"] is False
     assert server.choose("d1", "A", p)["ok"] is True and decisions.load(p)[0]["status"] == "chosen"
-    assert server.choose("d1", "redo", p)["ok"] is False  # 이미 처리됨
+    assert server.choose("d1", "redo", p)["ok"] is True  # chosen 은 변경 가능
+    assert server.choose("d1", "A", p)["ok"] is True and decisions.load(p)[0]["status"] == "chosen"  # redo 에서도 재선택 가능
 
 
 def test_log_tail_and_route(tmp_path):
@@ -78,3 +79,67 @@ def test_notify_console_hint(monkeypatch):
     assert notify.console_hint() == ""
     monkeypatch.setenv("RUNPULSE_CONSOLE_URL", "https://c.example")
     assert "https://c.example" in notify.console_hint()
+
+
+def _opt_rec(kind="k", status="chosen"):
+    r = _rec(status)
+    r.update(kind=kind, choice="A")
+    return r
+
+
+def test_change_choice_from_chosen_and_blocked_kinds(tmp_path, monkeypatch):
+    monkeypatch.setattr(control.settings, "STATE_DIR", tmp_path)
+    p = tmp_path / "d.json"
+    decisions.save([_opt_rec()], p)
+    assert server.choose("d1", "A", p)["ok"] is True
+    decisions.save([_opt_rec(kind="vision")], p)
+    assert server.choose("d1", "A", p)["ok"] is False
+
+
+def test_change_choice_applied_reopen_fail(tmp_path, monkeypatch):
+    monkeypatch.setattr(control.settings, "STATE_DIR", tmp_path)
+    p = tmp_path / "d.json"
+    q = tmp_path / "B.md"
+    q.write_text("")
+    decisions.save([_opt_rec(status="applied")], p)
+    r = server.choose("d1", "A", p, queue_path=q)
+    assert r["ok"] is False and decisions.load(p)[0]["status"] == "applied"
+
+
+def test_review_action(tmp_path, monkeypatch):
+    from scripts.autopilot import queue
+    monkeypatch.setattr(control.settings, "STATE_DIR", tmp_path)
+    q = tmp_path / "q.md"
+    long = "x" * 300
+    q.write_text(f'- **[R-1]** {long}\n  <!-- autopilot: {{"stage":"review","mode":"auto","attempts":2,"deps":[]}} -->\n', encoding="utf-8")
+    assert server.review_action("R-1", "bad", q)["ok"] is False
+    assert server.review_action("R-1", "rework", q)["ok"] is True
+    it = queue.parse(q)[0]
+    assert (it.stage, it.attempts) == ("queued", 0)
+    assert server.review_action("R-1", "done", q)["ok"] is False  # 더는 review 아님
+    queue.update_item(q, "R-1", stage="review")
+    assert server.review_action("R-1", "done", q)["ok"] is True
+    assert queue.parse(q)[0].stage == "done"
+
+
+def test_failed_action(tmp_path, monkeypatch):
+    from scripts.autopilot import queue
+    monkeypatch.setattr(control.settings, "STATE_DIR", tmp_path)
+    q = tmp_path / "q.md"
+    q.write_text('- **[F-1]** 작업\n  <!-- autopilot: {"stage":"failed","mode":"auto","attempts":2,"deps":[]} -->\n', encoding="utf-8")
+    assert server.failed_action("F-1", "bad", "", q)["ok"] is False
+    assert server.failed_action("F-1", "requeue", "범위를 줄여라", q)["ok"] is True
+    it = queue.parse(q)[0]
+    assert (it.stage, it.attempts) == ("queued", 0) and "범위를 줄여라" in it.scope[0]
+    assert server.failed_action("F-1", "drop", "", q)["ok"] is False  # 더는 failed 아님
+    queue.update_item(q, "F-1", stage="failed")
+    assert server.failed_action("F-1", "drop", "", q)["ok"] is True
+    it = queue.parse(q)[0]
+    assert (it.stage, it.resolution) == ("done", "dropped")
+
+
+def test_review_text_not_truncated(tmp_path):
+    from scripts.console import overview
+    q = tmp_path / "q.md"
+    q.write_text(f'- **[R-1]** {"y" * 300}\n  <!-- autopilot: {{"stage":"review","mode":"auto","attempts":0,"deps":[]}} -->\n', encoding="utf-8")
+    assert len(overview.queue_summary(q)["attention"][0]["text"]) >= 300

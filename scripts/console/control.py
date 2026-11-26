@@ -15,7 +15,7 @@ from pathlib import Path
 from scripts.autopilot import settings
 
 LOCK = threading.Lock()
-TUNABLES = {  # name: (type, min, max)
+TUNABLES = {"WEEKLY_PACING_ENABLED": (int, 0, 1),   # name: (type, min, max)
     "AUDIT_TOOL_CALLS_PER_ROUND": (int, 1, 40),
     "FALLBACK_SESSION_MAX_RUNS": (int, 1, 60),
     "FALLBACK_SESSION_MAX_USD": (float, 1.0, 100.0),
@@ -37,8 +37,11 @@ def audit(action: str, detail: dict, ok: bool, state_dir: Path | None = None) ->
         f.write(json.dumps({"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "action": action, "detail": detail, "ok": ok}, ensure_ascii=False) + "\n")
 
 
+_KEEP_PHASE = ("role_pause", "pacing", "step_cap", "round_done", "failed")
+
+
 def _clear_stopped(d: Path) -> None:
-    """사람이 시작/재개를 눌렀으면 cycle_state 의 정지(stopped/halted·stop_reason)를 풀어 감사부터 다시 돈다."""
+    """사람이 시작/재개를 눌렀으면 cycle_state 의 정지(stopped/halted·stop_reason)를 풀고, 중단 사유가 _KEEP_PHASE 면 단계·cursor 를 유지한 채 이어서, 아니면 감사부터 다시 돈다."""
     p = d / "cycle_state.json"
     try:
         st = json.loads(p.read_text(encoding="utf-8"))
@@ -46,11 +49,25 @@ def _clear_stopped(d: Path) -> None:
         return
     if st.get("stop_reason") is None and st.get("phase") not in ("stopped", "halted"):
         return
-    if st.get("stop_reason") == "role_pause":  # 역할 일시정지는 단계를 유지한 채 재개
+    if st.get("stop_reason") in _KEEP_PHASE:  # 중단 지점(단계·항목·cursor)을 유지한 채 재개
         st["stop_reason"] = None
+        if st.get("phase") in ("stopped", "halted"):
+            cur = st.get("cursor") or {}
+            st["phase"] = cur.get("phase") or "audit"
+            st["unit"] = cur.get("unit")
+        st["fails"] = 0
     else:
         st.update(phase="audit", fails=0, unit=None, stop_reason=None, cursor=None)
     p.write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def _sync_wake() -> None:
+    """페이싱 설정·재개 직후 wake 타이머를 현재 판정에 맞춘다(실패해도 제어 동작은 성공)."""
+    try:
+        from scripts.audit import wake
+        wake.sync()
+    except Exception:
+        pass
 
 
 def act(action: str, state_dir: Path | None = None, run=_sh, reap=None) -> dict:
@@ -74,10 +91,11 @@ def act(action: str, state_dir: Path | None = None, run=_sh, reap=None) -> dict:
             pause.unlink(missing_ok=True)
             stop.unlink(missing_ok=True)
             _clear_stopped(d)
-            if action == "start":
-                run(["systemctl", "--user", "start", "--no-block", "runpulse-audit.service"])
+            run(["systemctl", "--user", "start", "--no-block", "runpulse-audit.service"])
         res = {"ok": True, "action": action, "killed": killed, "pause": pause.exists(), "stop": stop.exists()}
         audit(action, {"killed": killed}, True, d)
+    if state_dir is None and action != "stop":
+        _sync_wake()
     return res
 
 
@@ -106,6 +124,8 @@ def set_tunables(values: dict, state_dir: Path | None = None) -> dict:
         d.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps(cur, ensure_ascii=False, indent=1), encoding="utf-8")
         audit("tunables", clean, True, d)
+    if state_dir is None:
+        _sync_wake()
     return {"ok": True, "tunables": cur}
 
 

@@ -21,8 +21,10 @@ import sys
 import time
 from pathlib import Path
 
+from scripts.audit import decisions
+
 from .prompts import build_cmd as _build_cmd, build_prompt as _build_prompt
-from . import gate, ledger, leftovers, notify, queue, settings, size_followup, trailers, worktree
+from . import fail_handling, gate, ledger, leftovers, notify, queue, settings, size_followup, trailers, worktree
 
 
 def _parse_stream(raw: str) -> dict:
@@ -95,6 +97,13 @@ def _decisions_changed() -> bool:
     return bool(r.stdout.strip())
 
 
+def _abs_venv(cmd: str) -> str:
+    """verify 는 격리 워크트리(.venv 없음)에서 돈다 — 상대 `.venv/bin/python` 을 프로젝트 venv 절대경로로 바꾼다."""
+    if cmd.startswith(".venv/bin/"):
+        return str(settings.PROJECT_ROOT / cmd)
+    return cmd
+
+
 def _post_verify(item: queue.QueueItem) -> tuple[bool, str]:
     """claude -p의 "성공" 자체 보고를 신뢰하지 않고, 워크트리에서 검증 커맨드를
     직접(독립적으로) 다시 돌려 통과를 확인한다. docs 항목은 검증 대상이 아니다 —
@@ -104,8 +113,9 @@ def _post_verify(item: queue.QueueItem) -> tuple[bool, str]:
     """
     if item.kind != "code":
         return True, ""
-    cmds = item.verify or ["python3 -m pytest tests/ -q"]
+    cmds = item.verify or [fail_handling.DEFAULT_VERIFY]
     for cmd_str in cmds:
+        cmd_str = _abs_venv(cmd_str)
         r = subprocess.run(
             cmd_str, shell=True, cwd=settings.WORKTREE_DIR,
             capture_output=True, text=True, timeout=600,
@@ -114,6 +124,24 @@ def _post_verify(item: queue.QueueItem) -> tuple[bool, str]:
             tail = (r.stdout[-1500:] + "\n" + r.stderr[-1500:]).strip()
             return False, f"`{cmd_str}` 종료코드 {r.returncode}\n{tail}"
     return True, ""
+
+
+def _register_failed_card(item: queue.QueueItem, kind: str, reason: str) -> None:
+    decisions.append([fail_handling.build_failed_card(item.item_id, kind, reason, item.text)])
+
+
+def _asked_outcome(item: queue.QueueItem) -> tuple[str, dict, str]:
+    """모델이 DECISIONS.md 에 새 질문을 씀 → 실패가 아니라 사용자 결정 요청. (stage, 추가 필드, 노트)."""
+    sec = fail_handling.pick_section(
+        fail_handling.parse_sections(fail_handling.added_text(settings.WORKTREE_DIR)), item.item_id)
+    asks = item.asks + 1
+    if asks > fail_handling.ASK_LIMIT:
+        reason = "결정이 항목 범위를 못 정함 — 항목 재정의 필요"
+        _register_failed_card(item, "asked_loop", reason)
+        return "failed", {"asks": asks, "fail_kind": "asked_loop", "fail_reason": reason}, reason
+    decisions.append([fail_handling.build_asked_card(item.item_id, sec, item.text, asks)])
+    note = f"결정 요청: {sec['title'] if sec else '(섹션 없음)'}"
+    return "needs_decision", {"asks": asks, "fail_kind": "asked", "fail_reason": note[:300]}, note
 
 
 def run_once(
@@ -147,7 +175,8 @@ def run_once(
         worktree.ensure()
         sync_blocked = worktree.sync()
         if sync_blocked:
-            queue.update_item(settings.QUEUE_PATH, item.item_id, stage="failed")
+            queue.update_item(settings.QUEUE_PATH, item.item_id, stage="failed",
+                              fail_kind="sync", fail_reason=str(sync_blocked)[:300])
             notify.send(f"[autopilot] {item.item_id} 차단: {sync_blocked}")
             print(f"[worktree] 차단: {sync_blocked}")
             return 2
@@ -162,12 +191,18 @@ def run_once(
         ledger.append({"unit_id": item.item_id, **outcome})
 
         verify_note = ""
+        extra: dict = {"fail_kind": "", "fail_reason": ""}
         if outcome["outcome"] == "success":
             if _decisions_changed():
-                new_stage = "failed"
+                new_stage, extra, verify_note = _asked_outcome(item)
             else:
                 verified, verify_note = _post_verify(item)
                 new_stage = "review" if verified else "failed"
+                if not verified:
+                    rc = 127 if "종료코드 127" in verify_note else None
+                    extra = {"fail_kind": fail_handling.classify_verify(rc, verify_note),
+                             "fail_reason": verify_note[:300]}
+                    _register_failed_card(item, extra["fail_kind"], verify_note)
                 if verified and item.kind == "code":
                     verify_note = leftovers.commit_leftovers(item, settings.WORKTREE_DIR)
                     added = size_followup.append_followups(item, settings.WORKTREE_DIR, settings.QUEUE_PATH)
@@ -175,9 +210,11 @@ def run_once(
                         verify_note += f" 300줄 초과 후속 등록: {', '.join(added)}"
         elif item.attempts + 1 >= 2:
             new_stage = "failed"
+            extra = {"fail_kind": "exec", "fail_reason": f"claude 실행 {outcome['outcome']} 2회 연속"}
+            _register_failed_card(item, "exec", extra["fail_reason"])
         else:
             new_stage = "queued"  # 재시도 허용
-        queue.update_item(settings.QUEUE_PATH, item.item_id, stage=new_stage)
+        queue.update_item(settings.QUEUE_PATH, item.item_id, stage=new_stage, **extra)
 
         cost = outcome.get("cost_usd")
         cost_str = f"${cost:.3f}" if cost is not None else "N/A"

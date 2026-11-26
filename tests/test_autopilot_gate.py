@@ -27,7 +27,7 @@ def test_ignore_budget_false_blocks_when_over_daily_cap(tmp_path, monkeypatch):
 
 def test_ignore_budget_true_skips_budget_check(tmp_path, monkeypatch):
     _write_ledger(tmp_path, monkeypatch, [
-        {"ts": time.time(), "cost_usd": settings.DAILY_MAX_USD + 1, "outcome": "success"},
+        {"ts": time.time(), "cost_usd": settings.WEEKLY_MAX_USD + 1, "outcome": "success"},
     ])
     result = gate.check(ignore_night_window=True, ignore_idle=True, ignore_budget=True)
     assert result.allowed is True

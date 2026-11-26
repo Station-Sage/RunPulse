@@ -99,18 +99,25 @@ def summary(e: dict) -> str:
 
 def _sweep_once(limit: int | None) -> tuple[int, str | None]:
     cmd = [sys.executable, "-m", "scripts.audit.sweep"] + (["--limit", str(limit)] if limit else [])
-    r = subprocess.run(cmd, cwd=inventory.ROOT, capture_output=True, text=True)
-    sys.stdout.write(r.stdout)
+    p = subprocess.Popen(cmd, cwd=inventory.ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    lines: list[str] = []
+    for ln in p.stdout:  # 진행 로그를 저널에 즉시 흘린다(끝난 뒤 한꺼번에 쓰지 않음)
+        sys.stdout.write(ln)
+        sys.stdout.flush()
+        lines.append(ln.rstrip("\n"))
+        if ln.startswith("[sweep] "):
+            progress.event("step", text=ln[8:].strip(), bad=("실패" in ln))
+    rc = p.wait()
     swept, failed = 0, []
-    for ln in reversed(r.stdout.splitlines()):
+    for ln in reversed(lines):
         try:
             d = json.loads(ln)
             swept, failed = d.get("swept", 0), d.get("failed", [])
             break
         except ValueError:
             continue
-    if r.returncode != 0 or swept == 0:
-        tail = " | ".join(r.stderr.strip().splitlines()[-3:])  # 마지막 3줄 — 원인 줄이 끝 한 줄이 아닌 경우가 많다
+    if rc != 0 or swept == 0:
+        tail = " | ".join([x for x in lines if x.strip()][-3:])  # 마지막 3줄 — 원인 줄이 끝 한 줄이 아닌 경우가 많다
         return swept, (str(failed[0]) if failed else tail or "셀 0개")[:300]
     return swept, None
 

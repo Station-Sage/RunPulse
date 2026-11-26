@@ -16,12 +16,14 @@
 - kind: "docs"(기본) | "code". code는 run_unit.py가 다른 프롬프트·도구 허용·검증
   커맨드를 쓴다(settings.CODE_ALLOWED_TOOLS).
 - critical: true 면 치명 결함 — next_runnable 이 먼저 집고 버전 작업(plan·idesign)·안정화 게이트보다 우선(ADR-068).
+- fail_kind/fail_reason/asks/answered/resolution: 실패·결정 대기 사유와 처리 이력(값이 있을 때만 기록).
+  fail_kind: asked(모델이 결정 요청)|verify|env|exec|sync|asked_loop. resolution: already_done|dropped.
 - scope: code 전용. 이 unit이 건드려도 되는 경로 목록 — 프롬프트에 그대로 박아 범위를
   제한한다(강제 아님, 안내). 비어있으면 프롬프트가 "위험하니 채워서 등록" 경고를 낸다.
 - verify: code 전용. 성공 판정에 쓸 셸 커맨드 목록 — claude -p가 성공을 보고해도
   run_unit.py가 워크트리에서 이 커맨드들을 독립적으로 다시 돌려 전부 0 종료해야
   stage=review로 넘어간다(하나라도 실패하면 failed). 비어있으면
-  "python3 -m pytest tests/ -q" 기본값을 쓴다.
+  ".venv/bin/python -m pytest tests/ -q" 기본값을 쓴다.
 
 기존 BACKLOG.md 포맷(`- **[ID]** ...`)을 그대로 쓰므로 사람이 읽는 문서 하나가
 SSOT다 — 별도 JSON 큐 파일을 두지 않는다(문서 중복·불일치 방지).
@@ -37,6 +39,9 @@ _ITEM_RE = re.compile(r"^- \*\*\[([A-Za-z0-9_-]+)\]\*\* (.*)$")
 _META_RE = re.compile(r"^(\s*)<!-- autopilot: (\{.*\}) -->\s*$")
 
 
+_EXTRA_FIELDS = ("fail_kind", "fail_reason", "asks", "answered", "resolution")
+
+
 @dataclass
 class QueueItem:
     item_id: str
@@ -49,6 +54,11 @@ class QueueItem:
     scope: list[str] = field(default_factory=list)   # code 전용: 건드려도 되는 경로
     verify: list[str] = field(default_factory=list)  # code 전용: 성공 판정 커맨드
     critical: bool = False   # 치명 결함 — 다른 항목·버전 작업보다 먼저 처리
+    fail_kind: str = ""      # failed/needs_decision 사유 분류: asked|verify|env|exec|sync|asked_loop
+    fail_reason: str = ""    # 사유 한 줄(≤300자)
+    asks: int = 0            # 모델이 결정을 요청한 횟수 (상한 초과 시 failed)
+    answered: list[str] = field(default_factory=list)  # 답변 완료된 결정 id
+    resolution: str = ""     # done 의 성격: already_done | dropped
     line_no: int = -1        # 항목 줄 번호 (0-indexed)
     meta_line_no: int = -1   # 메타 주석 줄 번호, 없으면 -1
 
@@ -86,6 +96,11 @@ def parse(path: Path) -> list[QueueItem]:
                 item.scope = list(meta.get("scope", []))
                 item.verify = list(meta.get("verify", []))
                 item.critical = bool(meta.get("critical", False))
+                item.fail_kind = str(meta.get("fail_kind", ""))
+                item.fail_reason = str(meta.get("fail_reason", ""))
+                item.asks = int(meta.get("asks", 0))
+                item.answered = list(meta.get("answered", []))
+                item.resolution = str(meta.get("resolution", ""))
                 item.meta_line_no = j
                 break
             j += 1
@@ -156,6 +171,8 @@ def update_item(path: Path, item_id: str, **fields) -> None:
     target.scope = fields.get("scope", target.scope)
     target.verify = fields.get("verify", target.verify)
     target.critical = fields.get("critical", target.critical)
+    for k in _EXTRA_FIELDS:
+        setattr(target, k, fields.get(k, getattr(target, k)))
 
     lines = path.read_text(encoding="utf-8").splitlines()
     indent_m = _META_RE.match(lines[target.meta_line_no])
@@ -172,5 +189,8 @@ def update_item(path: Path, item_id: str, **fields) -> None:
         meta["verify"] = target.verify
     if target.critical:
         meta["critical"] = True
+    for k in _EXTRA_FIELDS:
+        if getattr(target, k):
+            meta[k] = getattr(target, k)
     lines[target.meta_line_no] = f"{indent}<!-- autopilot: {json.dumps(meta, ensure_ascii=False)} -->"
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

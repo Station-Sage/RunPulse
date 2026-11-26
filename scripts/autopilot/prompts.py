@@ -1,7 +1,7 @@
 """claude -p 프롬프트 템플릿·커맨드 조립 — run_unit.py에서 분리한 순수 함수 모음."""
 from __future__ import annotations
 
-from . import queue, settings
+from . import fail_handling, queue, settings
 
 
 _PROMPT_TEMPLATE_DOCS = """\
@@ -87,11 +87,16 @@ def _format_list(items: list[str], empty: str) -> str:
 
 
 def build_prompt(item: queue.QueueItem) -> str:
+    note = fail_handling.answered_note(item)
+    return _build(item) + (f"\n답변 완료된 결정:\n{note}\n" if note else "")
+
+
+def _build(item: queue.QueueItem) -> str:
     if item.kind == "code":
         return _PROMPT_TEMPLATE_CODE.format(
             item_id=item.item_id, item_text=item.text, branch=settings.AUTOPILOT_BRANCH,
             scope=_format_list(item.scope, "(scope 미지정 — 위험하니 큐 등록 시 채울 것. 지금은 item 설명 텍스트만 근거로 최대한 보수적으로 판단)"),
-            verify=_format_list(item.verify, "python3 -m pytest tests/ -q"),
+            verify=_format_list(item.verify, fail_handling.DEFAULT_VERIFY),
         )
     return _PROMPT_TEMPLATE_DOCS.format(
         item_id=item.item_id, item_text=item.text, branch=settings.AUTOPILOT_BRANCH,

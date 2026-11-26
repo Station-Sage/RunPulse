@@ -64,3 +64,43 @@ def test_event_trims_large_file(tmp_path, monkeypatch):
         progress.event("phase", p, round=i, phase="audit")
     rounds = [e["round"] for e in progress.read_events(p)]
     assert rounds[-1] == 29 and len(rounds) < 30
+
+
+def test_sub_states_reset_on_new_audit_pass():
+    evs = [
+        {"ts": 1, "kind": "sub", "step": "sweep", "state": "start"},
+        {"ts": 2, "kind": "sub", "step": "review", "state": "end"},
+        {"ts": 9, "kind": "sub", "step": "sweep", "state": "start"},
+        {"ts": 10, "kind": "sub", "step": "sweep", "state": "end"},
+        {"ts": 10, "kind": "sub", "step": "audit", "state": "start"},
+    ]
+    st = flow._sub_states(evs)
+    assert st["review"]["state"] == "pending"
+    assert st["sweep"]["state"] == "done" and st["audit"]["state"] == "active"
+
+
+def test_steps_only_current_phase_with_failures(tmp_path):
+    q = tmp_path / "B.md"
+    q.write_text(Q)
+    evs = [_ev("phase", 100, round=3, phase="audit"), _ev("sub", 110, step="audit", state="start"),
+           _ev("phase", 200, round=3, phase="test"), _ev("sub", 210, step="sweep", state="start"),
+           _ev("step", 220, text="1/6 a 시작", bad=False), _ev("step", 230, text="1/6 a 실패 (3s)", bad=True)]
+    p = flow.build({"round": 3, "phase": "test"}, 300, q, evs)
+    assert [s["text"] for s in p["steps"]] == ["스윕 시작", "1/6 a 시작", "1/6 a 실패 (3s)"]
+    assert [s["bad"] for s in p["steps"]] == [False, False, True]
+
+
+def test_sweep_stream_emits_step_events(tmp_path, monkeypatch):
+    from scripts.audit import cycle
+    got = []
+    monkeypatch.setattr(progress, "event", lambda kind, **kw: got.append((kind, kw)))
+    class P:
+        stdout = iter(["[sweep] 1/2 s vp 시작\n", "noise\n", "[sweep] 1/2 s vp 실패 (1s): x\n"])
+        stderr = None
+        def wait(self): return 1
+    monkeypatch.setattr(cycle.subprocess, "Popen", lambda *a, **k: P())
+    try:
+        cycle._sweep_once(1)
+    except Exception:
+        pass
+    assert [k for k, _ in got] == ["step", "step"] and got[1][1]["bad"] is True

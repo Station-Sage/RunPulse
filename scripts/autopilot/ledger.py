@@ -61,12 +61,10 @@ def last(n: int = 1) -> list[dict]:
 
 
 def check_budget() -> BudgetDecision:
-    """일간/주간 누적이 상한을 넘으면 실행을 막는다. 실행당 상한은 --max-budget-usd가 담당."""
+    """주간 누적이 상한을 넘으면 실행을 막는다. 실행당 상한은 --max-budget-usd가 담당."""
     entries = read_all()
     today = total_cost(since(24, entries))
     week = total_cost(since(24 * 7, entries))
-    if today >= settings.DAILY_MAX_USD:
-        return BudgetDecision(False, f"일간 예산 초과 (${today:.2f} >= ${settings.DAILY_MAX_USD})", today, week)
     if week >= settings.WEEKLY_MAX_USD:
         return BudgetDecision(False, f"주간 예산 초과 (${week:.2f} >= ${settings.WEEKLY_MAX_USD})", today, week)
     return BudgetDecision(True, "", today, week)

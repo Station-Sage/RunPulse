@@ -132,16 +132,20 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--limit", type=int, default=None, help="화면 수 제한(시험용)")
     args = ap.parse_args(argv)
     total, failed = 0, []
+    combos = [(s, v) for s in args.states.split(",") for v in args.viewports.split(",")]
     with tempfile.TemporaryDirectory() as d:
-        for state in args.states.split(","):
-            for vp in args.viewports.split(","):
-                try:
-                    res = sweep_state(state, vp, Path(d), args.limit)
-                except Exception as e:   # 한 조합 실패가 나머지 스윕을 막지 않는다
-                    failed.append(f"{state}|{vp}: {e}"[:200])
-                    continue
-                total += len(res)
-                print(state, vp, apply_results(res))
+        for i, (state, vp) in enumerate(combos, 1):
+            print(f"[sweep] {i}/{len(combos)} {state} {vp} 시작", flush=True)
+            t0 = time.time()
+            try:
+                res = sweep_state(state, vp, Path(d), args.limit)
+            except Exception as e:   # 한 조합 실패가 나머지 스윕을 막지 않는다
+                failed.append(f"{state}|{vp}: {e}"[:200])
+                print(f"[sweep] {i}/{len(combos)} {state} {vp} 실패 ({time.time() - t0:.0f}s): {str(e)[:120]}", flush=True)
+                continue
+            total += len(res)
+            print(f"[sweep] {i}/{len(combos)} {state} {vp} 완료 — {len(res)}셀 ({time.time() - t0:.0f}s)", flush=True)
+            print(state, vp, apply_results(res), flush=True)
     print(json.dumps({"swept": total, "failed": failed}, ensure_ascii=False))
     return 1 if failed or total == 0 else 0
 

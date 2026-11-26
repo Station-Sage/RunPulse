@@ -139,3 +139,9 @@ class TestCommitLeftovers:
         (tmp_path / "frontend" / "lib" / "x.ts").write_text("export {}")
         leftovers.commit_leftovers(_code_item(scope=["frontend/lib"]), tmp_path)
         assert "frontend/lib/x.ts" in git("ls-files").stdout.split()
+
+
+def test_abs_venv_rewrites_relative_venv_python():
+    out = run_unit._abs_venv(".venv/bin/python -m pytest tests/ -q")
+    assert out.startswith(str(run_unit.settings.PROJECT_ROOT)) and out.endswith("-m pytest tests/ -q")
+    assert run_unit._abs_venv("true") == "true"

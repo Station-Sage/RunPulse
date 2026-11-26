@@ -32,3 +32,16 @@ def test_overview_has_release(tmp_path):
                           dpath=tmp_path / "d.json", plan_path=tmp_path / "plan.json")
     r = o["release"]
     assert r["version"] == "v1" and r["initiatives"][0]["done"] == 1
+
+
+def test_redo_not_counted_and_closed_capped(tmp_path):
+    dp = tmp_path / "d.json"
+    recs = [decisions.build(f"AUD-{i}", {"kind": "k"}, D) for i in range(14)]
+    for i, r in enumerate(recs):
+        r["status"] = "applied" if i >= 2 else ("redo" if i == 1 else "open")
+    decisions.save(recs, dp)
+    q = tmp_path / "B.md"
+    q.write_text("")
+    o = overview.overview(now=1000.0, state_path=tmp_path / "none.json", queue_path=q, entries=[], dpath=dp)
+    assert o["decisions_open"] == 1 and o["decisions_redo"] == 1
+    assert len([d for d in overview.decision_list(dp) if d["status"] == "applied"]) == overview.CLOSED_SHOWN
