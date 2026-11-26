@@ -246,7 +246,7 @@ Phase 7b(07 로드맵) 본격 착수분. 사용자 "UI Renewal 설계·개발·�
   <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": []} -->
 
 - **[P7-LLM-AGENT-CANDIDATES-IMPL]** (P7-LLM-AGENT-CANDIDATES 설계 완료 후) LLM 에이전트 후보 우선순위 3→2→1 중 설계 문서가 승인한 1단계만 구현(외부 API 실호출 금지, 모킹). 설계 문서 DESIGN-LLM-AGENT-CANDIDATES.md 를 따른다.
-  <!-- autopilot: {"stage": "in_progress", "mode": "auto", "attempts": 1, "deps": ["P7-LLM-AGENT-CANDIDATES"], "kind": "code", "scope": ["src/", "tests/", "BACKLOG 원안 #3 → #2 → #1 (#3·#2는 기구현이라 근거 노출·호출 상한 보강 위주)."], "verify": [".venv/bin/python -m pytest tests/ -q"], "asks": 1, "answered": ["P7-LLM-AGENT-CANDIDATES-IMPL"]} -->
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 1, "deps": ["P7-LLM-AGENT-CANDIDATES"], "kind": "code", "scope": ["src/", "tests/", "BACKLOG 원안 #3 → #2 → #1 (#3·#2는 기구현이라 근거 노출·호출 상한 보강 위주)."], "verify": [".venv/bin/python -m pytest tests/ -q"], "asks": 1, "answered": ["P7-LLM-AGENT-CANDIDATES-IMPL"]} -->
 
 (현재 NEXT 없음 — `P7-IMPL-COACH-PLAN-STATIC`은 하위 유닛
 `P7-IMPL-COACH-PLAN-ACTIVE`/`P7-IMPL-COACH-PLAN-CREATE` 둘 다 done이 되어
@@ -4028,3 +4028,66 @@ DONE으로 옮긴다.
   <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/utils/db_helpers.py"], "verify": ["cd frontend && npm run check"]} -->
 - **[SPLIT-src-validation-validator-py]** (후속: P7-UXR-DESIGN-PENDING-IMPL 에서 발견) [refactor] src/validation/validator.py 가 334줄로 300줄 상한 초과 → 동작 변경 없이 하위 컴포넌트·모듈로 분리한다.
   <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/validation/validator.py"], "verify": ["cd frontend && npm run check"]} -->
+
+- **[AUD-545eb1]** (판단 필요) [vision] pageerror: 월간 화면(/today/month/[ym])이 모든 상태(empty·error·small)에서 'pathname' null 참조 예외를 일으켜, 월별 근거 수치를 볼 수 없거나 화면이 깨질 수 있다. → null 가능한 URL/location 객체(page.url 등)를 읽기 전에 가드하고, 월 파라미터가 유효하지 않을 때의 처리를 추가한다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-13caaa]** (판단 필요) [discover:evidence] evidence-gap: 레이스 허브의 예측 기록과 목표 격차 수치에 계산 근거로 들어가는 드릴 경로가 없다. 예측값만 보이고 어떤 훈련·기기 값에서 나왔는지 따라갈 수 없다. → 예측 기록을 race_pred_* 슬러그(EXPLAIN_SUPPORTED_SLUGS에 포함)로 DrillPanel/openDrill에 연결하거나 메트릭 상세로 링크한다.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "resolution": "dropped"} -->
+
+- **[AUD-b53e23]** (판단 필요) [discover:evidence] drill-broken: Today의 체력·피로·폼(CTL/ATL/TSB) 차트와 스크럽 값에서 드릴인이나 메트릭 설명으로 이어지지 않는다. 범례 라벨만 있고 계산식과 출처는 알 수 없다. → 범례·스크럽 툴팁 라벨을 openDrill(slug, date) 또는 /library/metrics/{slug} 링크로 만들어 TodayFormChart에서 onEvidence를 전달한다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-9b8d55]** (판단 필요) [discover:evidence] evidence-gap: 훈련 균형 표의 TSB·단조로움·Tanda 필요 볼륨·강도 분포 패턴이 맨 숫자로만 나온다. 비전문가는 의미와 산출 근거를 알 수 없다. → 각 dt를 MetricTerm 또는 메트릭 상세 링크로 바꾸고 산출 기준(기간·공식 요약)을 한 줄 덧붙인다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-82a2a3]** (판단 필요) [discover:evidence] drill-broken: 월 페이지의 CTL/ATL 스파크라인은 값만 보여 줄 뿐 설명이나 드릴 링크가 없다. 같은 페이지 다른 칩은 DrillPanel로 열려서 일관성도 깨진다. → CTL/ATL 소제목을 onDrillInput(slug)으로 연결하거나 메트릭 상세 링크를 둔다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-e965d9]** (판단 필요) [discover:evidence] drill-broken: 웰니스 30일 추세 스파크라인 6종(UTRS·수면·HRV 등)은 위쪽 카드와 달리 메트릭 상세 링크가 없다. '평소 범위'(p25–p75)가 어떤 기간·기준인지도 설명하지 않는다. → SERIES 라벨을 /library/metrics/{key}?date= 링크로 만들고 평소 범위에 기간·기준 툴팁을 단다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-d45486]** (판단 필요) [discover:flow] contradictory-guidance: 히어로가 같은 카드 안에서 서로 다른 두 가지 권고를 낸다. 상태 문구(예: '오늘은 휴식', '오늘 완료 ✓')가 있는데도 그 아래에 컨디션 기반 headline('컨디션 여유가 있어 핵심 세션을 소화하기 좋습니다' 등)이 무조건 붙는다. 러너는 '오늘 무엇을 해야 하나'에 한 줄로 답을 얻지 못한다. → briefing.headline 은 state 가 pre/race_week 일 때만 보조 근거로 보이거나, 상태 문구와 충돌하지 않도록 서버가 state 에 맞춰 만든다. 완료·휴식 상태에서는 숨긴다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-6d54f5]** (판단 필요) [discover:flow] state-override: 레이스 7일 전부터는 state 가 race_week/race_day 로 고정되어 done/extra/rest 판정보다 앞선다. 오늘 이미 달렸거나 쉬는 날에도 '레이스 주간이에요' 만 보이고, 완료 표시와 활동 보기 CTA 가 사라진다. race_day 는 계획·조정이 없으면 session 이 null 이라 세션 정보도 CTA 도 없다. → race_* 는 별도 플래그로 두고 오늘의 run·planned 판정(done/pre/rest)과 병행해서 문구를 조합한다. race_week 에서도 today_result 를 보여 주고, 조정이 없어도 오늘 계획 세션을 채운다.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "resolution": "dropped"} -->
+
+- **[AUD-407aeb]** (판단 필요) [discover:flow] cta-depends-on-unrelated-fetch: 히어로의 '세션 상세 ›' 링크는 플랜 goal id 대신 레이스 허브(goal) 응답의 id 를 쓴다. raceHub 요청이 실패하거나 목표가 없으면(null) 링크가 세션이 아니라 /coach/plan 목록으로 가서, 러너가 오늘 세션 상세에 가지 못한다. 반대로 NextSessionCard 는 plan.goal.id 를 써서 두 링크의 목적지가 서로 다를 수 있다. → briefing.session 에 plan goal_id 를 포함해 서버가 내려주고, 히어로는 raceHub 에 의존하지 않고 그 값으로 링크를 만든다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-96df8d]** (판단 필요) [discover:gaps] provider-transparency-wellness: 웰니스 상세의 수면·HRV·안정 심박·Body Battery·스트레스·체중·칼로리에 어느 서비스 값인지 표시가 없다. Garmin 값인지 Intervals 값인지 알 수 없어 Provider Transparency 위반이다. 'Garmin 범위' 문구만 예외다. → get_wellness_detail 응답에 지표별 provider(소스 서비스)를 넣고 WellnessCores·WellnessSleep·vitals 줄에 SourceBadge 또는 providerLabel로 표시한다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["src/services/wellness_provider.py", "src/services/wellness_service.py", "frontend/src/lib/wellnessProviders.ts", "frontend/src/lib/wellnessDay.ts", "frontend/src/lib/types.ts", "frontend/src/lib/components/WellnessCores.svelte", "frontend/src/lib/components/WellnessSleep.svelte", "frontend/src/routes/library/wellness/[date]/+page.svelte", "tests/test_wellness_provider.py", "tests/test_wellness_service.py", "tests/test_wellness_provider_guard.py"], "verify": [".venv/bin/python -m pytest tests/test_wellness_provider.py tests/test_wellness_service.py tests/test_wellness_provider_guard.py tests/test_wellness_day.py -q", "cd frontend && npm run check && npx vitest run", ".venv/bin/python -m pytest tests/ -q", "python3 scripts/check_docs.py"]} -->
+
+- **[AUD-9e32ed]** (판단 필요) [discover:gaps] state-bound-plan-evidence-dropped: 플랜 조정 제안의 근거 신호는 서버가 provider·as_of·freshness·value·detail까지 준다. 그런데 UI는 trigger 역할이면서 CHIP 표에 등록된 신호의 짧은 문구만 보여 준다. 오래되거나 누락된 데이터에 기댄 조정인지 알 수 없고, 칩은 span이라 출처 지표로 이동할 수 없다. HRV·TSB 같은 support/counter/hold 신호도 숨겨져 State-Bound Plan의 근거가 부족하다. → triggerChips가 신호의 provider·as_of·freshness를 함께 렌더하게 한다(stale·partial이면 경고 표시). 칩을 메트릭 드릴 링크로 바꾸고 support/counter 신호도 접어서 보여 준다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-9b9de7]** (판단 필요) [discover:gaps] evidence-first-session-reason-chips: 세션 상세의 '오늘 상태 기반 조정' 섹션은 서버가 만든 사유 문자열(adjustment_reason_parts)만 칩으로 보여 준다. 근거 수치, 출처, 지표 링크가 없다. 같은 화면 위쪽의 AdjustmentCard(신호 기반)와 정보량이 달라, 조정이 어떤 상태 값 때문인지 확인할 수 없다. → 레거시 reason_parts 칩을 신호 구조(값·기준일·provider·드릴 링크)로 대체하거나, 같은 신호 목록을 이 섹션에서도 재사용한다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/lib/components/plan/AdjustmentSignalList.svelte", "frontend/src/lib/components/plan/AdjustmentCard.svelte", "frontend/src/lib/adjustmentView.ts", "frontend/src/routes/coach/plan/[id]/session/[date]/+page.svelte", "frontend/tests/adjustmentView.test.mjs", "frontend/tests/sessionAdjustmentEvidence.test.mjs"], "verify": ["cd frontend && node --test tests/adjustmentView.test.mjs tests/sessionAdjustmentEvidence.test.mjs", "cd frontend && node --test tests/a11yStatic.test.mjs", "cd frontend && npm run check", "cd /home/ubuntu/projects/RunPulse-p0 && .venv/bin/python -m pytest tests/test_plan_adjustment_service.py -q"]} -->
+
+- **[AUD-5ae355]** (판단 필요) [value] tap-target: 24px 미만의 작은 링크·버튼이 있어 모바일에서 한 손으로 누르기 어렵다(One Finger Reach 원칙 훼손). 영향은 낮다. → 인터랙티브 요소에 최소 높이·패딩(44px 목표, 최소 24px)을 주는 공용 스타일을 적용한다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-985dc4]** (판단 필요) [discover:evidence] evidence-drill-gap: 훈련 균형 상세 화면의 축 점수·현재값·목표값과 TSB·단조로움·Tanda 필요 볼륨 보조 수치에 메트릭 설명·계산식·출처로 가는 링크가 하나도 없다. 사용자가 점수가 왜 그렇게 나왔는지 더 파고들 수 없다. → 표의 각 축 행 라벨과 aux 항목(dt)을 /library/metrics/{slug} 링크로 바꾸고, 목표 기준(basis) 옆에 계산식 문구를 붙인다.
+  <!-- autopilot: {"stage": "done", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "resolution": "dropped"} -->
+
+- **[AUD-7d9fbd]** (판단 필요) [discover:evidence] provider-transparency: 웰니스 핵심 카드에서 HRV만 'Garmin 범위'로 출처가 보인다. 안정 심박·Body Battery·스트레스·걸음수는 어느 서비스 값인지 표시가 없다. 서비스별로 값이 다를 수 있어 근거가 불명확하다. → 각 카드에 출처 배지(SourceBadge)를 붙이고, detail 응답의 provider 값을 사용한다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-077258]** (판단 필요) [discover:flow] hero-session-cta-wrong-target: 계획은 있는데 목표 레이스가 없거나 레이스 허브 조회가 실패한 러너가 히어로의 '세션 상세 ›'를 누르면, 오늘 세션이 아니라 플랜 목록(/coach/plan)으로 간다. 레이스 허브가 아직 로딩 중이어도 같은 링크가 나온다. 오늘 할 일의 근거(세션 상세)로 가는 길이 끊긴다. → briefing.session에 plan/goal id를 서버에서 내려 sessionDetail에 쓰고, 레이스 허브(goal)에는 의존하지 않게 한다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-bd18e4]** (판단 필요) [discover:flow] plan-cta-divergent-and-triplicated: 플랜도 목표도 없을 때 한 화면에 '계획 만들기'(/coach/plan/new), '목표 레이스 등록'(/coach/plan/new), 'Coach에서 플랜 만들기'(/coach/plan, 목록 페이지) 세 CTA가 나란히 뜬다. 같은 의도인데 목적지가 달라서 어느 쪽이 맞는지 모호하고, 마지막 하나는 만들기 화면이 아니라 목록으로 간다. → NextSessionCard의 링크를 ctaRoutes의 PLAN_NEW로 통일하고, 플랜이 없을 때는 CTA를 한 곳(히어로)에만 두고 나머지는 상태 문구로 줄인다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-d57da1]** (판단 필요) [discover:flow] narrative-failure-no-retry: 오늘의 이야기 조회가 실패하면 '현재 CTL — · 상세 이야기를 불러올 수 없습니다.' 한 줄만 나오고 재시도 수단이 없다. 다른 블록(다음 세션·차트·예측)은 재시도 버튼이 있다. 또 실패와 '이야기 없음'이 구분되지 않아 근거 문단이 사라진 이유를 알 수 없다. ctl이 null이면 '—'만 남는다. → getTodayNarrative의 .catch(() => null)를 없애 실패를 reject로 전달하고, TodayNarrative에 {:catch} ErrorState(compact)+재시도를 둔다. 값 없음(null)은 별도 안내 문구로 둔다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-799f02]** (판단 필요) [discover:flow] duplicate-month-story-entry-orphan-route: Today 안에 '이번 달 이야기 →'(차트)와 '이번 달 전체 이야기 보기 →'(내러티브)가 가까이 있고 둘 다 같은 곳으로 간다. 그 목적지는 /library/story/YYYY-MM이고 ?from=today가 없어 돌아올 맥락도 잃는다. 반면 월간 내러티브 전용 라우트 /today/month/[ym]은 어디서도 링크되지 않는다. 같은 월간 이야기 화면이 둘이라 어느 것이 정본인지 모호하다. openMonth는 서버 기준일(status.date)이 아니라 브라우저의 new Date()로 달을 정해 월 경계에서 어긋날 수 있다. → 월간 이야기 화면을 하나로 정하고(라우트 폐기 또는 Today 링크 연결) Today의 두 버튼은 하나로 합친다. 달은 status.date에서 구하고 from=today를 붙인다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->
+
+- **[AUD-7166fb]** (판단 필요) [discover:flow] next-session-dead-end: 플랜이 있는데 남은 세션이 없으면(plan.next_session도 없음) 다음 세션 카드가 '이번 주 남은 세션이 없습니다'만 보이고 어떤 링크도 없다. 문구는 이번 주만 말하지만 실제 조건은 이후 세션 전체가 없는 경우(플랜 종료 등)라서 부정확하다. 히어로의 rest·race_day 상태도 CTA가 null이라, 오늘 쉬는 러너가 다음에 할 일로 이어지는 길이 없다. → 남은 세션이 없는 분기에 '전체 계획 보기'와 '새 플랜 만들기' 링크를 넣고, 문구를 '예정된 세션이 없습니다'로 바꾼다.
+  <!-- autopilot: {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "scope": ["frontend/src/lib/todayHero.ts", "frontend/src/lib/components/TodayHero.svelte", "frontend/src/lib/components/NextSessionCard.svelte", "frontend/tests/todayHero.test.mjs", "frontend/tests/nextSessionDeadEnd.test.mjs"], "verify": ["cd frontend && node --test tests/todayHero.test.mjs tests/nextSessionDeadEnd.test.mjs", "cd frontend && npm run check", "cd frontend && node --test tests/a11yStatic.test.mjs"], "summary": "'다음 할 일 경로'를 공통 계약으로 만든다. todayHero.ts 의 HeroView.cta 에 'plan' (전체 계획 보기)을 추가해 rest·race_day 도 null 이 되지 않게 한다. NextSessionCard 의 세션 없음 분기는 문구를 '예정된 세션이 없습니다'로 바꾸고 '전체 계획 보기'와 '새 플랜 만들기' 링크를 넣는다. 모든 히어로 상태가 CTA 를 갖는지, 카드의 막다른 분기에 링크가 있는지를 단위·정적 테스트로 고정한다.", "auto_approved": true} -->
+
+- **[AUD-55a8f3]** (판단 필요) [discover:gaps] provider-transparency: 웰니스 화면의 HRV·안정 심박·수면·Body Battery·스트레스 수치에 어느 서비스(Garmin·Intervals 등) 값인지 표시가 없습니다. 백엔드는 지표마다 provider 를 내려주지만 화면에서 버려집니다. 출처가 불명확하고, 서비스 간 값이 다를 때 비교도 할 수 없습니다. → WellnessCores·WellnessSleep 카드에 metrics_by_category 의 provider 를 SourceBadge 로 표시하고, 지표 상세로 드릴할 때 서비스별 값을 비교해 보여줍니다.
+  <!-- autopilot: {"stage": "needs_decision", "mode": "auto", "attempts": 0, "deps": [], "kind": "code"} -->

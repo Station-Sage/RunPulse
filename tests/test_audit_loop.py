@@ -102,6 +102,7 @@ def test_round_ends_and_unit_cap(tmp_path, monkeypatch):
     assert st["phase"] == "audit" and st["round"] == 2
     st = _st("develop", units_done=loop.UNIT_CAP)
     assert "상한" in loop.step(st, path=_backlog(tmp_path))
+    assert st["phase"] == "develop" and st["round"] == 1 + 1 and st["units_done"] == 0
 
 
 def test_audit_failures_halt_and_pacing_block(tmp_path, monkeypatch):

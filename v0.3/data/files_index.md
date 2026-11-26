@@ -2390,6 +2390,10 @@
 
 - functions: test_build_fields, test_append_dedup_and_load, test_choose, test_build_fallback_fills_summary_and_default_options, test_tests_do_not_touch_live_decisions_store
 
+### `test_audit_dedupe.py` (41줄) — 등록 전 중복 필터(dedupe) — kind·위치 근접 판정과 propose 연동.
+
+- functions: test_same_kind_open_is_duplicate, test_applied_kind_only_not_duplicate_but_near_cell_is, test_runtime_cell_match_and_queue_item, test_propose_skips_duplicate
+
 ### `test_audit_deploy.py` (67줄) — audit/deploy.py — 운영 반영 가드·병합·빌드 분기 (git/npm 은 주입한 sh 로 대체).
 
 - functions: run, test_guards_leave_everything_untouched, test_diverged_and_merge_failure_report_failed, test_merge_builds_frontend_only_when_changed, test_full_pytest_gates_merge_with_lf_retry, test_flaky_failure_passes_on_lf_rerun
@@ -2418,7 +2422,7 @@
 
 - functions: test_key_stable_and_distinct, test_filter_new_skips_open_only, test_record_marks_reopened, test_reverify_resolves_and_keeps, test_current_round_reads_state, test_tunable_override, test_discover_respects_cap_and_round_reset, test_discover_drops_already_known
 
-### `test_audit_loop.py` (268줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
+### `test_audit_loop.py` (269줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
 
 - functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_needs_decision_items_do_not_stop_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_needs_decision_left_does_not_stop, test_run_until_stop_converts_exception_and_pacinghold, test_propose_keeps_design_summary, test_no_candidate_design_goes_through_end_round, test_propose_limit_and_checkpoint, test_step_records_cursor_and_reset_clears, test_run_until_stop_saves_state_immediately_on_resume
 
@@ -4362,7 +4366,7 @@
 - functions: run
 
 ---
-총 956개 파일
+총 957개 파일
 
 ## docstring 누락
 
