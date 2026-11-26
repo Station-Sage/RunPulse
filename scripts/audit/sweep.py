@@ -100,14 +100,15 @@ def _serve(db: Path) -> tuple[subprocess.Popen, str]:
     raise RuntimeError("synth server did not start")
 
 
-def sweep_state(state: str, viewport: str, tmp: Path, limit: int | None) -> list[dict]:
+def sweep_state(state: str, viewport: str, tmp: Path, limit: int | None, only: list[str] | None = None) -> list[dict]:
     from scripts.synth_smoke.seed_synth import seed
 
     db = tmp / f"{state}.db"
     seed(db, empty=(state == "empty"))
     conn = sqlite3.connect(db)
     inv = inventory.build(screens=inventory.frontend_screens(), apis=[])
-    screens = inv["screens"][:limit] if limit else inv["screens"]
+    screens = [x for x in inv["screens"] if x in only] if only else inv["screens"]
+    screens = screens[:limit] if limit else screens
     jobs = [{"cell": f"{s}|{state}|{viewport}", "path": resolve_path(s, conn)} for s in screens]
     conn.close()
     cfg = tmp / f"jobs_{state}_{viewport}.json"
@@ -129,6 +130,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--states", default="empty,small,error")
     ap.add_argument("--viewports", default="390,desktop")
+    ap.add_argument("--screens", default="", help="이 화면들만(쉼표 구분, 비우면 전부)")
     ap.add_argument("--limit", type=int, default=None, help="화면 수 제한(시험용)")
     args = ap.parse_args(argv)
     total, failed = 0, []
@@ -138,7 +140,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[sweep] {i}/{len(combos)} {state} {vp} 시작", flush=True)
             t0 = time.time()
             try:
-                res = sweep_state(state, vp, Path(d), args.limit)
+                res = sweep_state(state, vp, Path(d), args.limit, [x for x in args.screens.split(",") if x] or None)
             except Exception as e:   # 한 조합 실패가 나머지 스윕을 막지 않는다
                 failed.append(f"{state}|{vp}: {e}"[:200])
                 print(f"[sweep] {i}/{len(combos)} {state} {vp} 실패 ({time.time() - t0:.0f}s): {str(e)[:120]}", flush=True)

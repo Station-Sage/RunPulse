@@ -107,3 +107,12 @@ def test_plan_step_waits_while_vision_decision_pending(tmp_path):
     decisions.choose("VIS-v2", "B", d)
     decisions.save([{**r, "status": "applied"} for r in decisions.load(d)], d)
     assert o.plan_step({}, lambda s: "계획", d) == "계획"
+
+
+def test_gate_ignores_needs_decision_and_decided_failed(tmp_path):
+    st = {"gate": {"clean_rounds": 2, "version_rounds": 2}}
+    dp = tmp_path / "d.json"
+    dp.write_text('[{"id": "F1", "status": "open"}]', encoding="utf-8")
+    assert o.gate_passed(st, [NS(stage="needs_decision", item_id="N1")], dp)[0] is True
+    assert o.gate_passed(st, [NS(stage="failed", item_id="F1")], dp)[0] is True
+    assert o.gate_passed(st, [NS(stage="failed", item_id="F2")], dp)[0] is False

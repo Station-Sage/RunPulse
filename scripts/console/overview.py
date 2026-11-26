@@ -22,7 +22,7 @@ def queue_summary(path: Path | None = None) -> dict:
     blocked = [{"id": it.item_id, "kind": it.fail_kind, "reason": it.fail_reason, "text": it.text, "attempts": it.attempts}
                for it in items if it.stage == "failed"]
     return {"total": len(items), "by_stage": by, "next": nr.item_id if nr else None, "attention": attention,
-            "blocked": blocked, "blocked_count": len(blocked) + by.get("needs_decision", 0)}
+            "blocked": blocked, "blocked_count": len(blocked), "waiting_count": by.get("needs_decision", 0)}
 
 
 CLOSED_SHOWN = 10

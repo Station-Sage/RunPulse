@@ -14,9 +14,12 @@ if (cfg.state === 'error') {
 }
 const LEAK = /\bundefined\b|\bNaN\b|\[object Object\]|\bnull\b/;
 const out = [];
+const STATE_FREE = /^(tap-target|no-h1)/; // 상태와 무관한 검사 — 빈·소량 상태에서만 센다(오류 상태에서 중복 계수 방지)
 for (const { cell, path } of cfg.jobs) {
 	const page = await ctx.newPage();
 	const issues = [];
+	let calledApi = false;
+	page.on('request', (r) => { if (new URL(r.url()).pathname.startsWith('/api/')) calledApi = true; });
 	page.on('pageerror', (e) => issues.push(`pageerror: ${e.message.slice(0, 120)}`));
 	page.on('console', (m) => { if (m.type() === 'error' && !/favicon|status of 5\d\d|Failed to load resource/.test(m.text())) issues.push(`console: ${m.text().slice(0, 120)}`); });
 	if (cfg.state !== 'error') page.on('response', (r) => { const u = new URL(r.url()); if (u.pathname.startsWith('/api/') && r.status() >= 400) issues.push(`http ${r.status()}: ${u.pathname}`); });
@@ -45,7 +48,8 @@ for (const { cell, path } of cfg.jobs) {
 		if (d.brokenImg) issues.push(`broken-img: ${d.brokenImg}`);
 		if (d.small) issues.push(`tap-target<24px: ${d.small}`);
 		if (!d.h1) issues.push('no-h1');
-		if (cfg.state === 'error' && !d.errorState) issues.push('error-state-missing');
+		if (cfg.state === 'error' && calledApi && !d.errorState) issues.push('error-state-missing');
+		if (cfg.state === 'error') { for (let i = issues.length - 1; i >= 0; i--) if (STATE_FREE.test(issues[i])) issues.splice(i, 1); }
 	} catch (e) {
 		issues.push(`nav-fail: ${String(e.message).slice(0, 100)}`);
 	}

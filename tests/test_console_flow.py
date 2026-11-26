@@ -27,6 +27,15 @@ def test_build_from_events(tmp_path):
     assert a["stage"] == 1 and a["subs"]["sweep"]["state"] == "done" and a["subs"]["audit"]["state"] == "active"
 
 
+def test_design_batches_are_summed(tmp_path):
+    q = tmp_path / "B.md"
+    q.write_text(Q)
+    evs = [_ev("phase", 100, round=3, phase="design"), _ev("design", 110, new=3, auto=2, user=1),
+           _ev("design", 120, new=6, auto=0, user=7)]
+    p = flow.build({"round": 3, "phase": "design"}, 200, q, evs)
+    assert p["design"] == {"new": 9, "auto": 2, "user": 8}
+
+
 def test_deploy_stage_and_old_round_ignored(tmp_path):
     q = tmp_path / "B.md"
     q.write_text("")

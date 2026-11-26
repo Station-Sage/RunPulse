@@ -33,6 +33,11 @@ def _quiet(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_real_sweep(monkeypatch):
+    monkeypatch.setattr(loop.cycle, "browser_sweep", lambda limit=None, screens=None: (0, None))
+
+
+@pytest.fixture(autouse=True)
 def _isolate_stop_flag(tmp_path, monkeypatch):
     monkeypatch.setattr(loop, "STOP_FLAG", lambda: tmp_path / "no_stop_flag")
 
@@ -267,3 +272,25 @@ def test_run_until_stop_saves_state_immediately_on_resume(monkeypatch, tmp_path)
     st = _st("design", stop_reason="pacing")
     loop.run_until_stop(st, once=True)
     assert seen[0] == [None]
+
+
+def test_item_level_failure_does_not_halt_loop(tmp_path, monkeypatch):
+    _quiet(monkeypatch)
+    p = _backlog(tmp_path)
+    st = _st("develop")
+    fail = lambda: queue.update_item(p, "U1", stage="failed", fail_kind="verify") or 0
+    for _ in range(loop.FAIL_LIMIT + 1):
+        queue.update_item(p, "U1", stage="queued")
+        loop.step(st, path=p, act={"develop": fail})
+    assert st["phase"] == "develop" and st["fails"] == 0
+
+
+def test_systemic_failure_still_halts(tmp_path, monkeypatch):
+    _quiet(monkeypatch)
+    p = _backlog(tmp_path)
+    st = _st("develop")
+    fail = lambda: queue.update_item(p, "U1", stage="failed", fail_kind="exec") or 0
+    for _ in range(loop.FAIL_LIMIT):
+        queue.update_item(p, "U1", stage="queued")
+        loop.step(st, path=p, act={"develop": fail})
+    assert st["phase"] == "halted"

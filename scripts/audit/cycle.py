@@ -97,8 +97,8 @@ def summary(e: dict) -> str:
             f"후보 {e.get('findings', 0)}건 중 독립 검토 통과 {e.get('confirmed', 0)}건 · {e.get('elapsed_sec', 0)}초")
 
 
-def _sweep_once(limit: int | None) -> tuple[int, str | None]:
-    cmd = [sys.executable, "-m", "scripts.audit.sweep"] + (["--limit", str(limit)] if limit else [])
+def _sweep_once(limit: int | None, screens: list[str] | None = None) -> tuple[int, str | None]:
+    cmd = [sys.executable, "-m", "scripts.audit.sweep"] + (["--limit", str(limit)] if limit else []) + (["--screens", ",".join(screens)] if screens else [])
     p = subprocess.Popen(cmd, cwd=inventory.ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     lines: list[str] = []
     for ln in p.stdout:  # 진행 로그를 저널에 즉시 흘린다(끝난 뒤 한꺼번에 쓰지 않음)
@@ -122,13 +122,13 @@ def _sweep_once(limit: int | None) -> tuple[int, str | None]:
     return swept, None
 
 
-def browser_sweep(limit: int | None = None) -> tuple[int, str | None]:
+def browser_sweep(limit: int | None = None, screens: list[str] | None = None) -> tuple[int, str | None]:
     """브라우저 스윕 — (셀 수, 실패 사유). 일시 실패(서버 기동·브라우저)는 1회 재시도, 사유엔 stderr 끝 3줄. 생략 경로는 없다."""
     if not shutil.which("node"):
         return 0, "node 없음"
-    swept, err = _sweep_once(limit)
+    swept, err = _sweep_once(limit, screens)
     if err:
-        swept, err2 = _sweep_once(limit)
+        swept, err2 = _sweep_once(limit, screens)
         err = None if err2 is None else f"재시도 후에도 실패: {err2}"
     return swept, err
 

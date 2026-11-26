@@ -5,7 +5,7 @@
   audit  : 버전이 바뀌었으면 release.run(Opus 전 관점, 한도 내) 먼저, 아니면 cycle.run_cycle (스윕 필수 + 관점 감사 + 독립 검토) → design
   design : 확인된 후보를 BACKLOG 에 제안(자체 승인=queued, 사용자 결정=needs_decision) → develop
   (사용자 결정 대기 항목은 막지 않는다 — needs_decision 으로 남기고 state["pending_decisions"] 로만 노출, 나머지 단위는 계속 진행. 사람이 stage 를 queued 로 바꾸면 다음 develop 에서 집어간다)
-  develop: run_unit.run_once 1건 → review 면 test, failed 면 알리고 다음 항목
+  develop: run_unit.run_once 1건 → review 면 test, failed 는 exec·sync·env 만 정지 사유(검증 실패·결정 반복은 카드로 노출하고 다음 항목)
   test   : 브라우저 스윕(안쪽 루프) 통과 → done, 실패 → queued(버그수정 재개발), 상한 초과 → failed
 정지는 stopreason.py 의 사유(pacing·step_cap·failed·stop_flag)로 기록하고 타이머 발화 시 사유별로 자동 재개한다.
 정지 조건: 같은 단계 연속 실패 FAIL_LIMIT, 항목당 테스트 재시도 FIX_LIMIT, 라운드당 단위 UNIT_CAP(도달 시 운영 반영 후 develop 유지), 단계 직전 pacing.
@@ -18,12 +18,12 @@ import json
 import time
 from pathlib import Path
 
-from scripts.audit import agents, consume, cycle, deploy, idesign, inventory, orchestrator, planner, progress, release, release_plan, roles, steward, stopreason, triage, wake
+from scripts.audit import agents, consume, cycle, deploy, idesign, inventory, orchestrator, planner, progress, release, release_plan, roles, scope, steward, stopreason, triage, wake
 from scripts.audit.propose import PENDING_PATH, propose  # noqa: F401  (tests·외부 호환)
 from scripts.autopilot import notify, pacing, queue, reconcile, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
-FAIL_LIMIT, FIX_LIMIT, UNIT_CAP, MAX_STEPS, DESIGN_CAP = 3, 2, 20, 40, 6
+FAIL_LIMIT, FIX_LIMIT, UNIT_CAP, MAX_STEPS, DESIGN_CAP, SYSTEMIC_FAILS = 3, 2, 20, 40, 6, ("exec", "sync", "env")
 _INIT = {"phase": "audit", "unit": None, "round": 1, "units_done": 0, "fails": 0, "fix": {},
          "stop_reason": None, "pending_decisions": 0, "cursor": None}
 
@@ -73,8 +73,15 @@ def _should_stop(path: Path) -> bool:
     return STOP_FLAG().exists()
 
 
-def _end_round(st: dict, ship, msg: str, path: Path | None = None, next_phase: str = "audit") -> str:
+def _end_round(st: dict, ship, msg: str, path: Path | None = None, next_phase: str = "audit", full_sweep=None) -> str:
     """라운드 종료 — 통과 단위가 있으면 운영 반영(실패해도 루프는 계속, 알림만) 후 next_phase(기본 감사, 상한 도달 시 develop 유지)로."""
+    if full_sweep and st["units_done"] > 0:  # 단위별 테스트는 변경 화면만 — 전 화면 스윕은 반영 직전 1회
+        n, err = full_sweep()
+        if err:
+            notify.send(f"[루프] 라운드 {st['round']} 전체 스윕 실패 — 운영 반영 보류: {err}" + notify.console_hint())
+            ship, msg = (lambda _n: {"ran": False}), msg + f" · 전체 스윕 실패로 반영 보류({err[:80]})"
+        else:
+            msg += f" · 전체 스윕 {n}셀 통과"
     progress.event("deploy_start", round=st["round"], units=st["units_done"])
     r = ship(st["units_done"])
     ok = r.get("outcome") == "done"
@@ -106,7 +113,9 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     rel = act.get("release", release.run)
     develop = act.get("develop", _develop)
     ship = act.get("deploy", deploy.run)
-    sweep = act.get("sweep", lambda: cycle.browser_sweep())
+    sweep = act.get("sweep", lambda screens=None: cycle.browser_sweep(screens=screens))
+    scope_fn = act.get("scope") or ((lambda: None) if "sweep" in act else scope.unit_screens)
+    full_sweep = act.get("full_sweep") or (sweep if "sweep" in act else (None if "deploy" in act else (lambda: cycle.browser_sweep())))
     if st["phase"] == "await":
         st["phase"] = "develop"
     ph = st["phase"]
@@ -156,14 +165,15 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
                         f" / 사용자 결정 대기 {len(user)}건(장단점·추천은 {PENDING_PATH}): {', '.join(user) or '-'}."
                         " 승인은 콘솔 결정함 또는 BACKLOG stage 를 queued 로." + notify.console_hint())
             return f"설계 {len(new)}건 — 자체 승인 {len(auto)}, 사용자 결정 {len(user)}"
-        return _end_round(st, ship, "새 후보 없음 — 라운드 종료", path)
+        return _end_round(st, ship, "새 후보 없음 — 라운드 종료", path, full_sweep=full_sweep)
     if ph in ("plan", "idesign") and orchestrator.critical_open(queue.parse(path)):
         progress.event("critical_first", round=st["round"], phase=ph)
         st.update(phase="develop", unit=None)  # 치명 결함이 버전 작업보다 먼저
         return "치명 결함 미처리 — 버전 작업 보류, 개발 단계로"
     if ph == "plan":
         try:
-            steward.step(**act.get("steward", {}))  # 비차단 — 실패해도 기획 진행
+            if not roles.blocked("steward"):
+                steward.step(**act.get("steward", {}))  # 비차단 — 실패해도 기획 진행
         except Exception as e:
             print(f"[steward] 건너뜀: {e}")
         return orchestrator.plan_step(st, act.get("plan", planner.plan), act.get("dpath"))
@@ -184,16 +194,19 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         if queue.next_runnable(items) is None:
             from collections import Counter
             progress.mark(f"[루프] 실행 가능 단위 없음 — 항목 {len(items)}건, (단계,모드) 분포 {dict(Counter((i.stage, i.mode) for i in items))}")
-            return _end_round(st, ship, "열린 단위 없음 — 다음 감사로", path)
+            return _end_round(st, ship, "열린 단위 없음 — 다음 감사로", path, full_sweep=full_sweep)
         if st["units_done"] >= UNIT_CAP:
-            return _end_round(st, ship, f"라운드 단위 상한 {UNIT_CAP} — 운영 반영 후 개발 계속", path, next_phase="develop")
+            return _end_round(st, ship, f"라운드 단위 상한 {UNIT_CAP} — 운영 반영 후 개발 계속", path, next_phase="develop", full_sweep=full_sweep)
         nxt = queue.next_runnable(queue.parse(path))
         progress.event("unit_start", round=st["round"], unit=nxt.item_id)
         rc = develop()
         stage = _stage(path, nxt.item_id)
+        kind = next((i.fail_kind for i in queue.parse(path) if i.item_id == nxt.item_id), "")
         if rc == 2 or stage == "failed":
-            notify.send(f"[루프] {nxt.item_id} 개발 차단 — 사람 확인 필요")
             st.update(phase="develop", unit=None)
+            if rc != 2 and kind not in SYSTEMIC_FAILS:  # 항목 단위 문제(결정 카드로 노출) — 정지 사유 아님
+                return f"{nxt.item_id} 항목 실패({kind}) — 결정 카드로 넘기고 다음 항목 진행"
+            notify.send(f"[루프] {nxt.item_id} 개발 차단 — 사람 확인 필요")
             return _fail(st, f"{nxt.item_id} 개발 차단")
         if stage == "review":
             st.update(phase="test", unit=nxt.item_id, fails=0)
@@ -202,12 +215,13 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         return f"{nxt.item_id} 개발 단계 유지(stage={stage}, rc={rc})"
     if ph == "test":
         iid = st["unit"]
-        n, err = sweep()
+        sc = scope_fn()
+        n, err = (0, None) if sc == [] else (sweep() if sc is None else sweep(sc))
         if not err:
             queue.update_item(path, iid, stage="done")
             progress.event("unit_end", round=st["round"], unit=iid, result="done")
             st.update(phase="develop", unit=None, units_done=st["units_done"] + 1, fails=0)
-            return f"{iid} 테스트 통과({n}셀) → done"
+            return f"{iid} 테스트 통과({n}셀{' · 변경 화면만' if sc else ''}) → done"
         tries = st["fix"].get(iid, 0) + 1
         st["fix"][iid] = tries
         if tries > FIX_LIMIT:
