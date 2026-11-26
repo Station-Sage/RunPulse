@@ -22,6 +22,7 @@ _PROMPT = VISION + """
 너는 버전 기획자다. 안정화된 현재 버전 다음(%s)에 할 이니셔티브를 3~5개 제안하라. 코드는 쓰지 말고 JSON 한 개만 출력.
 각 이니셔티브는 '러너가 지금 앱에서 답을 못 얻는 질문' 하나를 해결해야 하고, 기존 이니셔티브를 확장(extend)하는지 신규(new)인지 밝혀라.
 evidence 는 실제 코드의 path:line 과 그 줄에 있는 문자열 일부(quote)여야 한다. 막연한 표현(전반적·다양한·고도화·최적화)은 금지.
+verify 는 단독 실행 가능한 명령(존재하는 스크립트·인자 불필요)만, 부재 검사는 `! grep -rn 좁은패턴 경로` 로 쓴다.
 {"title":"버전 제목","initiatives":[{"id":"INI-slug","title":"","kind":"extend|new","principle":1,"question":"러너가 못 얻는 답",
  "goal":"한 줄 목표","evidence":[{"path":"src/x.py:12","quote":"그 줄의 일부"}],"verify":["완료 기준 셸 커맨드"]}],
  "goal":"이 버전의 제품 목표 한 줄","phases":[{"id":"단계 식별자(예: P1 또는 로마숫자, 자유)","title":"그 단계가 이루는 것","initiatives":["INI-slug"]}],

@@ -187,6 +187,10 @@ class TestVerifyFailureRequeue:
         rec, cards = self._run(monkeypatch, tmp_path, 0, "Cannot find module 'playwright'")
         assert rec["stage"] == "failed" and cards == ["env"]
 
-    def test_second_verify_failure_fails_with_card(self, monkeypatch, tmp_path):
+    def test_second_verify_failure_still_retries(self, monkeypatch, tmp_path):
         rec, cards = self._run(monkeypatch, tmp_path, 1, "`x` 종료코드 1\nFAILED")
+        assert rec["stage"] == "queued" and cards == []
+
+    def test_third_verify_failure_fails_with_card(self, monkeypatch, tmp_path):
+        rec, cards = self._run(monkeypatch, tmp_path, 2, "`x` 종료코드 1\nFAILED")
         assert rec["stage"] == "failed" and cards == ["verify"]

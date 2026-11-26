@@ -12,7 +12,7 @@ from pathlib import Path
 from scripts.audit import agents, docs_ctx, release_plan
 from scripts.audit.triage import _json
 from scripts.audit.vision import VISION
-from scripts.autopilot import queue, settings
+from scripts.autopilot import queue, settings, verify_doctor
 
 ROOT = Path(__file__).resolve().parents[2]
 MAX_ITEMS = 6
@@ -20,13 +20,15 @@ _PROMPT = VISION + """
 
 너는 설계자다. 이니셔티브 %s(%s) 를 개발 항목으로 나눠라. 코드는 쓰지 말고 JSON 한 개만 출력.
 항목 하나는 한 번의 개발 단위(파일 몇 개)로 끝나야 하고, scope 는 건드릴 파일 경로, verify 는 성공 판정 셸 커맨드다.
+verify 규칙: 단독 실행 가능(존재하는 스크립트·인자 불필요), 쓰는 테스트 파일은 scope 에 포함, 부재 검사는 `! grep -rn 좁은패턴 경로`.
 {"design":"설계 본문(마크다운, 접근·대안·위험)","items":[{"text":"항목 설명","scope":["src/x.py"],"verify":["pytest tests/test_x.py"]}]}"""
 
 
 def valid_item(it: dict, root: Path = ROOT) -> bool:
     scope = [s for s in it.get("scope", []) if isinstance(s, str) and s]
     ok_scope = scope and all(".." not in Path(s).parts and not Path(s).is_absolute() for s in scope)
-    return bool(it.get("text") and ok_scope and [v for v in it.get("verify", []) if isinstance(v, str) and v.strip()])
+    vs = [v for v in it.get("verify", []) if isinstance(v, str) and v.strip()]
+    return bool(it.get("text") and ok_scope and vs and not verify_doctor.lint(vs, scope, root))
 
 
 def parse(text: str) -> tuple[str, list[dict]]:
