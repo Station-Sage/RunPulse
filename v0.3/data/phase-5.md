@@ -717,6 +717,9 @@ def get_wellness_trend(conn, days: int = 30) -> dict:
 
 ## 5-3. AI Context Builder 재설계
 
+> **[2026-11-26 정정]** 이 절의 서비스 레이어 기반 빌더(`build_daily_briefing` 등)는 구현 후 운영 호출처가 없어 삭제됐다.
+> 현재 `src/ai/ai_context.py`는 레거시 dict 경로(`build_context` 등)만 재노출한다. 아래는 설계 이력이다.
+
 AI Coach에 보낼 컨텍스트를 새 스키마에서 구성합니다. 기존 `ai_context.py`는 여러 테이블을 하드코딩된 쿼리로 읽었습니다.
 
 ```python

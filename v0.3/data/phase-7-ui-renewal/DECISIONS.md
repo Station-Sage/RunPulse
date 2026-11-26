@@ -1263,3 +1263,32 @@ REVIEW-04 #S2(Coach 근거 없음, 입력창 미도킹) 해소. 근거 칩은 To
   3. 02 "3선은 기능 탭 대체물이 아니다" 원칙에 맞춰 드로어 '바로가기' 그룹(S4-90 확정)을 축소하는 UI 변경까지 포함(확정 결정 번복이므로 사용자 판단 필요).
 - **권고**: 1번. 위험이 낮고 문서-코드 불일치만 해소한다. 3번은 S4-90 결정을 뒤집는 일이라 권하지 않는다.
 - **상태**: 사용자 결정 대기. 코드 변경 없음. pytest·브라우저 검증은 이 실행에서 수행하지 않음.
+
+## [P7-DATA-MENU-ENTRY-IMPL] 구현 대상 없음 — 진입점·Data API·화면 기구현, 처리 방향 결정 미기록으로 착수 보류 (2026-11-25)
+- **배경**: `DESIGN-DATA-MENU-ENTRY.md` 대조 결과 ☰ `MenuDrawer`, `/data/*` 화면, `src/api/routes_data*.py` Data API 가 이미 존재한다. 명세대로 만들 신규 코드가 없고, `[P7-DATA-MENU-ENTRY]` 결정에 사용자 답이 없어 임의로 범위를 정하지 않았다. 재구현은 기존 기능을 중복·훼손할 위험이 있다.
+- **질문**: 이 IMPL 항목을 어떻게 처리할까?
+- **선택지**:
+  1. 코드 구현 취소, 문서 정합(07 체크박스·02 메뉴 서술·03f 가져오기) + 드로어→Data 화면 브라우저 스모크로 축소(kind=doc).
+  2. 항목 종료(done), 문서 정합은 별도 하우스키핑.
+  3. 02 원칙에 맞춰 드로어 '바로가기' 그룹 축소(S4-90 번복, 사용자 판단 필요).
+- **권고**: 1번.
+- **상태**: 사용자 결정 대기. 코드 변경 없음.
+
+## [P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT] 조정 수락 영속화는 이미 설계·구현됨 — 후속 IMPL 항목을 어떻게 처리할지 (2026-11-25)
+- **배경**: `DESIGN-PLAN-ADJUSTMENTS.md`(ADR-035, A안)가 이미 있고, `plan_adjustments` 테이블(v31→v37), `plan_overlay.py`, `plan_adjustment_service.py`, `routes_plan_adjust.py`(accept/revert/list)가 존재한다. BACKLOG의 "읽기 전용·쓰기 경로 없음·`PUT accept-adjustment`·Phase 7c 이연" 전제는 낡았다. 요청된 `DESIGN-COACH-PLAN-ADJUSTMENT-ACCEPT.md`는 새 설계 대신 현황 포인터로 작성했다. `DESIGN-PLAN-ADJUSTMENTS.md` §8의 결정 4건은 DECISIONS.md에 확정 기록이 없다.
+- **질문**: `[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT-IMPL]`(kind=code, scope src/·tests/)을 어떻게 처리할까?
+- **선택지**:
+  1. 코드 구현 취소. T4·T6·T7·T9 구현 여부를 감사해 미구현분만 새 항목으로 쪼개고, §8 결정 4건은 추천안으로 확정할지 사용자가 답한다(kind=doc).
+  2. 항목 종료(done). 미구현분은 별도 하우스키핑에 맡긴다.
+  3. 외부 출력(ICS·garmin_push·caldav_push)까지 조정을 반영하는 구현을 포함(§8-4 추천과 반대, 설계 추가 필요).
+- **권고**: 1번. 기존 구현과 중복·충돌할 위험이 없고, 미결 결정을 사용자 확인으로 돌린다.
+- **상태**: 사용자 결정 대기. 코드 변경 없음, pytest 미실행.
+
+## [P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT-IMPL] 요청 명세(planned_workouts 영속화 + PUT accept-adjustment)는 확정 설계와 충돌 — 구현 보류 (2026-11-25)
+- **질문**: 항목은 `planned_workouts` 영속화 + `PUT accept-adjustment`를 요구하나, 확정 설계(ADR-035 A안)는 `plan_adjustments` 이력 테이블 + 읽을 때 오버레이이고 `POST /coach/plan/adjustments/<id>/accept|revert`가 이미 구현돼 있다. 어떻게 할까?
+- **선택지**:
+  1. 항목 종료(done)·코드 변경 없음. 미구현분(T4·T6·T7·T9)은 감사 후 별도 항목으로 분리.
+  2. 확정 설계를 번복하고 `planned_workouts` 직접 덮어쓰기 + PUT 경로 추가(되돌리기·이력 상실, ADR-035 번복 필요).
+  3. 기존 POST 계약을 유지한 채 PUT 별칭만 추가(중복 API, 가치 낮음).
+- **권고**: 1번. 설계 번복·중복 구현을 피한다. 앞선 `[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT]` 섹션의 §8 결정 4건 확정과 함께 답해 달라.
+- **상태**: 사용자 결정 대기. 코드 변경 없음.

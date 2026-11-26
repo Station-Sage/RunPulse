@@ -869,7 +869,7 @@ def check_phase5_services():
     ]
     # 헬퍼 파일 → 대표 함수
     required_helpers = [
-        ("src/ai/ai_context.py",              "build_ai_context"),
+        ("src/ai/ai_context_legacy.py",       "build_context"),
         ("src/utils/template_helpers.py",       "format_pace"),
     ]
     # dedup 확장 — group 관리 함수

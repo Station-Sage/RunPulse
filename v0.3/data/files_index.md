@@ -1228,9 +1228,9 @@
 
 - functions: get_cached, set_cached, get_cache_age, invalidate, clear_all_no_commit
 
-### `ai_context.py` (185줄) — Phase 5 AI 컨텍스트 빌더 — 서비스 레이어 기반 LLM 프롬프트 생성.
+### `ai_context.py` (15줄) — AI 컨텍스트 빌더 진입점 — 레거시 dict 경로 재노출.
 
-- functions: build_daily_briefing, build_activity_analysis, build_ai_context
+- (public API 없음)
 
 ### `ai_context_legacy.py` (288줄) — 레거시 dict 기반 AI 컨텍스트 — build_context/format_context_text/format_activity_context.
 
@@ -1280,11 +1280,11 @@
 
 - functions: get_ai_provider, chat_result, llm_followups, chat
 
-### `chat_engine_providers.py` (280줄) — AI 채팅 — 외부 API provider 호출 모듈.
+### `chat_engine_providers.py` (288줄) — AI 채팅 — 외부 API provider 호출 모듈.
 
 - functions: complete, call_with_tools, call_claude, call_openai, call_gemini, call_groq, call_genspark, call_genspark_selenium
 
-### `chat_engine_result.py` (169줄) — 채팅 엔진 결과 모델 + provider 체인 실행 (30-coach-chat design §4.1·§4.3·§6.2).
+### `chat_engine_result.py` (174줄) — 채팅 엔진 결과 모델 + provider 체인 실행 (30-coach-chat design §4.1·§4.3·§6.2).
 
 - class **Attempt**: 없음
 - class **EngineInfo**: 없음
@@ -1339,7 +1339,7 @@
 - class **Ticket**: 없음
 - functions: now_kst, limits, day_of, resets_at, scope, ensure_scope, uid_from_db, current, admit, settle, chars_of, usage_today, global_ratio, reset_for_tests
 
-### `provider_claude_queue.py` (90줄) — claude_queue provider 어댑터 — 큐 가용 여부 확인과 ProviderError 매핑 (DESIGN-V2-AI-CLAUDE-QUEUE §E2).
+### `provider_claude_queue.py` (91줄) — claude_queue provider 어댑터 — 큐 가용 여부 확인과 ProviderError 매핑 (DESIGN-V2-AI-CLAUDE-QUEUE §E2).
 
 - functions: db_path_of, uid_of, available, complete, try_complete, complete_coach
 
@@ -2202,9 +2202,9 @@
 
 - functions: test_feed_success, test_feed_quota_via_rate_limit_event, test_feed_quota_via_error_result, test_feed_non_quota_error, test_parse_line_ignores_noise, test_build_argv_isolation_and_sessions, test_build_mcp_config_pins_uid, test_run_collects_result, test_run_deadline_kills, test_run_cancel, test_run_no_result
 
-### `test_ai_context.py` (236줄) — tests/test_ai_context.py — Phase 5-D AI 컨텍스트 빌더 테스트.
+### `test_ai_context.py` (149줄) — tests/test_ai_context.py — Phase 5-D AI 컨텍스트 빌더 테스트.
 
-- functions: conn, test_build_daily_briefing_full, test_build_daily_briefing_contains_readiness, test_build_daily_briefing_contains_fitness, test_build_daily_briefing_no_wellness, test_build_daily_briefing_race_predictions, test_build_daily_briefing_format, test_build_activity_analysis_full, test_build_activity_analysis_contains_core, test_build_activity_analysis_no_rp_metrics, test_build_ai_context_daily_only, test_build_ai_context_with_activity, test_build_context_today_activity, test_build_context_no_activity, test_build_context_fitness, test_build_context_no_data_graceful, test_format_context_text_is_string, test_format_context_text_no_data_graceful, test_format_activity_context_is_string, test_format_activity_context_missing_activity, test_rule_based_response_does_not_raise, test_rule_based_response_no_data_graceful, test_legacy_reexport_paths_identical
+- functions: conn, test_build_context_today_activity, test_build_context_no_activity, test_build_context_fitness, test_build_context_no_data_graceful, test_format_context_text_is_string, test_format_context_text_no_data_graceful, test_format_activity_context_is_string, test_format_activity_context_missing_activity, test_rule_based_response_does_not_raise, test_rule_based_response_no_data_graceful, test_legacy_reexport_paths_identical
 
 ### `test_ai_queue_api.py` (87줄) — claude_queue 클라이언트·상태/핑 API.
 
@@ -3320,9 +3320,9 @@
 
 - functions: test_band_key_acwr_low_and_layoff, test_action_hint_layoff_text_differs_from_overload, test_action_hint_is_rule_only
 
-### `test_metric_bands.py` (68줄) — tests/test_metric_bands.py — 등급 밴드 SSOT(src/metrics/bands.py).
+### `test_metric_bands.py` (76줄) — tests/test_metric_bands.py — 등급 밴드 SSOT(src/metrics/bands.py).
 
-- functions: test_tsb_conventional_bands, test_tsb_race_phase_overrides, test_cirs_lower_is_better, test_decoupling_uses_absolute_value, test_unknown_or_missing_returns_none, test_utrs_bands_match_calculator_ranges, test_rri_bands, test_c1_new_bands, test_c1_hints_exist_for_new_bands
+- functions: test_tsb_conventional_bands, test_tsb_race_phase_overrides, test_tsb_band_ranges_expose_race_optimal_window, test_cirs_lower_is_better, test_decoupling_uses_absolute_value, test_unknown_or_missing_returns_none, test_utrs_bands_match_calculator_ranges, test_rri_bands, test_c1_new_bands, test_c1_hints_exist_for_new_bands
 
 ### `test_metric_browse_groups.py` (69줄) — tests/test_metric_browse_groups.py — 메트릭 브라우저 8의도 그룹 매핑·정렬 단위 테스트.
 
@@ -3733,10 +3733,10 @@
 
 - functions: test_db_path_and_uid, test_available_false_on_error, test_complete_maps_failures, test_complete_ok_and_unavailable, conn, test_parse_batch, test_polish_batch_validates_each, test_polish_batch_falls_back_when_queue_fails, test_polish_skips_queue_when_unavailable, test_polish_in_background, test_validate_narrative, test_narrative_via_queue, test_warm_allows_queue_but_request_path_does_not
 
-### `test_provider_common.py` (118줄) — provider 오류 구조화(30-coach-chat design §6.2) — HTTP 상태→reason 매핑, 모델 ID 설정화, 타임아웃.
+### `test_provider_common.py` (152줄) — provider 오류 구조화(30-coach-chat design §6.2) — HTTP 상태→reason 매핑, 모델 ID 설정화, 타임아웃.
 
 - class **_Resp**: json
-- functions: test_status_maps_to_reason, test_429_is_rate_limit_error, test_timeout_maps_to_timeout, test_no_key_and_empty_response, test_success_uses_config_model_only, test_deadline_exhausted_raises_timeout, test_legacy_call_keeps_string_contract, test_tool_loop_executes_tool_then_answers, test_complete_counts_tool_calls_in_stats
+- functions: test_status_maps_to_reason, test_429_is_rate_limit_error, test_timeout_maps_to_timeout, test_no_key_and_empty_response, test_success_uses_config_model_only, test_deadline_exhausted_raises_timeout, test_legacy_call_keeps_string_contract, test_tool_loop_executes_tool_then_answers, test_complete_counts_tool_calls_in_stats, test_tool_calls_capped_per_request, test_tool_names_recorded_for_evidence, test_engine_info_exposes_unique_tools_of_answering_provider
 
 ### `test_provider_comparison_service.py` (301줄) — tests/test_provider_comparison_service.py — provider_comparison_service 단위 테스트.
 

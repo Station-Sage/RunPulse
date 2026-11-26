@@ -19,6 +19,8 @@ from .provider_common import (
 log = logging.getLogger(__name__)
 __all__ = ["ProviderError", "RateLimitError", "complete", "call_with_tools"]
 
+MAX_TOOL_CALLS = 6  # 요청 1건당 도구 조회 상한 — 라운드(3회) 안의 병렬 호출 폭주 방지
+
 
 # ── 공통 Tool Calling ────────────────────────────────────────────────
 
@@ -116,7 +118,13 @@ def complete(provider: str, prompt: str, config: dict | None, *, conn: sqlite3.C
         stats = stats if stats is not None else {}
 
         def execute_tool(*args, **kwargs):
+            if stats.get("tool_calls", 0) >= MAX_TOOL_CALLS:
+                return json.dumps({"error": "tool_call_limit",
+                                   "message": "도구 호출 상한 초과 — 이미 조회한 값으로 답하세요."},
+                                  ensure_ascii=False)
             stats["tool_calls"] = stats.get("tool_calls", 0) + 1
+            if len(args) > 1:
+                stats.setdefault("tool_names", []).append(str(args[1]))
             if on_tool is not None and len(args) > 1:
                 on_tool(args[1])
             return _execute(*args, **kwargs)

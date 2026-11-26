@@ -2,10 +2,7 @@
 import pytest
 
 from src.ai.ai_context import (
-    build_activity_analysis,
-    build_ai_context,
     build_context,
-    build_daily_briefing,
     format_activity_context,
     format_context_text,
 )
@@ -57,90 +54,6 @@ def conn(db_conn):
     )
     c.commit()
     return c, act_id
-
-
-# build_daily_briefing
-
-def test_build_daily_briefing_full(conn):
-    c, _ = conn
-    result = build_daily_briefing(c, DATE)
-    assert isinstance(result, str)
-    assert len(result) > 0
-    assert DATE in result
-
-
-def test_build_daily_briefing_contains_readiness(conn):
-    c, _ = conn
-    result = build_daily_briefing(c, DATE)
-    assert "UTRS" in result
-    assert "CIRS" in result
-
-
-def test_build_daily_briefing_contains_fitness(conn):
-    c, _ = conn
-    result = build_daily_briefing(c, DATE)
-    assert "CTL" in result
-    assert "ATL" in result
-    assert "TSB" in result
-
-
-def test_build_daily_briefing_no_wellness(db_conn):
-    """데이터 없어도 에러 없이 빈 섹션 처리."""
-    result = build_daily_briefing(db_conn, DATE)
-    assert isinstance(result, str)
-    assert DATE in result
-
-
-def test_build_daily_briefing_race_predictions(conn):
-    c, _ = conn
-    result = build_daily_briefing(c, DATE)
-    assert "5K" in result or "DARP" in result or "레이스" in result
-
-
-def test_build_daily_briefing_format(conn):
-    """None 메트릭은 출력하지 않음 — 빈 줄 최소화."""
-    c, _ = conn
-    result = build_daily_briefing(c, DATE)
-    # 연속된 빈 줄이 없어야 함
-    assert "\n\n\n" not in result
-
-
-# build_activity_analysis
-
-def test_build_activity_analysis_full(conn):
-    c, act_id = conn
-    result = build_activity_analysis(c, act_id)
-    assert isinstance(result, str)
-    assert "오후 달리기" in result
-
-
-def test_build_activity_analysis_contains_core(conn):
-    c, act_id = conn
-    result = build_activity_analysis(c, act_id)
-    assert "km" in result  # 거리 포맷
-    assert "bpm" in result  # 심박
-
-
-def test_build_activity_analysis_no_rp_metrics(db_conn):
-    """활동 없으면 에러 없이 빈 분석 반환."""
-    result = build_activity_analysis(db_conn, 9999)
-    assert isinstance(result, str)
-
-
-# build_ai_context
-
-def test_build_ai_context_daily_only(conn):
-    c, _ = conn
-    result = build_ai_context(c, DATE)
-    assert DATE in result
-    assert "---" not in result  # activity 없으면 구분선 없음
-
-
-def test_build_ai_context_with_activity(conn):
-    c, act_id = conn
-    result = build_ai_context(c, DATE, activity_id=act_id)
-    assert "---" in result  # briefing + analysis 구분선 포함
-    assert "오후 달리기" in result
 
 
 # build_context (BUG-CHAT-RULE-FALLBACK 수정 — chat_engine_rules.rule_based_response·

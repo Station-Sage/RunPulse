@@ -31,6 +31,7 @@ class Attempt:
     http_status: int | None = None
     latency_ms: int = 0
     tool_calls: int = 0
+    tools: list[str] = field(default_factory=list)   # 조회한 도구 이름(근거 노출, 호출 순서)
 
 
 @dataclass
@@ -41,6 +42,7 @@ class EngineInfo:
     attempts: list[Attempt] = field(default_factory=list)
     fallback_reason: str | None = None
     tool_calls: int = 0
+    tools: list[str] = field(default_factory=list)   # 답변 provider 가 조회한 도구 이름(중복 제거)
     resets_at: str | None = None   # quota_* 규칙 대체 시 다음 00:00 KST (multiuser-sync §4.3)
 
 
@@ -140,6 +142,7 @@ def run_chain(conn: sqlite3.Connection, prompt: str, config: dict | None, chain:
             log.warning("provider '%s' 예기치 못한 실패", prov, exc_info=True)
         attempt.latency_ms = int((time.monotonic() - started) * 1000)
         attempt.tool_calls = stats.get("tool_calls", 0)
+        attempt.tools = list(stats.get("tool_names", []))
         attempts.append(attempt)
         if attempt.ok:
             return text, prov, attempts
@@ -162,7 +165,9 @@ def engine_for_rule(selected: str, config: dict | None, empty_reason: str | None
 
 def engine_for_ok(provider: str, attempts: list[Attempt]) -> EngineInfo:
     switched = attempts[0].reason if attempts[0].provider != provider else None
-    return EngineInfo("ok", provider, attempts[-1].model, attempts, switched, sum(a.tool_calls for a in attempts))
+    tools = list(dict.fromkeys(t for a in attempts if a.provider == provider for t in a.tools))
+    return EngineInfo("ok", provider, attempts[-1].model, attempts, switched,
+                      sum(a.tool_calls for a in attempts), tools=tools)
 
 
 __all__ = ["Attempt", "ChatResult", "EngineInfo", "build_chain", "run_chain", "engine_for_ok",

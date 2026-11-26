@@ -35,9 +35,6 @@ const ALLOWED = new Set([
 	'src/routes/demo/+page.svelte',
 	'src/routes/library/+page.svelte',
 	'src/routes/library/[id]/laps/+page.svelte',
-	'src/routes/library/[id]/metrics/+page.svelte',
-	'src/routes/library/[id]/providers/+page.svelte',
-	'src/routes/library/[id]/streams/+page.svelte',
 	'src/routes/library/activities/+page.svelte',
 	'src/routes/library/balance/+page.svelte',
 	'src/routes/library/metrics/+page.svelte',
@@ -70,4 +67,13 @@ test('library/[id]: 활동 없음 분기는 PageHead 가 보이는 h1 소유(ok 
 	assert.match(s, /import \{ pageHeading \} from '\$lib\/a11y\/pageHeading'/);
 	assert.match(s, /heading=\{pageHeading\(core \? 'ok' : 'failed', '활동 상세', \['ok'\]\)\}/);
 	assert.doesNotMatch(s, /<PageHead[^>]*heading=\{null\}/);
+});
+
+test('library/[id] metrics·providers·streams: 실패 분기에서 PageHead 가 보이는 h1 소유', () => {
+	for (const d of ['metrics', 'providers', 'streams']) {
+		const s = readFileSync(`src/routes/library/[id]/${d}/+page.svelte`, 'utf8');
+		assert.match(s, /import \{ pageHeading \} from '\$lib\/a11y\/pageHeading'/, d);
+		assert.match(s, /heading=\{pageHeading\(data\.failure[^}]*'failed' : 'ok', '[^']+', \['ok'\]\)\}/, d);
+		assert.doesNotMatch(s, /<PageHead[^>]*heading=\{null\}/, d);
+	}
 });

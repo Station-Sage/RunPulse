@@ -83,9 +83,6 @@ test('모든 +page/+error 에 PageHead 또는 <title>', () => {
 // h1 을 라우트 파일이 직접 그리지 않는 페이지(자식 컴포넌트가 그림) — 줄어들 수만 있다(ratchet).
 const H1_IN_CHILD = [
 	'src/routes/demo/+page.svelte',
-	'src/routes/library/[id]/metrics/+page.svelte',
-	'src/routes/library/[id]/providers/+page.svelte',
-	'src/routes/library/[id]/streams/+page.svelte',
 	'src/routes/library/wellness/[date]/+page.svelte',
 	'src/routes/welcome/+page.svelte'
 ];
