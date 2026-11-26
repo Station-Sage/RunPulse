@@ -23,12 +23,12 @@ def test_gate_paused_stops_with_role_pause(tmp_path):
     assert st["stop_reason"] == stopreason.ROLE_PAUSE and st["phase"] == "develop"
 
 
-def test_gate_skip_consumes_flag(tmp_path):
+def test_gate_skip_persists_until_released(tmp_path):
     p = tmp_path / "r.json"
     roles.set_flag("designer", "skip", True, p)
     st = {"phase": "design"}
     assert "건너뜀" in roles.gate(st, p)
-    assert st["phase"] == "develop" and roles.load(p)["designer"]["skip"] is False
+    assert st["phase"] == "develop" and roles.load(p)["designer"]["skip"] is True
 
 
 def test_gate_rerun_consumes_flag(tmp_path):
@@ -61,3 +61,13 @@ def test_resume_after_failed_still_restarts_audit(tmp_path):
     (tmp_path / "cycle_state.json").write_text(json.dumps({"phase": "halted", "stop_reason": "failed", "unit": "x"}))
     control._clear_stopped(tmp_path)
     assert json.loads((tmp_path / "cycle_state.json").read_text())["phase"] == "audit"
+
+
+def test_blocked_for_helper_role(tmp_path):
+    p = tmp_path / "r.json"
+    assert roles.blocked("steward", p) is False
+    roles.set_flag("steward", "paused", True, p)
+    assert roles.blocked("steward", p) is True and roles.blocked("steward", p) is True  # 일시정지는 해제 전까지 유지
+    roles.set_flag("steward", "paused", False, p)
+    roles.set_flag("steward", "skip", True, p)
+    assert roles.blocked("steward", p) is True and roles.blocked("steward", p) is True  # skip 은 해제 전까지 유지

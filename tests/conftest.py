@@ -218,3 +218,10 @@ def _restore_db_setup_get_db_path():
     orig = dbs.get_db_path
     yield
     dbs.get_db_path = orig
+
+
+@pytest.fixture(autouse=True)
+def _isolated_roles(tmp_path, monkeypatch):
+    """콘솔 역할 플래그(roles.json)를 테스트별로 격리 — 실 운영 지정이 루프 테스트에 새지 않게."""
+    from scripts.audit import roles
+    monkeypatch.setattr(roles, "ROLES_PATH", tmp_path / "roles.json")

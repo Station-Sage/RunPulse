@@ -3,7 +3,7 @@ from scripts.audit import cycle, sweep
 
 
 def test_sweep_main_prints_progress(monkeypatch, capsys):
-    monkeypatch.setattr(sweep, "sweep_state", lambda s, v, d, lim: [{"k": 1}, {"k": 2}])
+    monkeypatch.setattr(sweep, "sweep_state", lambda s, v, d, lim, only=None: [{"k": 1}, {"k": 2}])
     monkeypatch.setattr(sweep, "apply_results", lambda res: len(res))
     assert sweep.main(["--states", "empty,small", "--viewports", "390"]) == 0
     out = capsys.readouterr().out
@@ -13,7 +13,7 @@ def test_sweep_main_prints_progress(monkeypatch, capsys):
 
 
 def test_sweep_main_reports_failure(monkeypatch, capsys):
-    def boom(*a):
+    def boom(*a, **k):
         raise RuntimeError("x")
     monkeypatch.setattr(sweep, "sweep_state", boom)
     assert sweep.main(["--states", "empty", "--viewports", "390"]) == 1

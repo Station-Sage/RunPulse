@@ -69,7 +69,8 @@ def build(state: dict, now: float, queue_path: Path | None = None, events: list[
     phases = [e for e in evs if e["kind"] == "phase"]
     items = [it for it in queue.parse(queue_path or settings.QUEUE_PATH) if it.mode == "auto"]
     ph = state.get("phase")
-    design = next((e for e in reversed(evs) if e["kind"] == "design"), None)
+    dz = [e for e in evs if e["kind"] == "design"]
+    design = {k: sum(e.get(k, 0) for e in dz) for k in ("new", "auto", "user")} if dz else None
     deploy = next((e for e in reversed(evs) if e["kind"] in ("deploy_start", "deploy_end")), None)
     in_deploy = bool(deploy and deploy["kind"] == "deploy_start" and ph in STAGE_OF)
     stage = 4 if in_deploy else STAGE_OF.get(ph, 0)
@@ -81,7 +82,7 @@ def build(state: dict, now: float, queue_path: Path | None = None, events: list[
         "round": rnd, "phase": ph, "stage": stage, "stage_total": 4, "inferred": inferred,
         "round_started": evs[0]["ts"] if evs else None, "phase_started": cur["ts"] if cur else None,
         "now": now, "steps": _steps(evs, cur["ts"] if cur else None), "subs": _sub_states(evs) if stage <= 1 or ph == "audit" else None,
-        "design": {k: design[k] for k in ("new", "auto", "user")} if design else None,
+        "design": design,
         "units": {"done": done, "total": min(unit_cap, done + open_units), "current": state.get("unit"),
                   "started": ustart["ts"] if ustart and ph in ("test", "develop") else None},
         "review_waiting": sum(1 for it in items if it.stage == "review"),

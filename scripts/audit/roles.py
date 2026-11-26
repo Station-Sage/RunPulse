@@ -2,7 +2,7 @@
 
 파일: .claude/autopilot/roles.json  {"<role>": {"paused": bool, "skip": bool, "rerun": bool}}
 - paused : 해당 역할 단계 진입 시 정지(ROLE_PAUSE — 단계 유지, 해제 후 재개). 해제 후 재개는 콘솔의 '재개'.
-- skip   : 해당 단계를 1회 건너뛴다(다음 단계로). 소비되면 해제.
+- skip   : 해당 단계를 건너뛴다(다음 단계로). 사용자가 해제할 때까지 유지(소비되지 않음).
 - rerun  : 해당 역할 단계로 되돌린다(1회). 소비되면 해제.
 """
 from __future__ import annotations
@@ -49,12 +49,19 @@ def gate(st: dict, path: Path | None = None) -> str | None:
     if f.get("paused"):
         stopreason.stop(st, stopreason.ROLE_PAUSE)
         return f"{role} 일시정지 중 — 콘솔 역할 패널에서 해제 후 재개"
-    for flag in ("skip", "rerun"):
-        if f.get(flag):
-            set_flag(role, flag, False, path)
-            if flag == "skip":
-                st["phase"] = NEXT_PHASE[st["phase"]]
-                return f"{role} 단계 건너뜀 → {st['phase']}"
-            st["phase"] = next(p for p, r in PHASE_ROLE.items() if r == role)
-            return f"{role} 단계 재실행 지정"
+    if f.get("skip"):
+        st["phase"] = NEXT_PHASE[st["phase"]]
+        return f"{role} 단계 건너뜀 → {st['phase']}"
+    if f.get("rerun"):
+        set_flag(role, "rerun", False, path)
+        st["phase"] = next(p for p, r in PHASE_ROLE.items() if r == role)
+        return f"{role} 단계 재실행 지정"
     return None
+
+
+def blocked(role: str, path: Path | None = None) -> bool:
+    """단계 게이트가 없는 보조 역할(steward 등)이 일시정지·건너뛰기 지정을 받았는지 — 지정이 있으면 해제할 때까지 실행하지 않는다."""
+    f = load(path).get(role, {})
+    if f.get("paused"):
+        return True
+    return bool(f.get("skip"))

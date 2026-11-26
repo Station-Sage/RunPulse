@@ -90,13 +90,14 @@ function flowHtml(o){
   if(k===4&&p.deploy&&p.deploy.ok!=null)sub=`<div class="sub">${p.deploy.ok?'완료':p.deploy.ran?'실패':'생략'}</div>`;
   return `<div class="stp ${c}"><div class="no">${k}</div><div class="nm">${n}</div>${sub}</div>`}).join('<div class="ln"></div>');
  const ban=f.stop?`<div class="ban bad">중지됨${s.stop_reason?' — '+esc(s.stop_reason):''}</div>`:f.pause?`<div class="ban warn">일시중지${s.stop_reason?' — '+esc(s.stop_reason):''}</div>`:s.stop_reason?`<div class="ban warn">${esc(RSN[s.stop_reason]||s.stop_reason)}${s.stop_reason==='pacing'&&o.budget.pacing_resume_at?' · '+hhmm(o.budget.pacing_resume_at)+' 이후 재개':''}</div>`:'';
- const d=p.design,wait=d?`후보 ${d.new} → 자체 승인 ${d.auto} · 결정 대기 ${d.user}`:'',rvw=p.review_waiting||0,dn=o.decisions_open||0,bk=(o.queue||{}).blocked_count||0;
+ const d=p.design,wait=d?`후보 ${d.new} → 자체 승인 ${d.auto} · 결정 대기 ${d.user}`:'',rvw=p.review_waiting||0,dn=o.decisions_open||0,bk=(o.queue||{}).blocked_count||0,wt=(o.queue||{}).waiting_count||0;
  return `<b>라운드 ${esc(s.round)}</b> <span class="tag">${cur?'현재 '+cur+'/4':esc(s.phase||'-')}</span>${p.inferred?' <span class="mut">(로그 추정)</span>':''}
  <div class="row"><span>시작 ${hhmm(p.round_started)}</span><span>경과 ${el(p.round_started)}</span></div>
  <div class="row"><span>${esc(s.phase||'-')} 단계 시작 ${hhmm(p.phase_started)}</span><span>${el(p.phase_started)}</span></div>
  <div class="flow">${steps}</div>${stepsHtml(p,s.phase)}${ban}
  <div class="mut">${wait?wait+' · ':''}<a class="go" href="#rev">사후 검토 대기 ${rvw} →</a> · <a class="go" href="#dec">결정함 ${dn}</a></div>
  ${bk?`<div class="ban warn"><a class="go" href="#items?stage=failed">막힌 항목 ${bk}건</a> — 응답 필요 <a class="go" href="#dec">결정 보기 →</a></div>`:''}
+ ${wt?`<div class="ban"><a class="go" href="#dec">결정 대기 ${wt}건</a> — 개발은 계속 진행됩니다</div>`:''}
  <div class="mut"><a class="go" href="#items?stage=done">완료 ${esc(s.units_done)}</a> · <a class="go" href="#items?stage=failed">실패 ${esc(s.fails)}</a> · <a class="go" href="#items?stage=in_progress">진행중 항목</a></div>`}
 function tickEl(){document.querySelectorAll('[data-until]').forEach(e=>{const r=Number(e.dataset.until)-Date.now()/1000;e.textContent=r>0?'남은 시간 '+dur(r):'곧 재개'});document.querySelectorAll('[data-since]').forEach(e=>{e.textContent=dur(Date.now()/1000-Number(e.dataset.since))})}
 function iniRow(i){return `<div class="row"><span>${esc(i.title)} <span class="tag">${esc(i.status)}</span></span><span>${i.done}/${i.total}</span></div><div class="bar"><i style="width:${pct(i.done,i.total)}%"></i></div>`}
@@ -115,12 +116,12 @@ const FLAG_KO={paused:'일시정지',skip:'건너뛰기',rerun:'재실행'};
 function rolesHtml(rs){rs=rs||{};
  return '<b>역할 패널</b>'+Object.keys(ROLE_KO).map(r=>{const f=rs[r]||{};
   return `<div class="row"><span>${ROLE_KO[r]} ${Object.keys(FLAG_KO).filter(k=>f[k]).map(k=>`<span class="tag">${FLAG_KO[k]}</span>`).join(' ')}</span><span>${Object.keys(FLAG_KO).map(k=>`<button class="b" data-rl="${r}" data-rf="${k}" data-rv="${f[k]?0:1}">${f[k]?FLAG_KO[k]+' 해제':FLAG_KO[k]}</button>`).join('')}</span></div>`}).join('')+
- '<div class="mut">일시정지 = 해당 단계 진입 시 정지(해제 후 재개) · 건너뛰기/재실행 = 다음 1회만 적용</div>'}
+ '<div class="mut">일시정지 = 해당 단계 진입 시 정지(해제 후 재개) · 건너뛰기 = 해제할 때까지 유지 · 재실행 = 다음 1회만 적용</div>'}
 function renderNow(o){window.lastO=o;
  const s=o.state,f=o.flags;
  const pw=$('#pw'),pacing=s.stop_reason==='pacing'||(!o.budget.pacing_ok&&o.budget.pacing_resume_at);
  pw.style.display=pacing?'':'none';
- if(pacing){pw.innerHTML=`<div class="pwt">페이싱 대기 중</div><div class="pwh">${o.budget.pacing_resume_at?hhmm(o.budget.pacing_resume_at)+' 재개':'재개 시각 미정'}</div><div class="pwc" ${o.budget.pacing_resume_at?`data-until="${o.budget.pacing_resume_at}"`:''}></div><div class="mut">${esc(o.budget.pacing_reason||RSN.pacing||'')}</div>`}
+ if(pacing){const lifted=o.budget.pacing_ok;pw.innerHTML=`<div class="pwt">${lifted?'페이싱 해제 — 재개 대기':'페이싱 대기 중'}</div><div class="pwh">${o.budget.pacing_resume_at?hhmm(o.budget.pacing_resume_at)+' 재개':lifted?'한도 리셋됨 · 재개 타이머가 곧 시작합니다(최대 1~2분)':'재개 시각 계산 중'}</div><div class="pwc" ${o.budget.pacing_resume_at?`data-until="${o.budget.pacing_resume_at}"`:''}></div><div class="mut">${esc(o.budget.pacing_reason||RSN.pacing||'')}</div>`}
  $('#rel').innerHTML=relHtml(o.release);$('#roles').innerHTML=rolesHtml(o.roles);
  $('#upd').textContent=new Date().toLocaleTimeString('ko-KR',{hour12:false});
  $('#st').innerHTML=flowHtml(o);
@@ -136,7 +137,7 @@ function renderNow(o){window.lastO=o;
  document.querySelector('[data-a=resume]').disabled=!(f.pause||f.stop||s.stop_reason);
  const rv=q.attention.filter(a=>a.stage==='review');
  for(const[id,n]of[['#dn',o.decisions_open||0],['#rn',rv.length]]){const b=$(id);b.textContent=n>99?'99+':n;b.classList.toggle('hid',!n)}
- $('#rv').innerHTML=rv.length?rv.map(a=>`<div class="card"><b>${esc(a.id)}</b> <span class="tag">사후 검토</span><div class="mut" style="white-space:pre-wrap;word-break:break-word">${esc(a.text)}</div>${pipeHtml(pipeMap[a.id])}<div class="mut">개발·검증 완료 — 브랜치 병합 전 확인 대기</div><button class="b" data-it="${esc(a.id)}">상세 ▾</button> <button class="b p" data-rv="${esc(a.id)}" data-ra="done">확인 완료</button> <button class="b" data-rv="${esc(a.id)}" data-ra="rework">재작업</button><div id="dt-${esc(a.id)}"></div></div>`).join(''):'<div class="card mut">검토 대기 항목 없음</div>';
+ $('#rv').innerHTML=rv.length?rv.map(a=>`<div class="card"><b>${esc(a.id)}</b> <span class="tag">사후 검토</span><div class="mut" style="white-space:pre-wrap;word-break:break-word">${esc(a.text)}</div>${pipeHtml(pipeMap[a.id])}<div class="mut">개발·검증 완료 — 브랜치 병합 전 확인 대기</div><button class="b" data-it="${esc(a.id)}">상세 ▾</button> <button class="b p" data-rv="${esc(a.id)}" data-ra="done">확인 완료</button> <button class="b" data-rv="${esc(a.id)}" data-ra="rework">재작업</button><div id="dt-${esc(a.id)}"></div></div>`).join(''):'<div class="card mut">검토 대기 항목 없음</div>';reopenIt();
 }
 function renderTimers(){
  $('#tm').innerHTML=Object.entries(timers).map(([k,v])=>`<div class="row"><span>${k.replace('runpulse-','')} <span class="tag">${esc(v.active||'?')}</span></span><span data-next="${esc(v.next||0)}"></span></div>`).join('');
@@ -203,7 +204,8 @@ function renderItems(r){
   if(it.stage!==cur){cur=it.stage;body.push(`<div class="st">${ISTG[cur]||esc(cur)} (${c[cur]||0})</div>`)}
   body.push(`<div class="card" style="padding:8px 12px"><div class="row" data-it="${esc(it.id)}" style="cursor:pointer"><span><b>${esc(it.id)}</b> <span class="tag${it.stage==='failed'?' bad':''}">${ISTG[it.stage]||esc(it.stage)}</span></span><span class="mut">▾</span></div>${pipeHtml(it)}<div class="mut">${esc(it.text)}</div><div id="dt-${esc(it.id)}"></div></div>`)}
  $('#il').innerHTML=body.length?body.join(''):`<div class="card mut">${istage?esc(ISTG[istage]||istage)+' 상태의 항목이 없습니다.':'항목이 없습니다.'}</div>`;
- for(const id of Object.keys(openIt)){delete openIt[id];toggleIt(id)}}
+ reopenIt()}
+function reopenIt(){for(const id of Object.keys(openIt)){const el=document.getElementById('dt-'+id);if(el&&!el.innerHTML){delete openIt[id];toggleIt(id)}}}
 async function loadItems(){const r=await api('/api/items');if(r&&r.items){pipeMap={};for(const it of r.items)pipeMap[it.id]=it}if(tab==='items')renderItems(r)}
 function showLog(l){
  if(!Array.isArray(l))return;const e=$('#log'),top=e.scrollTop<24;

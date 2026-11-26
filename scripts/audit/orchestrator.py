@@ -2,7 +2,7 @@
 
 라우팅 우선순위(처음 일치): 저장된 cursor 재개 → 개발·테스트 대기 항목 → 설계 대상 → 큐가 비면 일반 감사 → 게이트 통과 후에만 버전 계획.
 앞 4단계는 loop.step 의 단계 순서가 그대로 구현한다. 여기서는 마지막 관문(안정화 게이트)만 다룬다.
-게이트 = 열린 항목 없음 + 새 확정 결함 0건인 라운드 GATE_ROUNDS 연속 + 실패 항목 없음(테스트 통과). 버전당 MAX_ROUNDS 를 넘으면 상한으로 통과시킨다.
+게이트 = 열린 항목 없음 + 새 확정 결함 0건인 라운드 GATE_ROUNDS 연속 + 실패 항목 없음(테스트 통과). 결정함에서 사용자 응답을 기다리는 항목(needs_decision·결정 레코드 있는 failed)은 게이트를 막지 않는다. 버전당 MAX_ROUNDS 를 넘으면 상한으로 통과시킨다.
 상태: st["gate"] = {clean_rounds, version_rounds}, st["round_new"] = 이번 라운드에 새로 확정된 후보 수.
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ from scripts.audit import decisions, stopreason
 
 GATE_ROUNDS = 2
 MAX_ROUNDS = 8
-OPEN_STAGES = ("queued", "in_progress", "review", "needs_decision")
+OPEN_STAGES = ("queued", "in_progress", "review")  # needs_decision 은 사용자 결정 대기 — 개발·게이트를 막지 않는다
 
 
 def _gate(st: dict) -> dict:
@@ -31,7 +31,7 @@ def critical_open(items: list) -> list[str]:
     return [i.item_id for i in items if getattr(i, "critical", False) and i.stage in ("queued", "in_progress", "review", "failed")]
 
 
-def gate_passed(st: dict, items: list) -> tuple[bool, str]:
+def gate_passed(st: dict, items: list, dpath=None) -> tuple[bool, str]:
     """안정화 게이트 판정 — (통과 여부, 사유)."""
     g = _gate(st)
     if g["version_rounds"] >= MAX_ROUNDS:
@@ -40,7 +40,8 @@ def gate_passed(st: dict, items: list) -> tuple[bool, str]:
     if crit:
         return False, f"치명 결함 {len(crit)}건 미처리"
     open_n = sum(1 for i in items if i.stage in OPEN_STAGES)
-    failed = sum(1 for i in items if i.stage == "failed")
+    waiting = {r.get("id") for r in decisions.load(dpath) if r.get("status") in ("open", "chosen", "redo")}
+    failed = sum(1 for i in items if i.stage == "failed" and getattr(i, "item_id", None) not in waiting)
     if open_n:
         return False, f"열린 항목 {open_n}건"
     if failed:
