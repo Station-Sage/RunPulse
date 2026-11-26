@@ -37,28 +37,16 @@ def audit(action: str, detail: dict, ok: bool, state_dir: Path | None = None) ->
         f.write(json.dumps({"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "action": action, "detail": detail, "ok": ok}, ensure_ascii=False) + "\n")
 
 
-_KEEP_PHASE = ("role_pause", "pacing", "step_cap", "round_done", "failed")
-
-
 def _clear_stopped(d: Path) -> None:
-    """사람이 시작/재개를 눌렀으면 cycle_state 의 정지(stopped/halted·stop_reason)를 풀고, 중단 사유가 _KEEP_PHASE 면 단계·cursor 를 유지한 채 이어서, 아니면 감사부터 다시 돈다."""
+    """사람이 시작/재개를 눌렀으면 stopreason.resume(human) 정책대로 정지를 풀어 정지 지점부터 이어간다."""
+    from scripts.audit import stopreason
     p = d / "cycle_state.json"
     try:
         st = json.loads(p.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return
-    if st.get("stop_reason") is None and st.get("phase") not in ("stopped", "halted"):
-        return
-    if st.get("stop_reason") in _KEEP_PHASE:  # 중단 지점(단계·항목·cursor)을 유지한 채 재개
-        st["stop_reason"] = None
-        if st.get("phase") in ("stopped", "halted"):
-            cur = st.get("cursor") or {}
-            st["phase"] = cur.get("phase") or "audit"
-            st["unit"] = cur.get("unit")
-        st["fails"] = 0
-    else:
-        st.update(phase="audit", fails=0, unit=None, stop_reason=None, cursor=None)
-    p.write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
+    if stopreason.resume(st, human=True):
+        p.write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
 def _sync_wake() -> None:

@@ -55,8 +55,8 @@ def _stage(path: Path, iid: str) -> str | None:
 def _fail(st: dict, why: str) -> str:
     st["fails"] += 1
     if st["fails"] >= FAIL_LIMIT:
-        st["phase"] = "halted"
         stopreason.stop(st, stopreason.FAILED)
+        st["phase"] = "halted"
         notify.send(f"[루프] {FAIL_LIMIT}회 연속 실패로 정지 — {why} (--reset 으로 재개)" + notify.console_hint())
     return why
 
@@ -113,6 +113,9 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     st["cursor"] = {"phase": ph, "unit": st.get("unit"), "round": st["round"], "ts": int(time.time())}  # 재개 지점(콘솔 표시·재개 기준)
     progress.mark(f"[루프] 라운드 {st['round']} · {ph} 단계 시작")
     progress.event("phase", round=st["round"], phase=ph)
+    if settings.STOP_PATH.exists() and ph not in ("stopped", "halted"):  # 콘솔 즉시중지 — 단계를 시작하지 않고 이 지점을 resume_at 으로 남긴다
+        stopreason.stop(st, stopreason.STOP_FLAG)
+        return f"정지 — 콘솔 즉시중지({ph} 단계 직전, 재개 시 이 지점부터)"
     if ph == "stopped":
         stopreason.stop(st, st.get("stop_reason") or stopreason.STOP_FLAG)
         return "정지 상태 — 단일 라운드 완료(재개: --reset)"
