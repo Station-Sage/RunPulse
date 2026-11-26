@@ -126,3 +126,11 @@ def test_weekly_pacing_toggle_off_skips_weekly_gate(tmp_path, monkeypatch):
     assert pacing.check(now, ents).allowed
     ents.append(_e("five_hour", 0.99, now + 3600))
     assert not pacing.check(now, ents).allowed
+
+
+def test_nested_unified_window_used_when_weekly_expired():
+    now = _ts(2026, 11, 23, 12)
+    e = _e("seven_day", 0.99, now - 10)
+    e["rate_limit"]["unifiedWindows"] = {"five_hour": {"utilization": 0.2, "resetsAt": now + 3600, "status": "allowed"}}
+    assert pacing.latest_observation([e], "five_hour", now)["utilization"] == 0.2
+    assert pacing.check(now, [e] * 20).allowed

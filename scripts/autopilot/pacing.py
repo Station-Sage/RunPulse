@@ -38,11 +38,14 @@ def week_start(now: float) -> float:
 
 
 def latest_observation(entries: list[dict], rtype: str, now: float) -> dict | None:
-    """해당 유형의 가장 최근 rate_limit 관측 — 이미 리셋된(resetsAt 경과) 것은 무효."""
+    """해당 유형의 가장 최근 rate_limit 관측 — 이미 리셋된(resetsAt 경과) 것은 무효. unifiedWindows 에 실린 다른 창도 인정."""
     for e in reversed(entries):
         rl = e.get("rate_limit") or {}
         if rl.get("rateLimitType") == rtype:
             return rl if rl.get("resetsAt", 0) > now else None
+        nested = (rl.get("unifiedWindows") or {}).get(rtype)  # 다른 유형 관측에 함께 실려 온 창
+        if nested and nested.get("resetsAt", 0) > now:
+            return nested
     return None
 
 
