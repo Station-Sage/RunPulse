@@ -123,6 +123,8 @@ def complete(provider: str, prompt: str, config: dict | None, *, conn: sqlite3.C
                                    "message": "도구 호출 상한 초과 — 이미 조회한 값으로 답하세요."},
                                   ensure_ascii=False)
             stats["tool_calls"] = stats.get("tool_calls", 0) + 1
+            if len(args) > 1:
+                stats.setdefault("tool_names", []).append(str(args[1]))
             if on_tool is not None and len(args) > 1:
                 on_tool(args[1])
             return _execute(*args, **kwargs)

@@ -129,3 +129,24 @@ def test_tool_calls_capped_per_request(monkeypatch):
     stats = {}
     assert prov.complete("gemini", "hi", CFG, conn=object(), tools=True, stats=stats) == "최종"
     assert len(executed) == prov.MAX_TOOL_CALLS == stats["tool_calls"]
+
+
+def test_tool_names_recorded_for_evidence(monkeypatch):
+    calls = iter([
+        _Resp(200, {"choices": [{"message": {"content": None, "tool_calls": [
+            {"id": "1", "function": {"name": "get_fitness", "arguments": "{}"}}]}}]}),
+        _ok("최종"),
+    ])
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: next(calls))
+    import src.ai.tools as tools
+    monkeypatch.setattr(tools, "execute_tool", lambda conn, n, a: "{}")
+    stats = {}
+    prov.complete("gemini", "hi", CFG, conn=object(), tools=True, stats=stats)
+    assert stats["tool_names"] == ["get_fitness"]
+
+
+def test_engine_info_exposes_unique_tools_of_answering_provider():
+    from src.ai.chat_engine_result import Attempt, engine_for_ok
+    atts = [Attempt("gemini", "m", False, tools=["x"]),
+            Attempt("groq", "m", True, tool_calls=3, tools=["get_fitness", "get_fitness", "get_load"])]
+    assert engine_for_ok("groq", atts).tools == ["get_fitness", "get_load"]

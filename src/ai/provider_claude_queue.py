@@ -82,6 +82,7 @@ def complete_coach(conn, prompt: str, config, stats, on_tool, cq: dict) -> str:
         n_seen = max(n_seen, len(names))
         if stats is not None:
             stats["tool_calls"] = max(stats.get("tool_calls", 0), n_seen)
+            stats["tool_names"] = [str(n) for n in names]
         if outer is not None:
             outer(pj, partial)
     kw = {k: cq[k] for k in ("thread_key", "ctx_hash", "history", "retire", "should_cancel", "system_ctx") if cq.get(k)}
