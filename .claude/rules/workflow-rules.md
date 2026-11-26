@@ -15,7 +15,7 @@
 ## 완료 체크리스트
 1. `BACKLOG.md` 항목 상태 업데이트
 2. 변경/생성 파일이 해당 `GUIDE.md`에 반영되었는지 확인
-3. `python -m pytest tests/` 전체 통과
+3. 테스트: 관제·감사·오토파일럿 영역은 `scripts/test_ops.sh` 만 실행(전체 `pytest tests/` 는 사용자가 명시적으로 요청할 때만, 커밋·병합 직전에도 자동 실행 금지)
 4. 신규 설계 결정 시 `v0.3/data/decisions.md` 기록
 5. Calculator 추가/변경 시 `python scripts/gen_metric_dictionary.py` 실행
 6. `python scripts/check_docs.py` 실행 및 불일치 수정
