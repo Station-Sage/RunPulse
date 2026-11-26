@@ -38,9 +38,9 @@ def budget_summary(now: float, entries: list[dict] | None = None) -> dict:
 
 
 def release_summary(queue_path: Path | None = None, plan_path: Path | None = None) -> dict:
-    """버전 헤더·범위 카드 — 저장하지 않고 INI-MAINT 편입을 메모리에서만 반영한다."""
+    """버전 헤더·범위 카드 — 저장하지 않고 자동 이니셔티브 편입을 메모리에서만 반영한다."""
     plan = release_plan.load(plan_path)
-    release_plan.sync_maint(plan, queue_path)
+    release_plan.sync_groups(plan, queue_path)
     return release_plan.rollup(plan, queue_path)
 
 

@@ -51,3 +51,29 @@ def test_rollup_phases_active_and_goal(tmp_path):
     r = rp.rollup(plan, q)
     assert r["goal"] == "G"
     assert [(p["id"], p["done"], p["total"], p["active"]) for p in r["phases"]] == [("I", 1, 1, False), ("II", 0, 1, True)]
+
+
+def test_rollup_counts_unlinked_auto_items(tmp_path):
+    q = tmp_path / "BACKLOG.md"
+    q.write_text(BL, encoding="utf-8")
+    plan = {"current": "v1", "versions": {"v1": {"initiatives": {"I": {"items": ["AUD-aaaaaa"]}}}}}
+    r = rp.rollup(plan, q)
+    loose = [i for i in r["initiatives"] if i["id"] == rp.UNLINKED][0]
+    assert (loose["total"], loose["done"]) == (1, 0)
+    assert sum(i["total"] for i in r["initiatives"]) == 2
+
+
+def test_sync_groups_by_prefix(tmp_path):
+    q = tmp_path / "BACKLOG.md"
+    q.write_text(BL + """- **[P7-1]** p
+  <!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[]} -->
+- **[NEWPFX-2]** n
+  <!-- autopilot: {"stage":"queued","mode":"auto","attempts":0,"deps":[]} -->
+""", encoding="utf-8")
+    plan = {"current": "v1", "versions": {"v1": {"initiatives": {}}}}
+    assert sorted(rp.sync_groups(plan, q)) == ["AUD-aaaaaa", "AUD-bbbbbb", "NEWPFX-2", "P7-1"]
+    ini = plan["versions"]["v1"]["initiatives"]
+    assert ini[rp.MAINT]["items"] == ["AUD-aaaaaa", "AUD-bbbbbb"]
+    assert ini["INI-P7"]["auto"] and ini["INI-NEWPFX"]["items"] == ["NEWPFX-2"]
+    assert rp.sync_groups(plan, q) == []
+    assert all(r["id"] != rp.UNLINKED for r in rp.rollup(plan, q)["initiatives"])
