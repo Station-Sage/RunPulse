@@ -145,3 +145,5 @@ def test_abs_venv_rewrites_relative_venv_python():
     out = run_unit._abs_venv(".venv/bin/python -m pytest tests/ -q")
     assert out.startswith(str(run_unit.settings.PROJECT_ROOT)) and out.endswith("-m pytest tests/ -q")
     assert run_unit._abs_venv("true") == "true"
+    out = run_unit._abs_venv("python3 -m pytest tests/ -q")
+    assert out.endswith(".venv/bin/python -m pytest tests/ -q") and out.startswith("/")
