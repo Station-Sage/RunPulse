@@ -1228,9 +1228,9 @@
 
 - functions: get_cached, set_cached, get_cache_age, invalidate, clear_all_no_commit
 
-### `ai_context.py` (185줄) — Phase 5 AI 컨텍스트 빌더 — 서비스 레이어 기반 LLM 프롬프트 생성.
+### `ai_context.py` (15줄) — AI 컨텍스트 빌더 진입점 — 레거시 dict 경로 재노출.
 
-- functions: build_daily_briefing, build_activity_analysis, build_ai_context
+- (public API 없음)
 
 ### `ai_context_legacy.py` (288줄) — 레거시 dict 기반 AI 컨텍스트 — build_context/format_context_text/format_activity_context.
 
@@ -2202,9 +2202,9 @@
 
 - functions: test_feed_success, test_feed_quota_via_rate_limit_event, test_feed_quota_via_error_result, test_feed_non_quota_error, test_parse_line_ignores_noise, test_build_argv_isolation_and_sessions, test_build_mcp_config_pins_uid, test_run_collects_result, test_run_deadline_kills, test_run_cancel, test_run_no_result
 
-### `test_ai_context.py` (236줄) — tests/test_ai_context.py — Phase 5-D AI 컨텍스트 빌더 테스트.
+### `test_ai_context.py` (149줄) — tests/test_ai_context.py — Phase 5-D AI 컨텍스트 빌더 테스트.
 
-- functions: conn, test_build_daily_briefing_full, test_build_daily_briefing_contains_readiness, test_build_daily_briefing_contains_fitness, test_build_daily_briefing_no_wellness, test_build_daily_briefing_race_predictions, test_build_daily_briefing_format, test_build_activity_analysis_full, test_build_activity_analysis_contains_core, test_build_activity_analysis_no_rp_metrics, test_build_ai_context_daily_only, test_build_ai_context_with_activity, test_build_context_today_activity, test_build_context_no_activity, test_build_context_fitness, test_build_context_no_data_graceful, test_format_context_text_is_string, test_format_context_text_no_data_graceful, test_format_activity_context_is_string, test_format_activity_context_missing_activity, test_rule_based_response_does_not_raise, test_rule_based_response_no_data_graceful, test_legacy_reexport_paths_identical
+- functions: conn, test_build_context_today_activity, test_build_context_no_activity, test_build_context_fitness, test_build_context_no_data_graceful, test_format_context_text_is_string, test_format_context_text_no_data_graceful, test_format_activity_context_is_string, test_format_activity_context_missing_activity, test_rule_based_response_does_not_raise, test_rule_based_response_no_data_graceful, test_legacy_reexport_paths_identical
 
 ### `test_ai_queue_api.py` (87줄) — claude_queue 클라이언트·상태/핑 API.
 
@@ -2414,9 +2414,9 @@
 
 - functions: test_key_stable_and_distinct, test_filter_new_skips_open_only, test_record_marks_reopened, test_reverify_resolves_and_keeps, test_current_round_reads_state, test_tunable_override, test_discover_respects_cap_and_round_reset, test_discover_drops_already_known
 
-### `test_audit_loop.py` (258줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
+### `test_audit_loop.py` (268줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
 
-- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_needs_decision_items_do_not_stop_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_needs_decision_left_does_not_stop, test_run_until_stop_converts_exception_and_pacinghold, test_propose_keeps_design_summary, test_no_candidate_design_goes_through_end_round, test_propose_limit_and_checkpoint, test_step_records_cursor_and_reset_clears
+- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_needs_decision_items_do_not_stop_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_needs_decision_left_does_not_stop, test_run_until_stop_converts_exception_and_pacinghold, test_propose_keeps_design_summary, test_no_candidate_design_goes_through_end_round, test_propose_limit_and_checkpoint, test_step_records_cursor_and_reset_clears, test_run_until_stop_saves_state_immediately_on_resume
 
 ### `test_audit_orchestrator.py` (96줄)
 

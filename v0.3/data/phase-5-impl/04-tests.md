@@ -114,15 +114,11 @@ daily_wellness:
     test_get_wellness_trend_includes_utrs
     test_get_wellness_trend_empty
 
-### tests/test_ai_context.py (~6 tests)
+### tests/test_ai_context.py
 
-    test_build_daily_briefing_full
-    test_build_daily_briefing_no_wellness
-    test_build_daily_briefing_no_metrics
-    test_build_daily_briefing_format
-
-    test_build_activity_analysis_full
-    test_build_activity_analysis_no_rp_metrics
+> 2026-11-26: `build_daily_briefing`·`build_activity_analysis`·`build_ai_context` 삭제로 해당 테스트도 제거.
+> 현재는 레거시 dict 경로(`build_context`·`format_context_text`·`format_activity_context`)와
+> `rule_based_response` 회귀·재노출 동일성 테스트만 둔다.
 
 ### tests/test_template_helpers.py (~20 tests)
 

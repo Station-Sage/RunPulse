@@ -3,6 +3,11 @@
 > AI 코칭이 새 스키마에서 컨텍스트를 빌드하는 모듈.
 > 서비스 레이어 함수를 호출하여 markdown 형태의 컨텍스트를 생성한다.
 
+> **[폐기 2026-11-26, P7-UXR-DESIGN-PENDING-IMPL]** 아래 `build_daily_briefing`·`build_activity_analysis`·
+> `build_ai_context` 3함수는 운영 호출처가 없어 삭제했다. 현재 `src/ai/ai_context.py`는 레거시 dict 경로
+> (`build_context`·`format_context_text`·`format_activity_context`, 구현은 `ai_context_legacy.py`)만 재노출한다.
+> 이하 내용은 설계 이력으로만 보존한다.
+
 ## 원칙
 
 1. AI context는 서비스 레이어만 호출 (직접 SQL 없음)
