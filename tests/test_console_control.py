@@ -51,3 +51,22 @@ def test_pause_keeps_cycle_state(tmp_path):
     p.write_text(json.dumps({"phase": "stopped", "stop_reason": "stop_flag"}))
     control.act("pause", tmp_path)
     assert json.loads(p.read_text())["stop_reason"] == "stop_flag"
+
+
+def test_resume_starts_loop_but_pause_does_not(tmp_path):
+    calls = []
+    run = lambda c: calls.append(c) or True
+    control.act("pause", tmp_path, run=run)
+    assert not calls
+    control.act("resume", tmp_path, run=run)
+    assert len(calls) == 1 and "runpulse-audit.service" in calls[0]
+
+
+def test_resume_after_failed_halt_keeps_cursor(tmp_path):
+    import json
+    p = tmp_path / "cycle_state.json"
+    p.write_text(json.dumps({"phase": "halted", "round": 8, "fails": 3, "unit": None, "stop_reason": "failed",
+                             "cursor": {"phase": "develop", "unit": "X-1", "round": 8}}))
+    control.act("resume", tmp_path, run=lambda c: True)
+    st = json.loads(p.read_text())
+    assert (st["phase"], st["unit"], st["fails"], st["stop_reason"], st["round"]) == ("develop", "X-1", 0, None, 8)

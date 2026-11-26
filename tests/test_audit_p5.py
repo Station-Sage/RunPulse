@@ -1,4 +1,5 @@
 """P5 — 필수 브라우저 스윕 가드, 독립 검토 게이트, 사이클 요약."""
+import io
 import json
 import subprocess
 import time
@@ -6,20 +7,29 @@ import time
 from scripts.audit import cycle, review
 
 
+class _Proc:
+    def __init__(self, out, rc, err):
+        self.stdout = io.StringIO("\n".join(x for x in (err, out) if x) + "\n")  # stderr 는 stdout 에 합쳐진다
+        self._rc = rc
+
+    def wait(self):
+        return self._rc
+
+
 def _cp(out, rc=0, err=""):
-    return subprocess.CompletedProcess([], rc, out, err)
+    return _Proc(out, rc, err)
 
 
 def test_browser_sweep_fails_on_zero_cells(monkeypatch):
     monkeypatch.setattr(cycle.shutil, "which", lambda n: "/usr/bin/node")
-    monkeypatch.setattr(cycle.subprocess, "run", lambda *a, **k: _cp(json.dumps({"swept": 0, "failed": []}), 1))
+    monkeypatch.setattr(cycle.subprocess, "Popen", lambda *a, **k: _cp(json.dumps({"swept": 0, "failed": []}), 1))
     n, err = cycle.browser_sweep()
     assert n == 0 and err
 
 
 def test_browser_sweep_ok_and_no_node(monkeypatch):
     monkeypatch.setattr(cycle.shutil, "which", lambda n: "/usr/bin/node")
-    monkeypatch.setattr(cycle.subprocess, "run", lambda *a, **k: _cp("x\n" + json.dumps({"swept": 282, "failed": []})))
+    monkeypatch.setattr(cycle.subprocess, "Popen", lambda *a, **k: _cp("x\n" + json.dumps({"swept": 282, "failed": []})))
     assert cycle.browser_sweep() == (282, None)
     monkeypatch.setattr(cycle.shutil, "which", lambda n: None)
     assert cycle.browser_sweep()[1] == "node 없음"
@@ -71,12 +81,12 @@ def test_review_uses_different_model_and_skips_non_real(monkeypatch):
 def test_browser_sweep_retries_once_then_succeeds(monkeypatch):
     monkeypatch.setattr(cycle.shutil, "which", lambda n: "/usr/bin/node")
     seq = iter([_cp("", 1, "a\nb\nc\nd"), _cp(json.dumps({"swept": 5, "failed": []}))])
-    monkeypatch.setattr(cycle.subprocess, "run", lambda *a, **k: next(seq))
+    monkeypatch.setattr(cycle.subprocess, "Popen", lambda *a, **k: next(seq))
     assert cycle.browser_sweep() == (5, None)
 
 
 def test_browser_sweep_failure_reports_stderr_tail(monkeypatch):
     monkeypatch.setattr(cycle.shutil, "which", lambda n: "/usr/bin/node")
-    monkeypatch.setattr(cycle.subprocess, "run", lambda *a, **k: _cp("", 1, "a\nb\nc\nd"))
+    monkeypatch.setattr(cycle.subprocess, "Popen", lambda *a, **k: _cp("", 1, "a\nb\nc\nd"))
     n, err = cycle.browser_sweep()
     assert "재시도 후에도 실패" in err and "b | c | d" in err and "a" not in err.split("실패: ")[1].split(" | ")[0]

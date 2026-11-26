@@ -13,6 +13,7 @@
 - **[AP-A4]** (2026-11-24) 중단 완화: 브라우저 스윕 일시 실패 1회 재시도·사유에 stderr 끝 3줄 기록(`cycle.browser_sweep`), 5시간 관측 없음 대체 한도 완화(실행 6→10, USD 8→12)하고 `tunables.json` 으로 관제에서 조정 가능. 브랜치 feat/autopilot-a1-state, 미머지. 다음: 관제 콘솔 1단계.
 - **[AP-C]** (2026-11-25) 오토파일럿 관제 콘솔 C1~C4 구현 완료(`scripts/console/`, 브랜치 feat/autopilot-a1-state, 미머지·미배포): 현황·제어·결정·검토 4탭 PWA, systemd user 서비스(`scripts/console/systemd/`), Telegram 알림에 콘솔 링크. 남은 일: 서비스 설치, cloudflared 터널 + Access 앱 생성(사용자), 머지 여부 결정. ADR-067
 - **[AP-V]** (2026-11-25) 오토파일럿 버전 사이클 S0~S5 구현 완료(브랜치 feat/autopilot-a1-state, 미커밋·미머지·미배포): release_plan·docs_ctx·orchestrator·planner·idesign·versioning·steward·roles + 콘솔 `#rel`·역할 패널(`/api/roles`). ADR-068. 치명 결함 우선 결정(2026-11-25): 큐 메타 critical, next_runnable 우선, plan·idesign 보류, 게이트 차단.
+- **[AP-FAIL]** (2026-11-25) 감사 루프 failed 의미 재정의 구현 완료(브랜치 feat/autopilot-a1-state, 미커밋·미머지·미배포): 모델의 결정 요청은 failed 가 아니라 `needs_decision`+질문 카드(`fail_kind=asked`, 재질문 상한 2), failed 는 사유 분류(verify/env/exec/sync/asked_loop)·재시도 카드·콘솔 blocked 목록, 선택은 scope·`answered` 에 반영, 폐기는 `done`+`resolution: dropped`, 기본 verify 는 `.venv` pytest. 설계 `v0.3/data/phase-7-ui-renewal/DESIGN-AUDIT-FAILED-HANDLING.md`, ADR-069. 기존 failed 5건 이행은 `python -m scripts.autopilot.migrate_failed --apply`(사용자 지시 시 1회, 기본 dry-run).
 
 ## BUGS
 

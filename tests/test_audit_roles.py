@@ -1,3 +1,4 @@
+import json
 from scripts.audit import roles, stopreason
 from scripts.console import control
 
@@ -44,3 +45,19 @@ def test_resume_keeps_phase_on_role_pause(tmp_path):
     control._clear_stopped(tmp_path)
     st = json.loads((tmp_path / "cycle_state.json").read_text())
     assert st["phase"] == "develop" and st["stop_reason"] is None and st["unit"] == "x"
+
+
+def test_resume_keeps_phase_on_pacing_stop(tmp_path):
+    from scripts.console import control
+    (tmp_path / "cycle_state.json").write_text(json.dumps(
+        {"phase": "develop", "stop_reason": "pacing", "unit": "x", "cursor": {"phase": "develop", "round": 8}}))
+    control._clear_stopped(tmp_path)
+    st = json.loads((tmp_path / "cycle_state.json").read_text())
+    assert st["phase"] == "develop" and st["stop_reason"] is None and st["cursor"]["round"] == 8
+
+
+def test_resume_after_failed_still_restarts_audit(tmp_path):
+    from scripts.console import control
+    (tmp_path / "cycle_state.json").write_text(json.dumps({"phase": "halted", "stop_reason": "failed", "unit": "x"}))
+    control._clear_stopped(tmp_path)
+    assert json.loads((tmp_path / "cycle_state.json").read_text())["phase"] == "audit"

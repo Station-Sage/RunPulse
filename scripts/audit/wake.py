@@ -21,3 +21,15 @@ def schedule(resume_at: float | None, now: float | None = None, run=_run) -> boo
     run(["systemctl", "--user", "stop", f"{UNIT}.timer"])
     return run(["systemd-run", "--user", f"--unit={UNIT}", f"--on-active={delay}s",
                 "systemctl", "--user", "start", "--no-block", SERVICE]) == 0
+
+
+def sync(now: float | None = None, run=_run, check=None) -> bool:
+    """현재 pacing 판정에 예약을 맞춘다 — 통과면 낡은 예약 해제, 대기면 재개 시각으로 재예약. 설정 변경 직후 호출."""
+    if check is None:
+        from scripts.autopilot import pacing
+        check = pacing.check
+    p = check(now or time.time())
+    if p.allowed or not p.resume_at:
+        run(["systemctl", "--user", "stop", f"{UNIT}.timer"])
+        return False
+    return schedule(p.resume_at, now, run)

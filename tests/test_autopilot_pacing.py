@@ -81,3 +81,48 @@ def test_fallback_limits_tunable_via_tunables_json(tmp_path, monkeypatch):
     (tmp_path / "tunables.json").write_text(json.dumps({"FALLBACK_SESSION_MAX_RUNS": 3}))
     assert settings.tunable("FALLBACK_SESSION_MAX_RUNS") == 3
     assert settings.tunable("FALLBACK_SESSION_MAX_USD") == settings.FALLBACK_SESSION_MAX_USD
+
+
+def test_weekly_block_resumes_at_nearer_five_hour_reset():
+    wreset = _ts(2026, 11, 26, 22)
+    now = wreset - 6 * 86400
+    sreset = now + 3 * 3600
+    p = pacing.check(now, [_e("seven_day", 0.7, wreset), _e("five_hour", 0.3, sreset)])
+    assert not p.allowed and p.resume_at == sreset
+    assert pacing.check(now, [_e("seven_day", 0.7, wreset)]).resume_at == pacing.weekly_resume_at(now, 0.7, wreset) < wreset
+
+
+def test_weekly_target_is_ceiling_in_final_day():
+    reset = _ts(2026, 11, 26, 22)
+    assert pacing.weekly_target(reset - 13 * 3600, reset) == settings.WEEK_CEILING
+    assert pacing.weekly_target(reset - 2 * 86400, reset) < settings.WEEK_CEILING
+    assert pacing.check(reset - 13 * 3600, [_e("seven_day", 0.80, reset)]).allowed
+
+
+def test_weekly_block_resumes_when_target_reaches_utilization():
+    reset = pacing.week_start(1_800_000_000) + pacing.WEEK_SEC
+    now = reset - 5 * 24 * 3600
+    p = pacing.check(now, [_e("seven_day", 0.80, reset)])
+    assert not p.allowed
+    assert now < p.resume_at < reset
+    assert pacing.weekly_target(p.resume_at + 1, reset) >= 0.80 or p.resume_at == reset - pacing.FINAL_DAY_SEC
+    assert pacing.check(p.resume_at + 1, [_e("seven_day", 0.80, reset)]).allowed
+
+
+def test_weekly_block_at_ceiling_resumes_at_reset():
+    reset = pacing.week_start(1_800_000_000) + pacing.WEEK_SEC
+    p = pacing.check(reset - 5 * 24 * 3600, [_e("seven_day", 0.90, reset)])
+    assert p.resume_at == reset
+
+
+def test_weekly_pacing_toggle_off_skips_weekly_gate(tmp_path, monkeypatch):
+    import json
+    monkeypatch.setattr(settings, "STATE_DIR", tmp_path)
+    wreset = _ts(2026, 11, 26, 22)
+    now = wreset - 6 * 86400
+    ents = [_e("seven_day", 0.7, wreset)]
+    assert not pacing.check(now, ents).allowed
+    (tmp_path / "tunables.json").write_text(json.dumps({"WEEKLY_PACING_ENABLED": 0}))
+    assert pacing.check(now, ents).allowed
+    ents.append(_e("five_hour", 0.99, now + 3600))
+    assert not pacing.check(now, ents).allowed

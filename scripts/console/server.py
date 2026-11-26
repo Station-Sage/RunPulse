@@ -1,6 +1,6 @@
 """관제 콘솔 HTTP 서버(C2) — stdlib http.server, 127.0.0.1 전용(외부 노출은 cloudflared + Cloudflare Access 가 담당).
 
-GET  /api/overview /api/decisions /api/log /api/timers /api/roles, POST /api/control /api/tunables /api/interval /api/roles /api/decisions/<id>.
+GET  /api/overview /api/decisions /api/log /api/timers /api/roles, POST /api/control /api/tunables /api/interval /api/roles /api/decisions/<id> /api/review/<id> /api/failed/<id>.
 라우팅은 route() 순수 함수로 분리해 소켓 없이 테스트한다. POST 는 JSON 만, Origin 이 있으면 Host 와 같아야 한다(CSRF 방어).
 """
 from __future__ import annotations
@@ -12,8 +12,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-from scripts.audit import decisions, loop, progress, roles, steward, versioning
-from scripts.autopilot import settings
+from scripts.audit import consume, decisions, loop, progress, roles, steward, versioning
+from scripts.autopilot import queue, settings
 from scripts.console import control, overview
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -48,17 +48,23 @@ def tunable_values() -> dict:
     return {k: settings.tunable(k) for k in control.TUNABLES}
 
 
-def choose(iid: str, choice: str, dpath: Path | None = None, state_path: Path | None = None, plan_path: Path | None = None) -> dict:
+def choose(iid: str, choice: str, dpath: Path | None = None, state_path: Path | None = None, plan_path: Path | None = None, text: str = "", queue_path: Path | None = None) -> dict:
     recs = decisions.load(dpath)
     rec = next((r for r in recs if r["id"] == iid), None)
     if rec is None:
         return {"ok": False, "error": "없는 결정"}
-    if rec["status"] not in ("open", "redo"):
+    changeable = rec.get("kind") not in ("initiative", "vision")  # 버전·비전은 선택 즉시 반영돼 변경 불가
+    if rec["status"] not in ("open", "redo") and not (changeable and rec["status"] in ("chosen", "applied")):
         return {"ok": False, "error": f"이미 처리됨({rec['status']})"}
     if choice != "redo" and choice not in {o["key"] for o in rec["options"]}:
         return {"ok": False, "error": "없는 선택지"}
     with control.LOCK:
-        decisions.choose(iid, choice, dpath)
+        if rec["status"] == "applied":
+            err = consume.reopen(rec, queue_path or settings.QUEUE_PATH)
+            if err:
+                return {"ok": False, "error": err}
+            decisions.save(recs, dpath)
+        decisions.choose(iid, choice, dpath, text=text)
         control.audit("decision", {"id": iid, "choice": choice}, True)
         note = ""
         if rec.get("kind") == "initiative":
@@ -69,6 +75,41 @@ def choose(iid: str, choice: str, dpath: Path | None = None, state_path: Path | 
         elif rec.get("kind") == "vision":
             note = steward.apply_choice(next(r for r in decisions.load(dpath) if r["id"] == iid), dpath=dpath)
     return {"ok": True, "id": iid, "choice": choice, **({"note": note} if note else {})}
+
+
+def review_action(iid: str, action: str, queue_path: Path | None = None) -> dict:
+    """사후 검토 항목 처리 — done(확인 완료) | rework(queued 복귀, 시도 횟수 초기화). 병합 자체는 사용자가 한다."""
+    qp = queue_path or settings.QUEUE_PATH
+    if action not in ("done", "rework"):
+        return {"ok": False, "error": "없는 동작"}
+    with control.LOCK:
+        it = next((x for x in queue.parse(qp) if x.item_id == iid), None)
+        if it is None or it.stage != "review":
+            return {"ok": False, "error": "검토 대기 항목이 아님"}
+        if action == "done":
+            queue.update_item(qp, iid, stage="done", resolution="reviewed")
+        else:
+            queue.update_item(qp, iid, stage="queued", attempts=0)
+        control.audit("review", {"id": iid, "action": action}, True)
+    return {"ok": True, "id": iid, "action": action}
+
+
+def failed_action(iid: str, action: str, text: str = "", queue_path: Path | None = None) -> dict:
+    """failed 항목 처리 — requeue(의견이 있으면 scope 에 지시로 추가, 시도 횟수·사유 초기화) | drop(done + dropped)."""
+    qp = queue_path or settings.QUEUE_PATH
+    if action not in ("requeue", "drop"):
+        return {"ok": False, "error": "없는 동작"}
+    with control.LOCK:
+        it = next((x for x in queue.parse(qp) if x.item_id == iid), None)
+        if it is None or it.stage != "failed":
+            return {"ok": False, "error": "failed 항목이 아님"}
+        if action == "drop":
+            queue.update_item(qp, iid, stage="done", resolution="dropped")
+        else:
+            scope = list(it.scope) + ([f"사용자 의견: {text.strip()[:500]}"] if text.strip() else [])
+            queue.update_item(qp, iid, stage="queued", attempts=0, scope=scope, fail_kind="", fail_reason="")
+        control.audit("failed", {"id": iid, "action": action, "text": text[:200]}, True)
+    return {"ok": True, "id": iid, "action": action}
 
 
 def route(method: str, path: str, body: dict | None = None) -> tuple[int, dict | list]:
@@ -87,8 +128,12 @@ def route(method: str, path: str, body: dict | None = None) -> tuple[int, dict |
         r = control.set_tunables(body.get("values") or {})
     elif path == "/api/interval":
         r = control.set_interval(str(body.get("timer", "")), body.get("minutes"))
+    elif path.startswith("/api/review/"):
+        r = review_action(path.rsplit("/", 1)[1], str(body.get("action", "")))
+    elif path.startswith("/api/failed/"):
+        r = failed_action(path.rsplit("/", 1)[1], str(body.get("action", "")), str(body.get("text", "")))
     elif path.startswith("/api/decisions/"):
-        r = choose(path.rsplit("/", 1)[1], str(body.get("choice", "")))
+        r = choose(path.rsplit("/", 1)[1], str(body.get("choice", "")), text=str(body.get("text", "")))
     else:
         return 404, {"error": "not found"}
     return (200 if r.get("ok") else 400), r

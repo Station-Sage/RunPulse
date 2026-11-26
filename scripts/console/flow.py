@@ -36,10 +36,27 @@ def _log_events(now: float, rnd: int, log: Path | None) -> list[dict]:
 
 def _sub_states(evs: list[dict]) -> dict:
     st = {k: {"state": "pending", "ts": None} for k in SUBS}
-    for e in evs:
+    cut = max((i for i, e in enumerate(evs) if e["kind"] == "sub" and e.get("step") == "sweep" and e.get("state") == "start"), default=0)
+    for e in evs[cut:]:
         if e["kind"] == "sub" and e.get("step") in st:
             st[e["step"]] = {"state": "active" if e["state"] == "start" else "done", "ts": e["ts"]}
     return st
+
+
+_SUB_KO = {"sweep": "스윕", "audit": "관점 감사", "review": "독립 검토"}
+
+
+def _steps(evs: list[dict], since: float | None, limit: int = 40) -> list[dict]:
+    """현재 단계 안에서 일어난 소단계(스윕 조합별·관점 감사·독립 검토)를 시각순으로 — 콘솔 펼침 영역의 소스."""
+    out = []
+    for e in evs:
+        if since and e["ts"] < since:
+            continue
+        if e["kind"] == "step":
+            out.append({"ts": e["ts"], "text": e.get("text", ""), "bad": bool(e.get("bad"))})
+        elif e["kind"] == "sub" and e.get("step") in _SUB_KO:
+            out.append({"ts": e["ts"], "text": f"{_SUB_KO[e['step']]} {'시작' if e.get('state') == 'start' else '종료'}", "bad": e.get("ok") is False})
+    return out[-limit:]
 
 
 def build(state: dict, now: float, queue_path: Path | None = None, events: list[dict] | None = None,
@@ -63,7 +80,7 @@ def build(state: dict, now: float, queue_path: Path | None = None, events: list[
     return {
         "round": rnd, "phase": ph, "stage": stage, "stage_total": 4, "inferred": inferred,
         "round_started": evs[0]["ts"] if evs else None, "phase_started": cur["ts"] if cur else None,
-        "now": now, "subs": _sub_states(evs) if stage <= 1 or ph == "audit" else None,
+        "now": now, "steps": _steps(evs, cur["ts"] if cur else None), "subs": _sub_states(evs) if stage <= 1 or ph == "audit" else None,
         "design": {k: design[k] for k in ("new", "auto", "user")} if design else None,
         "units": {"done": done, "total": min(unit_cap, done + open_units), "current": state.get("unit"),
                   "started": ustart["ts"] if ustart and ph in ("test", "develop") else None},

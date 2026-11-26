@@ -10,16 +10,65 @@ from scripts.audit import decisions
 from scripts.autopilot import queue
 
 REDO_LIMIT = 3
+_UNDO_FIELDS = ("stage", "scope", "verify", "attempts", "fail_kind", "fail_reason", "asks", "answered", "resolution")
+_REOPEN_OK_RESOLUTIONS = ("already_done", "dropped")
+
+
+def _item(path: Path, iid: str):
+    return next((i for i in queue.parse(path) if i.item_id == iid), None)
 
 
 def _promote(rec: dict, path: Path) -> str:
     opt = next((o for o in rec["options"] if o["key"] == rec["choice"]), None)
-    fields = {"stage": "queued"}
-    if rec.get("scope") and rec.get("verify"):
+    act = (opt or {}).get("action", "")
+    text = (rec.get("text") or "").strip()
+    item = _item(path, rec["id"])
+    fields: dict = {"stage": "queued"}
+    if act in ("already_done", "dropped"):
+        fields = {"stage": "done", "resolution": act}
+    elif act == "redefine":
+        fields["scope"] = [text] if text else (item.scope if item else [])
+        fields["asks"] = 0
+    elif act == "scope":
+        fields["scope"] = list(item.scope if item else []) + [opt["name"] + (f" — {text}" if text else "")]
+        fields["answered"] = list(item.answered if item else []) + [rec["id"]]
+    elif act == "retry_verify":
+        if text:
+            fields["verify"] = [text]
+        fields.update(attempts=0, fail_kind="", fail_reason="")
+    elif act == "retry_scope":
+        fields["scope"] = list(item.scope if item else []) + [f"이전 verify 실패 출력: {rec.get('why', '')[:500]}"]
+        fields.update(attempts=0, fail_kind="", fail_reason="")
+    elif act == "retry_env":
+        from scripts.autopilot.fail_handling import DEFAULT_VERIFY
+        fields.update(verify=[DEFAULT_VERIFY], attempts=0, fail_kind="", fail_reason="")
+    elif act == "retry_exec":
+        fields.update(attempts=0, fail_kind="", fail_reason="")
+    elif rec.get("scope") and rec.get("verify"):
         fields.update(scope=rec["scope"], verify=rec["verify"])
+    if item:
+        rec["undo"] = {k: getattr(item, k) for k in _UNDO_FIELDS}  # 선택 변경(reopen)용 — 적용 직전 항목 상태
     queue.update_item(path, rec["id"], **fields)
     rec["status"] = "applied"
-    return f"{rec['id']} 선택 {rec['choice']}({opt['name'] if opt else '-'}) → queued"
+    return f"{rec['id']} 선택 {rec['choice']}({opt['name'] if opt else '-'}) → {fields['stage']}"
+
+
+def reopen(rec: dict, path: Path) -> str | None:
+    """applied 결정을 되돌려 선택을 다시 받을 수 있게 한다. 불가하면 사유 문자열, 성공이면 None.
+
+    항목이 이미 개발 중·완료(구현 결과 있음)면 되돌릴 수 없다 — queued 이거나, 사용자가 닫은 done(already_done/dropped)만 허용.
+    """
+    undo = rec.get("undo")
+    item = _item(path, rec["id"])
+    if not undo or item is None:
+        return "되돌릴 수 없음(적용 전 상태 기록 없음)"
+    closed = item.stage == "done" and item.resolution in _REOPEN_OK_RESOLUTIONS
+    if item.stage != "queued" and not closed:
+        return f"이미 진행됨(항목 단계 {item.stage}) — 선택을 바꿀 수 없음"
+    queue.update_item(path, rec["id"], **undo)
+    rec["status"] = "open"
+    rec.pop("undo", None)
+    return None
 
 
 def _redo(rec: dict, path: Path, decide) -> str:
@@ -48,12 +97,13 @@ def apply(path: Path, decide, dpath: Path | None = None) -> list[str]:
         if rec.get("kind") in ("initiative", "vision"):
             continue  # 버전 전환·비전 개정은 versioning/steward.apply_choice 가 처리
         if rec["status"] == "chosen":
-            if stages.get(rec["id"]) == "needs_decision":
+            if stages.get(rec["id"]) in ("needs_decision", "failed"):
                 out.append(_promote(rec, path))
             else:
                 rec["status"] = "applied"
         elif rec["status"] == "redo":
             out.append(_redo(rec, path, decide))
-    if out or any(r["status"] == "applied" for r in data):
-        decisions.save(data, dpath)
+    pruned = decisions.prune(data)
+    if out or len(pruned) != len(data) or any(r["status"] == "applied" for r in data):
+        decisions.save(pruned, dpath)
     return out

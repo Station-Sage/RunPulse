@@ -2378,9 +2378,9 @@
 
 - functions: test_display_meta_formats_m10_m21, test_josa_m31, test_merge_reasons_groups_same_input_m31, test_explain_avg7d_uses_seven_days_m11, test_compare_basis_partial_month_m14, test_story_future_month_has_no_next_and_no_compare_m16, test_risk_peak_carries_grade_m15, test_headline_adds_cirs_caveat_m17, test_signed_pct_and_lagging_m19, test_second_batch_descriptions_m07, test_trend_reports_source_m08
 
-### `test_audit_consume.py` (53줄) — C1 — 결정 소비(chosen→queued, redo→재제안·상한).
+### `test_audit_consume.py` (96줄) — C1 — 결정 소비(chosen→queued, redo→재제안·상한).
 
-- functions: test_chosen_promotes_to_queued, test_chosen_when_not_needs_decision_only_closes, test_redo_requests_new_proposal_then_hits_limit
+- functions: test_chosen_promotes_to_queued, test_chosen_when_not_needs_decision_only_closes, test_redo_requests_new_proposal_then_hits_limit, test_promote_saves_undo_and_reopen_queued, test_reopen_closed_already_done, test_reopen_refused_when_progressed_or_no_undo, test_prune_caps_applied_only
 
 ### `test_audit_cycle.py` (42줄) — audit.procs 레지스트리와 audit.cycle 스킵 판정.
 
@@ -2402,6 +2402,10 @@
 
 - functions: test_acwr_range_comes_from_metric_definition, test_ctl_scale_uses_one_year_peak, test_finish_goal_templates_skip_achievability, test_finish_goal_summary_mentions_short_period, test_target_pace_error, app, test_templates_and_create_reject_impossible_target, test_save_empty_session_note_deletes, test_derive_title_strips_markdown_and_spaces, test_coach_service_reexports_title, test_list_threads_tie_breaks_by_id, test_list_threads_page_has_more, test_threads_route_paging_and_validation, test_unexpected_exception_is_not_network, test_run_chain_marks_unexpected
 
+### `test_audit_failed_handling.py` (101줄) — failed 처리 — 분류·asked 카드·선택 반영(consume)·프롬프트 주입·콘솔 요약.
+
+- functions: test_classify_verify, test_parse_and_asked_card, test_scope_choice_appends_scope_and_answered, test_done_and_dropped, test_failed_env_retry_resets_verify, test_redefine_text_becomes_scope, test_sync_has_only_drop_option, test_console_blocked_split, test_migrate_failed
+
 ### `test_audit_g_held.py` (187줄) — V2-AUDIT-INDIV 묶음 G — 보류 항목 추천안 반영(P-14 롱런 요일, D-21 확장, A-36 스트림 다운샘플, D-32 표기).
 
 - functions: test_resolve_and_store_long_run_weekday, test_plan_puts_long_run_on_preferred_weekday, test_plan_without_preference_keeps_weekend_default, test_long_run_weekday_must_be_run_day, client, test_non_object_json_body_is_400, test_create_plan_rejects_long_run_outside_run_days, test_parse_max_points, test_downsample_keeps_ends_and_order_per_source, test_streams_route_max_points, test_intervals_display_name_is_intervals_icu, test_consent_defaults_are_opt_in, test_consent_route_defaults_opt_in, test_engine_lists_fallback_providers_before_consent, test_rule_engine_labels_share_one_format
@@ -2414,16 +2418,17 @@
 
 - functions: test_key_stable_and_distinct, test_filter_new_skips_open_only, test_record_marks_reopened, test_reverify_resolves_and_keeps, test_current_round_reads_state, test_tunable_override, test_discover_respects_cap_and_round_reset, test_discover_drops_already_known
 
-### `test_audit_loop.py` (258줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
+### `test_audit_loop.py` (268줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
 
-- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_needs_decision_items_do_not_stop_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_needs_decision_left_does_not_stop, test_run_until_stop_converts_exception_and_pacinghold, test_propose_keeps_design_summary, test_no_candidate_design_goes_through_end_round, test_propose_limit_and_checkpoint, test_step_records_cursor_and_reset_clears
+- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_needs_decision_items_do_not_stop_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_needs_decision_left_does_not_stop, test_run_until_stop_converts_exception_and_pacinghold, test_propose_keeps_design_summary, test_no_candidate_design_goes_through_end_round, test_propose_limit_and_checkpoint, test_step_records_cursor_and_reset_clears, test_run_until_stop_saves_state_immediately_on_resume
 
 ### `test_audit_orchestrator.py` (96줄)
 
 - functions: test_record_round_resets_on_new_defects, test_gate_requires_clean_rounds_and_empty_queue, test_gate_round_cap, test_after_round_sets_plan_phase, test_plan_step_without_planner_awaits_user, test_end_round_routes_to_plan_when_gate_passes, test_critical_parsed_and_preferred, test_critical_blocks_gate_and_plan, test_propose_carries_critical
 
-### `test_audit_p5.py` (82줄) — P5 — 필수 브라우저 스윕 가드, 독립 검토 게이트, 사이클 요약.
+### `test_audit_p5.py` (92줄) — P5 — 필수 브라우저 스윕 가드, 독립 검토 게이트, 사이클 요약.
 
+- class **_Proc**: wait
 - functions: test_browser_sweep_fails_on_zero_cells, test_browser_sweep_ok_and_no_node, test_cycle_skips_agents_when_sweep_fails, test_cycle_runs_agents_with_review_after_sweep, test_parse_verdict_and_confirmed, test_review_uses_different_model_and_skips_non_real, test_browser_sweep_retries_once_then_succeeds, test_browser_sweep_failure_reports_stderr_tail
 
 ### `test_audit_planner.py` (83줄)
@@ -2438,9 +2443,9 @@
 
 - functions: test_load_default_and_roundtrip, test_link_idempotent, test_sync_maint_links_only_unlinked_aud, test_rollup_counts, test_rollup_phases_active_and_goal
 
-### `test_audit_roles.py` (46줄)
+### `test_audit_roles.py` (63줄)
 
-- functions: test_set_flag_validates, test_gate_none_without_flags, test_gate_paused_stops_with_role_pause, test_gate_skip_consumes_flag, test_gate_rerun_consumes_flag, test_resume_keeps_phase_on_role_pause
+- functions: test_set_flag_validates, test_gate_none_without_flags, test_gate_paused_stops_with_role_pause, test_gate_skip_consumes_flag, test_gate_rerun_consumes_flag, test_resume_keeps_phase_on_role_pause, test_resume_keeps_phase_on_pacing_stop, test_resume_after_failed_still_restarts_audit
 
 ### `test_audit_steward.py` (53줄)
 
@@ -2454,6 +2459,10 @@
 
 - functions: test_resolve_path_uses_db_sample_and_defaults, test_apply_results_records_ledger, test_stop_kills_stubborn_process
 
+### `test_audit_sweep_progress.py` (33줄) — sweep 진행 로그 + cycle._sweep_once 스트리밍 파싱.
+
+- functions: test_sweep_main_prints_progress, test_sweep_main_reports_failure, test_sweep_once_streams_and_parses
+
 ### `test_audit_triage.py` (149줄) — P6 — 판단 등급 분류(위험 가드·교차 검토·결정 보고서)와 loop 설계 단계 연동.
 
 - functions: test_parse_design_and_check_conservative, test_risk_keyword_forces_user_without_calling_models, test_auto_requires_cross_review_with_other_model, test_disagree_or_bad_scope_or_missing_verify_is_user, test_report_has_options_and_reason, test_design_phase_splits_auto_and_user, test_is_large, test_large_design_escalates_to_opus_with_sonnet_reviewer, test_large_design_stays_sonnet_when_opus_not_allowed, test_open_unit_covering_kind_suppresses_duplicate_finding, test_design_prompt_asks_for_root_cause_and_recommendation, test_normalize_verify_runs_frontend_tests_from_frontend_dir, test_unsure_reasked_once_then_agree, test_disagree_not_reasked, test_design_parse_failure_retried_once, test_docs_scope_allowed, test_design_prompt_requires_korean
@@ -2462,9 +2471,9 @@
 
 - functions: test_set_doc_status, test_approve_switches_current, test_apply_choice_a_b_redo, test_parse_guards, test_design_step_writes_doc_and_items, test_design_step_fails_without_valid_items, test_loop_idesign_branch_goes_develop, test_server_choose_initiative_applies
 
-### `test_audit_wake.py` (23줄) — pacing 재개 시각 일회성 타이머 예약 테스트.
+### `test_audit_wake.py` (35줄) — pacing 재개 시각 일회성 타이머 예약 테스트.
 
-- functions: test_schedule_builds_transient_timer, test_schedule_skips_without_resume_at, test_schedule_past_time_uses_margin
+- functions: test_schedule_builds_transient_timer, test_schedule_skips_without_resume_at, test_schedule_past_time_uses_margin, test_sync_cancels_when_allowed_and_reschedules_when_blocked
 
 ### `test_audit_watch.py` (33줄) — audit/watch.py — 문제 판정과 중복 알림 억제.
 
@@ -2494,9 +2503,9 @@
 
 - functions: test_ignore_budget_false_blocks_when_over_daily_cap, test_ignore_budget_true_skips_budget_check
 
-### `test_autopilot_pacing.py` (83줄) — pacing.py — 세션·주간 rate_limit 기반 페이싱 판정.
+### `test_autopilot_pacing.py` (128줄) — pacing.py — 세션·주간 rate_limit 기반 페이싱 판정.
 
-- functions: test_week_start_is_previous_thursday_22, test_session_ceiling_blocks_until_reset, test_expired_observation_ignored, test_weekly_pace_target_grows_with_time, test_weekly_over_target_blocks_and_under_allows, test_fallback_when_no_session_observation, test_fallback_ignores_entries_before_expired_window_reset, test_fallback_excludes_audit_ask_entries, test_fallback_limits_tunable_via_tunables_json
+- functions: test_week_start_is_previous_thursday_22, test_session_ceiling_blocks_until_reset, test_expired_observation_ignored, test_weekly_pace_target_grows_with_time, test_weekly_over_target_blocks_and_under_allows, test_fallback_when_no_session_observation, test_fallback_ignores_entries_before_expired_window_reset, test_fallback_excludes_audit_ask_entries, test_fallback_limits_tunable_via_tunables_json, test_weekly_block_resumes_at_nearer_five_hour_reset, test_weekly_target_is_ceiling_in_final_day, test_weekly_block_resumes_when_target_reaches_utilization, test_weekly_block_at_ceiling_resumes_at_reset, test_weekly_pacing_toggle_off_skips_weekly_gate
 
 ### `test_autopilot_queue.py` (145줄) — scripts/autopilot/queue.py 테스트 — kind="code" 확장(scope/verify) 라운드트립 중심.
 
@@ -2511,12 +2520,13 @@
 
 - functions: test_promote_merged, test_prune_pending
 
-### `test_autopilot_run_unit.py` (141줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
+### `test_autopilot_run_unit.py` (147줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
 
 - class **TestBuildPrompt**: test_docs_kind_uses_docs_template, test_code_kind_uses_code_template_with_scope_and_verify, test_code_kind_prompt_requires_following_embedded_spec, test_code_kind_prompt_forbids_git_dash_c, test_code_kind_missing_scope_warns_instead_of_empty
 - class **TestBuildCmd**: test_docs_kind_uses_base_allowed_tools_and_budget, test_code_kind_uses_code_allowed_tools_and_budget
 - class **TestPostVerify**: test_docs_kind_skips_verification, test_code_kind_passes_when_command_succeeds, test_code_kind_fails_when_command_fails, test_code_kind_defaults_to_full_pytest_when_verify_empty
 - class **TestCommitLeftovers**: test_clean_worktree_is_noop, test_commits_in_scope_files_only, test_directory_scope_prefix_matches
+- functions: test_abs_venv_rewrites_relative_venv_python
 
 ### `test_autopilot_size_followup.py` (15줄)
 
@@ -2710,21 +2720,21 @@
 
 - functions: tmp_config, test_save_config_creates_file, test_save_config_roundtrip, test_save_config_overwrites, test_update_service_config_creates_file, test_update_service_config_partial_update, test_update_service_config_new_service, test_redact_masks_password, test_redact_masks_token, test_redact_does_not_mutate_original, test_redact_empty_value_unchanged
 
-### `test_console_control.py` (53줄) — 관제 제어 — 플래그·화이트리스트·타이머 drop-in·감사 로그.
+### `test_console_control.py` (72줄) — 관제 제어 — 플래그·화이트리스트·타이머 drop-in·감사 로그.
 
-- functions: test_pause_resume_stop, test_tunables_validation, test_set_interval, test_start_clears_stopped_cycle_state, test_pause_keeps_cycle_state
+- functions: test_pause_resume_stop, test_tunables_validation, test_set_interval, test_start_clears_stopped_cycle_state, test_pause_keeps_cycle_state, test_resume_starts_loop_but_pause_does_not, test_resume_after_failed_halt_keeps_cursor
 
-### `test_console_flow.py` (66줄) — 진행 흐름(flow.build) 계산 + 루프 이벤트 기록.
+### `test_console_flow.py` (106줄) — 진행 흐름(flow.build) 계산 + 루프 이벤트 기록.
 
-- functions: test_build_from_events, test_deploy_stage_and_old_round_ignored, test_fallback_from_progress_log, test_loop_records_events, test_event_trims_large_file
+- functions: test_build_from_events, test_deploy_stage_and_old_round_ignored, test_fallback_from_progress_log, test_loop_records_events, test_event_trims_large_file, test_sub_states_reset_on_new_audit_pass, test_steps_only_current_phase_with_failures, test_sweep_stream_emits_step_events
 
-### `test_console_overview.py` (34줄) — C1 — 관제 콘솔 overview/decision_list.
+### `test_console_overview.py` (47줄) — C1 — 관제 콘솔 overview/decision_list.
 
-- functions: test_queue_summary, test_overview_and_decisions, test_overview_has_release
+- functions: test_queue_summary, test_overview_and_decisions, test_overview_has_release, test_redo_not_counted_and_closed_capped
 
-### `test_console_server.py` (80줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
+### `test_console_server.py` (145줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
 
-- functions: test_choose_validation, test_log_tail_and_route, test_http_origin_and_content_type, test_static_files_served, test_timers_and_tunable_values, test_notify_console_hint
+- functions: test_choose_validation, test_log_tail_and_route, test_http_origin_and_content_type, test_static_files_served, test_timers_and_tunable_values, test_notify_console_hint, test_change_choice_from_chosen_and_blocked_kinds, test_change_choice_applied_reopen_fail, test_review_action, test_failed_action, test_review_text_not_truncated
 
 ### `test_constraints.py` (65줄)
 
@@ -4352,7 +4362,7 @@
 - functions: run
 
 ---
-총 954개 파일
+총 956개 파일
 
 ## docstring 누락
 

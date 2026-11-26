@@ -17,21 +17,12 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 # P7-AUTO-SPLIT-03가 탐색 단계(10턴, 쓰기 전)에서 예산 초과로 실패(실측 $0.510).
 # $1.0로 상향 — 여전히 관측 모드, 더 큰 작업이 나오면 다시 근거를 보고 올린다.
 PER_RUN_MAX_USD = 1.0          # --max-budget-usd (kind="docs")
-# DAILY_MAX_USD/WEEKLY_MAX_USD 2026-09-22 재조정: 사용자가 실제 계정 사용률(Claude Code
-# 앱 UI의 Session(5hr)/Weekly(7day) 게이지)을 보여줌 — 그날 오토파일럿 문서 작업 5건
-# ($1.88 소진, ledger 기준)을 이미 실행한 시점에도 Session 33%(3시간 뒤 리셋)/Weekly
-# 28%(2일 뒤 리셋)로 여유가 컸다. 즉 이 $ 상한은 실제 요금과 무관한(구독제) 자체 안전
-# 프록시일 뿐인데 너무 보수적으로 잡혀 있어서, code 유닛(런당 최대 $2.5)이 도입된 지금
-# 하루 상한을 채 하나도 못 돌리고 막히는 상황이 됐다. 실측 rate-limit 여유를 근거로
-# 상향 — 여전히 관측 모드(자동 상향 없음), 이후 실측이 이 판단과 어긋나면 다시 낮춘다.
-# 2026-09-24 $8→$20 상향(사용자 선택): code 유닛 1건이 실측 $1.4~2.2(리뷰·병합 왕복 포함
-# 하루 5~6건이 정상 작업량)라 $8로는 하루 3~4건에서 막혀 유닛마다 --ignore-budget 우회가
-# 반복됨. 롤링 24h 기준 $11.13에서 막힌 실측이 근거. 주간 상한($30)은 그대로라 안전판 유지.
-DAILY_MAX_USD = 20.0           # 하루 누적 상한 (ledger 기준, docs/code 공통)
+# 일간 USD 상한은 폐지(2026-11-25) — 5시간·주간 사용률을 rate_limit 관측값으로 직접 쓴다(pacing.py).
 WEEKLY_MAX_USD = 30.0          # 주 누적 상한 (seven_day 사용률을 직접 관측할 수 없어 자체 집계)
 
-# ── 페이싱(pacing.py) — 실제 rate_limit 관측 기반. 게이트는 이것을 쓰고 위 USD 상한은 status 표시용 ──
+# ── 페이싱(pacing.py) — 실제 rate_limit 관측 기반. 게이트는 이것을 쓰고 주간 USD 상한은 보조 안전장치 ──
 SESSION_CEILING = 0.8           # 5시간 세션 사용률이 이 이상이면 리셋까지 양보(사람 몫 20% 보존)
+WEEKLY_PACING_ENABLED = 1       # 1=주간 균등 사용 게이트 사용, 0=건너뜀(5시간 세션·수동 보류는 유지)
 WEEK_CEILING = 0.85             # 주간 사용률 절대 상한
 PACE_FLOOR = 0.15               # 주 시작 직후에도 허용하는 최소 목표선
 PACE_SLACK = 0.70               # 목표선 = FLOOR + 경과비율 × SLACK (주말에 FLOOR+SLACK=0.85)

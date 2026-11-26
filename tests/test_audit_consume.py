@@ -51,3 +51,46 @@ def test_redo_requests_new_proposal_then_hits_limit(tmp_path):
     r = decisions.load(dp)[0]
     assert r["status"] == "open" and "소진" in r["why"]
     assert len(seen) == 2
+
+
+def test_promote_saves_undo_and_reopen_queued(tmp_path):
+    q, dp = _setup(tmp_path)
+    decisions.choose("AUD-1", "A", dp)
+    consume.apply(q, lambda f: {}, dp)
+    rec = decisions.load(dp)[0]
+    assert rec["undo"]["stage"] == "needs_decision"
+    assert consume.reopen(rec, q) is None
+    assert rec["status"] == "open" and "undo" not in rec
+    assert queue.parse(q)[0].stage == "needs_decision"
+
+
+def test_reopen_closed_already_done(tmp_path):
+    q, dp = _setup(tmp_path)
+    recs = decisions.load(dp)
+    recs[0]["options"][0]["action"] = "already_done"
+    decisions.save(recs, dp)
+    decisions.choose("AUD-1", "A", dp)
+    consume.apply(q, lambda f: {}, dp)
+    assert queue.parse(q)[0].stage == "done"
+    rec = decisions.load(dp)[0]
+    assert consume.reopen(rec, q) is None
+    assert queue.parse(q)[0].stage == "needs_decision"
+
+
+def test_reopen_refused_when_progressed_or_no_undo(tmp_path):
+    q, dp = _setup(tmp_path)
+    decisions.choose("AUD-1", "A", dp)
+    consume.apply(q, lambda f: {}, dp)
+    rec = decisions.load(dp)[0]
+    queue.update_item(q, "AUD-1", stage="review")
+    assert "이미 진행됨" in consume.reopen(rec, q)
+    rec.pop("undo")
+    assert "되돌릴 수 없음" in consume.reopen(rec, q)
+
+
+def test_prune_caps_applied_only():
+    data = [{"id": f"a{i}", "status": "applied", "created": f"2026-01-{i + 1:02d}"} for i in range(5)]
+    data += [{"id": "o", "status": "open", "created": "2025-01-01"}, {"id": "r", "status": "redo", "created": "2025-01-01"}]
+    out = decisions.prune(data, keep=2)
+    assert [r["id"] for r in out if r["status"] == "applied"] == ["a3", "a4"]
+    assert {"o", "r"} <= {r["id"] for r in out}

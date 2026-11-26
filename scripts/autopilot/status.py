@@ -19,7 +19,7 @@ def main() -> None:
     entries = ledger.read_all()
     today = ledger.total_cost(ledger.since(24, entries))
     week = ledger.total_cost(ledger.since(24 * 7, entries))
-    print(f"오늘   ${today:.2f} / ${settings.DAILY_MAX_USD:.2f}")
+    print(f"오늘   ${today:.2f}")
     print(f"이번주 ${week:.2f} / ${settings.WEEKLY_MAX_USD:.2f}")
     now = time.time()
     for rtype, label in (("five_hour", "5시간 세션"), ("seven_day", "주간")):

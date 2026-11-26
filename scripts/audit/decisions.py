@@ -55,8 +55,18 @@ def save(data: list[dict], path: Path | None = None) -> None:
     p.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
-def choose(iid: str, choice: str, path: Path | None = None) -> dict | None:
-    """choice = 옵션 key(A,B…) → status chosen, 'redo' → status redo(다른 제안 요청). 대상 레코드를 돌려준다."""
+CLOSED_KEEP = 20
+
+
+def prune(data: list[dict], keep: int = CLOSED_KEEP) -> list[dict]:
+    """닫힌(applied) 결정은 최신 keep 건만 남긴다. open/chosen/redo 는 절대 지우지 않는다."""
+    closed = sorted((r for r in data if r["status"] == "applied"), key=lambda r: str(r.get("created", "")), reverse=True)
+    drop = {id(r) for r in closed[keep:]}
+    return [r for r in data if id(r) not in drop]
+
+
+def choose(iid: str, choice: str, path: Path | None = None, text: str = "") -> dict | None:
+    """choice = 옵션 key(A,B…) → status chosen, 'redo' → status redo(다른 제안 요청). text = 사용자 의견(선택). 대상 레코드를 돌려준다."""
     p = path or DECISIONS_PATH
     data = load(p)
     rec = next((r for r in data if r["id"] == iid), None)
@@ -64,5 +74,7 @@ def choose(iid: str, choice: str, path: Path | None = None) -> dict | None:
         return None
     rec["status"] = "redo" if choice == "redo" else "chosen"
     rec["choice"] = choice
+    if text.strip():
+        rec["text"] = text.strip()[:1000]
     p.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     return rec

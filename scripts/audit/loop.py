@@ -258,7 +258,7 @@ def run_until_stop(st: dict, *, force: bool = False, once: bool = False, act: di
             stopreason.stop(st, stopreason.STEP_CAP)
             save_state(st) if path is None else None
     if st.get("stop_reason") == stopreason.PACING and path is None and not force:
-        wake.schedule(pacing.check(time.time()).resume_at)
+        wake.sync()
     return out
 
 

@@ -27,7 +27,7 @@ def mark(msg: str, path: Path | None = None) -> str:
 
 
 def event(kind: str, path: Path | None = None, **fields) -> None:
-    """구조화 이벤트 1건(JSONL, 날짜 포함 ts). kind: phase|sub|design|unit_start|unit_end|deploy_start|deploy_end.
+    """구조화 이벤트 1건(JSONL, 날짜 포함 ts). kind: phase|sub|step|design|unit_start|unit_end|deploy_start|deploy_end.
     기록 실패는 루프를 막지 않는다."""
     p = path or EVENTS_PATH
     rec = {"ts": round(time.time(), 1), "kind": kind, **fields}

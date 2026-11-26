@@ -563,3 +563,9 @@
 - 문제: 감사 루프가 결함 수정만 반복해 비전·버전 단위의 방향이 없고, 에이전트가 읽을 문서 구조도 정의되지 않았다.
 - 결정: (1) `loop.py` 를 확장한 단일 결정적 오케스트레이터가 단계 전이를 맡고, 역할(steward·planner·designer·developer·verifier·auditor·deployer)은 무상태 모델 호출. 사이클: plan → design → dev/test/deploy → 감사 반복 → 안정화 게이트 → 비전 개정 제안 → 다음 버전 plan. (2) 문서 트리 `v0.3/data/releases/<버전>/`(PLAN·initiatives/<INI>/DESIGN), 비전은 `VISION.md`; `docs_ctx` 가 역할별로 프롬프트에 주입. (3) 안정화 게이트 = 큐 비음 + 연속 2라운드 신규 결함 0 + 테스트 통과 + 최대 라운드 상한. (4) 버전 계획·이니셔티브 목록·VISION 개정은 항상 사용자 승인(AWAIT_DECISION). steward 는 diff 제안만. (5) 관제 콘솔 역할 패널: 역할별 일시정지(ROLE_PAUSE, 재개 시 단계 유지)·건너뛰기·재실행.
 - 결정(사용자, 2026-11-25): 치명 결함은 버전 작업보다 먼저. 감사·검토가 finding 에 `critical`(데이터 손실·보안·핵심 기능 불능·잘못된 건강/훈련 수치)을 표시 → propose 가 큐 메타 `critical:true` 로 기록 → `queue.next_runnable` 이 파일 순서보다 먼저 집고, plan·idesign 단계는 열린 치명 항목(queued·in_progress·review·failed)이 있으면 develop 으로 되돌리며(`loop.step`), 안정화 게이트도 통과시키지 않는다(`orchestrator.critical_open`). 사용자 결정 대기(needs_decision) 치명 항목은 작업할 수 없으므로 되돌림에서만 제외(게이트는 열린 항목으로 계속 막음). 라운드 상한(MAX_ROUNDS) 안전판은 치명 항목보다 우선.
+
+## ADR-069: 감사 루프 failed 의미 재정의 — 모델의 결정 요청은 실패가 아니라 질문 (2026-11-25, BACKLOG AP-FAIL)
+
+- 문제: develop 에서 `failed` 가 된 5건 전부가 실제로는 모델이 DECISIONS.md 에 새 결정을 요청한 것이었다. failed 는 어떤 경로로도 재시도되지 않고 사유도 없어 묻혔고, 단순 queued 복귀는 같은 질문으로 재실패, done 은 개발을 건너뛴다.
+- 결정: (1) 결정 요청은 `needs_decision` + 카드(`fail_kind=asked`, `fails` 미증가), 질문 상한 `ASK_LIMIT=2` 초과 시 failed(`asked_loop`). (2) failed 에 `fail_kind`(verify·env·exec·sync·asked_loop)·`fail_reason` 기록, 종류별 선택지 카드(sync 는 재시도 없음). (3) 카드 선택은 action 으로 처리 — 선택지 본문·의견이 scope 에 반영되고 `answered` 가 프롬프트에 주입돼 같은 질문을 재작성하지 않는다. 이미 구현됨·폐기는 `done` + `resolution`(새 stage 없음). (4) 기본 verify 는 `.venv/bin/python -m pytest tests/ -q`(ENV-1). (5) 콘솔은 blocked(failed)와 attention(needs_decision·review)을 분리해 "막힌 항목 N건" 을 표시한다.
+- 설계: `v0.3/data/phase-7-ui-renewal/DESIGN-AUDIT-FAILED-HANDLING.md`. 기존 failed 5건은 이행 스크립트로 1회 재분류(사용자 지시 시 실행).
