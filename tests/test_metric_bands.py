@@ -17,6 +17,14 @@ def test_tsb_race_phase_overrides():
     assert grade("tsb", 10, phase="taper")["label"] == "레이스 최적"
 
 
+def test_tsb_band_ranges_expose_race_optimal_window():
+    """formChart 레이스 최적 음영 [5,25] 는 프론트 상수가 아니라 tsb 밴드(신선 구간)에서 와야 한다."""
+    from src.metrics.bands import band_ranges
+
+    fresh = [r for r in band_ranges("tsb") if r["status"] == "excellent"]
+    assert [(r["from"], r["to"]) for r in fresh] == [(5, 25)]
+
+
 def test_cirs_lower_is_better():
     assert grade("cirs", 20)["status"] == "good"
     assert grade("cirs", 75)["status"] == "poor"
