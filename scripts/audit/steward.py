@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from scripts.audit import agents, decisions, docs_ctx, planner, release_plan
+from scripts.audit import agents, decisions, docs_ctx, planner, release_plan, versioning
 from scripts.audit.triage import _json
 
 _PROMPT = """너는 비전 청지기다. 아래 VISION 과 직전 버전 회고를 읽고, 개정이 정말 필요할 때만 제안하라. 코드·다른 문서는 건드리지 마라.
@@ -49,8 +49,23 @@ def step(*, ask=agents.ask, root: Path | None = None, dpath: Path | None = None,
     return f"{ver} 비전 개정 제안 — 결정 대기(비차단)"
 
 
-def apply_choice(rec: dict, *, dpath: Path | None = None, root: Path | None = None) -> str:
-    """kind=vision 결정 반영 — A 면 VISION.md 교체(이전본 보존), 아니면 기각. 레코드는 applied."""
+def _supersede_planned(*, dpath: Path | None, plan_path: Path | None, root: Path | None) -> list[str]:
+    """새 비전 이전에 제안된 미승인(planned) 버전과 그 승인 대기 결정(VER-*)을 걷어낸다 — plan 단계가 새 비전으로 다시 제안한다. 진행 중 버전은 건드리지 않는다."""
+    plan = release_plan.load(plan_path)
+    gone = [v for v, x in plan["versions"].items() if x.get("status") == "planned"]
+    if not gone:
+        return []
+    for v in gone:
+        del plan["versions"][v]
+        versioning.set_doc_status((root or docs_ctx.RELEASES) / v / "PLAN.md", "superseded")
+    release_plan.save(plan, plan_path)
+    ids = {f"VER-{v}" for v in gone}
+    decisions.save([r for r in decisions.load(dpath) if r["id"] not in ids], dpath)
+    return gone
+
+
+def apply_choice(rec: dict, *, dpath: Path | None = None, root: Path | None = None, plan_path: Path | None = None) -> str:
+    """kind=vision 결정 반영 — A 면 VISION.md 교체(이전본 보존)·미승인 버전 제안 폐기(재기획), 아니면 기각. 레코드는 applied."""
     ver = rec["id"].removeprefix("VIS-")
     data = decisions.load(dpath)
     for r in data:
@@ -70,4 +85,5 @@ def apply_choice(rec: dict, *, dpath: Path | None = None, root: Path | None = No
     vp.write_text(head + "\n\n" + body + "\n", encoding="utf-8")
     docs = pp.read_text(encoding="utf-8").replace("status: proposed", "status: applied", 1)
     pp.write_text(docs, encoding="utf-8")
-    return f"{ver} 비전 개정 반영(이전본 보존)"
+    gone = _supersede_planned(dpath=dpath, plan_path=plan_path, root=root)
+    return f"{ver} 비전 개정 반영(이전본 보존)" + (f" — 옛 비전 기준 제안 {', '.join(gone)} 폐기, 다음 계획 단계에서 재제안" if gone else "")

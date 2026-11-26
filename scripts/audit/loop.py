@@ -166,7 +166,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
             steward.step(**act.get("steward", {}))  # 비차단 — 실패해도 기획 진행
         except Exception as e:
             print(f"[steward] 건너뜀: {e}")
-        return orchestrator.plan_step(st, act.get("plan", planner.plan))
+        return orchestrator.plan_step(st, act.get("plan", planner.plan), act.get("dpath"))
     if ph == "idesign":
         st["phase"] = "idesign"
         r = idesign.design_step(st, **act.get("idesign", {}))

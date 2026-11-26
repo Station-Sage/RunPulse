@@ -7,7 +7,7 @@
 """
 from __future__ import annotations
 
-from scripts.audit import stopreason
+from scripts.audit import decisions, stopreason
 
 GATE_ROUNDS = 2
 MAX_ROUNDS = 8
@@ -60,9 +60,12 @@ def after_round(st: dict, items: list) -> str | None:
     return None
 
 
-def plan_step(st: dict, planner=None) -> str:
-    """plan 단계 — 버전 기획자(planner)를 호출한다. 없으면 사용자 결정 대기로 정지."""
+def plan_step(st: dict, planner=None, dpath=None) -> str:
+    """plan 단계 — 버전 기획자(planner)를 호출한다. 없으면 사용자 결정 대기, 비전 개정 결정이 미해결이면 옛 비전으로 제안하지 않도록 대기."""
     if planner is None:
         stopreason.stop(st, stopreason.AWAIT_DECISION)
         return "버전 계획 단계 — 기획자 미연결, 사용자 결정 대기"
+    if any(r.get("kind") == "vision" and r["status"] in ("open", "chosen", "redo") for r in decisions.load(dpath)):
+        stopreason.stop(st, stopreason.AWAIT_DECISION)
+        return "비전 개정 결정 대기 — 새 비전 확정 후 버전 계획"
     return planner(st)

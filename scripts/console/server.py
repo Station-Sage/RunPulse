@@ -73,7 +73,7 @@ def choose(iid: str, choice: str, dpath: Path | None = None, state_path: Path | 
             note = versioning.apply_choice(cur, st, dpath=dpath, plan_path=plan_path)
             loop.save_state(st, state_path)
         elif rec.get("kind") == "vision":
-            note = steward.apply_choice(next(r for r in decisions.load(dpath) if r["id"] == iid), dpath=dpath)
+            note = steward.apply_choice(next(r for r in decisions.load(dpath) if r["id"] == iid), dpath=dpath, plan_path=plan_path)
     return {"ok": True, "id": iid, "choice": choice, **({"note": note} if note else {})}
 
 
