@@ -18,7 +18,8 @@ from scripts.console import control, items, overview
 
 STATIC_DIR = Path(__file__).parent / "static"
 FILES = {"/": ("index.html", "text/html"), "/index.html": ("index.html", "text/html"),
-         "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"), "/sw.js": ("sw.js", "application/javascript")}
+         "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"), "/sw.js": ("sw.js", "application/javascript"),
+         "/console.css": ("console.css", "text/css"), "/now.js": ("now.js", "application/javascript"), "/app.js": ("app.js", "application/javascript")}
 
 
 def log_tail(n: int = 80, path: Path | None = None) -> list[str]:

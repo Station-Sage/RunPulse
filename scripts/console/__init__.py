@@ -1,1 +1,1 @@
-"""오토파일럿 관제 콘솔 — 진행 현황·결정함·개발항목(items.py: 목록·상세·사후검토) 읽기 API 와(C2~) 제어·PWA. 기존 상태 파일은 읽기 전용, 쓰기는 PAUSE/STOP·tunables·결정 선택으로 한정."""
+"""오토파일럿 관제 콘솔 — 진행 현황·결정함·개발항목(items.py: 목록·상세·사후검토) 읽기 API 와(C2~) 제어·PWA(static/: index.html + console.css + now.js 상황판 + app.js 공용·타 탭). 기존 상태 파일은 읽기 전용, 쓰기는 PAUSE/STOP·tunables·결정 선택으로 한정."""

@@ -54,7 +54,9 @@ def test_static_files_served():
     srv = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     try:
-        for path, needle in (("/", b"/api/overview"), ("/manifest.webmanifest", b"short_name"), ("/sw.js", b"fetch")):
+        for path, needle in (("/", b"/now.js"), ("/", b'data-a="start"'), ("/", b'id="flags"'), ("/app.js", b"/api/overview"),
+                             ("/now.js", b"data-rl"), ("/now.js", b"data-fa"), ("/console.css", b"details.cfg"),
+                             ("/manifest.webmanifest", b"short_name"), ("/sw.js", b"fetch")):
             body = urllib.request.urlopen(f"http://127.0.0.1:{srv.server_port}{path}").read()
             assert needle in body
     finally:
