@@ -8,7 +8,7 @@
   develop: run_unit.run_once 1건 → review 면 test, failed 면 알리고 다음 항목
   test   : 브라우저 스윕(안쪽 루프) 통과 → done, 실패 → queued(버그수정 재개발), 상한 초과 → failed
 정지는 stopreason.py 의 사유(pacing·step_cap·failed·stop_flag)로 기록하고 타이머 발화 시 사유별로 자동 재개한다.
-정지 조건: 같은 단계 연속 실패 FAIL_LIMIT, 항목당 테스트 재시도 FIX_LIMIT, 라운드당 단위 UNIT_CAP, 단계 직전 pacing.
+정지 조건: 같은 단계 연속 실패 FAIL_LIMIT, 항목당 테스트 재시도 FIX_LIMIT, 라운드당 단위 UNIT_CAP(도달 시 운영 반영 후 develop 유지), 단계 직전 pacing.
 열린 단위가 없으면(또는 단위 상한) 라운드가 끝나며 통과 단위가 있으면 운영 반영(deploy.py) 후 다음 감사(audit)로 돌아간다 — 고정 최소 간격(90분)은 없고 라운드 종료 즉시 시작(pacing 만 게이트). 이 프로세스는 대화 세션에 쓸 수 없어 알림은 텔레그램이다.
 """
 from __future__ import annotations
@@ -23,7 +23,7 @@ from scripts.audit.propose import PENDING_PATH, propose  # noqa: F401  (tests·�
 from scripts.autopilot import notify, pacing, queue, reconcile, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
-FAIL_LIMIT, FIX_LIMIT, UNIT_CAP, MAX_STEPS, DESIGN_CAP = 3, 2, 5, 40, 6
+FAIL_LIMIT, FIX_LIMIT, UNIT_CAP, MAX_STEPS, DESIGN_CAP = 3, 2, 20, 40, 6
 _INIT = {"phase": "audit", "unit": None, "round": 1, "units_done": 0, "fails": 0, "fix": {},
          "stop_reason": None, "pending_decisions": 0, "cursor": None}
 
@@ -73,8 +73,8 @@ def _should_stop(path: Path) -> bool:
     return STOP_FLAG().exists()
 
 
-def _end_round(st: dict, ship, msg: str, path: Path | None = None) -> str:
-    """안쪽 루프 종료 — 통과 단위가 있으면 운영 반영(실패해도 루프는 계속, 알림만) 후 다음 감사로."""
+def _end_round(st: dict, ship, msg: str, path: Path | None = None, next_phase: str = "audit") -> str:
+    """라운드 종료 — 통과 단위가 있으면 운영 반영(실패해도 루프는 계속, 알림만) 후 next_phase(기본 감사, 상한 도달 시 develop 유지)로."""
     progress.event("deploy_start", round=st["round"], units=st["units_done"])
     r = ship(st["units_done"])
     ok = r.get("outcome") == "done"
@@ -83,7 +83,7 @@ def _end_round(st: dict, ship, msg: str, path: Path | None = None) -> str:
         notify.send(f"[루프] 운영 반영 {'완료' if ok else '실패'} — {r.get('commits', 0)}커밋, {r.get('reason')}"
                     + ("" if ok else " (자동 반영 안 됨, 사람 확인 필요)"))
         msg += f" · 운영 반영 {'완료' if ok else '실패'}({r.get('reason')})"
-    st.update(phase="audit", round=st["round"] + 1, units_done=0, unit=None)
+    st.update(phase=next_phase, round=st["round"] + 1, units_done=0, unit=None)
     gate = orchestrator.after_round(st, queue.parse(path or settings.QUEUE_PATH))
     if gate:
         notify.send(f"[루프] 안정화 게이트 통과({gate}) — 버전 계획 단계로" + notify.console_hint())
@@ -183,7 +183,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
             progress.mark(f"[루프] 실행 가능 단위 없음 — 항목 {len(items)}건, (단계,모드) 분포 {dict(Counter((i.stage, i.mode) for i in items))}")
             return _end_round(st, ship, "열린 단위 없음 — 다음 감사로", path)
         if st["units_done"] >= UNIT_CAP:
-            return _end_round(st, ship, f"라운드 단위 상한 {UNIT_CAP} — 다음 감사로", path)
+            return _end_round(st, ship, f"라운드 단위 상한 {UNIT_CAP} — 운영 반영 후 개발 계속", path, next_phase="develop")
         nxt = queue.next_runnable(queue.parse(path))
         progress.event("unit_start", round=st["round"], unit=nxt.item_id)
         rc = develop()
