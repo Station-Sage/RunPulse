@@ -569,3 +569,8 @@
 - 문제: develop 에서 `failed` 가 된 5건 전부가 실제로는 모델이 DECISIONS.md 에 새 결정을 요청한 것이었다. failed 는 어떤 경로로도 재시도되지 않고 사유도 없어 묻혔고, 단순 queued 복귀는 같은 질문으로 재실패, done 은 개발을 건너뛴다.
 - 결정: (1) 결정 요청은 `needs_decision` + 카드(`fail_kind=asked`, `fails` 미증가), 질문 상한 `ASK_LIMIT=2` 초과 시 failed(`asked_loop`). (2) failed 에 `fail_kind`(verify·env·exec·sync·asked_loop)·`fail_reason` 기록, 종류별 선택지 카드(sync 는 재시도 없음). (3) 카드 선택은 action 으로 처리 — 선택지 본문·의견이 scope 에 반영되고 `answered` 가 프롬프트에 주입돼 같은 질문을 재작성하지 않는다. 이미 구현됨·폐기는 `done` + `resolution`(새 stage 없음). (4) 기본 verify 는 `.venv/bin/python -m pytest tests/ -q`(ENV-1). (5) 콘솔은 blocked(failed)와 attention(needs_decision·review)을 분리해 "막힌 항목 N건" 을 표시한다.
 - 설계: `v0.3/data/phase-7-ui-renewal/DESIGN-AUDIT-FAILED-HANDLING.md`. 기존 failed 5건은 이행 스크립트로 1회 재분류(사용자 지시 시 실행).
+
+## ADR-070: 누락 의존성은 결정 카드로 묻고, 승인 시 설치 후 재큐잉 (2026-11-27, AUD-b07b25)
+
+- 문제: 설계자가 설치되지 않은 러너(`npx vitest`)를 verify 로 지정 → 개발자 테스트가 `npm run check` 를 깨뜨려 3회 맹목 재시도 후 failed. 진짜 오류가 svelte 경고 ~51줄에 묻혔다.
+- 결정(사용자): (1) verify 가 `Cannot find module`/`No module named` 로 실패하고 환경 복구로 안 풀리면 설치 여부 결정 카드(A 설치·재큐 / B verify 재시도 / C 폐기)를 등록한다. (2) 승인 시 `dep_install` 이 허용 목록 방식으로 설치하고 attempts=0 으로 재큐잉한다. 설치 실패는 failed(env). (3) `verify_doctor.lint` 와 triage 설계 규칙이 미설치 러너(vitest·jest·mocha)를 큐 진입 전에 거른다. (4) 실패 사유는 오류 줄을 먼저 두고 warn/hint 줄은 제외한다.

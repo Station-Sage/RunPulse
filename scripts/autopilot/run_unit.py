@@ -132,6 +132,12 @@ def _handle_verify_failure(item: queue.QueueItem, note: str) -> tuple[str, dict]
         if fixed:
             extra["fail_reason"] = f"환경 자동 복구({', '.join(fixed)}) 후 재시도: {out[:200]}"
             return "queued", extra
+        eco, pkg = verify_doctor.missing_package(out)
+        if pkg:  # 링크로 못 고치는 외부 패키지 부재 — 임의 설치·맹목 재시도 대신 사용자에게 설치 여부를 묻는다
+            reason = f"verify 가 의존성 `{pkg}` 를 찾지 못함: {out[:300]}"
+            decisions.append([fail_handling.build_dep_card(item.item_id, eco, pkg, reason, item.text)])
+            extra.update(fail_kind="env", fail_reason=verify_doctor.tag_reason("env", out))
+            return "needs_decision", extra
     elif not verify_doctor.should_stop(done, kind, item.fail_reason):
         if kind == "missing_target":  # 없는 테스트 파일은 개발자가 만들어야 하므로 scope 에 허용
             target = verify_doctor.missing_file(cmd, out)

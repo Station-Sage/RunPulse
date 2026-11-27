@@ -19,13 +19,13 @@ function flowHtml(o){
  const steps=STG.map((n,i)=>{const k=i+1,c=k<cur?'done':k===cur?'on':'';
   let sub='';
   if(k===1&&p.subs&&cur===1)sub='<div class="sub">'+Object.keys(SUBN).map(x=>{const v=p.subs[x];return `<span class="${v.state}">${v.state==='done'?'✔':v.state==='active'?'▶':'·'} ${SUBN[x]}</span>`}).join(' ')+'</div>';
-  if(k===2&&p.design)sub=`<div class="sub">후보 ${p.design.new}</div>`;
+  if(k===2&&p.design)sub=`<div class="sub">설계 ${p.design.new}건</div>`;
   if(k===3&&p.units){const u=p.units;sub=`<div class="sub"><a href="#items">단위 ${u.done}/${u.total}</a></div><div class="bar thin"><i style="width:${pct(u.done,u.total)}%"></i></div>`}
   if(k===4&&p.deploy&&p.deploy.ok!=null)sub=`<div class="sub">${p.deploy.ok?'완료':p.deploy.ran?'실패':'생략'}</div>`;
   return `<div class="stp ${c}"><div class="no">${k}</div><div class="nm">${n}</div>${sub}</div>`}).join('<div class="ln"></div>');
  const ban=f.stop?`<div class="ban bad">중지됨${s.stop_reason?' — '+esc(s.stop_reason):''}</div>`:(f.pause||s.stop_reason==='pause_flag')?`<div class="ban warn">⏸ 일시중지됨 — ${f.pause&&s.stop_reason!=='pause_flag'?'현재 단계가 끝나는 지점에서 멈춥니다':'단계 경계에서 멈춰 있습니다'} (재개 버튼으로 이어서 진행)</div>`:s.stop_reason&&s.stop_reason!=='pacing'?`<div class="ban ${s.stop_reason==='failed'?'bad':'warn'}">${esc(RSN[s.stop_reason]||s.stop_reason)}${s.stop_cause?'<br>원인: '+esc(s.stop_cause):''}</div>`:'';
  const sf=p.sweep_fix&&s.phase!=='audit'?`<div class="ban warn">스윕 수정 라운드 ${p.sweep_fix.attempt}/${p.sweep_fix.limit} · ${esc(p.sweep_fix.item)}${(p.sweep_fix.targets||[]).length?' · 대상 '+esc(p.sweep_fix.targets.join(', ')):''}</div>`:'';
- const d=p.design,wait=d?`후보 ${d.new} → 자체 승인 ${d.auto} · 결정 대기 ${d.user}`:'';
+ const d=p.design,wait=d?`이번 라운드 설계 ${d.new}건 중 자체 승인 ${d.auto}건 · 결정 대기(전체) ${d.user_open}건`:'';
  return `<b>라운드 ${esc(s.round)}</b> <span class="tag">${cur?'현재 '+cur+'/4':esc(s.phase||'-')}</span>${p.inferred?' <span class="mut">(로그 추정)</span>':''}
  <div class="mut">시작 ${hhmm(p.round_started)} · 경과 ${el(p.round_started)}${s.phase?' · '+esc(s.phase)+' 단계 '+el(p.phase_started):''}</div>
  <div class="flow">${steps}</div>${stepsHtml(p,s.phase)}${ban}${sf}${wait?`<div class="mut">${wait}</div>`:''}${linksHtml(o)}`}

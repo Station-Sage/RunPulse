@@ -5,7 +5,7 @@ import re
 import time
 from pathlib import Path
 
-from scripts.audit import progress
+from scripts.audit import decisions, progress
 from scripts.autopilot import queue, settings
 
 STAGE_OF = {"audit": 1, "design": 2, "develop": 3, "await": 3, "test": 3}
@@ -59,6 +59,11 @@ def _steps(evs: list[dict], since: float | None, limit: int = 40) -> list[dict]:
     return out[-limit:]
 
 
+def _open_decisions() -> int:
+    """결정 대기 = 지금 결정함에 열려 있는 건수(결정 탭 배지와 같은 기준) — 라운드 이벤트 누적이 아님."""
+    return sum(1 for r in decisions.load() if r.get("status") == "open")
+
+
 def build(state: dict, now: float, queue_path: Path | None = None, events: list[dict] | None = None,
           log: Path | None = None, unit_cap: int = 5) -> dict:
     rnd = state.get("round") or 1
@@ -70,7 +75,8 @@ def build(state: dict, now: float, queue_path: Path | None = None, events: list[
     items = [it for it in queue.parse(queue_path or settings.QUEUE_PATH) if it.mode == "auto"]
     ph = state.get("phase")
     dz = [e for e in evs if e["kind"] == "design"]
-    design = {k: sum(e.get(k, 0) for e in dz) for k in ("new", "auto", "user")} if dz else None
+    design = ({"new": sum(e.get("new", 0) for e in dz), "auto": sum(e.get("auto", 0) for e in dz), "user_open": _open_decisions()}
+              if dz else None)
     deploy = next((e for e in reversed(evs) if e["kind"] in ("deploy_start", "deploy_end")), None)
     in_deploy = bool(deploy and deploy["kind"] == "deploy_start" and ph in STAGE_OF)
     stage = 4 if in_deploy else STAGE_OF.get(ph, 0)

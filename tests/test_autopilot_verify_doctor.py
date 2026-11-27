@@ -65,3 +65,39 @@ def test_lint_absence_baseline_outside_scope(tmp_path):
     assert any("범위 밖" in p for p in vd.lint([cmd], ["src/b.txt"], tmp_path))
     assert vd.lint([cmd], ["src/a.txt"], tmp_path) == []  # 범위 안 적중은 항목이 고칠 대상
     assert vd.lint(["! grep -rn zzz src"], [], tmp_path) == []  # 적중 없음
+
+
+def test_tag_reason_puts_errors_before_warnings():
+    out = "Warn: unused css\nhint: x\nfoo\nError: Cannot find module 'vitest'\nbar"
+    r = vd.tag_reason("real", out)
+    assert "Warn" not in r and "hint" not in r
+    assert r.index("Cannot find module") < r.index("bar")
+
+
+def test_missing_package():
+    assert vd.missing_package("Error: Cannot find module 'vitest'") == ("npm", "vitest")
+    assert vd.missing_package("Cannot find package '@sveltejs/kit' imported") == ("npm", "@sveltejs/kit")
+    assert vd.missing_package("ModuleNotFoundError: No module named 'yaml'") == ("pip", "yaml")
+    assert vd.missing_package("No module named pytest") == ("", "")
+    assert vd.missing_package("Cannot find module './local.js'") == ("", "")
+
+
+def test_lint_rejects_uninstalled_runner(tmp_path: Path):
+    (tmp_path / "frontend").mkdir()
+    (tmp_path / "frontend/a.test.ts").write_text("")
+    probs = vd.lint(["cd frontend && npx vitest run a.test.ts"], [], tmp_path)
+    assert any("vitest" in p for p in probs)
+    (tmp_path / "frontend/package.json").write_text('{"devDependencies": {"vitest": "1"}}')
+    assert not any("러너" in p for p in vd.lint(["cd frontend && npx vitest run a.test.ts"], [], tmp_path))
+
+
+def test_handle_missing_dep_registers_install_card(tmp_path, monkeypatch):
+    from scripts.audit import decisions
+    from scripts.autopilot import worktree
+    got = []
+    monkeypatch.setattr(worktree, "provision", lambda: [])
+    monkeypatch.setattr(decisions, "append", lambda recs, *a: got.extend(recs))
+    note = "`npm run check` 종료코드 1\nError: Cannot find module 'vitest'"
+    stage, extra = run_unit._handle_verify_failure(_item(tmp_path), note)
+    assert stage == "needs_decision" and extra["fail_kind"] == "env"
+    assert got[0]["dep"] == {"eco": "npm", "name": "vitest"}

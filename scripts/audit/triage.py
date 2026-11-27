@@ -32,7 +32,7 @@ summary·options(name·pros·cons)·recommendation·reason 은 모두 한국어�
 선택지가 갈려도 스스로 근거를 들어 추천안 하나를 정해 그 설계를 summary·scope 에 담아라(선택 자체는 user 사유가 아니다).
 auto = frontend/src·tests 안에서 끝나고 되돌리기 쉬우며 데이터·권한·알고리즘·제품 정책을 바꾸지 않는 수정.
 UI 문구·마크업·접근성·컴포넌트 구조처럼 기존 디자인 시스템 안의 판단은 auto 다.
-verify 규칙: ① 인자·환경 없이 단독 실행되는 명령만(스크립트는 이미 존재하고 인자 없이 도는 것) ② verify 에 쓰는 테스트 파일은 반드시 scope 에 포함(없으면 개발자가 만든다) ③ 부재 검사는 `! grep -rn 패턴 경로` 형태이고 패턴이 정상 코드와 겹치지 않게 좁힌다.
+verify 규칙: ① 인자·환경 없이 단독 실행되는 명령만(스크립트는 이미 존재하고 인자 없이 도는 것) ② verify 에 쓰는 테스트 파일은 반드시 scope 에 포함(없으면 개발자가 만든다) ③ 테스트 러너는 설치된 것만: 프론트 `cd frontend && node --test tests/*.test.mjs`, 백엔드 `.venv/bin/python -m pytest …` (vitest·jest 는 없다) ④ 부재 검사는 `! grep -rn 패턴 경로` 형태이고 패턴이 정상 코드와 겹치지 않게 좁힌다.
 user = 스키마·데이터·인증·예측 알고리즘·되돌릴 수 없는 제품 정책을 바꿔야만 해결되는 경우로 한정."""
 _CHECK = VISION + """
 
