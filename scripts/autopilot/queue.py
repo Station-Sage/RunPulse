@@ -156,6 +156,33 @@ def next_runnable(items: list[QueueItem]) -> QueueItem | None:
     return next((it for it in ready if it.critical), ready[0] if ready else None)
 
 
+def _block_end(lines: list[str], start: int) -> int:
+    end = start + 1
+    while end < len(lines) and lines[end].strip() and not _ITEM_RE.match(lines[end]):
+        end += 1
+    return end
+
+
+def move_item(path: Path, item_id: str, where: str) -> str:
+    """대기(queued·auto) 항목 블록(항목 줄~메타 줄)을 파일에서 위로 옮긴다 — where: up(바로 앞 대기 항목 앞) | top(맨 앞 대기 항목 앞). 실패 사유를 반환(성공은 "")."""
+    items = parse(path)
+    me = next((it for it in items if it.item_id == item_id), None)
+    if me is None or me.stage != "queued" or me.mode != "auto":
+        return "대기 항목이 아님"
+    before = [it for it in items if it.stage == "queued" and it.mode == "auto" and it.line_no < me.line_no]
+    if where not in ("up", "top"):
+        return "없는 동작"
+    if not before:
+        return "이미 맨 앞"
+    dest = before[-1] if where == "up" else before[0]
+    lines = path.read_text(encoding="utf-8").splitlines()
+    block = lines[me.line_no:_block_end(lines, me.line_no)]
+    del lines[me.line_no:me.line_no + len(block)]
+    lines[dest.line_no:dest.line_no] = block
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return ""
+
+
 def update_item(path: Path, item_id: str, **fields) -> None:
     """항목의 메타 주석 한 줄만 갱신. 문서의 나머지 내용은 손대지 않는다."""
     items = parse(path)
