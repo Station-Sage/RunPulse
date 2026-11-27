@@ -190,12 +190,12 @@ def run_once(
     try:
         worktree.ensure()
         sync_blocked = worktree.sync()
-        if sync_blocked:
-            queue.update_item(settings.QUEUE_PATH, item.item_id, stage="failed",
-                              fail_kind="sync", fail_reason=str(sync_blocked)[:300])
-            notify.send(f"[autopilot] {item.item_id} 차단: {sync_blocked}")
+        if sync_blocked:  # 환경 문제 — 항목 탓이 아니므로 큐에 그대로 두고 대기(rc=1)
+            from scripts.audit import progress
+            progress.mark(f"[worktree] {item.item_id} 개발 보류 — {sync_blocked} (항목은 큐에 유지)")
+            notify.send(f"[autopilot] {item.item_id} 보류(환경): {sync_blocked}")
             print(f"[worktree] 차단: {sync_blocked}")
-            return 2
+            return 1
 
         queue.update_item(settings.QUEUE_PATH, item.item_id, stage="in_progress",
                           attempts=item.attempts + 1)

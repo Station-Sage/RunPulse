@@ -194,3 +194,18 @@ class TestVerifyFailureRequeue:
     def test_third_verify_failure_fails_with_card(self, monkeypatch, tmp_path):
         rec, cards = self._run(monkeypatch, tmp_path, 2, "`x` 종료코드 1\nFAILED")
         assert rec["stage"] == "failed" and cards == ["verify"]
+
+
+def test_sync_block_holds_item_in_queue(monkeypatch, tmp_path):
+    updates = []
+    monkeypatch.setattr(run_unit.gate, "check", lambda **k: type("G", (), {"allowed": True, "reason": ""})())
+    monkeypatch.setattr(run_unit.queue, "parse", lambda p: [_code_item(attempts=0)])
+    monkeypatch.setattr(run_unit.queue, "next_runnable", lambda items: items[0])
+    monkeypatch.setattr(run_unit.worktree, "ensure", lambda: None)
+    monkeypatch.setattr(run_unit.worktree, "sync", lambda: "worktree 차단")
+    monkeypatch.setattr(run_unit.notify, "send", lambda m: None)
+    monkeypatch.setattr(run_unit.queue, "update_item", lambda path, iid, **kw: updates.append(kw))
+    monkeypatch.setattr(run_unit.settings, "STATE_DIR", tmp_path)
+    monkeypatch.setattr(run_unit.settings, "LOCK_PATH", tmp_path / "lock")
+    assert run_unit.run_once() == 1
+    assert not any(u.get("stage") == "failed" for u in updates)

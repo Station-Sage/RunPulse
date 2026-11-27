@@ -96,6 +96,21 @@ def is_clean() -> bool:
     return r.returncode == 0 and not r.stdout.strip()
 
 
+DIRTY = "worktree가 청결하지 않음 (이전 실행 잔재 의심)"
+
+
+def discard_leftovers() -> list[str]:
+    """자율 worktree 의 미커밋 변경·미추적 파일을 폐기하고 그 경로 목록을 돌려준다(항목 재시도 시 재생성되므로 백업하지 않는다)."""
+    wt = settings.WORKTREE_DIR
+    if not wt.exists() or wt.resolve() == settings.PROJECT_ROOT.resolve():
+        return []
+    r = _run(["git", "status", "--porcelain"], cwd=wt)
+    names = [ln[3:].strip() for ln in r.stdout.splitlines() if ln.strip()] if r.returncode == 0 else []
+    _run(["git", "checkout", "--", "."], cwd=wt)
+    _run(["git", "clean", "-fd"], cwd=wt)
+    return names
+
+
 def sync() -> str:
     """base 브랜치 최신 커밋 위로 autopilot 브랜치를 rebase.
 
@@ -109,7 +124,12 @@ def sync() -> str:
     if not settings.WORKTREE_DIR.exists():
         return ""
     if not is_clean():
-        return "worktree가 청결하지 않음 (이전 실행 잔재 의심)"
+        removed = discard_leftovers()
+        if not is_clean():
+            return f"{DIRTY} — 자동 정리 실패"
+        if removed:
+            from scripts.audit import progress
+            progress.mark(f"[worktree] 이전 실행 잔재 {len(removed)}건 폐기(재시도 시 재생성): {', '.join(removed[:10])}{' 외' if len(removed) > 10 else ''}")
     r = _run(["git", "rebase", settings.BASE_BRANCH], cwd=settings.WORKTREE_DIR)
     if r.returncode != 0:
         _run(["git", "rebase", "--abort"], cwd=settings.WORKTREE_DIR)

@@ -61,3 +61,12 @@ def test_resume_timer_refuses_stop_flag_but_keeps_state():
 
 def test_pause_flag_is_human_resume_only():
     assert sr.PAUSE_FLAG in sr.HUMAN_RESUME and sr.PAUSE_FLAG not in sr.AUTO_RESUME
+
+
+def test_resume_clears_stop_cause_and_describe():
+    st = {"phase": "halted"}
+    sr.stop(st, sr.FAILED)
+    st["stop_cause"] = "원인X"
+    assert "원인X" in sr.describe(st)
+    sr.resume(st, human=True)
+    assert "stop_cause" not in st

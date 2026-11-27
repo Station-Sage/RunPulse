@@ -105,6 +105,7 @@ def test_audit_failures_halt_and_pacing_block(tmp_path, monkeypatch):
     for _ in range(loop.FAIL_LIMIT):
         loop.step(st, path=_backlog(tmp_path), act=bad)
     assert st["phase"] == "halted"
+    assert st["stop_cause"]
     monkeypatch.setattr(loop.pacing, "check", lambda n: type("P", (), {"allowed": False, "reason": "한도"})())
     assert "pacing" in loop.step(_st("audit"), path=_backlog(tmp_path))
 
@@ -304,3 +305,13 @@ def test_develop_gate_block_waits_instead_of_spinning(tmp_path, monkeypatch):
     st = _st("develop")
     msg = loop.step(st, path=_backlog(tmp_path), act={"develop": lambda: 1})
     assert "게이트 차단" in msg and st["stop_reason"] == stopreason.PACING
+
+
+def test_halt_is_written_to_progress_log(tmp_path, monkeypatch):
+    _quiet(monkeypatch)
+    logged = []
+    monkeypatch.setattr(loop.progress, "mark", lambda m: logged.append(m))
+    st = _st("audit")
+    for _ in range(loop.FAIL_LIMIT):
+        loop._fail(st, "원인X")
+    assert st["stop_cause"] == "원인X" and any("정지" in m and "원인X" in m for m in logged)

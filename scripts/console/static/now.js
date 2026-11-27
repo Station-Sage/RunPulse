@@ -23,7 +23,7 @@ function flowHtml(o){
   if(k===3&&p.units){const u=p.units;sub=`<div class="sub"><a href="#items">단위 ${u.done}/${u.total}</a></div><div class="bar thin"><i style="width:${pct(u.done,u.total)}%"></i></div>`}
   if(k===4&&p.deploy&&p.deploy.ok!=null)sub=`<div class="sub">${p.deploy.ok?'완료':p.deploy.ran?'실패':'생략'}</div>`;
   return `<div class="stp ${c}"><div class="no">${k}</div><div class="nm">${n}</div>${sub}</div>`}).join('<div class="ln"></div>');
- const ban=f.stop?`<div class="ban bad">중지됨${s.stop_reason?' — '+esc(s.stop_reason):''}</div>`:(f.pause||s.stop_reason==='pause_flag')?`<div class="ban warn">⏸ 일시중지됨 — ${f.pause&&s.stop_reason!=='pause_flag'?'현재 단계가 끝나는 지점에서 멈춥니다':'단계 경계에서 멈춰 있습니다'} (재개 버튼으로 이어서 진행)</div>`:s.stop_reason&&s.stop_reason!=='pacing'?`<div class="ban warn">${esc(RSN[s.stop_reason]||s.stop_reason)}</div>`:'';
+ const ban=f.stop?`<div class="ban bad">중지됨${s.stop_reason?' — '+esc(s.stop_reason):''}</div>`:(f.pause||s.stop_reason==='pause_flag')?`<div class="ban warn">⏸ 일시중지됨 — ${f.pause&&s.stop_reason!=='pause_flag'?'현재 단계가 끝나는 지점에서 멈춥니다':'단계 경계에서 멈춰 있습니다'} (재개 버튼으로 이어서 진행)</div>`:s.stop_reason&&s.stop_reason!=='pacing'?`<div class="ban ${s.stop_reason==='failed'?'bad':'warn'}">${esc(RSN[s.stop_reason]||s.stop_reason)}${s.stop_cause?'<br>원인: '+esc(s.stop_cause):''}</div>`:'';
  const sf=p.sweep_fix&&s.phase!=='audit'?`<div class="ban warn">스윕 수정 라운드 ${p.sweep_fix.attempt}/${p.sweep_fix.limit} · ${esc(p.sweep_fix.item)}${(p.sweep_fix.targets||[]).length?' · 대상 '+esc(p.sweep_fix.targets.join(', ')):''}</div>`:'';
  const d=p.design,wait=d?`후보 ${d.new} → 자체 승인 ${d.auto} · 결정 대기 ${d.user}`:'';
  return `<b>라운드 ${esc(s.round)}</b> <span class="tag">${cur?'현재 '+cur+'/4':esc(s.phase||'-')}</span>${p.inferred?' <span class="mut">(로그 추정)</span>':''}
@@ -51,8 +51,8 @@ function ago(ts){const m=Math.max(0,Math.round((Date.now()/1000-ts)/60));return 
 function renderNow(o){window.lastO=o;
  const s=o.state,f=o.flags,g=o.budget;
  const pacing=s.stop_reason==='pacing'||(!g.pacing_ok&&g.pacing_resume_at);
- const run=f.stop?'중지됨':f.pause||s.stop_reason==='pause_flag'?'⏸ 일시중지됨':pacing?'페이싱 대기':['stopped','halted'].includes(s.phase)?'정지 상태':'실행 중 · '+(s.phase||'-');
- $('#flags').textContent=run;$('#dot').className='dot'+(f.stop?' bad':f.pause||s.stop_reason==='pause_flag'||pacing?' warn':'');
+ const run=f.stop?'중지됨':f.pause||s.stop_reason==='pause_flag'?'⏸ 일시중지됨':pacing?'페이싱 대기':s.stop_reason==='failed'?'실패로 정지':['stopped','halted'].includes(s.phase)?'정지 상태':'실행 중 · '+(s.phase||'-');
+ $('#flags').textContent=run;$('#dot').className='dot'+(f.stop?' bad':s.stop_reason==='failed'?' bad':f.pause||s.stop_reason==='pause_flag'||pacing?' warn':'');
  document.querySelector('[data-a=pause]').disabled=!!(f.pause||f.stop||s.stop_reason==='pause_flag');document.querySelector('[data-a=stop]').disabled=!!f.stop;
  document.querySelector('[data-a=resume]').disabled=!(f.pause||f.stop||s.stop_reason);
  const pw=$('#pw');

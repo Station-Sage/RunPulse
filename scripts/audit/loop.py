@@ -57,7 +57,8 @@ def _fail(st: dict, why: str) -> str:
     st["fails"] += 1
     if st["fails"] >= FAIL_LIMIT:
         stopreason.stop(st, stopreason.FAILED)
-        st["phase"] = "halted"
+        st.update(phase="halted", stop_cause=why)
+        progress.mark(f"[루프] 정지({FAIL_LIMIT}회 연속 실패) — {why} · 콘솔 '재개'로 이어감")
         notify.send(f"[루프] {FAIL_LIMIT}회 연속 실패로 정지 — {why} (--reset 으로 재개)" + notify.console_hint())
     return why
 
@@ -237,7 +238,7 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
             if rc != 2 and kind not in SYSTEMIC_FAILS:  # 항목 단위 문제(결정 카드로 노출) — 정지 사유 아님
                 return f"{nxt.item_id} 항목 실패({kind}) — 결정 카드로 넘기고 다음 항목 진행"
             notify.send(f"[루프] {nxt.item_id} 개발 차단 — 사람 확인 필요")
-            return _fail(st, f"{nxt.item_id} 개발 차단")
+            return _fail(st, f"{nxt.item_id} 개발 차단({kind or 'exec'})")
         if stage == "review":
             st.update(phase="test", unit=nxt.item_id, fails=0)
             return f"{nxt.item_id} 개발 완료 → 테스트"
