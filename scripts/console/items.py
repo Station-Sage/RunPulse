@@ -40,6 +40,7 @@ def pipeline(items: list[queue.QueueItem], entries: list[dict], cycle: dict, fac
     commits, base = facts
     ran_ok = {e.get("unit_id") for e in entries if e.get("outcome") == "success"}
     running = cycle.get("unit") if cycle.get("phase") in ("develop", "test") and cycle.get("stop_reason") is None else None
+    testing = _verify_unit()
     out = {}
     for it in items:
         h = commits.get(it.item_id)
@@ -49,8 +50,16 @@ def pipeline(items: list[queue.QueueItem], entries: list[dict], cycle: dict, fac
                  "test": it.stage in ("review", "done"),
                  "commit": bool(h) or done,
                  "deploy": bool(h and h in base) or done}
-        out[it.item_id] = {"steps": steps, "running": it.stage == "in_progress" or it.item_id == running}
+        run = it.stage == "in_progress" or it.item_id == running
+        out[it.item_id] = {"steps": steps, "running": run, "running_step": ("test" if it.item_id == testing else "develop") if run else ""}
     return out
+
+
+def _verify_unit() -> str:
+    try:
+        return json.loads((settings.STATE_DIR / "verify_state.json").read_text(encoding="utf-8")).get("unit", "")
+    except (OSError, ValueError):
+        return ""
 
 
 def _cycle_state() -> dict:
@@ -141,6 +150,6 @@ def item_detail(iid: str, queue_path: Path | None = None, dpath: Path | None = N
     timeline = [{"ts": e["ts"], "kind": e["kind"], "round": e.get("round"), "result": e.get("result")}
                 for e in evs if e.get("unit") == iid and e.get("kind") in ("unit_start", "unit_end")][-20:]
     run = _run_report(iid, log_dir or settings.RUN_LOG_DIR)
-    return {"item": {**_brief(it), "full_text": it.text, "scope": it.scope, "verify": it.verify, "deps": it.deps},
+    return {"item": {**_brief(it), "full_text": it.text, "scope": it.scope, "verify": it.verify, "deps": it.deps, "fail_reason": it.fail_reason},
             "decision": dec, "runs": runs, "timeline": timeline, "report": run,
             "audit": _audit_trail(iid, state_dir or settings.STATE_DIR), "review": _review(it, run, runs)}

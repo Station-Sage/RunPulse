@@ -55,7 +55,7 @@ def test_static_files_served():
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     try:
         for path, needle in (("/", b"/now.js"), ("/", b'data-a="start"'), ("/", b'id="flags"'), ("/app.js", b"/api/overview"),
-                             ("/now.js", b"data-rl"), ("/now.js", "관측".encode()), ("/now.js", b"lastRv"), ("/app.js", b"itHtml"), ("/now.js", b"data-fa"), ("/now.js", "일시중지됨".encode()), ("/now.js", "실패로 정지".encode()), ("/app.js", "실패로 정지".encode()), ("/console.css", b"details.cfg"),
+                             ("/now.js", b"data-rl"), ("/now.js", "관측".encode()), ("/now.js", b"lastRv"), ("/app.js", b"itHtml"), ("/now.js", b"failedCardHtml"), ("/app.js", b"failedCardHtml"), ("/now.js", b"data-fa"), ("/now.js", "일시중지됨".encode()), ("/now.js", "실패로 정지".encode()), ("/app.js", "실패로 정지".encode()), ("/console.css", b"details.cfg"),
                              ("/manifest.webmanifest", b"short_name"), ("/sw.js", b"fetch")):
             body = urllib.request.urlopen(f"http://127.0.0.1:{srv.server_port}{path}").read()
             assert needle in body
@@ -151,3 +151,26 @@ def test_pause_action_writes_progress_log(tmp_path):
     r = control.act("pause", state_dir=tmp_path)
     assert r["ok"] and r["pause"]
     assert "일시중지" in (tmp_path / "progress.log").read_text(encoding="utf-8")
+
+
+def test_pipeline_running_step(tmp_path, monkeypatch):
+    from scripts.console import items
+    monkeypatch.setattr(items.settings, "STATE_DIR", tmp_path)
+    assert items._verify_unit() == ""
+    (tmp_path / "verify_state.json").write_text('{"unit": "X-1"}', encoding="utf-8")
+    assert items._verify_unit() == "X-1"
+
+
+def test_timed_verify_marks_and_clears_state(tmp_path, monkeypatch):
+    from scripts.autopilot import run_unit
+    from scripts.audit import progress
+    monkeypatch.setattr(run_unit.settings, "STATE_DIR", tmp_path)
+    marks, events = [], []
+    monkeypatch.setattr(progress, "mark", lambda m, *a, **k: marks.append(m))
+    monkeypatch.setattr(progress, "event", lambda k, **f: events.append((k, f)))
+    monkeypatch.setattr(run_unit, "_post_verify", lambda it: (True, ""))
+    class It: item_id = "X-1"
+    assert run_unit._timed_verify(It()) == (True, "")
+    assert events == [("test_start", {"unit": "X-1"})]
+    assert any("시작" in m for m in marks) and any("통과" in m for m in marks)
+    assert not (tmp_path / "verify_state.json").exists()

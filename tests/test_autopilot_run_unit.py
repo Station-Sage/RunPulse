@@ -163,6 +163,7 @@ class TestVerifyFailureRequeue:
         monkeypatch.setattr(run_unit, "_decisions_changed", lambda: False)
         monkeypatch.setattr(run_unit, "_post_verify", lambda it: (False, note))
         monkeypatch.setattr(run_unit, "_register_failed_card", lambda it, k, r: cards.append(k))
+        monkeypatch.setattr(run_unit.decisions, "append", lambda recs, *a, **k: cards.extend(r["kind"] for r in recs))
         monkeypatch.setattr(run_unit.ledger, "append", lambda e: None)
         monkeypatch.setattr(run_unit.notify, "send", lambda m: None)
         monkeypatch.setattr(run_unit.queue, "update_item",
@@ -185,7 +186,7 @@ class TestVerifyFailureRequeue:
     def test_env_failure_unfixable_fails_with_card(self, monkeypatch, tmp_path):
         monkeypatch.setattr(run_unit.worktree, "provision", lambda: [])
         rec, cards = self._run(monkeypatch, tmp_path, 0, "Cannot find module './local.js'")
-        assert rec["stage"] == "failed" and cards == ["env"]
+        assert rec["stage"] == "needs_decision" and cards == ["verify_decision"]
 
     def test_second_verify_failure_still_retries(self, monkeypatch, tmp_path):
         rec, cards = self._run(monkeypatch, tmp_path, 1, "`x` 종료코드 1\nFAILED")
@@ -193,7 +194,7 @@ class TestVerifyFailureRequeue:
 
     def test_third_verify_failure_fails_with_card(self, monkeypatch, tmp_path):
         rec, cards = self._run(monkeypatch, tmp_path, 2, "`x` 종료코드 1\nFAILED")
-        assert rec["stage"] == "failed" and cards == ["verify"]
+        assert rec["stage"] == "needs_decision" and cards == ["verify_decision"]
 
 
 def test_sync_block_holds_item_in_queue(monkeypatch, tmp_path):
@@ -209,3 +210,14 @@ def test_sync_block_holds_item_in_queue(monkeypatch, tmp_path):
     monkeypatch.setattr(run_unit.settings, "LOCK_PATH", tmp_path / "lock")
     assert run_unit.run_once() == 1
     assert not any(u.get("stage") == "failed" for u in updates)
+
+
+def test_verify_card_options_and_fresh_append(tmp_path):
+    from scripts.audit import decisions
+    from scripts.autopilot import verify_card
+    c = verify_card.build_verify_card("A-1", "real", "실패", "작업")
+    assert c["kind"] == "verify_decision" and [o["action"] for o in c["options"]][-1] == "dropped"
+    p = tmp_path / "d.json"
+    decisions.append([c], p)
+    decisions.append([verify_card.build_verify_card("A-1", "real", "다시", "작업")], p, fresh=True)
+    assert len(decisions.load(p)) == 1

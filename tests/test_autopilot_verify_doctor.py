@@ -43,12 +43,12 @@ def _item(tmp_path, attempts=0, reason=""):
 
 def test_handle_missing_target_extends_scope_then_stops(tmp_path, monkeypatch):
     cards = []
-    monkeypatch.setattr(run_unit, "_register_failed_card", lambda *a: cards.append(a))
+    monkeypatch.setattr(run_unit.decisions, "append", lambda recs, *a, **k: cards.extend(recs))
     note = "`node --test tests/x.test.mjs` 종료코드 1\nCould not find"
     stage, extra = run_unit._handle_verify_failure(_item(tmp_path), note)
     assert stage == "queued" and "tests/x.test.mjs" in extra["scope"] and not cards
     stage, _ = run_unit._handle_verify_failure(_item(tmp_path, 1, extra["fail_reason"]), note)
-    assert stage == "failed" and cards  # 같은 원인 반복 → 카드
+    assert stage == "needs_decision" and cards  # 같은 원인 반복 → 결정 카드
 
 
 def test_prompt_uses_hint(tmp_path):

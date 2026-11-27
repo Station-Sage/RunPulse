@@ -25,7 +25,7 @@ from pathlib import Path
 from scripts.audit import decisions
 
 from .prompts import build_cmd as _build_cmd, build_prompt as _build_prompt
-from . import fail_handling, gate, ledger, leftovers, notify, queue, settings, size_followup, stream, trailers, verify_doctor, worktree
+from . import fail_handling, gate, ledger, leftovers, notify, queue, settings, size_followup, stream, trailers, verify_card, verify_doctor, worktree
 
 
 def _parse_stream(raw: str) -> dict:
@@ -120,6 +120,25 @@ def _post_verify(item: queue.QueueItem) -> tuple[bool, str]:
     return True, ""
 
 
+def _timed_verify(item: queue.QueueItem) -> tuple[bool, str]:
+    """verify 를 실제 시각으로 구분해 기록한다 — 시작·종료 줄과 test_start 이벤트, 콘솔용 verify_state.json."""
+    from scripts.audit import progress
+    t0 = time.time()
+    state = settings.STATE_DIR / "verify_state.json"
+    progress.mark(f"[테스트] {item.item_id} verify 시작")
+    progress.event("test_start", unit=item.item_id)
+    try:
+        state.write_text(json.dumps({"unit": item.item_id, "ts": int(t0)}), encoding="utf-8")
+    except OSError:
+        pass
+    try:
+        ok, note = _post_verify(item)
+    finally:
+        state.unlink(missing_ok=True)
+    progress.mark(f"[테스트] {item.item_id} verify {'통과' if ok else '실패'} ({int(time.time() - t0)}초)")
+    return ok, note
+
+
 def _handle_verify_failure(item: queue.QueueItem, note: str) -> tuple[str, dict]:
     """verify 실패를 진단해 재시도(복구 조치 포함) 또는 실패 카드로 분기."""
     m = re.match(r"`(.*)` 종료코드 (\d+)\n?", note, re.S)
@@ -144,8 +163,10 @@ def _handle_verify_failure(item: queue.QueueItem, note: str) -> tuple[str, dict]
             if target and target not in item.scope:
                 extra["scope"] = list(item.scope) + [target]
         return "queued", extra
-    _register_failed_card(item, extra["fail_kind"], f"[진단 {kind}] 자동 재시도 {done}회 후 중단({verify_doctor.STOP_NOTE.get(kind, '재시도 한도 도달')}). {note}")
-    return "failed", extra
+    reason = f"[진단 {kind}] 자동 재시도 {done}회 후 중단({verify_doctor.STOP_NOTE.get(kind, '재시도 한도 도달')}). {note}"
+    target = verify_doctor.missing_file(cmd, out) if kind == "missing_target" else ""
+    decisions.append([verify_card.build_verify_card(item.item_id, kind, reason, item.text, target)], fresh=True)
+    return "needs_decision", extra
 
 
 def _register_failed_card(item: queue.QueueItem, kind: str, reason: str) -> None:
@@ -218,7 +239,7 @@ def run_once(
             if _decisions_changed():
                 new_stage, extra, verify_note = _asked_outcome(item)
             else:
-                verified, verify_note = _post_verify(item)
+                verified, verify_note = _timed_verify(item)
                 new_stage = "review" if verified else "failed"
                 if not verified:
                     new_stage, extra = _handle_verify_failure(item, verify_note)

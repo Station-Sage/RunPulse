@@ -2536,14 +2536,14 @@
 
 - functions: test_promote_merged, test_prune_pending
 
-### `test_autopilot_run_unit.py` (211줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
+### `test_autopilot_run_unit.py` (223줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
 
 - class **TestBuildPrompt**: test_docs_kind_uses_docs_template, test_code_kind_uses_code_template_with_scope_and_verify, test_code_kind_prompt_requires_following_embedded_spec, test_code_kind_prompt_forbids_git_dash_c, test_code_kind_missing_scope_warns_instead_of_empty
 - class **TestBuildCmd**: test_docs_kind_uses_base_allowed_tools_and_budget, test_code_kind_uses_code_allowed_tools_and_budget
 - class **TestPostVerify**: test_docs_kind_skips_verification, test_code_kind_passes_when_command_succeeds, test_code_kind_fails_when_command_fails, test_code_kind_defaults_to_full_pytest_when_verify_empty
 - class **TestCommitLeftovers**: test_clean_worktree_is_noop, test_commits_in_scope_files_only, test_directory_scope_prefix_matches
 - class **TestVerifyFailureRequeue**: test_first_verify_failure_requeues_without_card, test_env_failure_provisions_then_requeues_without_card, test_env_failure_unfixable_fails_with_card, test_second_verify_failure_still_retries, test_third_verify_failure_fails_with_card
-- functions: test_abs_venv_rewrites_relative_venv_python, test_sync_block_holds_item_in_queue
+- functions: test_abs_venv_rewrites_relative_venv_python, test_sync_block_holds_item_in_queue, test_verify_card_options_and_fresh_append
 
 ### `test_autopilot_size_followup.py` (15줄)
 
@@ -2765,9 +2765,9 @@
 
 - functions: test_queue_summary, test_overview_and_decisions, test_overview_has_release, test_redo_not_counted_and_closed_capped
 
-### `test_console_server.py` (153줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
+### `test_console_server.py` (176줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
 
-- functions: test_choose_validation, test_log_tail_and_route, test_http_origin_and_content_type, test_static_files_served, test_timers_and_tunable_values, test_notify_console_hint, test_change_choice_from_chosen_and_blocked_kinds, test_change_choice_applied_reopen_fail, test_review_action, test_failed_action, test_review_text_not_truncated, test_pause_action_writes_progress_log
+- functions: test_choose_validation, test_log_tail_and_route, test_http_origin_and_content_type, test_static_files_served, test_timers_and_tunable_values, test_notify_console_hint, test_change_choice_from_chosen_and_blocked_kinds, test_change_choice_applied_reopen_fail, test_review_action, test_failed_action, test_review_text_not_truncated, test_pause_action_writes_progress_log, test_pipeline_running_step, test_timed_verify_marks_and_clears_state
 
 ### `test_constraints.py` (65줄)
 

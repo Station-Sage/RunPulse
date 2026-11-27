@@ -9,7 +9,7 @@ function toast(t,bad){const m=$('#msg');m.textContent=t;m.style.background=bad?'
 function fmt(ts){return ts?new Date(ts*1000).toLocaleString('ko-KR',{hour12:false}):'-'}
 function left(us){const t=Number(us)/1e6;if(!t)return'-';const s=Math.round(t-Date.now()/1000);if(s<=0)return'곧 실행';return Math.floor(s/60)+'분 '+s%60+'초 후'}
 function pct(a,b){return b?Math.min(100,Math.round(100*a/b)):0}
-function bar(l,a,b,txt){const p=pct(a,b);return `<div class="row"><span>${l}</span><span>${txt||a+' / '+b}</span></div><div class="bar ${p>=90?'bad':p>=75?'warn':''}"><i style="width:${p}%"></i></div>`}
+function bar(l,a,b,txt,prog){const p=pct(a,b);return `<div class="row"><span>${l}</span><span>${txt||a+' / '+b}</span></div><div class="bar ${prog?'':p>=90?'bad':p>=75?'warn':''}"><i style="width:${p}%"></i></div>`}
 function win(l,w){if(!w)return bar(l,0,100,'데이터 없음');if(w.expired)return bar(l,0,100,'리셋됨 ('+hhmm(w.resetsAt)+') · 새 창 대기');if(w.utilization==null)return bar(l,0,100,'사용률 관측 없음 · 리셋 '+hhmm(w.resetsAt));const u=Math.round(100*w.utilization);return bar(l,u,100,u+'% · 리셋 '+hhmm(w.resetsAt))}
 function pickWin(g,k){const now=Date.now()/1000;let old=null;for(const r of [g[k],g.five_hour,g.seven_day]){let w=r&&(r.rateLimitType===k?r:null);const nw=r&&(r.unifiedWindows||{})[k];if(nw&&(!w||w.utilization==null))w=w?{...w,...nw}:nw;if(!w)continue;if(w.resetsAt>now)return w;old=old||w}return old&&{...old,expired:1}}
 const RSN={pacing:'페이싱 대기',pause_flag:'일시중지됨',failed:'실패로 정지 — 사람 확인 필요 (재개 버튼으로 이어감)',round_done:'라운드 완료 — 다음 감사 대기',step_cap:'단계 상한 — 자동 재개 대기',stop_flag:'중지됨',await_decision:'사용자 결정 대기',role_pause:'역할 일시정지'};
@@ -44,7 +44,7 @@ const ISTG={in_progress:'진행중',queued:'대기',needs_decision:'결정 필�
 let openIt={},itHtml={},istage='';
 const PSTEP=[['design','설계'],['develop','개발'],['test','테스트'],['commit','커밋'],['deploy','운영반영']];
 function pipeHtml(x){if(!x||!x.steps)return'';
- return `<div class="pipe">${PSTEP.map(([k,n])=>`<span class="${x.steps[k]?'ok':'no'}">${x.steps[k]?'✔':'·'} ${n}</span>`).join(' ')}${x.running?' <span class="tag warn">진행중</span>':''}</div>`}
+ return `<div class="pipe">${PSTEP.map(([k,n])=>`<span class="${x.running&&x.running_step===k?'run':x.steps[k]?'ok':'no'}">${x.running&&x.running_step===k?'⏳':x.steps[k]?'✔':'·'} ${n}</span>`).join(' ')}${x.running?' <span class="tag warn">진행중</span>':''}</div>`}
 let pipeMap={};
 function kv(t,v){return v?`<div class="row"><span class="mut">${t}</span><span style="text-align:right">${esc(v)}</span></div>`:''}
 function detailHtml(d){
@@ -54,7 +54,8 @@ function detailHtml(d){
  const tl=(d.timeline||[]).map(x=>`<div class="mut">${fmt(x.ts)} ${esc(x.kind)}${x.round?' · 라운드 '+x.round:''}${x.result?' · '+esc(x.result):''}</div>`).join('');
  const au=(d.audit||[]).map(x=>`<div class="mut">${esc(x.ts)} ${esc(x.action)} ${esc(JSON.stringify(x.detail))}</div>`).join('');
  const rvw=['review','done'].includes(i.stage)?`<div class="st">사후 검토</div>${sec('검토 대상',esc(r.what))}${sec('검토 방법(verify)',lst(r.verify_cmds))}${sec('검토 경과',esc(r.how))}${sec('발견된 문제',r.problems.length?lst(r.problems):'<span class="pro">기록된 문제 없음</span>')}${sec('추가로 볼 것',lst(r.remaining))}`:'';
- return `<div class="opt"><span class="tag">${ISTG[i.stage]||esc(i.stage)}</span>${pipeHtml(pipeMap[i.id])} <span class="mut">시도 ${i.attempts}회${i.critical?' · critical':''}${i.resolution?' · '+esc(i.resolution):''}</span>
+ const fc=i.stage==='failed'?failedCardHtml({id:i.id,kind:i.fail_kind,reason:i.fail_reason,text:i.full_text,attempts:i.attempts}):'';
+ return `${fc}<div class="opt"><span class="tag">${ISTG[i.stage]||esc(i.stage)}</span>${pipeHtml(pipeMap[i.id])} <span class="mut">시도 ${i.attempts}회${i.critical?' · critical':''}${i.resolution?' · '+esc(i.resolution):''}</span>
  ${sec('무엇인가',esc(i.full_text))}${sec('범위',lst(i.scope))}${sec('verify',lst(i.verify))}${i.deps.length?sec('선행 항목',esc(i.deps.join(', '))):''}
  <div class="st">어떻게 결정되었나</div>${dcs}
  <div class="st">어떻게 개발되었나</div>${runs}${tl?`<div class="sl">${tl}</div>`:''}${sec('최종 실행 보고',rp.report?`<pre>${esc(rp.report)}</pre>`:'')}${au?sec('콘솔 조작 이력',au):''}${rvw}</div>`}
@@ -78,7 +79,7 @@ function renderItems(r){
 function reopenIt(){for(const id of Object.keys(openIt)){const el=document.getElementById('dt-'+id);if(el&&!el.innerHTML){if(itHtml[id])el.innerHTML=itHtml[id];else{delete openIt[id];toggleIt(id)}}}}
 async function loadItems(){const r=await api('/api/items');if(r&&r.items){pipeMap={};for(const it of r.items)pipeMap[it.id]=it}if(tab==='items')renderItems(r)}
 function showLog(l){
- if(!Array.isArray(l))return;const e=$('#log'),top=e.scrollTop<24;
+ if(!Array.isArray(l))return;const e=$('#log');const sel=getSelection();if(sel&&!sel.isCollapsed&&e.contains(sel.anchorNode))return;const top=e.scrollTop<24;
  e.textContent=l.slice(-60).reverse().join('\n');if(top)e.scrollTop=0}
 async function pollLog(){if(tab!=='log'||document.hidden)return;showLog(await api('/api/log'));$('#logst').textContent='실시간 · '+new Date().toLocaleTimeString('ko-KR',{hour12:false})}
 const TABS=['now','log','items','dec','rev'];

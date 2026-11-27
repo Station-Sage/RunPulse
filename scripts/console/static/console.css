@@ -11,7 +11,7 @@ button.b{min-height:44px;min-width:44px;padding:0 14px;border-radius:10px;border
 button.b.p{background:var(--acc);color:#0b1220}button.b.d{background:var(--bad);color:#0b1220}
 input{min-height:44px;width:90px;border-radius:8px;border:1px solid #4b5563;background:#111827;color:var(--fg);padding:0 8px;font-size:15px}
 .bar.warn i{background:var(--warn)}.bar.bad i{background:var(--bad)}button.b:disabled{opacity:.35}.bar{height:8px;background:#374151;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok)}
-.pipe{font-size:12px;margin:4px 0}.pipe .ok{color:#34d399}.pipe .no{color:var(--mut)}.tag.warn{background:#92400e}
+.pipe{font-size:12px;margin:4px 0}.pipe .ok{color:#34d399}.pipe .no{color:var(--mut)}.pipe .run{color:#fbbf24;font-weight:600}.tag.warn{background:#92400e}
 .tag{display:inline-block;padding:0 8px;border-radius:8px;background:#374151;font-size:12px}
 .tag.bad{background:#7f1d1d}.tx{width:100%;min-height:40px;margin:6px 0;background:#111827;color:inherit;border:1px solid #374151;border-radius:6px;padding:6px}
 pre#log{min-height:200px;overflow:auto}.badge{display:inline-block;min-width:20px;height:20px;line-height:20px;padding:0 6px;margin-left:6px;border-radius:10px;background:var(--bad);color:#fff;font-size:12px;font-weight:700;text-align:center}

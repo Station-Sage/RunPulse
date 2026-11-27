@@ -41,10 +41,15 @@ def load(path: Path | None = None) -> list[dict]:
         return []
 
 
-def append(recs: list[dict], path: Path | None = None) -> None:
+def append(recs: list[dict], path: Path | None = None, fresh: bool = False) -> None:
+    """id 로 중복을 건너뛴다. fresh=True 면 같은 id 의 닫힌(applied) 카드를 대체해 새 open 카드를 등록한다(재실패 대응)."""
     p = path or DECISIONS_PATH
-    have = {r["id"] for r in load(p)}
-    data = load(p) + [r for r in recs if r["id"] not in have]
+    cur = load(p)
+    if fresh:
+        new_ids = {r["id"] for r in recs}
+        cur = [r for r in cur if not (r["id"] in new_ids and r.get("status") == "applied")]
+    have = {r["id"] for r in cur}
+    data = cur + [r for r in recs if r["id"] not in have]
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
 
