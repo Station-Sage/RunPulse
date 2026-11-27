@@ -1,5 +1,6 @@
 # DONE — 완료된 버그
 
+- **[AUTOPILOT-PACING-FRESH]** 예산·페이싱 갱신 지연(핫픽스, 2026-11-27) — 관측이 에이전트 호출 종료 시에만 원장에 기록돼 긴 유닛 중 수치가 낡았음. `stream.py` 가 claude 출력을 실시간으로 읽어 `rate_limit_event` 도착 즉시 `ledger.append_observation`(직전 관측과 값이 같으면 생략)으로 기록하고, 상황판 예산 카드에 '관측 n분 전'(`budget_summary.observed_at`)을 표시. `run_unit`·`audit/agents` 가 사용.
 - **[AUTOPILOT-SWEEP-FIX-STRUCT]** 스윕 실패 구조화·관제 표시(핫픽스, 2026-11-27) — sweep.py 가 실패 조합을 `{state,viewport,error}` 로 내보내고(cycle.SweepError.failures), 수정 단위 scope 에 실패 조합을·verify 에 `--states/--viewports` 범위 재스윕을 명시. 상황판에 "스윕 수정 라운드 n/2 · 대상" 배지(flow.sweep_fix) 표시. 수정 단위 verify 가 문자열이라 글자 단위로 쪼개지던 문제 수정.
 - **[AUTOPILOT-SWEEP-AT-ROUND-END]** 단위마다 돌던 브라우저 스윕(화면 47셀×6조합, 단위당 약 13분) 제거(핫픽스, 2026-11-27) — 단위 test 단계는 개발 단계 verify 통과를 근거로 스윕 없이 done 처리, 전체 스윕은 라운드 종료 시 운영 반영 직전 1회(실패 시 SWEEP-* 수정 단위를 큐에 올려 개발 재진입→재스윕, 최대 2회, 초과 시 반영 보류·알림). 변경 화면 축소 모듈 `scope.py` 삭제.
 - **[AUTOPILOT-VERIFY-DOCTOR]** verify 실패 반복 방지(핫픽스, 2026-11-27) — `verify_doctor.py`: 큐 진입 전 verify lint(없는 테스트 파일·스크립트·scope 밖 테스트), 실패 진단 4종(missing_target·usage·absence_hit·real)+env, 재시도 3회·반복 불가 유형은 즉시 카드, 재시도 프롬프트에 진단·전체 출력 첨부. 감사 planner/idesign/triage 프롬프트에 verify 작성 규칙 추가.

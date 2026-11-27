@@ -25,7 +25,7 @@ from pathlib import Path
 from scripts.audit import decisions
 
 from .prompts import build_cmd as _build_cmd, build_prompt as _build_prompt
-from . import fail_handling, gate, ledger, leftovers, notify, queue, settings, size_followup, trailers, verify_doctor, worktree
+from . import fail_handling, gate, ledger, leftovers, notify, queue, settings, size_followup, stream, trailers, verify_doctor, worktree
 
 
 def _parse_stream(raw: str) -> dict:
@@ -51,17 +51,7 @@ def _run_claude(item: queue.QueueItem) -> dict:
     cmd = _build_cmd(prompt, item.kind)
     timeout = settings.RUN_TIMEOUT_SEC_CODE if item.kind == "code" else settings.RUN_TIMEOUT_SEC
     started = time.time()
-    try:
-        proc = subprocess.run(
-            cmd, cwd=settings.WORKTREE_DIR, capture_output=True, text=True,
-            timeout=timeout, stdin=subprocess.DEVNULL,
-        )
-        timed_out = False
-        stdout, returncode = proc.stdout, proc.returncode
-    except subprocess.TimeoutExpired as e:
-        timed_out = True
-        stdout = (e.stdout or b"").decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
-        returncode = -1
+    stdout, returncode, timed_out = stream.run(cmd, timeout, settings.WORKTREE_DIR, unit_id=item.item_id)
     duration = time.time() - started
     parsed = _parse_stream(stdout)
 

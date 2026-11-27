@@ -47,6 +47,7 @@ function rolesHtml(rs){rs=rs||{};
    +(openRole[r]?`<div class="rb">${Object.keys(FLAG_KO).map(k=>`<button class="b" data-rl="${r}" data-rf="${k}" data-rv="${f[k]?0:1}">${f[k]?FLAG_KO[k]+' 해제':FLAG_KO[k]}</button>`).join('')}</div>`:'')}).join('')+
  '<div class="mut">일시정지 = 해당 단계 진입 시 정지 · 건너뛰기 = 해제할 때까지 유지 · 재실행 = 다음 1회만</div>'}
 function blockedHtml(q){return (q.blocked||[]).map(a=>`<div class="card"><div class="row"><span>${esc(a.id)} <span class="tag bad">막힘 · ${esc(a.kind||'-')}</span></span></div><div class="mut" style="white-space:pre-wrap;word-break:break-word">${esc(a.text)}</div><div class="mut">사유: ${esc(a.reason||'기록 없음(이전 버전 실패 — 시도 '+a.attempts+'회)')}</div><input id="fx-${esc(a.id)}" placeholder="의견·추가 지시(선택)" style="width:100%"><button class="b p" data-fa="requeue" data-fid="${esc(a.id)}">큐에 다시 넣기</button> <button class="b" data-fa="drop" data-fid="${esc(a.id)}">폐기</button></div>`).join('')}
+function ago(ts){const m=Math.max(0,Math.round((Date.now()/1000-ts)/60));return m<1?'방금':m<60?m+'분 전':Math.round(m/60)+'시간 전'}
 function renderNow(o){window.lastO=o;
  const s=o.state,f=o.flags,g=o.budget;
  const pw=$('#pw'),pacing=s.stop_reason==='pacing'||(!g.pacing_ok&&g.pacing_resume_at);
@@ -59,7 +60,7 @@ function renderNow(o){window.lastO=o;
  $('#bk').innerHTML=bk;$('#bk').classList.toggle('hid',!bk);
  $('#qu').innerHTML=`<b>큐 (자동 ${q.total}건)</b><div>${Object.entries(b).map(([k,v])=>`<span class="tag">${QKO[k]||k} ${v}</span> `).join('')}</div>
  <div class="mut">다음 실행: ${esc(q.next||'없음')}</div>`+q.attention.filter(a=>a.stage!=='review').map(a=>`<div class="row"><span>${esc(a.id)} <span class="tag">${QKO[a.stage]||a.stage}</span></span></div><div class="mut">${esc(a.text)}</div>`).join('');
- $('#bu').innerHTML=`<b>예산·페이싱</b>${win('5시간 세션',pickWin(g,'five_hour'))}${win('7일 (균등 목표 '+Math.round(100*g.weekly_target)+'%)',pickWin(g,'seven_day'))}${g.pacing_ok||pacing?'':`<div class="mut">대기: ${esc(g.pacing_reason)}</div>`}`;
+ $('#bu').innerHTML=`<b>예산·페이싱</b> <span class="mut">${g.observed_at?'관측 '+ago(g.observed_at):'관측 없음'}</span>${win('5시간 세션',pickWin(g,'five_hour'))}${win('7일 (균등 목표 '+Math.round(100*g.weekly_target)+'%)',pickWin(g,'seven_day'))}${g.pacing_ok||pacing?'':`<div class="mut">대기: ${esc(g.pacing_reason)}</div>`}`;
  const run=f.stop?'중지됨':f.pause?'일시중지됨 (다음 단계부터)':pacing?'페이싱 대기':['stopped','halted'].includes(s.phase)?'정지 상태':'실행 중 · '+(s.phase||'-');
  $('#flags').textContent=run;$('#dot').className='dot'+(f.stop?' bad':f.pause||pacing?' warn':'');
  document.querySelector('[data-a=pause]').disabled=!!(f.pause||f.stop);document.querySelector('[data-a=stop]').disabled=!!f.stop;

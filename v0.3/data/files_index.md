@@ -2370,7 +2370,7 @@
 
 - functions: test_group_issues_and_prompt, test_parse_findings_graceful, test_backlog_lines_dedup_and_models
 
-### `test_audit_budget_release.py` (75줄) — Opus 게이트(budget)·ask 폴백·버전업 감사(release)·비전 프롬프트.
+### `test_audit_budget_release.py` (74줄) — Opus 게이트(budget)·ask 폴백·버전업 감사(release)·비전 프롬프트.
 
 - functions: test_budget_utilization_caps, test_ask_falls_back_to_sonnet_when_opus_blocked, test_prompts_carry_vision_and_release_models_are_opus, test_release_due_and_run, test_release_failed_audit_not_marked, test_ask_records_rate_limit_and_pacing_blocks, test_pacing_hold_until_file
 
@@ -2544,6 +2544,10 @@
 ### `test_autopilot_size_followup.py` (15줄)
 
 - functions: test_oversize_becomes_followup
+
+### `test_autopilot_stream.py` (43줄) — claude 스트림 실행기 — rate_limit_event 도착 즉시 원장 기록(값이 바뀐 경우만), 관측 시각 노출.
+
+- functions: test_append_observation_dedupes_unchanged, test_stream_run_records_observation_before_exit, test_stream_run_timeout_kills, test_budget_summary_exposes_observed_at
 
 ### `test_autopilot_trailers.py` (21줄)
 
@@ -4387,7 +4391,7 @@
 - functions: run
 
 ---
-총 962개 파일
+총 963개 파일
 
 ## docstring 누락
 

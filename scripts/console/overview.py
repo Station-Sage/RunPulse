@@ -32,7 +32,8 @@ def budget_summary(now: float, entries: list[dict] | None = None) -> dict:
     es = ledger.read_all() if entries is None else entries
     pc = pacing.check(now, es)
     obs = {k: pacing.latest_observation(es, k, now) for k in ("five_hour", "seven_day")}
-    return {"week_usd": round(ledger.total_cost(ledger.since(168, es, now)), 2), "weekly_max": settings.WEEKLY_MAX_USD,
+    observed_at = next((e.get("ts") for e in reversed(es) if e.get("rate_limit")), None)
+    return {"observed_at": observed_at, "week_usd": round(ledger.total_cost(ledger.since(168, es, now)), 2), "weekly_max": settings.WEEKLY_MAX_USD,
             "five_hour": obs["five_hour"], "seven_day": obs["seven_day"], "weekly_target": round(pacing.weekly_target(now), 3),
             "pacing_ok": pc.allowed, "pacing_reason": pc.reason, "pacing_resume_at": pc.resume_at}
 
