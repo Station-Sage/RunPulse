@@ -74,3 +74,19 @@ def test_retry_prompt_includes_previous_verify_failure():
     assert "Could not find foo.test.mjs" in prompts.build_prompt(it)
     it.attempts = 0
     assert "Could not find" not in prompts.build_prompt(it)
+
+
+def test_discard_leftovers_and_sync_recovers(tmp_path, monkeypatch):
+    wt = tmp_path / "wt"
+    wt.mkdir()
+    for c in (["init", "-q"], ["config", "user.email", "a@b"], ["config", "user.name", "a"]):
+        subprocess.run(["git", *c], cwd=wt, check=True)
+    (wt / "a.txt").write_text("1")
+    subprocess.run(["git", "add", "."], cwd=wt, check=True)
+    subprocess.run(["git", "commit", "-qm", "i"], cwd=wt, check=True)
+    (wt / "a.txt").write_text("2")
+    (wt / "junk.txt").write_text("x")
+    monkeypatch.setattr(worktree.settings, "WORKTREE_DIR", wt)
+    assert not worktree.is_clean()
+    assert sorted(worktree.discard_leftovers()) == ["a.txt", "junk.txt"]
+    assert worktree.is_clean() and (wt / "a.txt").read_text() == "1"

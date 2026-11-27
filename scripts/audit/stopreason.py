@@ -47,11 +47,26 @@ def resume(st: dict, human: bool = False) -> bool:
             return False
         st.update(phase="audit", fails=0, unit=None, stop_reason=None, cursor=None)
         st.pop("resume_at", None)
+        st.pop("stop_cause", None)
         return True
     at = st.pop("resume_at", None) or st.get("cursor") or {}
     st["stop_reason"] = None
+    st.pop("stop_cause", None)
     if st.get("phase") in ("stopped", "halted"):
         st["phase"], st["unit"] = at.get("phase") or "audit", at.get("unit")
     if human:
         st["fails"] = 0
     return True
+
+
+LABEL = {
+    PACING: "페이싱 대기", ROUND_DONE: "라운드 완료 — 다음 감사 대기", FAILED: "연속 실패로 정지 — 사람 확인 필요(재개로 이어감)",
+    STOP_FLAG: "중지됨", STEP_CAP: "단계 상한 — 자동 재개 대기", AWAIT_DECISION: "사용자 결정 대기",
+    ROLE_PAUSE: "역할 일시정지", PAUSE_FLAG: "일시중지됨",
+}
+
+
+def describe(st: dict) -> str:
+    """정지 상태를 로그에 남길 한 줄(사유 라벨 + 원인)."""
+    r = st.get("stop_reason")
+    return f"{LABEL.get(r, r)}" + (f" — {st['stop_cause']}" if st.get("stop_cause") else "")
