@@ -151,6 +151,10 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     if settings.STOP_PATH.exists() and ph not in ("stopped", "halted"):  # 콘솔 즉시중지 — 단계를 시작하지 않고 이 지점을 resume_at 으로 남긴다
         stopreason.stop(st, stopreason.STOP_FLAG)
         return f"정지 — 콘솔 즉시중지({ph} 단계 직전, 재개 시 이 지점부터)"
+    if settings.PAUSE_PATH.exists() and ph not in ("stopped", "halted"):  # 콘솔 일시중지 — 단계 경계에서 멈춤(게이트 차단으로 같은 단계를 헛돌지 않는다)
+        stopreason.stop(st, stopreason.PAUSE_FLAG)
+        progress.mark(f"[루프] 일시중지 — {ph} 단계 직전에 멈춤(재개 시 이 지점부터)")
+        return f"정지 — 콘솔 일시중지({ph} 단계 직전, 재개 시 이 지점부터)"
     if ph == "stopped":
         stopreason.stop(st, st.get("stop_reason") or stopreason.STOP_FLAG)
         return "정지 상태 — 단일 라운드 완료(재개: --reset)"

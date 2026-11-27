@@ -40,6 +40,7 @@ def _no_real_sweep(monkeypatch):
 @pytest.fixture(autouse=True)
 def _isolate_stop_flag(tmp_path, monkeypatch):
     monkeypatch.setattr(loop, "STOP_FLAG", lambda: tmp_path / "no_stop_flag")
+    monkeypatch.setattr(loop.settings, "PAUSE_PATH", tmp_path / "no_pause_flag")
 
 
 def test_state_roundtrip_and_default(tmp_path):
@@ -281,3 +282,17 @@ def test_systemic_failure_still_halts(tmp_path, monkeypatch):
         queue.update_item(p, "U1", stage="queued")
         loop.step(st, path=p, act={"develop": fail})
     assert st["phase"] == "halted"
+
+
+def test_pause_flag_stops_step_cleanly_and_human_resume(tmp_path, monkeypatch):
+    from scripts.audit import stopreason
+    _quiet(monkeypatch)
+    flag = tmp_path / "PAUSE"
+    flag.write_text("1")
+    monkeypatch.setattr(loop.settings, "PAUSE_PATH", flag)
+    st = _st("develop")
+    msg = loop.step(st, path=_backlog(tmp_path))
+    assert msg.startswith("정지") and st["stop_reason"] == stopreason.PAUSE_FLAG
+    flag.unlink()
+    stopreason.resume(st, human=True)
+    assert not stopreason.is_stopped(st) and st["phase"] == "develop"

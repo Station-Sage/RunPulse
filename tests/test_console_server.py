@@ -55,7 +55,7 @@ def test_static_files_served():
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     try:
         for path, needle in (("/", b"/now.js"), ("/", b'data-a="start"'), ("/", b'id="flags"'), ("/app.js", b"/api/overview"),
-                             ("/now.js", b"data-rl"), ("/now.js", "관측".encode()), ("/now.js", b"lastRv"), ("/app.js", b"itHtml"), ("/now.js", b"data-fa"), ("/console.css", b"details.cfg"),
+                             ("/now.js", b"data-rl"), ("/now.js", "관측".encode()), ("/now.js", b"lastRv"), ("/app.js", b"itHtml"), ("/now.js", b"data-fa"), ("/now.js", "일시중지됨".encode()), ("/console.css", b"details.cfg"),
                              ("/manifest.webmanifest", b"short_name"), ("/sw.js", b"fetch")):
             body = urllib.request.urlopen(f"http://127.0.0.1:{srv.server_port}{path}").read()
             assert needle in body
@@ -145,3 +145,9 @@ def test_review_text_not_truncated(tmp_path):
     q = tmp_path / "q.md"
     q.write_text(f'- **[R-1]** {"y" * 300}\n  <!-- autopilot: {{"stage":"review","mode":"auto","attempts":0,"deps":[]}} -->\n', encoding="utf-8")
     assert len(overview.queue_summary(q)["attention"][0]["text"]) >= 300
+
+
+def test_pause_action_writes_progress_log(tmp_path):
+    r = control.act("pause", state_dir=tmp_path)
+    assert r["ok"] and r["pause"]
+    assert "일시중지" in (tmp_path / "progress.log").read_text(encoding="utf-8")

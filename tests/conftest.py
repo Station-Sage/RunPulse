@@ -225,3 +225,10 @@ def _isolated_roles(tmp_path, monkeypatch):
     """콘솔 역할 플래그(roles.json)를 테스트별로 격리 — 실 운영 지정이 루프 테스트에 새지 않게."""
     from scripts.audit import roles
     monkeypatch.setattr(roles, "ROLES_PATH", tmp_path / "roles.json")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_pause_flag(tmp_path, monkeypatch):
+    """콘솔 PAUSE 플래그를 테스트별로 격리 — 운영 일시중지가 루프 테스트를 멈추지 않게."""
+    from scripts.autopilot import settings
+    monkeypatch.setattr(settings, "PAUSE_PATH", tmp_path / "no_pause_flag")

@@ -49,6 +49,16 @@ def _clear_stopped(d: Path) -> None:
         p.write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+_ACTION_KO = {"start": "시작", "resume": "재개", "pause": "일시중지", "stop": "즉시중지"}
+
+
+def _mark_progress(action: str, killed, d: Path) -> None:
+    """사람이 누른 제어를 진행 로그에도 남긴다(감사 로그와 별개로 로그 탭에서 흐름이 보이도록)."""
+    from scripts.audit import progress
+    extra = f" · 프로세스 {len(killed)}개 종료" if isinstance(killed, (list, tuple)) and killed else ""
+    progress.mark(f"[콘솔] {_ACTION_KO[action]} 요청{extra}", d / "progress.log")
+
+
 def _sync_wake() -> None:
     """페이싱 설정·재개 직후 wake 타이머를 현재 판정에 맞춘다(실패해도 제어 동작은 성공)."""
     try:
@@ -82,6 +92,7 @@ def act(action: str, state_dir: Path | None = None, run=_sh, reap=None) -> dict:
             run(["systemctl", "--user", "start", "--no-block", "runpulse-audit.service"])
         res = {"ok": True, "action": action, "killed": killed, "pause": pause.exists(), "stop": stop.exists()}
         audit(action, {"killed": killed}, True, d)
+        _mark_progress(action, killed, d)
     if state_dir is None and action != "stop":
         _sync_wake()
     return res

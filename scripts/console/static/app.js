@@ -12,7 +12,7 @@ function pct(a,b){return b?Math.min(100,Math.round(100*a/b)):0}
 function bar(l,a,b,txt){const p=pct(a,b);return `<div class="row"><span>${l}</span><span>${txt||a+' / '+b}</span></div><div class="bar ${p>=90?'bad':p>=75?'warn':''}"><i style="width:${p}%"></i></div>`}
 function win(l,w){if(!w)return bar(l,0,100,'데이터 없음');if(w.expired)return bar(l,0,100,'리셋됨 ('+hhmm(w.resetsAt)+') · 새 창 대기');if(w.utilization==null)return bar(l,0,100,'사용률 관측 없음 · 리셋 '+hhmm(w.resetsAt));const u=Math.round(100*w.utilization);return bar(l,u,100,u+'% · 리셋 '+hhmm(w.resetsAt))}
 function pickWin(g,k){const now=Date.now()/1000;let old=null;for(const r of [g[k],g.five_hour,g.seven_day]){let w=r&&(r.rateLimitType===k?r:null);const nw=r&&(r.unifiedWindows||{})[k];if(nw&&(!w||w.utilization==null))w=w?{...w,...nw}:nw;if(!w)continue;if(w.resetsAt>now)return w;old=old||w}return old&&{...old,expired:1}}
-const RSN={pacing:'페이싱 대기'};
+const RSN={pacing:'페이싱 대기',pause_flag:'일시중지됨'};
 const STG=['감사','설계','개발·테스트','반영'],SUBN={sweep:'스윕',audit:'관점 감사',review:'독립 검토'};
 function dur(sec){sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);return h?h+'시간 '+m+'분':m?m+'분 '+sec%60+'초':sec+'초'}
 function hhmm(ts){return ts?new Date(ts*1000).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}):'-'}
@@ -113,7 +113,7 @@ document.addEventListener('click',async e=>{
  else if(t.dataset.fid){if(t.dataset.fa==='drop'&&!confirm('폐기할까요?'))return;r=await api('/api/failed/'+t.dataset.fid,{action:t.dataset.fa,text:(($('#fx-'+t.dataset.fid)||{}).value||'')})}
  else if(t.dataset.rv){if(t.dataset.ra==='rework'&&!confirm('재작업 큐로 되돌릴까요?'))return;r=await api('/api/review/'+t.dataset.rv,{action:t.dataset.ra})}
  else return;
- if(r&&r.ok){toast(t.dataset.fid&&t.dataset.fa==='requeue'?'의견을 지시로 추가하고 큐에 넣었습니다':'적용됨');for(const k of['tx-'+t.dataset.dc,'fx-'+t.dataset.fid])delete drafts[k]}else if(r&&r.error)toast(r.error);load()});
+ if(r&&r.ok){toast(t.dataset.fid&&t.dataset.fa==='requeue'?'의견을 지시로 추가하고 큐에 넣었습니다':({pause:'일시중지 요청됨 — 진행 로그에 기록',resume:'재개 요청됨',start:'시작 요청됨',stop:'즉시 중지됨'})[t.dataset.a]||'적용됨');for(const k of['tx-'+t.dataset.dc,'fx-'+t.dataset.fid])delete drafts[k]}else if(r&&r.error)toast(r.error);load()});
 document.addEventListener('focusin',e=>{typing=e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'});
 document.addEventListener('input',e=>{const i=e.target.id||'';if(/^(tx|fx)-/.test(i))drafts[i]=e.target.value});
 buildSettings();setTab(tabFromHash());load();
