@@ -57,3 +57,7 @@ def test_resume_timer_refuses_stop_flag_but_keeps_state():
     st = {"phase": "test", "unit": "A-2", "round": 1}
     sr.stop(st, sr.STOP_FLAG)
     assert sr.resume(st) is False and st["stop_reason"] == sr.STOP_FLAG
+
+
+def test_pause_flag_is_human_resume_only():
+    assert sr.PAUSE_FLAG in sr.HUMAN_RESUME and sr.PAUSE_FLAG not in sr.AUTO_RESUME

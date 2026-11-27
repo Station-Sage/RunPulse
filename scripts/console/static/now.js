@@ -23,7 +23,7 @@ function flowHtml(o){
   if(k===3&&p.units){const u=p.units;sub=`<div class="sub"><a href="#items">단위 ${u.done}/${u.total}</a></div><div class="bar thin"><i style="width:${pct(u.done,u.total)}%"></i></div>`}
   if(k===4&&p.deploy&&p.deploy.ok!=null)sub=`<div class="sub">${p.deploy.ok?'완료':p.deploy.ran?'실패':'생략'}</div>`;
   return `<div class="stp ${c}"><div class="no">${k}</div><div class="nm">${n}</div>${sub}</div>`}).join('<div class="ln"></div>');
- const ban=f.stop?`<div class="ban bad">중지됨${s.stop_reason?' — '+esc(s.stop_reason):''}</div>`:f.pause?`<div class="ban warn">일시중지${s.stop_reason?' — '+esc(s.stop_reason):''}</div>`:s.stop_reason&&s.stop_reason!=='pacing'?`<div class="ban warn">${esc(RSN[s.stop_reason]||s.stop_reason)}</div>`:'';
+ const ban=f.stop?`<div class="ban bad">중지됨${s.stop_reason?' — '+esc(s.stop_reason):''}</div>`:(f.pause||s.stop_reason==='pause_flag')?`<div class="ban warn">⏸ 일시중지됨 — ${f.pause&&s.stop_reason!=='pause_flag'?'현재 단계가 끝나는 지점에서 멈춥니다':'단계 경계에서 멈춰 있습니다'} (재개 버튼으로 이어서 진행)</div>`:s.stop_reason&&s.stop_reason!=='pacing'?`<div class="ban warn">${esc(RSN[s.stop_reason]||s.stop_reason)}</div>`:'';
  const sf=p.sweep_fix&&s.phase!=='audit'?`<div class="ban warn">스윕 수정 라운드 ${p.sweep_fix.attempt}/${p.sweep_fix.limit} · ${esc(p.sweep_fix.item)}${(p.sweep_fix.targets||[]).length?' · 대상 '+esc(p.sweep_fix.targets.join(', ')):''}</div>`:'';
  const d=p.design,wait=d?`후보 ${d.new} → 자체 승인 ${d.auto} · 결정 대기 ${d.user}`:'';
  return `<b>라운드 ${esc(s.round)}</b> <span class="tag">${cur?'현재 '+cur+'/4':esc(s.phase||'-')}</span>${p.inferred?' <span class="mut">(로그 추정)</span>':''}
@@ -50,7 +50,12 @@ function blockedHtml(q){return (q.blocked||[]).map(a=>`<div class="card"><div cl
 function ago(ts){const m=Math.max(0,Math.round((Date.now()/1000-ts)/60));return m<1?'방금':m<60?m+'분 전':Math.round(m/60)+'시간 전'}
 function renderNow(o){window.lastO=o;
  const s=o.state,f=o.flags,g=o.budget;
- const pw=$('#pw'),pacing=s.stop_reason==='pacing'||(!g.pacing_ok&&g.pacing_resume_at);
+ const pacing=s.stop_reason==='pacing'||(!g.pacing_ok&&g.pacing_resume_at);
+ const run=f.stop?'중지됨':f.pause||s.stop_reason==='pause_flag'?'⏸ 일시중지됨':pacing?'페이싱 대기':['stopped','halted'].includes(s.phase)?'정지 상태':'실행 중 · '+(s.phase||'-');
+ $('#flags').textContent=run;$('#dot').className='dot'+(f.stop?' bad':f.pause||s.stop_reason==='pause_flag'||pacing?' warn':'');
+ document.querySelector('[data-a=pause]').disabled=!!(f.pause||f.stop||s.stop_reason==='pause_flag');document.querySelector('[data-a=stop]').disabled=!!f.stop;
+ document.querySelector('[data-a=resume]').disabled=!(f.pause||f.stop||s.stop_reason);
+ const pw=$('#pw');
  pw.style.display=pacing?'':'none';
  if(pacing){const lifted=g.pacing_ok;pw.innerHTML=`${lifted?'페이싱 해제 — 재개 대기':'페이싱 대기 중'}<b>${g.pacing_resume_at?hhmm(g.pacing_resume_at)+' 재개':lifted?'한도 리셋됨 · 곧 재개':'재개 시각 계산 중'}</b><span ${g.pacing_resume_at?`data-until="${g.pacing_resume_at}"`:''}></span>${g.pacing_reason?`<div class="mut">${esc(g.pacing_reason)}</div>`:''}`}
  $('#rel').innerHTML=relHtml(o.release);$('#roles').innerHTML=rolesHtml(o.roles);
@@ -61,10 +66,6 @@ function renderNow(o){window.lastO=o;
  $('#qu').innerHTML=`<b>큐 (자동 ${q.total}건)</b><div>${Object.entries(b).map(([k,v])=>`<span class="tag">${QKO[k]||k} ${v}</span> `).join('')}</div>
  <div class="mut">다음 실행: ${esc(q.next||'없음')}</div>`+q.attention.filter(a=>a.stage!=='review').map(a=>`<div class="row"><span>${esc(a.id)} <span class="tag">${QKO[a.stage]||a.stage}</span></span></div><div class="mut">${esc(a.text)}</div>`).join('');
  $('#bu').innerHTML=`<b>예산·페이싱</b> <span class="mut">${g.observed_at?'관측 '+ago(g.observed_at):'관측 없음'}</span>${win('5시간 세션',pickWin(g,'five_hour'))}${win('7일 (균등 목표 '+Math.round(100*g.weekly_target)+'%)',pickWin(g,'seven_day'))}${g.pacing_ok||pacing?'':`<div class="mut">대기: ${esc(g.pacing_reason)}</div>`}`;
- const run=f.stop?'중지됨':f.pause?'일시중지됨 (다음 단계부터)':pacing?'페이싱 대기':['stopped','halted'].includes(s.phase)?'정지 상태':'실행 중 · '+(s.phase||'-');
- $('#flags').textContent=run;$('#dot').className='dot'+(f.stop?' bad':f.pause||pacing?' warn':'');
- document.querySelector('[data-a=pause]').disabled=!!(f.pause||f.stop);document.querySelector('[data-a=stop]').disabled=!!f.stop;
- document.querySelector('[data-a=resume]').disabled=!(f.pause||f.stop||s.stop_reason);
  const rv=q.attention.filter(a=>a.stage==='review');
  for(const[id,n]of[['#dn',o.decisions_open||0],['#rn',rv.length]]){const b=$(id);b.textContent=n>99?'99+':n;b.classList.toggle('hid',!n)}
  const rvh=rv.length?rv.map(a=>`<div class="card"><b>${esc(a.id)}</b> <span class="tag">사후 검토</span><div class="mut" style="white-space:pre-wrap;word-break:break-word">${esc(a.text)}</div>${pipeHtml(pipeMap[a.id])}<div class="mut">개발·검증 완료 — 브랜치 병합 전 확인 대기</div><button class="b" data-it="${esc(a.id)}">상세 ▾</button> <button class="b p" data-rv="${esc(a.id)}" data-ra="done">확인 완료</button> <button class="b" data-rv="${esc(a.id)}" data-ra="rework">재작업</button><div id="dt-${esc(a.id)}"></div></div>`).join(''):'<div class="card mut">검토 대기 항목 없음</div>';

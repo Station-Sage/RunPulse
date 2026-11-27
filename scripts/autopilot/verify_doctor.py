@@ -1,12 +1,13 @@
 """verify 진단·사전 점검 — 실패 원인을 종류별로 가르고, 실행 불가능한 verify 를 큐 진입 전에 잡는다.
 
 diagnose: missing_target(대상 파일 없음)|usage(인자·모듈 오류)|absence_hit(`! grep` 부재 검사 적중)|real(실제 테스트 실패)|env.
-lint: 큐에 넣기 전 verify 가 실행 가능한지 정적으로 점검(존재하지 않는 테스트 파일·스크립트, scope 밖 테스트).
+lint: 큐에 넣기 전 verify 가 실행 가능한지 점검(존재하지 않는 테스트 파일·스크립트, 범위 밖 파일에 이미 적중하는 `! grep` 부재 검사).
 """
 from __future__ import annotations
 
 import re
 import shlex
+import subprocess
 from pathlib import Path
 
 TAG = re.compile(r"^\[(missing_target|usage|absence_hit|real)\]\s*")
@@ -87,7 +88,30 @@ def lint(verify: list[str], scope: list[str], root: Path) -> list[str]:
                 script = toks[i + 1]
                 if not (root / script).exists() and script not in scoped:
                     problems.append(f"스크립트 `{script}` 없음")
+        problems.extend(_absence_baseline(cmd, scoped, root))
     return problems
+
+
+def _absence_baseline(cmd: str, scoped: set[str], root: Path) -> list[str]:
+    """`! grep` 부재 검사가 현재 트리에서 범위 밖 파일에 이미 적중하면 항목이 고칠 수 없다 — 패턴이 과도하게 넓다."""
+    if not is_negative_grep(cmd) or not root.exists():
+        return []
+    try:
+        r = subprocess.run(["bash", "-c", cmd], cwd=root, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    if r.returncode != 1 or not r.stdout.strip():
+        return []
+    base = "frontend/" if "cd frontend" in cmd else ""
+    outside = set()
+    for ln in r.stdout.splitlines():
+        f = ln.split(":", 1)[0]
+        full = f if f.startswith(base) else base + f
+        if not any(full == sc or full.startswith(sc + "/") for sc in scoped):
+            outside.add(full)
+    if not outside:
+        return []
+    return [f"부재 검사 `{cmd[:80]}` 가 범위 밖 파일 {len(outside)}곳에 이미 적중({sorted(outside)[0]} 등) — 패턴을 좁혀야 함"]
 
 
 def missing_file(cmd: str, output: str) -> str:

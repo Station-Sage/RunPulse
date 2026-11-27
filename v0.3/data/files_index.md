@@ -2069,7 +2069,7 @@
 
 ## `tests/`
 
-### `conftest.py` (227줄) — pytest 공통 fixture — v0.3 스키마.
+### `conftest.py` (234줄) — pytest 공통 fixture — v0.3 스키마.
 
 - functions: isolated_users_root, db_conn, db_conn_default, db_conn_user, sample_config
 
@@ -2422,9 +2422,9 @@
 
 - functions: test_key_stable_and_distinct, test_filter_new_skips_open_only, test_record_marks_reopened, test_reverify_resolves_and_keeps, test_current_round_reads_state, test_tunable_override, test_discover_respects_cap_and_round_reset, test_discover_drops_already_known
 
-### `test_audit_loop.py` (283줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
+### `test_audit_loop.py` (298줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
 
-- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_needs_decision_items_do_not_stop_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_inside_inner_loop, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_needs_decision_left_does_not_stop, test_run_until_stop_converts_exception_and_pacinghold, test_propose_keeps_design_summary, test_no_candidate_design_goes_through_end_round, test_propose_limit_and_checkpoint, test_step_records_cursor_and_reset_clears, test_run_until_stop_saves_state_immediately_on_resume, test_item_level_failure_does_not_halt_loop, test_systemic_failure_still_halts
+- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_needs_decision_items_do_not_stop_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_inside_inner_loop, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_needs_decision_left_does_not_stop, test_run_until_stop_converts_exception_and_pacinghold, test_propose_keeps_design_summary, test_no_candidate_design_goes_through_end_round, test_propose_limit_and_checkpoint, test_step_records_cursor_and_reset_clears, test_run_until_stop_saves_state_immediately_on_resume, test_item_level_failure_does_not_halt_loop, test_systemic_failure_still_halts, test_pause_flag_stops_step_cleanly_and_human_resume
 
 ### `test_audit_orchestrator.py` (118줄)
 
@@ -2463,9 +2463,9 @@
 
 - functions: test_parse, test_step_creates_proposal_and_decision_once, test_step_no_change_writes_nothing, test_apply_choice_A_replaces_vision_with_backup, test_apply_choice_B_rejects, test_apply_choice_A_supersedes_planned_version_only
 
-### `test_audit_stopreason.py` (59줄) — stopreason: 정지 사유 enum 과 자동 재개 정책.
+### `test_audit_stopreason.py` (63줄) — stopreason: 정지 사유 enum 과 자동 재개 정책.
 
-- functions: test_stop_rejects_unknown_reason, test_is_stopped_follows_reason, test_resume_auto_reasons, test_resume_refused_for_failed_and_flag, test_resume_without_reason_is_noop_true, test_legacy_blocked_normalized, test_resume_at_recorded_once_and_restored_by_human, test_resume_timer_refuses_stop_flag_but_keeps_state
+- functions: test_stop_rejects_unknown_reason, test_is_stopped_follows_reason, test_resume_auto_reasons, test_resume_refused_for_failed_and_flag, test_resume_without_reason_is_noop_true, test_legacy_blocked_normalized, test_resume_at_recorded_once_and_restored_by_human, test_resume_timer_refuses_stop_flag_but_keeps_state, test_pause_flag_is_human_resume_only
 
 ### `test_audit_sweep.py` (36줄) — 감사 스윕 러너의 순수 로직(경로 치환·원장 기록) 테스트.
 
@@ -2553,9 +2553,9 @@
 
 - functions: test_strip_trailers, test_scrub_range_rewrites
 
-### `test_autopilot_verify_doctor.py` (57줄) — verify 진단·lint·재시도 분기.
+### `test_autopilot_verify_doctor.py` (67줄) — verify 진단·lint·재시도 분기.
 
-- functions: test_diagnose, test_reason_tag_and_stop, test_retry_hint_contains_output, test_lint, test_handle_missing_target_extends_scope_then_stops, test_prompt_uses_hint
+- functions: test_diagnose, test_reason_tag_and_stop, test_retry_hint_contains_output, test_lint, test_handle_missing_target_extends_scope_then_stops, test_prompt_uses_hint, test_lint_absence_baseline_outside_scope
 
 ### `test_autopilot_worktree_provision.py` (76줄) — worktree.provision — 워크트리에 없는 untracked 의존성(.venv·node_modules)을 메인 체크아웃에서 링크.
 
@@ -2761,9 +2761,9 @@
 
 - functions: test_queue_summary, test_overview_and_decisions, test_overview_has_release, test_redo_not_counted_and_closed_capped
 
-### `test_console_server.py` (147줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
+### `test_console_server.py` (153줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
 
-- functions: test_choose_validation, test_log_tail_and_route, test_http_origin_and_content_type, test_static_files_served, test_timers_and_tunable_values, test_notify_console_hint, test_change_choice_from_chosen_and_blocked_kinds, test_change_choice_applied_reopen_fail, test_review_action, test_failed_action, test_review_text_not_truncated
+- functions: test_choose_validation, test_log_tail_and_route, test_http_origin_and_content_type, test_static_files_served, test_timers_and_tunable_values, test_notify_console_hint, test_change_choice_from_chosen_and_blocked_kinds, test_change_choice_applied_reopen_fail, test_review_action, test_failed_action, test_review_text_not_truncated, test_pause_action_writes_progress_log
 
 ### `test_constraints.py` (65줄)
 

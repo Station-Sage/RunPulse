@@ -4,6 +4,7 @@
   pacing·step_cap : 그대로 재개(상태 유지)    round_done : 새 라운드(감사)로 재개
   failed          : 타이머는 재개 안 함(알림만), 사람이 콘솔로 재개하면 fails 초기화 후 이어감
   stop_flag       : 타이머는 재개 안 함, 사람이 콘솔로 재개하면 정지 순간(resume_at)부터 이어감
+  pause_flag      : 콘솔 일시중지(PAUSE) — stop_flag 와 같은 정책, 단계 경계에서 멈추고 재개하면 그 단계부터 이어감
 정지 순간의 단계·항목·라운드는 stop() 이 st["resume_at"] 에 한 번만 기록하고, 재개(타이머·콘솔 공통 resume)는 그 값만 쓴다.
 await_decision : 버전 계획·이니셔티브 승인 등 사용자 결정이 있어야 이어갈 수 있는 정지 — 자동 재개 안 함(결정 반영 시 콘솔이 해제)
 role_pause : 콘솔 역할 패널의 역할 일시정지 — 자동 재개 안 함, 사람이 '재개'하면 단계(phase)를 유지한 채 이어간다
@@ -12,9 +13,10 @@ role_pause : 콘솔 역할 패널의 역할 일시정지 — 자동 재개 안 �
 from __future__ import annotations
 
 PACING, ROUND_DONE, FAILED, STOP_FLAG, STEP_CAP = "pacing", "round_done", "failed", "stop_flag", "step_cap"
+PAUSE_FLAG = "pause_flag"
 AWAIT_DECISION = "await_decision"
 ROLE_PAUSE = "role_pause"
-ALL = (PACING, ROUND_DONE, FAILED, STOP_FLAG, STEP_CAP, AWAIT_DECISION, ROLE_PAUSE)
+ALL = (PACING, ROUND_DONE, FAILED, STOP_FLAG, STEP_CAP, AWAIT_DECISION, ROLE_PAUSE, PAUSE_FLAG)
 AUTO_RESUME = (PACING, ROUND_DONE, STEP_CAP)
 
 
@@ -30,7 +32,7 @@ def is_stopped(st: dict) -> bool:
     return st.get("stop_reason") is not None
 
 
-HUMAN_RESUME = AUTO_RESUME + (FAILED, STOP_FLAG, ROLE_PAUSE)
+HUMAN_RESUME = AUTO_RESUME + (FAILED, STOP_FLAG, ROLE_PAUSE, PAUSE_FLAG)
 
 
 def resume(st: dict, human: bool = False) -> bool:
