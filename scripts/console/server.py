@@ -77,6 +77,11 @@ def choose(iid: str, choice: str, dpath: Path | None = None, state_path: Path | 
             loop.save_state(st, state_path)
         elif rec.get("kind") == "vision":
             note = steward.apply_choice(next(r for r in decisions.load(dpath) if r["id"] == iid), dpath=dpath, plan_path=plan_path)
+        elif choice != "redo" and rec.get("kind") != "deploy_failed":
+            qp = queue_path or settings.QUEUE_PATH
+            it = next((x for x in queue.parse(qp) if x.item_id == iid), None)
+            if it is not None and it.stage in ("needs_decision", "failed"):  # 루프를 기다리지 않고 선택 즉시 큐에 반영
+                consume.apply(qp, lambda f: {}, dpath)
     return {"ok": True, "id": iid, "choice": choice, **({"note": note} if note else {})}
 
 

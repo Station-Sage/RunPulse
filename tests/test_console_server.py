@@ -55,7 +55,7 @@ def test_static_files_served():
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     try:
         for path, needle in (("/", b"/now.js"), ("/", b'data-a="start"'), ("/", b'id="flags"'), ("/app.js", b"/api/overview"),
-                             ("/now.js", b"data-rl"), ("/now.js", "관측".encode()), ("/now.js", b"lastRv"), ("/app.js", b"itHtml"), ("/now.js", b"failedCardHtml"), ("/app.js", b"failedCardHtml"), ("/now.js", b"data-fa"), ("/now.js", "일시중지됨".encode()), ("/now.js", "일시중지 대기 중".encode()), ("/app.js", "'개발','테스트','반영'".encode()), ("/now.js", "실패로 정지".encode()), ("/app.js", "실패로 정지".encode()), ("/console.css", b"details.cfg"), ("/now.js", "반영 실패 — 결정 대기".encode()), ("/app.js", "검토안".encode()), ("/app.js", b"recommend_why"),
+                             ("/now.js", b"data-rl"), ("/now.js", "관측".encode()), ("/now.js", b"lastRv"), ("/app.js", b"itHtml"), ("/now.js", b"failedCardHtml"), ("/app.js", b"failedCardHtml"), ("/now.js", b"data-fa"), ("/now.js", "결정함에서 결정".encode()), ("/now.js", "일시중지됨".encode()), ("/now.js", "일시중지 대기 중".encode()), ("/app.js", "'개발','테스트','반영'".encode()), ("/now.js", "실패로 정지".encode()), ("/app.js", "실패로 정지".encode()), ("/console.css", b"details.cfg"), ("/now.js", "반영 실패 — 결정 대기".encode()), ("/app.js", "검토안".encode()), ("/app.js", b"recommend_why"),
                              ("/manifest.webmanifest", b"short_name"), ("/sw.js", b"fetch")):
             body = urllib.request.urlopen(f"http://127.0.0.1:{srv.server_port}{path}").read()
             assert needle in body
@@ -183,3 +183,15 @@ def test_deploy_failed_applied_cannot_be_reopened(tmp_path, monkeypatch):
     assert server.choose("d1", "A", p)["ok"] is False
     decisions.save([_opt_rec(kind="deploy_failed", status="chosen")], p)
     assert server.choose("d1", "A", p)["ok"] is True
+
+
+def test_choose_promotes_item_immediately(tmp_path, monkeypatch):
+    from scripts.autopilot import queue
+    monkeypatch.setattr(control.settings, "STATE_DIR", tmp_path)
+    p, q = tmp_path / "d.json", tmp_path / "q.md"
+    q.write_text('- **[d1]** 작업\n  <!-- autopilot: {"stage":"failed","mode":"auto","attempts":2,"deps":[]} -->\n', encoding="utf-8")
+    rec = _rec()
+    rec["options"] = [{"key": "A", "name": "재시도", "pros": "", "cons": "", "action": "retry_exec"}]
+    decisions.save([rec], p)
+    assert server.choose("d1", "A", p, queue_path=q)["ok"] is True
+    assert queue.parse(q)[0].stage == "queued" and decisions.load(p)[0]["status"] == "applied"
