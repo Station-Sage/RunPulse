@@ -94,3 +94,31 @@ def test_prune_caps_applied_only():
     out = decisions.prune(data, keep=2)
     assert [r["id"] for r in out if r["status"] == "applied"] == ["a3", "a4"]
     assert {"o", "r"} <= {r["id"] for r in out}
+
+
+def _dep_setup(tmp_path):
+    from scripts.autopilot import fail_handling
+    q = tmp_path / "B.md"
+    q.write_text('- **[AUD-1]** 제목\n  <!-- autopilot: {"stage":"needs_decision","mode":"auto","attempts":2,"deps":[],"fail_kind":"env","fail_reason":"[env] x"} -->\n')
+    dp = tmp_path / "d.json"
+    decisions.append([fail_handling.build_dep_card("AUD-1", "npm", "vitest", "r", "t")], dp)
+    decisions.choose("AUD-1", "A", dp)
+    return q, dp
+
+
+def test_install_dep_success_requeues(tmp_path, monkeypatch):
+    from scripts.autopilot import dep_install
+    monkeypatch.setattr(dep_install, "install", lambda eco, name: (True, "ok"))
+    q, dp = _dep_setup(tmp_path)
+    consume.apply(q, lambda f: {}, dp)
+    it = queue.parse(q)[0]
+    assert it.stage == "queued" and it.attempts == 0 and not it.fail_reason
+
+
+def test_install_dep_failure_marks_failed(tmp_path, monkeypatch):
+    from scripts.autopilot import dep_install
+    monkeypatch.setattr(dep_install, "install", lambda eco, name: (False, "E404"))
+    q, dp = _dep_setup(tmp_path)
+    out = consume.apply(q, lambda f: {}, dp)
+    it = queue.parse(q)[0]
+    assert it.stage == "failed" and "E404" in it.fail_reason and out

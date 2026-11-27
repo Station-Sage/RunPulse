@@ -38,8 +38,42 @@ def diagnose(cmd: str, rc: int | None, output: str) -> str:
     return "real"
 
 
+_ERRLINE = re.compile(r"error|cannot find|not ok|fail|assert|traceback|no module named", re.I)
+_WARNLINE = re.compile(r"^\s*(warn|hint)\b", re.I)
+
+
 def tag_reason(kind: str, output: str, limit: int = 2500) -> str:
-    return f"[{kind}] {output[:limit]}"
+    """사유 문자열 — svelte 경고가 앞을 채워 진짜 오류가 잘리지 않게 오류 줄을 먼저 둔다."""
+    lines = [ln for ln in output.splitlines() if not _WARNLINE.match(ln)]
+    errs = [ln for ln in lines if _ERRLINE.search(ln)]
+    rest = [ln for ln in lines if ln not in errs]
+    body = "\n".join(errs[:30] + (["--"] + rest if rest and errs else rest))
+    return f"[{kind}] {body[:limit]}"
+
+
+_JS_MOD = re.compile(r"Cannot find (?:package|module) '(@[\w.-]+/[\w.-]+|[\w][\w.-]*)'")
+_PY_MOD = re.compile(r"No module named '?([A-Za-z_][\w]*)")
+
+
+def missing_package(output: str) -> tuple[str, str]:
+    """누락된 외부 의존성 (생태계 'npm'|'pip', 패키지명). 상대경로 모듈·pytest 자체 부재는 제외 — 없으면 ('','')."""
+    m = _JS_MOD.search(output)
+    if m:
+        return "npm", m.group(1)
+    m = _PY_MOD.search(output)
+    if m and m.group(1) != "pytest":
+        return "pip", m.group(1)
+    return "", ""
+
+
+_RUNNERS = ("vitest", "jest", "mocha")
+
+
+def _runner_installed(name: str, root: Path) -> bool:
+    if (root / "frontend" / "node_modules" / ".bin" / name).exists():
+        return True
+    pkg = root / "frontend" / "package.json"
+    return pkg.exists() and f'"{name}"' in pkg.read_text(encoding="utf-8")
 
 
 def split_reason(reason: str) -> tuple[str, str]:
@@ -88,6 +122,9 @@ def lint(verify: list[str], scope: list[str], root: Path) -> list[str]:
                 script = toks[i + 1]
                 if not (root / script).exists() and script not in scoped:
                     problems.append(f"스크립트 `{script}` 없음")
+        for r in _RUNNERS:
+            if re.search(rf"\b{r}\b", cmd) and not _runner_installed(r, root):
+                problems.append(f"테스트 러너 `{r}` 가 설치돼 있지 않음 — `node --test` 또는 pytest 사용")
         problems.extend(_absence_baseline(cmd, scoped, root))
     return problems
 

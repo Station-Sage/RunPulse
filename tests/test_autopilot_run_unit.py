@@ -184,7 +184,7 @@ class TestVerifyFailureRequeue:
 
     def test_env_failure_unfixable_fails_with_card(self, monkeypatch, tmp_path):
         monkeypatch.setattr(run_unit.worktree, "provision", lambda: [])
-        rec, cards = self._run(monkeypatch, tmp_path, 0, "Cannot find module 'playwright'")
+        rec, cards = self._run(monkeypatch, tmp_path, 0, "Cannot find module './local.js'")
         assert rec["stage"] == "failed" and cards == ["env"]
 
     def test_second_verify_failure_still_retries(self, monkeypatch, tmp_path):

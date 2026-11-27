@@ -12,7 +12,8 @@ def _ev(kind, ts, **kw):
     return {"kind": kind, "ts": ts, **kw}
 
 
-def test_build_from_events(tmp_path):
+def test_build_from_events(tmp_path, monkeypatch):
+    monkeypatch.setattr(flow, "_open_decisions", lambda: 1)
     q = tmp_path / "B.md"
     q.write_text(Q)
     evs = [_ev("phase", 100, round=3, phase="audit"), _ev("sub", 110, step="sweep", state="start"),
@@ -21,19 +22,20 @@ def test_build_from_events(tmp_path):
            _ev("phase", 320, round=3, phase="develop"), _ev("unit_start", 330, unit="A-1")]
     p = flow.build({"round": 3, "phase": "develop", "units_done": 1, "unit": None}, 400, q, evs)
     assert p["stage"] == 3 and p["round_started"] == 100 and p["phase_started"] == 320
-    assert p["design"] == {"new": 3, "auto": 2, "user": 1}
+    assert p["design"] == {"new": 3, "auto": 2, "user_open": 1}
     assert p["units"]["done"] == 1 and p["units"]["total"] == 3 and p["units"]["started"] == 330
     a = flow.build({"round": 3, "phase": "audit"}, 200, q, evs[:4])
     assert a["stage"] == 1 and a["subs"]["sweep"]["state"] == "done" and a["subs"]["audit"]["state"] == "active"
 
 
-def test_design_batches_are_summed(tmp_path):
+def test_design_batches_are_summed(tmp_path, monkeypatch):
+    monkeypatch.setattr(flow, "_open_decisions", lambda: 0)
     q = tmp_path / "B.md"
     q.write_text(Q)
     evs = [_ev("phase", 100, round=3, phase="design"), _ev("design", 110, new=3, auto=2, user=1),
            _ev("design", 120, new=6, auto=0, user=7)]
     p = flow.build({"round": 3, "phase": "design"}, 200, q, evs)
-    assert p["design"] == {"new": 9, "auto": 2, "user": 8}
+    assert p["design"] == {"new": 9, "auto": 2, "user_open": 0}
 
 
 def test_deploy_stage_and_old_round_ignored(tmp_path):
@@ -123,3 +125,8 @@ def test_sweep_fix_badge_only_during_fix_round(tmp_path):
     p = flow.build({"round": 1, "phase": "develop", "sweep_fix": 1}, 200, q, evs)
     assert p["sweep_fix"] == {"attempt": 1, "limit": 2, "item": "SWEEP-R1-1", "targets": ["empty|mobile"]}
     assert flow.build({"round": 1, "phase": "develop", "sweep_fix": 0}, 200, q, evs)["sweep_fix"] is None
+
+
+def test_open_decisions_counts_only_open(monkeypatch):
+    monkeypatch.setattr(flow.decisions, "load", lambda *a: [{"status": "open"}, {"status": "applied"}, {"status": "chosen"}])
+    assert flow._open_decisions() == 1

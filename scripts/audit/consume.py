@@ -39,6 +39,15 @@ def _promote(rec: dict, path: Path) -> str:
     elif act == "retry_scope":
         fields["scope"] = list(item.scope if item else []) + [f"이전 verify 실패 출력: {rec.get('why', '')[:500]}"]
         fields.update(attempts=0, fail_kind="", fail_reason="")
+    elif act == "install_dep":
+        from scripts.autopilot import dep_install
+        dep = rec.get("dep") or {}
+        ok, msg = dep_install.install(dep.get("eco", ""), dep.get("name", ""))
+        if not ok:
+            queue.update_item(path, rec["id"], stage="failed", fail_kind="env", fail_reason=f"[env] 의존성 설치 실패: {msg}"[:600])
+            rec["status"] = "applied"
+            return f"{rec['id']} 의존성 설치 실패 → failed: {msg[:120]}"
+        fields.update(attempts=0, fail_kind="", fail_reason="")
     elif act == "retry_env":
         from scripts.autopilot.fail_handling import DEFAULT_VERIFY
         fields.update(verify=[DEFAULT_VERIFY], attempts=0, fail_kind="", fail_reason="")

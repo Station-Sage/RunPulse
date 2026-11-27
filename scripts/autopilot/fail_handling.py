@@ -116,6 +116,19 @@ def build_failed_card(item_id: str, kind: str, reason: str, item_text: str) -> d
     return rec
 
 
+def build_dep_card(item_id: str, eco: str, name: str, reason: str, item_text: str) -> dict:
+    """누락 의존성 카드 — 설치 승인(→ 설치 후 큐 복귀) | 설치된 러너로 verify 변경 | 폐기."""
+    rec = build_failed_card(item_id, "dep", reason, item_text)
+    rec["options"] = [
+        {"key": "A", "name": f"`{name}` 설치 후 재시도", "pros": f"{'frontend 에 npm install -D' if eco == 'npm' else '.venv 에 pip install'} 후 큐에 복귀 — package.json 변경이 항목 브랜치에 포함됨", "cons": "새 의존성이 늘어난다", "action": "install_dep"},
+        {"key": "B", "name": "설치된 러너로 verify 변경 후 재시도", "pros": "의견란에 새 커맨드(예: cd frontend && node --test tests/x.test.mjs)", "cons": "", "action": "retry_verify"},
+        {"key": "C", "name": "폐기", "pros": "큐에서 내린다", "cons": "", "action": "dropped"},
+    ]
+    rec["dep"] = {"eco": eco, "name": name}
+    rec["summary"] = f"{item_id} 의존성 `{name}` 없음 — 설치할까요?"
+    return rec
+
+
 def answered_note(item) -> str:
     """답변 완료된 결정을 프롬프트에 알린다 — 같은 질문 재작성 방지."""
     if not getattr(item, "answered", None):
