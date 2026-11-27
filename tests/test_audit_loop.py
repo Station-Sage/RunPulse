@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from scripts.audit import loop
+from scripts.audit import decisions, loop
 from scripts.audit import propose as propose_mod
 from scripts.autopilot import queue
 
@@ -131,6 +131,8 @@ def test_audit_phase_falls_back_to_normal_when_release_blocked(tmp_path, monkeyp
 
 
 def test_round_end_deploys_when_units_done_and_reports_failure(tmp_path, monkeypatch):
+    dp = tmp_path / "decisions.json"
+    monkeypatch.setattr(decisions, "DECISIONS_PATH", dp)
     sent = []
     monkeypatch.setattr(loop.notify, "send", lambda t: sent.append(t) or True)
     monkeypatch.setattr(loop.pacing, "check", lambda n: type("P", (), {"allowed": True, "reason": ""})())
@@ -142,7 +144,8 @@ def test_round_end_deploys_when_units_done_and_reports_failure(tmp_path, monkeyp
     bad = lambda n: {"ran": True, "outcome": "failed", "reason": "갈라짐"}
     st = _st("develop", units_done=1)
     msg = loop.step(st, path=_backlog(tmp_path, "done"), act={"deploy": bad})
-    assert "운영 반영 실패" in msg and st["phase"] == "audit" and "사람 확인" in sent[-1]
+    assert "운영 반영 실패" in msg and st["phase"] == "deploy_hold" and st["round"] == 1 and st["units_done"] == 1
+    assert decisions.load(dp)[0]["kind"] == "deploy_failed" and "결정 대기" in sent[-1]
 
 
 def test_run_until_stop_chains_steps_and_stops_on_skip(tmp_path, monkeypatch):

@@ -79,7 +79,8 @@ def build(state: dict, now: float, queue_path: Path | None = None, events: list[
               if dz else None)
     deploy = next((e for e in reversed(evs) if e["kind"] in ("deploy_start", "deploy_end")), None)
     in_deploy = bool(deploy and deploy["kind"] == "deploy_start" and ph in STAGE_OF)
-    stage = 5 if in_deploy else 4 if ph == "develop" and (settings.STATE_DIR / "verify_state.json").exists() else STAGE_OF.get(ph, 0)
+    hold = ph in ("deploy_hold", "deploy_retry")
+    stage = 5 if in_deploy or hold else 4 if ph == "develop" and (settings.STATE_DIR / "verify_state.json").exists() else STAGE_OF.get(ph, 0)
     cur = phases[-1] if phases else None
     open_units = sum(1 for it in items if it.stage in ("queued", "in_progress")) + (1 if ph == "test" else 0)
     ustart = next((e for e in reversed(evs) if e["kind"] == "unit_start"), None)
@@ -89,6 +90,8 @@ def build(state: dict, now: float, queue_path: Path | None = None, events: list[
                  if sfe and state.get("sweep_fix") and ph in STAGE_OF else None)
     return {
         "sweep_fix": sweep_fix,
+        "deploy_hold": ({"kind": (state.get("deploy_fail") or {}).get("kind"), "reason": (state.get("deploy_fail") or {}).get("reason"),
+                         "retrying": ph == "deploy_retry"} if hold else None),
         "round": rnd, "phase": ph, "stage": stage, "stage_total": 5, "inferred": inferred,
         "round_started": evs[0]["ts"] if evs else None, "phase_started": cur["ts"] if cur else None,
         "now": now, "steps": _steps(evs, cur["ts"] if cur else None), "subs": _sub_states(evs) if stage <= 1 or ph == "audit" else None,

@@ -18,7 +18,7 @@ import json
 import time
 from pathlib import Path
 
-from scripts.audit import agents, consume, cycle, deploy, idesign, inventory, orchestrator, planner, progress, release, release_plan, roles, steward, stopreason, triage, wake
+from scripts.audit import agents, consume, cycle, deploy, deploy_hold, idesign, inventory, orchestrator, planner, progress, release, release_plan, roles, round_sweep, steward, stopreason, triage, wake
 from scripts.audit.propose import PENDING_PATH, propose  # noqa: F401  (tests·외부 호환)
 from scripts.autopilot import notify, pacing, queue, reconcile, settings
 
@@ -75,40 +75,12 @@ def _should_stop(path: Path) -> bool:
     return STOP_FLAG().exists()
 
 
-def _queue_sweep_fix(path: Path, st: dict, err: str) -> str:
-    """스윕 실패 사유를 담은 수정 단위를 큐 끝에 추가(자동·code). 같은 라운드·시도 번호면 ID 가 같아 중복 추가되지 않는다."""
-    iid = f"SWEEP-R{st['round']}-{st.get('sweep_fix', 1)}"
-    if any(it.item_id == iid for it in queue.parse(path)):
-        return iid
-    fails = getattr(err, "failures", [])
-    states = ",".join(dict.fromkeys(f["state"] for f in fails))
-    vps = ",".join(dict.fromkeys(f["viewport"] for f in fails))
-    scope = ["frontend/src/", f"이번 라운드 전체 브라우저 스윕 실패 사유: {err[:500]}"] + [f"실패 조합: {f['state']}|{f['viewport']} — {f['error']}" for f in fails]
-    verify = "python3 -m scripts.audit.sweep" + (f" --states {states} --viewports {vps}" if fails else "") + " 로 실패한 조합이 통과하는지 확인"
-    meta = {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "critical": True,
-            "scope": scope, "verify": [verify], "auto_approved": True}
-    with path.open("a", encoding="utf-8") as fh:
-        fh.write("\n" + f"- **[{iid}]** 라운드 {st['round']} 전체 스윕 실패 수정 — {err[:200]}\n  <!-- autopilot: {json.dumps(meta, ensure_ascii=False)} -->\n")
-    return iid
-
-
 def _end_round(st: dict, ship, msg: str, path: Path | None = None, next_phase: str = "audit", full_sweep=None) -> str:
     """라운드 종료 — 통과 단위가 있으면 운영 반영(실패해도 루프는 계속, 알림만) 후 next_phase(기본 감사, 상한 도달 시 develop 유지)로."""
     if full_sweep and st["units_done"] > 0:  # 브라우저 스윕은 단위마다 돌리지 않고 라운드 종료 시(반영 직전) 1회
-        n, err = full_sweep()
-        if err and st.get("sweep_fix", 0) < SWEEP_FIX_LIMIT:  # 실패 → 수정 단위를 큐에 올리고 개발로 되돌아간다(반영·라운드 증가 없음). 단위가 끝나면 다시 여기서 재스윕
-            st["sweep_fix"] = st.get("sweep_fix", 0) + 1
-            fid = _queue_sweep_fix(path or settings.QUEUE_PATH, st, err)
-            st.update(phase="develop", unit=None)
-            notify.send(f"[루프] 라운드 {st['round']} 전체 스윕 실패 — 수정 단위 {fid} 추가({st['sweep_fix']}/{SWEEP_FIX_LIMIT}), 통과 후 반영: {err[:200]}" + notify.console_hint())
-            targets = [f"{f['state']}|{f['viewport']}" for f in getattr(err, "failures", [])]
-            progress.event("sweep_fix", round=st["round"], item=fid, attempt=st["sweep_fix"], limit=SWEEP_FIX_LIMIT, targets=targets)
-            return f"전체 스윕 실패 — 수정 단위 {fid} 로 개발 재진입({st['sweep_fix']}/{SWEEP_FIX_LIMIT})"
-        if err:
-            notify.send(f"[루프] 라운드 {st['round']} 전체 스윕 수정 {SWEEP_FIX_LIMIT}회 후에도 실패 — 운영 반영 보류: {err}" + notify.console_hint())
-            ship, msg = (lambda _n: {"ran": False}), msg + f" · 스윕 수정 {SWEEP_FIX_LIMIT}회 후에도 실패로 반영 보류({err[:80]})"
-        else:
-            msg += f" · 전체 스윕 {n}셀 통과"
+        early, ship, msg = round_sweep.gate(st, path or settings.QUEUE_PATH, ship, msg, full_sweep, SWEEP_FIX_LIMIT)
+        if early:
+            return early
     st["sweep_fix"] = 0
     progress.event("deploy_start", round=st["round"], units=st["units_done"])
     r = ship(st["units_done"])
@@ -118,6 +90,8 @@ def _end_round(st: dict, ship, msg: str, path: Path | None = None, next_phase: s
         notify.send(f"[루프] 운영 반영 {'완료' if ok else '실패'} — {r.get('commits', 0)}커밋, {r.get('reason')}"
                     + ("" if ok else " (자동 반영 안 됨, 사람 확인 필요)"))
         msg += f" · 운영 반영 {'완료' if ok else '실패'}({r.get('reason')})"
+    if r.get("ran") and not ok:  # 반영 실패 — 라운드를 넘기지 않고 결정 카드로 멈춘다
+        return deploy_hold.hold(st, r)
     st.update(phase=next_phase, round=st["round"] + 1, units_done=0, unit=None)
     gate = orchestrator.after_round(st, queue.parse(path or settings.QUEUE_PATH))
     if gate:
@@ -156,6 +130,10 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         stopreason.stop(st, stopreason.PAUSE_FLAG)
         progress.mark(f"[루프] 일시중지 — {ph} 단계 직전에 멈춤(재개 시 이 지점부터)")
         return f"정지 — 콘솔 일시중지({ph} 단계 직전, 재개 시 이 지점부터)"
+    if ph == "deploy_retry":
+        return deploy_hold.retry(st, ship)
+    if ph == "deploy_hold":
+        return deploy_hold.release(st, path) or "결정 대기 — 운영 반영 실패 카드 응답을 기다림(라운드 유지)"
     if ph == "stopped":
         stopreason.stop(st, st.get("stop_reason") or stopreason.STOP_FLAG)
         return "정지 상태 — 단일 라운드 완료(재개: --reset)"
@@ -290,6 +268,8 @@ def run_until_stop(st: dict, *, force: bool = False, once: bool = False, act: di
         save_state(st) if path is None else None
         out.append(r)
         if stopreason.is_stopped(st) or st["phase"] in ("halted", "stopped"):
+            break
+        if st["phase"] == "deploy_hold" and r.startswith("결정 대기"):
             break
         if not once and i == max_steps - 1:
             stopreason.stop(st, stopreason.STEP_CAP)

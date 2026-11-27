@@ -55,7 +55,7 @@ def test_static_files_served():
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     try:
         for path, needle in (("/", b"/now.js"), ("/", b'data-a="start"'), ("/", b'id="flags"'), ("/app.js", b"/api/overview"),
-                             ("/now.js", b"data-rl"), ("/now.js", "관측".encode()), ("/now.js", b"lastRv"), ("/app.js", b"itHtml"), ("/now.js", b"failedCardHtml"), ("/app.js", b"failedCardHtml"), ("/now.js", b"data-fa"), ("/now.js", "일시중지됨".encode()), ("/now.js", "일시중지 대기 중".encode()), ("/app.js", "'개발','테스트','반영'".encode()), ("/now.js", "실패로 정지".encode()), ("/app.js", "실패로 정지".encode()), ("/console.css", b"details.cfg"),
+                             ("/now.js", b"data-rl"), ("/now.js", "관측".encode()), ("/now.js", b"lastRv"), ("/app.js", b"itHtml"), ("/now.js", b"failedCardHtml"), ("/app.js", b"failedCardHtml"), ("/now.js", b"data-fa"), ("/now.js", "일시중지됨".encode()), ("/now.js", "일시중지 대기 중".encode()), ("/app.js", "'개발','테스트','반영'".encode()), ("/now.js", "실패로 정지".encode()), ("/app.js", "실패로 정지".encode()), ("/console.css", b"details.cfg"), ("/now.js", "반영 실패 — 결정 대기".encode()), ("/app.js", "검토안".encode()), ("/app.js", b"recommend_why"),
                              ("/manifest.webmanifest", b"short_name"), ("/sw.js", b"fetch")):
             body = urllib.request.urlopen(f"http://127.0.0.1:{srv.server_port}{path}").read()
             assert needle in body
@@ -174,3 +174,12 @@ def test_timed_verify_marks_and_clears_state(tmp_path, monkeypatch):
     assert events == [("test_start", {"unit": "X-1"})]
     assert any("시작" in m for m in marks) and any("통과" in m for m in marks)
     assert not (tmp_path / "verify_state.json").exists()
+
+
+def test_deploy_failed_applied_cannot_be_reopened(tmp_path, monkeypatch):
+    monkeypatch.setattr(control.settings, "STATE_DIR", tmp_path)
+    p = tmp_path / "d.json"
+    decisions.save([_opt_rec(kind="deploy_failed", status="applied")], p)
+    assert server.choose("d1", "A", p)["ok"] is False
+    decisions.save([_opt_rec(kind="deploy_failed", status="chosen")], p)
+    assert server.choose("d1", "A", p)["ok"] is True

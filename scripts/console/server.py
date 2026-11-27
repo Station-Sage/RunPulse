@@ -55,6 +55,8 @@ def choose(iid: str, choice: str, dpath: Path | None = None, state_path: Path | 
     if rec is None:
         return {"ok": False, "error": "없는 결정"}
     changeable = rec.get("kind") not in ("initiative", "vision")  # 버전·비전은 선택 즉시 반영돼 변경 불가
+    if rec.get("kind") == "deploy_failed" and rec["status"] == "applied":
+        return {"ok": False, "error": "이미 처리된 반영 실패 결정은 되돌릴 수 없습니다"}
     if rec["status"] not in ("open", "redo") and not (changeable and rec["status"] in ("chosen", "applied")):
         return {"ok": False, "error": f"이미 처리됨({rec['status']})"}
     if choice != "redo" and choice not in {o["key"] for o in rec["options"]}:

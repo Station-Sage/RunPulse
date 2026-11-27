@@ -130,3 +130,14 @@ def test_sweep_fix_badge_only_during_fix_round(tmp_path):
 def test_open_decisions_counts_only_open(monkeypatch):
     monkeypatch.setattr(flow.decisions, "load", lambda *a: [{"status": "open"}, {"status": "applied"}, {"status": "chosen"}])
     assert flow._open_decisions() == 1
+
+
+def test_deploy_hold_marks_stage5_with_reason(tmp_path):
+    q = tmp_path / "B.md"
+    q.write_text("")
+    evs = [_ev("phase", 100, round=3, phase="develop"), _ev("deploy_start", 200, round=3, units=2), _ev("deploy_hold", 210, round=3, fail="tests")]
+    st = {"round": 3, "phase": "deploy_hold", "units_done": 2, "deploy_fail": {"kind": "tests", "reason": "2 failed"}}
+    p = flow.build(st, 220, q, evs)
+    assert p["stage"] == 5 and p["deploy_hold"] == {"kind": "tests", "reason": "2 failed", "retrying": False}
+    assert flow.build({**st, "phase": "deploy_retry"}, 220, q, evs)["deploy_hold"]["retrying"] is True
+    assert flow.build({"round": 3, "phase": "develop", "units_done": 2}, 220, q, evs)["deploy_hold"] is None
