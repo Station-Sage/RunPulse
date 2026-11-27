@@ -142,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 res = sweep_state(state, vp, Path(d), args.limit, [x for x in args.screens.split(",") if x] or None)
             except Exception as e:   # 한 조합 실패가 나머지 스윕을 막지 않는다
-                failed.append(f"{state}|{vp}: {e}"[:200])
+                failed.append({"state": state, "viewport": vp, "error": str(e)[:200]})
                 print(f"[sweep] {i}/{len(combos)} {state} {vp} 실패 ({time.time() - t0:.0f}s): {str(e)[:120]}", flush=True)
                 continue
             total += len(res)

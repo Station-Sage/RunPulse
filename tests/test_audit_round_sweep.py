@@ -41,3 +41,24 @@ def test_end_round_sweep_failure_runs_fix_round_then_gives_up(monkeypatch, tmp_p
     assert [i.item_id for i in its] == ["SWEEP-R1-1", "SWEEP-R1-2"] and its[0].stage == "queued" and "overflow" in its[0].scope[1]
     loop._end_round(st, ship, "x", q, full_sweep=lambda: (10, "overflow"))  # 상한 초과 → 반영 보류, 다음 라운드
     assert shipped == [2] and st["round"] == 2 and st["sweep_fix"] == 0
+
+
+def test_sweep_fix_item_names_failed_combos(monkeypatch, tmp_path):
+    from scripts.audit import cycle
+    from scripts.autopilot import queue
+    monkeypatch.setattr(notify, "send", lambda *a, **k: True)
+    q = tmp_path / "B.md"
+    q.write_text("", encoding="utf-8")
+    fails = [{"state": "empty", "viewport": "mobile", "error": "overflow"}, {"state": "full", "viewport": "mobile", "error": "timeout"}]
+    err = cycle.SweepError("empty|mobile: overflow; full|mobile: timeout", fails)
+    st = {**loop._INIT, "round": 1, "units_done": 2, "phase": "audit"}
+    loop._end_round(st, lambda n: {"ran": True}, "x", q, full_sweep=lambda: (10, err))
+    it = queue.parse(q)[0]
+    assert any("empty|mobile" in s and "overflow" in s for s in it.scope)
+    assert "--states empty,full --viewports mobile" in it.verify[0]
+
+
+def test_sweep_error_text_formats_dicts():
+    from scripts.audit import cycle
+    assert cycle._fail_text({"state": "a", "viewport": "b", "error": "e"}) == "a|b: e"
+    assert cycle._fail_text("raw") == "raw" and cycle.SweepError("x").failures == []

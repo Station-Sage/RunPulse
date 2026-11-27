@@ -79,9 +79,13 @@ def _queue_sweep_fix(path: Path, st: dict, err: str) -> str:
     iid = f"SWEEP-R{st['round']}-{st.get('sweep_fix', 1)}"
     if any(it.item_id == iid for it in queue.parse(path)):
         return iid
+    fails = getattr(err, "failures", [])
+    states = ",".join(dict.fromkeys(f["state"] for f in fails))
+    vps = ",".join(dict.fromkeys(f["viewport"] for f in fails))
+    scope = ["frontend/src/", f"이번 라운드 전체 브라우저 스윕 실패 사유: {err[:500]}"] + [f"실패 조합: {f['state']}|{f['viewport']} — {f['error']}" for f in fails]
+    verify = "python3 -m scripts.audit.sweep" + (f" --states {states} --viewports {vps}" if fails else "") + " 로 실패한 조합이 통과하는지 확인"
     meta = {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "critical": True,
-            "scope": ["frontend/src/", f"이번 라운드 전체 브라우저 스윕 실패 사유: {err[:500]}"],
-            "verify": "python3 -m scripts.audit.sweep 로 실패한 화면이 통과하는지 확인", "auto_approved": True}
+            "scope": scope, "verify": [verify], "auto_approved": True}
     with path.open("a", encoding="utf-8") as fh:
         fh.write("\n" + f"- **[{iid}]** 라운드 {st['round']} 전체 스윕 실패 수정 — {err[:200]}\n  <!-- autopilot: {json.dumps(meta, ensure_ascii=False)} -->\n")
     return iid
@@ -96,7 +100,8 @@ def _end_round(st: dict, ship, msg: str, path: Path | None = None, next_phase: s
             fid = _queue_sweep_fix(path or settings.QUEUE_PATH, st, err)
             st.update(phase="develop", unit=None)
             notify.send(f"[루프] 라운드 {st['round']} 전체 스윕 실패 — 수정 단위 {fid} 추가({st['sweep_fix']}/{SWEEP_FIX_LIMIT}), 통과 후 반영: {err[:200]}" + notify.console_hint())
-            progress.event("sweep_fix", round=st["round"], item=fid, attempt=st["sweep_fix"])
+            targets = [f"{f['state']}|{f['viewport']}" for f in getattr(err, "failures", [])]
+            progress.event("sweep_fix", round=st["round"], item=fid, attempt=st["sweep_fix"], limit=SWEEP_FIX_LIMIT, targets=targets)
             return f"전체 스윕 실패 — 수정 단위 {fid} 로 개발 재진입({st['sweep_fix']}/{SWEEP_FIX_LIMIT})"
         if err:
             notify.send(f"[루프] 라운드 {st['round']} 전체 스윕 수정 {SWEEP_FIX_LIMIT}회 후에도 실패 — 운영 반영 보류: {err}" + notify.console_hint())

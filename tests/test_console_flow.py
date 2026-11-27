@@ -113,3 +113,13 @@ def test_sweep_stream_emits_step_events(tmp_path, monkeypatch):
     except Exception:
         pass
     assert [k for k, _ in got] == ["step", "step"] and got[1][1]["bad"] is True
+
+
+def test_sweep_fix_badge_only_during_fix_round(tmp_path):
+    q = tmp_path / "B.md"
+    q.write_text(Q)
+    evs = [_ev("phase", 100, round=1, phase="develop"),
+           _ev("sweep_fix", 110, round=1, item="SWEEP-R1-1", attempt=1, limit=2, targets=["empty|mobile"])]
+    p = flow.build({"round": 1, "phase": "develop", "sweep_fix": 1}, 200, q, evs)
+    assert p["sweep_fix"] == {"attempt": 1, "limit": 2, "item": "SWEEP-R1-1", "targets": ["empty|mobile"]}
+    assert flow.build({"round": 1, "phase": "develop", "sweep_fix": 0}, 200, q, evs)["sweep_fix"] is None

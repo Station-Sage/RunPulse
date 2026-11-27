@@ -24,10 +24,11 @@ function flowHtml(o){
   if(k===4&&p.deploy&&p.deploy.ok!=null)sub=`<div class="sub">${p.deploy.ok?'완료':p.deploy.ran?'실패':'생략'}</div>`;
   return `<div class="stp ${c}"><div class="no">${k}</div><div class="nm">${n}</div>${sub}</div>`}).join('<div class="ln"></div>');
  const ban=f.stop?`<div class="ban bad">중지됨${s.stop_reason?' — '+esc(s.stop_reason):''}</div>`:f.pause?`<div class="ban warn">일시중지${s.stop_reason?' — '+esc(s.stop_reason):''}</div>`:s.stop_reason&&s.stop_reason!=='pacing'?`<div class="ban warn">${esc(RSN[s.stop_reason]||s.stop_reason)}</div>`:'';
+ const sf=p.sweep_fix&&s.phase!=='audit'?`<div class="ban warn">스윕 수정 라운드 ${p.sweep_fix.attempt}/${p.sweep_fix.limit} · ${esc(p.sweep_fix.item)}${(p.sweep_fix.targets||[]).length?' · 대상 '+esc(p.sweep_fix.targets.join(', ')):''}</div>`:'';
  const d=p.design,wait=d?`후보 ${d.new} → 자체 승인 ${d.auto} · 결정 대기 ${d.user}`:'';
  return `<b>라운드 ${esc(s.round)}</b> <span class="tag">${cur?'현재 '+cur+'/4':esc(s.phase||'-')}</span>${p.inferred?' <span class="mut">(로그 추정)</span>':''}
  <div class="mut">시작 ${hhmm(p.round_started)} · 경과 ${el(p.round_started)}${s.phase?' · '+esc(s.phase)+' 단계 '+el(p.phase_started):''}</div>
- <div class="flow">${steps}</div>${stepsHtml(p,s.phase)}${ban}${wait?`<div class="mut">${wait}</div>`:''}${linksHtml(o)}`}
+ <div class="flow">${steps}</div>${stepsHtml(p,s.phase)}${ban}${sf}${wait?`<div class="mut">${wait}</div>`:''}${linksHtml(o)}`}
 function tickEl(){document.querySelectorAll('[data-until]').forEach(e=>{const r=Number(e.dataset.until)-Date.now()/1000;e.textContent=r>0?'남은 시간 '+dur(r):'곧 재개'});document.querySelectorAll('[data-since]').forEach(e=>{e.textContent=dur(Date.now()/1000-Number(e.dataset.since))})}
 function iniRow(i){return `<div class="row"><span>${esc(i.title)} <span class="tag">${esc(i.status)}</span></span><span>${i.done}/${i.total}</span></div><div class="bar thin"><i style="width:${pct(i.done,i.total)}%"></i></div>`}
 function relHtml(r){

@@ -2455,9 +2455,9 @@
 
 - functions: test_set_flag_validates, test_gate_none_without_flags, test_gate_paused_stops_with_role_pause, test_gate_skip_persists_until_released, test_gate_rerun_consumes_flag, test_resume_keeps_phase_on_role_pause, test_resume_keeps_phase_on_pacing_stop, test_resume_after_failed_still_restarts_audit, test_blocked_for_helper_role
 
-### `test_audit_round_sweep.py` (43줄) — 브라우저 스윕은 라운드 종료 시 1회 — 단위 test 단계는 스윕 없이 done, 스윕 실패 시 반영 보류.
+### `test_audit_round_sweep.py` (64줄) — 브라우저 스윕은 라운드 종료 시 1회 — 단위 test 단계는 스윕 없이 done, 스윕 실패 시 반영 보류.
 
-- functions: test_unit_test_phase_runs_no_sweep, test_end_round_sweep_failure_runs_fix_round_then_gives_up
+- functions: test_unit_test_phase_runs_no_sweep, test_end_round_sweep_failure_runs_fix_round_then_gives_up, test_sweep_fix_item_names_failed_combos, test_sweep_error_text_formats_dicts
 
 ### `test_audit_steward.py` (73줄)
 
@@ -2745,9 +2745,9 @@
 
 - functions: test_pause_resume_stop, test_tunables_validation, test_set_interval, test_start_clears_stopped_cycle_state, test_pause_keeps_cycle_state, test_resume_starts_loop_but_pause_does_not, test_resume_after_failed_halt_keeps_cursor
 
-### `test_console_flow.py` (115줄) — 진행 흐름(flow.build) 계산 + 루프 이벤트 기록.
+### `test_console_flow.py` (125줄) — 진행 흐름(flow.build) 계산 + 루프 이벤트 기록.
 
-- functions: test_build_from_events, test_design_batches_are_summed, test_deploy_stage_and_old_round_ignored, test_fallback_from_progress_log, test_loop_records_events, test_event_trims_large_file, test_sub_states_reset_on_new_audit_pass, test_steps_only_current_phase_with_failures, test_sweep_stream_emits_step_events
+- functions: test_build_from_events, test_design_batches_are_summed, test_deploy_stage_and_old_round_ignored, test_fallback_from_progress_log, test_loop_records_events, test_event_trims_large_file, test_sub_states_reset_on_new_audit_pass, test_steps_only_current_phase_with_failures, test_sweep_stream_emits_step_events, test_sweep_fix_badge_only_during_fix_round
 
 ### `test_console_items.py` (70줄) — 개발 항목 목록·상세(items) + 라우팅.
 

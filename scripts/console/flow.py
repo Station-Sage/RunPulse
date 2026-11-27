@@ -78,7 +78,11 @@ def build(state: dict, now: float, queue_path: Path | None = None, events: list[
     open_units = sum(1 for it in items if it.stage in ("queued", "in_progress")) + (1 if ph == "test" else 0)
     ustart = next((e for e in reversed(evs) if e["kind"] == "unit_start"), None)
     done = state.get("units_done") or 0
+    sfe = next((e for e in reversed(evs) if e["kind"] == "sweep_fix"), None)
+    sweep_fix = ({"attempt": sfe.get("attempt"), "limit": sfe.get("limit"), "item": sfe.get("item"), "targets": sfe.get("targets") or []}
+                 if sfe and state.get("sweep_fix") and ph in STAGE_OF else None)
     return {
+        "sweep_fix": sweep_fix,
         "round": rnd, "phase": ph, "stage": stage, "stage_total": 4, "inferred": inferred,
         "round_started": evs[0]["ts"] if evs else None, "phase_started": cur["ts"] if cur else None,
         "now": now, "steps": _steps(evs, cur["ts"] if cur else None), "subs": _sub_states(evs) if stage <= 1 or ph == "audit" else None,
