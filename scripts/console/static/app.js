@@ -41,7 +41,7 @@ function renderDec(list){
   ${sec('되돌리는 방법',esc(d.revert||''))}
   ${open?`<button class="b" data-dc="${esc(d.id)}" data-ch="redo">다른 제안 받기</button>`:waiting?'<div class="mut">다른 제안을 준비 중 — 새 안이 올라오면 다시 표시됩니다</div>':`<div class="mut">선택: ${esc(d.choice||'-')}${chg?' · 개발이 시작되기 전까지 다른 안으로 바꿀 수 있습니다':''}</div>`}</div>`}).join(''):'<div class="card mut">결정함이 비어 있음</div>'}
 const ISTG={in_progress:'진행중',queued:'대기',needs_decision:'결정 필요',failed:'실패',review:'사후 검토',done:'완료'};
-let openIt={},istage='';
+let openIt={},itHtml={},istage='';
 const PSTEP=[['design','설계'],['develop','개발'],['test','테스트'],['commit','커밋'],['deploy','운영반영']];
 function pipeHtml(x){if(!x||!x.steps)return'';
  return `<div class="pipe">${PSTEP.map(([k,n])=>`<span class="${x.steps[k]?'ok':'no'}">${x.steps[k]?'✔':'·'} ${n}</span>`).join(' ')}${x.running?' <span class="tag warn">진행중</span>':''}</div>`}
@@ -60,10 +60,10 @@ function detailHtml(d){
  <div class="st">어떻게 개발되었나</div>${runs}${tl?`<div class="sl">${tl}</div>`:''}${sec('최종 실행 보고',rp.report?`<pre>${esc(rp.report)}</pre>`:'')}${au?sec('콘솔 조작 이력',au):''}${rvw}</div>`}
 async function toggleIt(id){
  const el=document.getElementById('dt-'+id);if(!el)return;
- if(openIt[id]){delete openIt[id];el.innerHTML='';return}
+ if(openIt[id]){delete openIt[id];delete itHtml[id];el.innerHTML='';return}
  el.innerHTML='<div class="mut">불러오는 중…</div>';
  const d=await api('/api/item/'+encodeURIComponent(id));
- if(d&&d.item){openIt[id]=1;el.innerHTML=detailHtml(d)}else el.innerHTML='<div class="mut">'+esc((d&&d.error)||'불러오기 실패')+'</div>'}
+ if(d&&d.item){openIt[id]=1;itHtml[id]=detailHtml(d);el.innerHTML=itHtml[id]}else el.innerHTML='<div class="mut">'+esc((d&&d.error)||'불러오기 실패')+'</div>'}
 function renderItems(r){
  if(!r||!r.items)return;
  const c=r.counts;
@@ -75,7 +75,7 @@ function renderItems(r){
   body.push(`<div class="card" style="padding:8px 12px"><div class="row" data-it="${esc(it.id)}" style="cursor:pointer"><span><b>${esc(it.id)}</b> <span class="tag${it.stage==='failed'?' bad':''}">${ISTG[it.stage]||esc(it.stage)}</span></span><span class="mut">▾</span></div>${pipeHtml(it)}<div class="mut">${esc(it.text)}</div><div id="dt-${esc(it.id)}"></div></div>`)}
  $('#il').innerHTML=body.length?body.join(''):`<div class="card mut">${istage?esc(ISTG[istage]||istage)+' 상태의 항목이 없습니다.':'항목이 없습니다.'}</div>`;
  reopenIt()}
-function reopenIt(){for(const id of Object.keys(openIt)){const el=document.getElementById('dt-'+id);if(el&&!el.innerHTML){delete openIt[id];toggleIt(id)}}}
+function reopenIt(){for(const id of Object.keys(openIt)){const el=document.getElementById('dt-'+id);if(el&&!el.innerHTML){if(itHtml[id])el.innerHTML=itHtml[id];else{delete openIt[id];toggleIt(id)}}}}
 async function loadItems(){const r=await api('/api/items');if(r&&r.items){pipeMap={};for(const it of r.items)pipeMap[it.id]=it}if(tab==='items')renderItems(r)}
 function showLog(l){
  if(!Array.isArray(l))return;const e=$('#log'),top=e.scrollTop<24;

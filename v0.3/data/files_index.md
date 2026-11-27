@@ -2370,7 +2370,7 @@
 
 - functions: test_group_issues_and_prompt, test_parse_findings_graceful, test_backlog_lines_dedup_and_models
 
-### `test_audit_budget_release.py` (75줄) — Opus 게이트(budget)·ask 폴백·버전업 감사(release)·비전 프롬프트.
+### `test_audit_budget_release.py` (74줄) — Opus 게이트(budget)·ask 폴백·버전업 감사(release)·비전 프롬프트.
 
 - functions: test_budget_utilization_caps, test_ask_falls_back_to_sonnet_when_opus_blocked, test_prompts_carry_vision_and_release_models_are_opus, test_release_due_and_run, test_release_failed_audit_not_marked, test_ask_records_rate_limit_and_pacing_blocks, test_pacing_hold_until_file
 
@@ -2422,9 +2422,9 @@
 
 - functions: test_key_stable_and_distinct, test_filter_new_skips_open_only, test_record_marks_reopened, test_reverify_resolves_and_keeps, test_current_round_reads_state, test_tunable_override, test_discover_respects_cap_and_round_reset, test_discover_drops_already_known
 
-### `test_audit_loop.py` (296줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
+### `test_audit_loop.py` (283줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
 
-- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_needs_decision_items_do_not_stop_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_sweep_inside_inner_loop, test_sweep_failure_requeues_then_blocks, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_needs_decision_left_does_not_stop, test_run_until_stop_converts_exception_and_pacinghold, test_propose_keeps_design_summary, test_no_candidate_design_goes_through_end_round, test_propose_limit_and_checkpoint, test_step_records_cursor_and_reset_clears, test_run_until_stop_saves_state_immediately_on_resume, test_item_level_failure_does_not_halt_loop, test_systemic_failure_still_halts
+- functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_needs_decision_items_do_not_stop_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_inside_inner_loop, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_needs_decision_left_does_not_stop, test_run_until_stop_converts_exception_and_pacinghold, test_propose_keeps_design_summary, test_no_candidate_design_goes_through_end_round, test_propose_limit_and_checkpoint, test_step_records_cursor_and_reset_clears, test_run_until_stop_saves_state_immediately_on_resume, test_item_level_failure_does_not_halt_loop, test_systemic_failure_still_halts
 
 ### `test_audit_orchestrator.py` (118줄)
 
@@ -2455,9 +2455,9 @@
 
 - functions: test_set_flag_validates, test_gate_none_without_flags, test_gate_paused_stops_with_role_pause, test_gate_skip_persists_until_released, test_gate_rerun_consumes_flag, test_resume_keeps_phase_on_role_pause, test_resume_keeps_phase_on_pacing_stop, test_resume_after_failed_still_restarts_audit, test_blocked_for_helper_role
 
-### `test_audit_scope.py` (71줄) — 테스트 범위 축소(scope) — 변경 파일→스윕 화면 매핑, 루프 test 단계 분기, 라운드 종료 전체 스윕.
+### `test_audit_round_sweep.py` (64줄) — 브라우저 스윕은 라운드 종료 시 1회 — 단위 test 단계는 스윕 없이 done, 스윕 실패 시 반영 보류.
 
-- functions: test_page_maps_to_its_screen, test_layout_maps_to_subtree, test_shared_frontend_code_means_all, test_backend_only_is_empty, test_unit_screens_falls_back_to_all_on_git_error, test_test_phase_scope_branches, test_end_round_runs_full_sweep_and_holds_deploy_on_failure
+- functions: test_unit_test_phase_runs_no_sweep, test_end_round_sweep_failure_runs_fix_round_then_gives_up, test_sweep_fix_item_names_failed_combos, test_sweep_error_text_formats_dicts
 
 ### `test_audit_steward.py` (73줄)
 
@@ -2544,6 +2544,10 @@
 ### `test_autopilot_size_followup.py` (15줄)
 
 - functions: test_oversize_becomes_followup
+
+### `test_autopilot_stream.py` (43줄) — claude 스트림 실행기 — rate_limit_event 도착 즉시 원장 기록(값이 바뀐 경우만), 관측 시각 노출.
+
+- functions: test_append_observation_dedupes_unchanged, test_stream_run_records_observation_before_exit, test_stream_run_timeout_kills, test_budget_summary_exposes_observed_at
 
 ### `test_autopilot_trailers.py` (21줄)
 
@@ -2745,9 +2749,9 @@
 
 - functions: test_pause_resume_stop, test_tunables_validation, test_set_interval, test_start_clears_stopped_cycle_state, test_pause_keeps_cycle_state, test_resume_starts_loop_but_pause_does_not, test_resume_after_failed_halt_keeps_cursor
 
-### `test_console_flow.py` (115줄) — 진행 흐름(flow.build) 계산 + 루프 이벤트 기록.
+### `test_console_flow.py` (125줄) — 진행 흐름(flow.build) 계산 + 루프 이벤트 기록.
 
-- functions: test_build_from_events, test_design_batches_are_summed, test_deploy_stage_and_old_round_ignored, test_fallback_from_progress_log, test_loop_records_events, test_event_trims_large_file, test_sub_states_reset_on_new_audit_pass, test_steps_only_current_phase_with_failures, test_sweep_stream_emits_step_events
+- functions: test_build_from_events, test_design_batches_are_summed, test_deploy_stage_and_old_round_ignored, test_fallback_from_progress_log, test_loop_records_events, test_event_trims_large_file, test_sub_states_reset_on_new_audit_pass, test_steps_only_current_phase_with_failures, test_sweep_stream_emits_step_events, test_sweep_fix_badge_only_during_fix_round
 
 ### `test_console_items.py` (70줄) — 개발 항목 목록·상세(items) + 라우팅.
 
@@ -4387,7 +4391,7 @@
 - functions: run
 
 ---
-총 962개 파일
+총 963개 파일
 
 ## docstring 누락
 

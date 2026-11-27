@@ -9,7 +9,7 @@
   test   : 브라우저 스윕(안쪽 루프) 통과 → done, 실패 → queued(버그수정 재개발), 상한 초과 → failed
 정지는 stopreason.py 의 사유(pacing·step_cap·failed·stop_flag)로 기록하고 타이머 발화 시 사유별로 자동 재개한다.
 정지 조건: 같은 단계 연속 실패 FAIL_LIMIT, 항목당 테스트 재시도 FIX_LIMIT, 라운드당 단위 UNIT_CAP(도달 시 운영 반영 후 develop 유지), 단계 직전 pacing.
-열린 단위가 없으면(또는 단위 상한) 라운드가 끝나며 통과 단위가 있으면 운영 반영(deploy.py) 후 다음 감사(audit)로 돌아간다 — 고정 최소 간격(90분)은 없고 라운드 종료 즉시 시작(pacing 만 게이트). 이 프로세스는 대화 세션에 쓸 수 없어 알림은 텔레그램이다.
+열린 단위가 없으면(또는 단위 상한) 라운드가 끝나며 통과 단위가 있으면 전체 스윕 1회 — 실패하면 수정 단위(SWEEP-*)를 큐에 올려 develop 로 되돌아가 고친 뒤 재스윕(SWEEP_FIX_LIMIT 회, 초과 시 반영 보류) — 통과하면 운영 반영(deploy.py) 후 다음 감사(audit)로 돌아간다 — 고정 최소 간격(90분)은 없고 라운드 종료 즉시 시작(pacing 만 게이트). 이 프로세스는 대화 세션에 쓸 수 없어 알림은 텔레그램이다.
 """
 from __future__ import annotations
 
@@ -18,14 +18,15 @@ import json
 import time
 from pathlib import Path
 
-from scripts.audit import agents, consume, cycle, deploy, idesign, inventory, orchestrator, planner, progress, release, release_plan, roles, scope, steward, stopreason, triage, wake
+from scripts.audit import agents, consume, cycle, deploy, idesign, inventory, orchestrator, planner, progress, release, release_plan, roles, steward, stopreason, triage, wake
 from scripts.audit.propose import PENDING_PATH, propose  # noqa: F401  (tests·외부 호환)
 from scripts.autopilot import notify, pacing, queue, reconcile, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
 FAIL_LIMIT, FIX_LIMIT, UNIT_CAP, MAX_STEPS, DESIGN_CAP, SYSTEMIC_FAILS = 3, 2, 20, 40, 6, ("exec", "sync", "env")
+SWEEP_FIX_LIMIT = 2  # 라운드 끝 전체 스윕 실패 시 수정 라운드 상한 — 초과하면 반영 보류 후 다음 라운드
 _INIT = {"phase": "audit", "unit": None, "round": 1, "units_done": 0, "fails": 0, "fix": {},
-         "stop_reason": None, "pending_decisions": 0, "cursor": None}
+         "stop_reason": None, "pending_decisions": 0, "cursor": None, "sweep_fix": 0}
 
 
 def load_state(path: Path | None = None) -> dict:
@@ -73,15 +74,41 @@ def _should_stop(path: Path) -> bool:
     return STOP_FLAG().exists()
 
 
+def _queue_sweep_fix(path: Path, st: dict, err: str) -> str:
+    """스윕 실패 사유를 담은 수정 단위를 큐 끝에 추가(자동·code). 같은 라운드·시도 번호면 ID 가 같아 중복 추가되지 않는다."""
+    iid = f"SWEEP-R{st['round']}-{st.get('sweep_fix', 1)}"
+    if any(it.item_id == iid for it in queue.parse(path)):
+        return iid
+    fails = getattr(err, "failures", [])
+    states = ",".join(dict.fromkeys(f["state"] for f in fails))
+    vps = ",".join(dict.fromkeys(f["viewport"] for f in fails))
+    scope = ["frontend/src/", f"이번 라운드 전체 브라우저 스윕 실패 사유: {err[:500]}"] + [f"실패 조합: {f['state']}|{f['viewport']} — {f['error']}" for f in fails]
+    verify = "python3 -m scripts.audit.sweep" + (f" --states {states} --viewports {vps}" if fails else "") + " 로 실패한 조합이 통과하는지 확인"
+    meta = {"stage": "queued", "mode": "auto", "attempts": 0, "deps": [], "kind": "code", "critical": True,
+            "scope": scope, "verify": [verify], "auto_approved": True}
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write("\n" + f"- **[{iid}]** 라운드 {st['round']} 전체 스윕 실패 수정 — {err[:200]}\n  <!-- autopilot: {json.dumps(meta, ensure_ascii=False)} -->\n")
+    return iid
+
+
 def _end_round(st: dict, ship, msg: str, path: Path | None = None, next_phase: str = "audit", full_sweep=None) -> str:
     """라운드 종료 — 통과 단위가 있으면 운영 반영(실패해도 루프는 계속, 알림만) 후 next_phase(기본 감사, 상한 도달 시 develop 유지)로."""
-    if full_sweep and st["units_done"] > 0:  # 단위별 테스트는 변경 화면만 — 전 화면 스윕은 반영 직전 1회
+    if full_sweep and st["units_done"] > 0:  # 브라우저 스윕은 단위마다 돌리지 않고 라운드 종료 시(반영 직전) 1회
         n, err = full_sweep()
+        if err and st.get("sweep_fix", 0) < SWEEP_FIX_LIMIT:  # 실패 → 수정 단위를 큐에 올리고 개발로 되돌아간다(반영·라운드 증가 없음). 단위가 끝나면 다시 여기서 재스윕
+            st["sweep_fix"] = st.get("sweep_fix", 0) + 1
+            fid = _queue_sweep_fix(path or settings.QUEUE_PATH, st, err)
+            st.update(phase="develop", unit=None)
+            notify.send(f"[루프] 라운드 {st['round']} 전체 스윕 실패 — 수정 단위 {fid} 추가({st['sweep_fix']}/{SWEEP_FIX_LIMIT}), 통과 후 반영: {err[:200]}" + notify.console_hint())
+            targets = [f"{f['state']}|{f['viewport']}" for f in getattr(err, "failures", [])]
+            progress.event("sweep_fix", round=st["round"], item=fid, attempt=st["sweep_fix"], limit=SWEEP_FIX_LIMIT, targets=targets)
+            return f"전체 스윕 실패 — 수정 단위 {fid} 로 개발 재진입({st['sweep_fix']}/{SWEEP_FIX_LIMIT})"
         if err:
-            notify.send(f"[루프] 라운드 {st['round']} 전체 스윕 실패 — 운영 반영 보류: {err}" + notify.console_hint())
-            ship, msg = (lambda _n: {"ran": False}), msg + f" · 전체 스윕 실패로 반영 보류({err[:80]})"
+            notify.send(f"[루프] 라운드 {st['round']} 전체 스윕 수정 {SWEEP_FIX_LIMIT}회 후에도 실패 — 운영 반영 보류: {err}" + notify.console_hint())
+            ship, msg = (lambda _n: {"ran": False}), msg + f" · 스윕 수정 {SWEEP_FIX_LIMIT}회 후에도 실패로 반영 보류({err[:80]})"
         else:
             msg += f" · 전체 스윕 {n}셀 통과"
+    st["sweep_fix"] = 0
     progress.event("deploy_start", round=st["round"], units=st["units_done"])
     r = ship(st["units_done"])
     ok = r.get("outcome") == "done"
@@ -114,7 +141,6 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
     develop = act.get("develop", _develop)
     ship = act.get("deploy", deploy.run)
     sweep = act.get("sweep", lambda screens=None: cycle.browser_sweep(screens=screens))
-    scope_fn = act.get("scope") or ((lambda: None) if "sweep" in act else scope.unit_screens)
     full_sweep = act.get("full_sweep") or (sweep if "sweep" in act else (None if "deploy" in act else (lambda: cycle.browser_sweep())))
     if st["phase"] == "await":
         st["phase"] = "develop"
@@ -213,26 +239,12 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
             return f"{nxt.item_id} 개발 완료 → 테스트"
         st["phase"] = "develop"
         return f"{nxt.item_id} 개발 단계 유지(stage={stage}, rc={rc})"
-    if ph == "test":
+    if ph == "test":  # 단위별 검증은 개발 단계의 verify(run_unit._post_verify)로 끝 — 브라우저 스윕은 라운드 종료 시 1회(_end_round)
         iid = st["unit"]
-        sc = scope_fn()
-        n, err = (0, None) if sc == [] else (sweep() if sc is None else sweep(sc))
-        if not err:
-            queue.update_item(path, iid, stage="done")
-            progress.event("unit_end", round=st["round"], unit=iid, result="done")
-            st.update(phase="develop", unit=None, units_done=st["units_done"] + 1, fails=0)
-            return f"{iid} 테스트 통과({n}셀{' · 변경 화면만' if sc else ''}) → done"
-        tries = st["fix"].get(iid, 0) + 1
-        st["fix"][iid] = tries
-        if tries > FIX_LIMIT:
-            queue.update_item(path, iid, stage="failed")
-            progress.event("unit_end", round=st["round"], unit=iid, result="failed")
-            notify.send(f"[루프] {iid} 버그수정 {FIX_LIMIT}회 후에도 스윕 실패 — failed: {err}")
-            st.update(phase="develop", unit=None)
-            return f"{iid} 수정 상한 초과 → failed"
-        queue.update_item(path, iid, stage="queued")
-        st["phase"] = "develop"
-        return f"{iid} 스윕 실패({err}) → 수정 재개발 {tries}/{FIX_LIMIT}"
+        queue.update_item(path, iid, stage="done")
+        progress.event("unit_end", round=st["round"], unit=iid, result="done")
+        st.update(phase="develop", unit=None, units_done=st["units_done"] + 1, fails=0)
+        return f"{iid} 검증 통과 → done"
     stopreason.stop(st, stopreason.FAILED)
     return f"알 수 없는 단계 {ph}"
 

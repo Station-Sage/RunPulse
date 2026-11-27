@@ -32,7 +32,8 @@ def budget_summary(now: float, entries: list[dict] | None = None) -> dict:
     es = ledger.read_all() if entries is None else entries
     pc = pacing.check(now, es)
     obs = {k: pacing.latest_observation(es, k, now) for k in ("five_hour", "seven_day")}
-    return {"week_usd": round(ledger.total_cost(ledger.since(168, es, now)), 2), "weekly_max": settings.WEEKLY_MAX_USD,
+    observed_at = next((e.get("ts") for e in reversed(es) if e.get("rate_limit")), None)
+    return {"observed_at": observed_at, "week_usd": round(ledger.total_cost(ledger.since(168, es, now)), 2), "weekly_max": settings.WEEKLY_MAX_USD,
             "five_hour": obs["five_hour"], "seven_day": obs["seven_day"], "weekly_target": round(pacing.weekly_target(now), 3),
             "pacing_ok": pc.allowed, "pacing_reason": pc.reason, "pacing_resume_at": pc.resume_at}
 
@@ -51,7 +52,7 @@ def overview(now: float | None = None, state_path: Path | None = None, queue_pat
     recs = decisions.load(dpath)
     open_n = sum(1 for d in recs if d["status"] == "open")  # redo 는 재제안 대기라 사용자 조치 대상이 아니다
     redo_n = sum(1 for d in recs if d["status"] == "redo")
-    return {"now": now, "state": {k: st.get(k) for k in ("phase", "round", "unit", "units_done", "fails", "stop_reason")},
+    return {"now": now, "state": {k: st.get(k) for k in ("phase", "round", "unit", "units_done", "fails", "stop_reason", "sweep_fix")},
             "flags": {"pause": settings.PAUSE_PATH.exists(), "stop": settings.STOP_PATH.exists()},
             "queue": queue_summary(queue_path), "budget": budget_summary(now, entries), "decisions_open": open_n, "decisions_redo": redo_n,
             "release": release_summary(queue_path, plan_path), "roles": roles.load(),

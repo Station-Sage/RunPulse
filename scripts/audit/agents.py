@@ -8,13 +8,12 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import subprocess
 import sys
 from pathlib import Path
 
 from scripts.audit import inventory
 from scripts.audit import budget, progress
-from scripts.autopilot import ledger, pacing
+from scripts.autopilot import ledger, pacing, stream
 from scripts.audit.perspectives import AUDIT_MODELS, RELEASE_MODELS, build_prompt
 
 FINDINGS_PATH = inventory.LEDGER_PATH.parent / "audit_findings.json"
@@ -82,14 +81,13 @@ def ask(prompt: str, model: str, tools: str = "") -> str:
         model = "opus" if budget.opus_allowed()[0] else "sonnet"
     cmd = ["claude", "-p", prompt, "--model", model, "--output-format", "stream-json", "--verbose",
            "--no-session-persistence", "--allowed-tools", tools, "--permission-mode", "default"]
-    try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT_SEC, stdin=subprocess.DEVNULL)
-    except subprocess.TimeoutExpired:
+    stdout, returncode, timed_out = stream.run(cmd, TIMEOUT_SEC, unit_id=f"audit-ask:{model}")
+    if timed_out:
         return ""
-    text, rl, cost = _parse_stream(r.stdout or "")
-    ledger.append({"unit_id": f"audit-ask:{model}", "outcome": "success" if r.returncode == 0 else "error",
+    text, rl, cost = _parse_stream(stdout)
+    ledger.append({"unit_id": f"audit-ask:{model}", "outcome": "success" if returncode == 0 else "error",
                    "cost_usd": cost, "rate_limit": rl})
-    return text if r.returncode == 0 else ""
+    return text if returncode == 0 else ""
 
 
 def run_perspective(name: str, groups: dict[str, list[dict]], models: dict[str, str] | None = None) -> list[dict]:

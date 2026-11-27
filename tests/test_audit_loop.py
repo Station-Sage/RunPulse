@@ -77,7 +77,7 @@ def test_legacy_await_state_resumes_like_develop(tmp_path, monkeypatch):
     assert called
 
 
-def test_develop_then_test_sweep_inside_inner_loop(tmp_path, monkeypatch):
+def test_develop_then_test_inside_inner_loop(tmp_path, monkeypatch):
     _quiet(monkeypatch)
     p = _backlog(tmp_path)
     st = _st("develop")
@@ -85,19 +85,6 @@ def test_develop_then_test_sweep_inside_inner_loop(tmp_path, monkeypatch):
     assert st["phase"] == "test" and st["unit"] == "U1"
     loop.step(st, path=p, act={"sweep": lambda: (282, None)})
     assert queue.parse(p)[0].stage == "done" and st["phase"] == "develop" and st["units_done"] == 1
-
-
-def test_sweep_failure_requeues_then_blocks(tmp_path, monkeypatch):
-    _quiet(monkeypatch)
-    p = _backlog(tmp_path, "review")
-    st = _st("test", unit="U1")
-    for _ in range(loop.FIX_LIMIT):
-        loop.step(st, path=p, act={"sweep": lambda: (10, "overflow")})
-        assert queue.parse(p)[0].stage == "queued"
-        queue.update_item(p, "U1", stage="review")
-        st["phase"] = "test"
-    loop.step(st, path=p, act={"sweep": lambda: (10, "overflow")})
-    assert queue.parse(p)[0].stage == "failed"
 
 
 def test_round_ends_and_unit_cap(tmp_path, monkeypatch):

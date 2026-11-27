@@ -97,6 +97,20 @@ def summary(e: dict) -> str:
             f"후보 {e.get('findings', 0)}건 중 독립 검토 통과 {e.get('confirmed', 0)}건 · {e.get('elapsed_sec', 0)}초")
 
 
+class SweepError(str):
+    """스윕 실패 사유 문자열 + 구조화 목록 `failures`([{state, viewport, error}])."""
+    failures: list
+
+    def __new__(cls, text: str, failures: list | None = None):
+        o = super().__new__(cls, text)
+        o.failures = failures or []
+        return o
+
+
+def _fail_text(f) -> str:
+    return f"{f['state']}|{f['viewport']}: {f['error']}" if isinstance(f, dict) else str(f)
+
+
 def _sweep_once(limit: int | None, screens: list[str] | None = None) -> tuple[int, str | None]:
     cmd = [sys.executable, "-m", "scripts.audit.sweep"] + (["--limit", str(limit)] if limit else []) + (["--screens", ",".join(screens)] if screens else [])
     p = subprocess.Popen(cmd, cwd=inventory.ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -118,7 +132,7 @@ def _sweep_once(limit: int | None, screens: list[str] | None = None) -> tuple[in
             continue
     if rc != 0 or swept == 0:
         tail = " | ".join([x for x in lines if x.strip()][-3:])  # 마지막 3줄 — 원인 줄이 끝 한 줄이 아닌 경우가 많다
-        return swept, (str(failed[0]) if failed else tail or "셀 0개")[:300]
+        return swept, SweepError("; ".join(_fail_text(f) for f in failed)[:500] if failed else (tail or "셀 0개")[:300], [f for f in failed if isinstance(f, dict)])
     return swept, None
 
 
@@ -129,7 +143,7 @@ def browser_sweep(limit: int | None = None, screens: list[str] | None = None) ->
     swept, err = _sweep_once(limit, screens)
     if err:
         swept, err2 = _sweep_once(limit, screens)
-        err = None if err2 is None else f"재시도 후에도 실패: {err2}"
+        err = None if err2 is None else SweepError(f"재시도 후에도 실패: {err2}", getattr(err2, "failures", []))
     return swept, err
 
 

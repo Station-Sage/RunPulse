@@ -15,7 +15,7 @@ def test_budget_utilization_caps():
 def test_ask_falls_back_to_sonnet_when_opus_blocked(monkeypatch):
     monkeypatch.setattr(agents.budget, "opus_allowed", lambda *a, **k: (False, "x"))
     seen = []
-    monkeypatch.setattr(agents.subprocess, "run", lambda cmd, **k: seen.append(cmd) or type("R", (), {"returncode": 0, "stdout": "ok"})())
+    monkeypatch.setattr(agents.stream, "run", lambda cmd, *a, **k: seen.append(cmd) or ("ok", 0, False))
     agents.ask("p", "opus")
     assert "sonnet" in seen[0] and "opus" not in seen[0]
 
@@ -58,8 +58,7 @@ def test_ask_records_rate_limit_and_pacing_blocks(monkeypatch, tmp_path):
     out = ('{"type":"rate_limit_event","rate_limit_info":{"rateLimitType":"five_hour","utilization":0.95,'
            '"status":"allowed","resetsAt":%d}}\n{"type":"result","result":"hi","total_cost_usd":0.1}\n') % (
         __import__("time").time() + 3600)
-    monkeypatch.setattr(agents.subprocess, "run",
-                        lambda *a, **k: type("R", (), {"returncode": 0, "stdout": out})())
+    monkeypatch.setattr(agents.stream, "run", lambda *a, **k: (out, 0, False))
     assert agents.ask("p", "sonnet") == "hi"
     assert ledger.read_all()[-1]["rate_limit"]["utilization"] == 0.95
     import pytest

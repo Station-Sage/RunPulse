@@ -31,6 +31,23 @@ def append(entry: dict) -> None:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
+def _obs_key(rl: dict) -> tuple:
+    return (rl.get("utilization"), rl.get("status"), rl.get("resetsAt"))
+
+
+def append_observation(rl: dict, unit_id: str) -> bool:
+    """실행 도중 도착한 rate_limit 관측을 즉시 기록 — 같은 유형의 직전 관측과 값이 같으면 건너뛴다(True=기록함)."""
+    rtype = rl.get("rateLimitType")
+    for e in reversed(read_all()[-200:]):
+        prev = e.get("rate_limit") or {}
+        if prev.get("rateLimitType") == rtype:
+            if _obs_key(prev) == _obs_key(rl):
+                return False
+            break
+    append({"unit_id": unit_id, "outcome": "observation", "rate_limit": rl})
+    return True
+
+
 def read_all() -> list[dict]:
     if not settings.LEDGER_PATH.exists():
         return []
