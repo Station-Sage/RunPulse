@@ -1,6 +1,6 @@
 # DONE — 완료된 버그
 
-- **[AUTOPILOT-SWEEP-AT-ROUND-END]** 단위마다 돌던 브라우저 스윕(화면 47셀×6조합, 단위당 약 13분) 제거(핫픽스, 2026-11-27) — 단위 test 단계는 개발 단계 verify 통과를 근거로 스윕 없이 done 처리, 전체 스윕은 라운드 종료 시 운영 반영 직전 1회(실패 시 반영 보류·알림). 변경 화면 축소 모듈 `scope.py` 삭제.
+- **[AUTOPILOT-SWEEP-AT-ROUND-END]** 단위마다 돌던 브라우저 스윕(화면 47셀×6조합, 단위당 약 13분) 제거(핫픽스, 2026-11-27) — 단위 test 단계는 개발 단계 verify 통과를 근거로 스윕 없이 done 처리, 전체 스윕은 라운드 종료 시 운영 반영 직전 1회(실패 시 SWEEP-* 수정 단위를 큐에 올려 개발 재진입→재스윕, 최대 2회, 초과 시 반영 보류·알림). 변경 화면 축소 모듈 `scope.py` 삭제.
 - **[AUTOPILOT-VERIFY-DOCTOR]** verify 실패 반복 방지(핫픽스, 2026-11-27) — `verify_doctor.py`: 큐 진입 전 verify lint(없는 테스트 파일·스크립트·scope 밖 테스트), 실패 진단 4종(missing_target·usage·absence_hit·real)+env, 재시도 3회·반복 불가 유형은 즉시 카드, 재시도 프롬프트에 진단·전체 출력 첨부. 감사 planner/idesign/triage 프롬프트에 verify 작성 규칙 추가.
 - **[CONSOLE-NOW-REDESIGN]** 관제 상황판 탭 재설계(핫픽스, 2026-11-27) — 요약 카드·흐름/범위/예산 카드·접이식 설정·제어·역할 행 탭 토글로 정리, CSS/JS 를 `console.css`·`now.js`·`app.js` 로 분리(API·기능 불변).
 - **[V2-AI-CLAUDE-QUEUE]** 호스트 워커 `claude -p` 영속 세션 큐(E1~E5) 완료(2026-11-21, E4-f 운영 확인 사용자 완료) — 코치·이행·내러티브·플랜 초안(opus)·오늘 상세 분석·지표 안내 사전 생성, AI 분석을 코치 스레드로 통합, `ai.fallback_order`. 설계 `v0.3/data/phase-7-ui-renewal/DESIGN-V2-AI-CLAUDE-QUEUE.md`.

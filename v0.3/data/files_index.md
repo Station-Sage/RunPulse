@@ -2455,9 +2455,9 @@
 
 - functions: test_set_flag_validates, test_gate_none_without_flags, test_gate_paused_stops_with_role_pause, test_gate_skip_persists_until_released, test_gate_rerun_consumes_flag, test_resume_keeps_phase_on_role_pause, test_resume_keeps_phase_on_pacing_stop, test_resume_after_failed_still_restarts_audit, test_blocked_for_helper_role
 
-### `test_audit_round_sweep.py` (34줄) — 브라우저 스윕은 라운드 종료 시 1회 — 단위 test 단계는 스윕 없이 done, 스윕 실패 시 반영 보류.
+### `test_audit_round_sweep.py` (43줄) — 브라우저 스윕은 라운드 종료 시 1회 — 단위 test 단계는 스윕 없이 done, 스윕 실패 시 반영 보류.
 
-- functions: test_unit_test_phase_runs_no_sweep, test_end_round_runs_full_sweep_and_holds_deploy_on_failure
+- functions: test_unit_test_phase_runs_no_sweep, test_end_round_sweep_failure_runs_fix_round_then_gives_up
 
 ### `test_audit_steward.py` (73줄)
 

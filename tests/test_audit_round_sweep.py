@@ -23,12 +23,21 @@ def test_unit_test_phase_runs_no_sweep(tmp_path, monkeypatch):
     assert queue.parse(p)[0].stage == "done" and st["units_done"] == 1 and st["phase"] == "develop"
 
 
-def test_end_round_runs_full_sweep_and_holds_deploy_on_failure(monkeypatch):
+def test_end_round_sweep_failure_runs_fix_round_then_gives_up(monkeypatch, tmp_path):
     monkeypatch.setattr(notify, "send", lambda *a, **k: True)
+    q = tmp_path / "B.md"
+    q.write_text("", encoding="utf-8")
     shipped = []
-    st = {"round": 1, "units_done": 2, "phase": "develop", "unit": None, "fails": 0, "fix": {}}
-    loop._end_round(st, lambda n: shipped.append(n) or {"ran": True, "outcome": "done"}, "x", None, full_sweep=lambda: (282, None))
-    assert shipped == [2]
-    st = {"round": 1, "units_done": 2, "phase": "develop", "unit": None, "fails": 0, "fix": {}}
-    loop._end_round(st, lambda n: shipped.append(n) or {"ran": True, "outcome": "done"}, "x", None, full_sweep=lambda: (10, "overflow"))
-    assert shipped == [2]
+    ship = lambda n: shipped.append(n) or {"ran": True, "outcome": "done"}
+    st = {**loop._INIT, "round": 1, "units_done": 2, "phase": "develop"}
+    loop._end_round(st, ship, "x", q, full_sweep=lambda: (282, None))
+    assert shipped == [2] and st["round"] == 2 and st["sweep_fix"] == 0
+    st = {**loop._INIT, "round": 1, "units_done": 2, "phase": "audit"}
+    for k in (1, 2):  # 실패 → 수정 단위 추가, 개발 재진입, 라운드·반영 그대로
+        loop._end_round(st, ship, "x", q, full_sweep=lambda: (10, "overflow"))
+        assert (st["phase"], st["round"], st["units_done"], st["sweep_fix"]) == ("develop", 1, 2, k) and shipped == [2]
+    from scripts.autopilot import queue
+    its = queue.parse(q)
+    assert [i.item_id for i in its] == ["SWEEP-R1-1", "SWEEP-R1-2"] and its[0].stage == "queued" and "overflow" in its[0].scope[1]
+    loop._end_round(st, ship, "x", q, full_sweep=lambda: (10, "overflow"))  # 상한 초과 → 반영 보류, 다음 라운드
+    assert shipped == [2] and st["round"] == 2 and st["sweep_fix"] == 0
