@@ -67,7 +67,8 @@ function renderNow(o){window.lastO=o;
  document.querySelector('[data-a=resume]').disabled=!(f.pause||f.stop||s.stop_reason);
  const rv=q.attention.filter(a=>a.stage==='review');
  for(const[id,n]of[['#dn',o.decisions_open||0],['#rn',rv.length]]){const b=$(id);b.textContent=n>99?'99+':n;b.classList.toggle('hid',!n)}
- $('#rv').innerHTML=rv.length?rv.map(a=>`<div class="card"><b>${esc(a.id)}</b> <span class="tag">사후 검토</span><div class="mut" style="white-space:pre-wrap;word-break:break-word">${esc(a.text)}</div>${pipeHtml(pipeMap[a.id])}<div class="mut">개발·검증 완료 — 브랜치 병합 전 확인 대기</div><button class="b" data-it="${esc(a.id)}">상세 ▾</button> <button class="b p" data-rv="${esc(a.id)}" data-ra="done">확인 완료</button> <button class="b" data-rv="${esc(a.id)}" data-ra="rework">재작업</button><div id="dt-${esc(a.id)}"></div></div>`).join(''):'<div class="card mut">검토 대기 항목 없음</div>';reopenIt();
+ const rvh=rv.length?rv.map(a=>`<div class="card"><b>${esc(a.id)}</b> <span class="tag">사후 검토</span><div class="mut" style="white-space:pre-wrap;word-break:break-word">${esc(a.text)}</div>${pipeHtml(pipeMap[a.id])}<div class="mut">개발·검증 완료 — 브랜치 병합 전 확인 대기</div><button class="b" data-it="${esc(a.id)}">상세 ▾</button> <button class="b p" data-rv="${esc(a.id)}" data-ra="done">확인 완료</button> <button class="b" data-rv="${esc(a.id)}" data-ra="rework">재작업</button><div id="dt-${esc(a.id)}"></div></div>`).join(''):'<div class="card mut">검토 대기 항목 없음</div>';
+ if(rvh!==window.lastRv){window.lastRv=rvh;$('#rv').innerHTML=rvh;reopenIt()}
 }
 function renderTimers(){
  $('#tm').innerHTML=Object.entries(timers).map(([k,v])=>{const n=k.replace('runpulse-','');return `<div class="row"><span>${TKO[n]||n} <span class="tag">${esc(v.active||'?')}</span></span><span data-next="${esc(v.next||0)}"></span></div>`}).join('');
