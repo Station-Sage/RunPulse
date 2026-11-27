@@ -13,7 +13,7 @@ function bar(l,a,b,txt,prog){const p=pct(a,b);return `<div class="row"><span>${l
 function win(l,w){if(!w)return bar(l,0,100,'데이터 없음');if(w.expired)return bar(l,0,100,'리셋됨 ('+hhmm(w.resetsAt)+') · 새 창 대기');if(w.utilization==null)return bar(l,0,100,'사용률 관측 없음 · 리셋 '+hhmm(w.resetsAt));const u=Math.round(100*w.utilization);return bar(l,u,100,u+'% · 리셋 '+hhmm(w.resetsAt))}
 function pickWin(g,k){const now=Date.now()/1000;let old=null;for(const r of [g[k],g.five_hour,g.seven_day]){let w=r&&(r.rateLimitType===k?r:null);const nw=r&&(r.unifiedWindows||{})[k];if(nw&&(!w||w.utilization==null))w=w?{...w,...nw}:nw;if(!w)continue;if(w.resetsAt>now)return w;old=old||w}return old&&{...old,expired:1}}
 const RSN={pacing:'페이싱 대기',pause_flag:'일시중지됨',failed:'실패로 정지 — 사람 확인 필요 (재개 버튼으로 이어감)',round_done:'라운드 완료 — 다음 감사 대기',step_cap:'단계 상한 — 자동 재개 대기',stop_flag:'중지됨',await_decision:'사용자 결정 대기',role_pause:'역할 일시정지'};
-const STG=['감사','설계','개발·테스트','반영'],SUBN={sweep:'스윕',audit:'관점 감사',review:'독립 검토'};
+const STG=['감사','설계','개발','테스트','반영'],SUBN={sweep:'스윕',audit:'관점 감사',review:'독립 검토'};
 function dur(sec){sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);return h?h+'시간 '+m+'분':m?m+'분 '+sec%60+'초':sec+'초'}
 function hhmm(ts){return ts?new Date(ts*1000).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}):'-'}
 function sec(t,body){return body?`<div class="sec"><div class="st">${t}</div>${body}</div>`:''}

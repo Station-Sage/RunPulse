@@ -44,7 +44,7 @@ def test_deploy_stage_and_old_round_ignored(tmp_path):
     evs = [_ev("phase", 10, round=2, phase="audit"), _ev("phase", 100, round=3, phase="develop"),
            _ev("deploy_start", 200, round=3, units=2)]
     p = flow.build({"round": 3, "phase": "develop", "units_done": 2}, 210, q, evs)
-    assert p["stage"] == 4 and p["deploy"]["active"] and p["round_started"] == 100
+    assert p["stage"] == 5 and p["deploy"]["active"] and p["round_started"] == 100
 
 
 def test_fallback_from_progress_log(tmp_path):

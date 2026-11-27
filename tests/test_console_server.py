@@ -55,7 +55,7 @@ def test_static_files_served():
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     try:
         for path, needle in (("/", b"/now.js"), ("/", b'data-a="start"'), ("/", b'id="flags"'), ("/app.js", b"/api/overview"),
-                             ("/now.js", b"data-rl"), ("/now.js", "관측".encode()), ("/now.js", b"lastRv"), ("/app.js", b"itHtml"), ("/now.js", b"failedCardHtml"), ("/app.js", b"failedCardHtml"), ("/now.js", b"data-fa"), ("/now.js", "일시중지됨".encode()), ("/now.js", "실패로 정지".encode()), ("/app.js", "실패로 정지".encode()), ("/console.css", b"details.cfg"),
+                             ("/now.js", b"data-rl"), ("/now.js", "관측".encode()), ("/now.js", b"lastRv"), ("/app.js", b"itHtml"), ("/now.js", b"failedCardHtml"), ("/app.js", b"failedCardHtml"), ("/now.js", b"data-fa"), ("/now.js", "일시중지됨".encode()), ("/now.js", "일시중지 대기 중".encode()), ("/app.js", "'개발','테스트','반영'".encode()), ("/now.js", "실패로 정지".encode()), ("/app.js", "실패로 정지".encode()), ("/console.css", b"details.cfg"),
                              ("/manifest.webmanifest", b"short_name"), ("/sw.js", b"fetch")):
             body = urllib.request.urlopen(f"http://127.0.0.1:{srv.server_port}{path}").read()
             assert needle in body
