@@ -103,7 +103,7 @@ async function load(){
 document.addEventListener('click',async e=>{
  const rr=e.target.closest('[data-rr]');if(rr){openRole[rr.dataset.rr]=!openRole[rr.dataset.rr];if(window.lastO)renderNow(window.lastO);return}
  const g=e.target.closest('[data-tg]');if(g){openPh[g.dataset.tg]=!openPh[g.dataset.tg];if(window.lastO)renderNow(window.lastO);return}
- const it=e.target.closest('[data-it]');if(it){toggleIt(it.dataset.it);return}
+ const it=e.target.closest('[data-it]');if(it&&!e.target.closest('button')){toggleIt(it.dataset.it);return}
  const t=e.target.closest('button');if(!t)return;
  if(t.dataset.t){history.replaceState(null,'','#'+t.dataset.t);setTab(t.dataset.t);return}
  let r;
