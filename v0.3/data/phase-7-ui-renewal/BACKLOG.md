@@ -3687,6 +3687,11 @@ DONE으로 옮긴다.
 
 ## DONE
 
+- **[AUTOPILOT-DEPLOY-CARD-1127]** 운영 반영 실패 결정 카드(2026-11-27): 반영(deploy) 실패(tests|build|dirty|branch|diverged|merge)를 "조용히 다음 라운드"가 아니라
+  검토안·추천안이 붙은 사용자 결정 카드(`DEPLOY-R{round}`)로 올린다(`autopilot/deploy_card.py`, 추천은 제안일 뿐 자동 적용 없음).
+  선택지 action 은 fix_unit(수정 단위 큐 투입)·retry_now·retry_later·hold, `audit/deploy_hold.release` 가 loop phase(`deploy_hold`/`deploy_retry`)로 매핑,
+  `round_sweep` 분리, 관제 콘솔 상황판 개발/테스트 5단계 분리·"반영 실패 — 결정 대기" 표시.
+  <!-- autopilot: {"stage": "done", "mode": "manual", "attempts": 0, "deps": []} -->
 - **[AUTOPILOT-CONSOLE-FIX-1126]** 관제 콘솔 보정(2026-11-26): 검토 대기 카드 전문 표시 + "확인 완료"(done·reviewed)/"재작업"(queued·attempts=0) 액션(`/api/review/<id>`),
   5시간 버짓 바 복구(만료된 창 fallback), 소단계(스윕/감사/독립검토) 상태가 새 감사 패스에서 초기화되지 않던 오류 수정(`flow._sub_states`),
   주 리셋 24시간 전부터 주간 페이싱 목표선을 WEEK_CEILING 으로 완화(`pacing.FINAL_DAY_SEC`) — 마지막 날 균등선 때문에 반복 정지되던 문제.
