@@ -296,3 +296,11 @@ def test_pause_flag_stops_step_cleanly_and_human_resume(tmp_path, monkeypatch):
     flag.unlink()
     stopreason.resume(st, human=True)
     assert not stopreason.is_stopped(st) and st["phase"] == "develop"
+
+
+def test_develop_gate_block_waits_instead_of_spinning(tmp_path, monkeypatch):
+    from scripts.audit import stopreason
+    _quiet(monkeypatch)
+    st = _st("develop")
+    msg = loop.step(st, path=_backlog(tmp_path), act={"develop": lambda: 1})
+    assert "게이트 차단" in msg and st["stop_reason"] == stopreason.PACING

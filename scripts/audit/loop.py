@@ -242,6 +242,9 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
             st.update(phase="test", unit=nxt.item_id, fails=0)
             return f"{nxt.item_id} 개발 완료 → 테스트"
         st["phase"] = "develop"
+        if rc == 1:  # 게이트 차단(야간·유휴·예산·락) — 같은 단계를 즉시 되풀이하지 않고 다음 타이머까지 대기
+            stopreason.stop(st, stopreason.PACING)
+            return f"{nxt.item_id} 개발 게이트 차단 — 대기(stage={stage})"
         return f"{nxt.item_id} 개발 단계 유지(stage={stage}, rc={rc})"
     if ph == "test":  # 단위별 검증은 개발 단계의 verify(run_unit._post_verify)로 끝 — 브라우저 스윕은 라운드 종료 시 1회(_end_round)
         iid = st["unit"]
