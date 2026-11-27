@@ -39,6 +39,15 @@ def _promote(rec: dict, path: Path) -> str:
     elif act == "retry_scope":
         fields["scope"] = list(item.scope if item else []) + [f"이전 verify 실패 출력: {rec.get('why', '')[:500]}"]
         fields.update(attempts=0, fail_kind="", fail_reason="")
+    elif act == "retry_note":
+        note = f"사용자 지시: {text}" if text else f"이전 verify 실패 출력: {rec.get('why', '')[:500]}"
+        fields["scope"] = list(item.scope if item else []) + [note]
+        fields.update(attempts=0, fail_kind="", fail_reason="")
+    elif act == "add_target":
+        sc = list(item.scope if item else [])
+        if rec.get("target") and rec["target"] not in sc:
+            sc.append(rec["target"])
+        fields.update(scope=sc, attempts=0, fail_kind="", fail_reason="")
     elif act == "install_dep":
         from scripts.autopilot import dep_install
         dep = rec.get("dep") or {}

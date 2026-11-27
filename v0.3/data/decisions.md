@@ -574,3 +574,8 @@
 
 - 문제: 설계자가 설치되지 않은 러너(`npx vitest`)를 verify 로 지정 → 개발자 테스트가 `npm run check` 를 깨뜨려 3회 맹목 재시도 후 failed. 진짜 오류가 svelte 경고 ~51줄에 묻혔다.
 - 결정(사용자): (1) verify 가 `Cannot find module`/`No module named` 로 실패하고 환경 복구로 안 풀리면 설치 여부 결정 카드(A 설치·재큐 / B verify 재시도 / C 폐기)를 등록한다. (2) 승인 시 `dep_install` 이 허용 목록 방식으로 설치하고 attempts=0 으로 재큐잉한다. 설치 실패는 failed(env). (3) `verify_doctor.lint` 와 triage 설계 규칙이 미설치 러너(vitest·jest·mocha)를 큐 진입 전에 거른다. (4) 실패 사유는 오류 줄을 먼저 두고 warn/hint 줄은 제외한다.
+
+## ADR-071: verify 실패는 진단별 결정 카드로, develop/test 단계는 실시간 구분 (2026-11-27, AUD-0eeb77·AUD-3bc2ad)
+
+- 문제: 자동 재시도가 끝난 verify 실패가 선택지 없는 '실패' 카드로 결정함에 올라왔다. 또 verify 가 develop 단계 안에서 돌아 develop·test·done 로그가 한 시각으로 찍혔고 현황판도 두 단계를 구분하지 못했다.
+- 결정(사용자 승인): (1) 재시도 소진 시 진단(real|absence_hit|missing_target|usage)별 선택지가 있는 `verify_decision` 카드를 등록하고 항목은 needs_decision 이 된다. `real` 도 자동 재시도 후에는 콘솔 액션(지시 추가 재시도·실패 출력 첨부·verify 수정·폐기)을 준다. (2) `retry_note`/`add_target` 액션을 consume 에 추가. (3) verify 시작·종료를 실제 시각으로 `progress.mark`·`test_start` 이벤트로 남기고, 실행 중에는 `verify_state.json` 으로 콘솔 파이프라인이 test 단계를 진행중으로 표시한다. (4) `decisions.append(fresh=True)` 로 같은 id 의 적용 완료 기록을 대체한다.

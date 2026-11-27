@@ -38,7 +38,7 @@ function relHtml(r){
  return `<div class="row"><b>${esc(r.version)} · ${esc(r.title)}</b><span class="tag">${esc(r.status)}</span></div>
  ${r.goal?`<div class="mut">목표: ${esc(r.goal)}</div>`:'<div class="mut">목표·단계 미설계 — 다음 감사/버전 계획 단계에서 생성됩니다</div>'}
  ${cur?`<div class="mut">현재 진행: <b>${esc(cur.id)}. ${esc(cur.title)}</b></div>`:''}
- ${bar('범위 전체',dn,tot,dn+' / '+tot+'건')}`
+ ${bar('범위 전체',dn,tot,dn+' / '+tot+'건',true)}`
  +ph.map(p=>`<div class="row"><b>${esc(p.id)}. ${esc(p.title)}</b><span>${p.active?'<span class="tag">진행 중</span> ':p.total&&p.done>=p.total?'<span class="tag">완료</span> ':''}${p.done}/${p.total}</span></div><div class="bar thin"><i style="width:${pct(p.done,p.total)}%"></i></div>`+p.initiatives.map(i=>`<div class="sub2 mut">${iniRow(i)}</div>`).join('')).join('')
  +(rest.length?(ph.length?'<div class="mut">단계 밖</div>':'')+rest.map(i=>`<div class="sub2 mut">${iniRow(i)}</div>`).join(''):'')}
 function rolesHtml(rs){rs=rs||{};
@@ -46,7 +46,8 @@ function rolesHtml(rs){rs=rs||{};
   return `<div class="rr${openRole[r]?' open':''}" data-rr="${r}"><span>${ROLE_KO[r]}</span><span>${on.length?on.map(k=>`<span class="tag warn">${FLAG_KO[k]}</span>`).join(' '):'<span class="mut">정상</span>'} <span class="mut">${openRole[r]?'▴':'▾'}</span></span></div>`
    +(openRole[r]?`<div class="rb">${Object.keys(FLAG_KO).map(k=>`<button class="b" data-rl="${r}" data-rf="${k}" data-rv="${f[k]?0:1}">${f[k]?FLAG_KO[k]+' 해제':FLAG_KO[k]}</button>`).join('')}</div>`:'')}).join('')+
  '<div class="mut">일시정지 = 해당 단계 진입 시 정지 · 건너뛰기 = 해제할 때까지 유지 · 재실행 = 다음 1회만</div>'}
-function blockedHtml(q){return (q.blocked||[]).map(a=>`<div class="card"><div class="row"><span>${esc(a.id)} <span class="tag bad">막힘 · ${esc(a.kind||'-')}</span></span></div><div class="mut" style="white-space:pre-wrap;word-break:break-word">${esc(a.text)}</div><div class="mut">사유: ${esc(a.reason||'기록 없음(이전 버전 실패 — 시도 '+a.attempts+'회)')}</div><input id="fx-${esc(a.id)}" placeholder="의견·추가 지시(선택)" style="width:100%"><button class="b p" data-fa="requeue" data-fid="${esc(a.id)}">큐에 다시 넣기</button> <button class="b" data-fa="drop" data-fid="${esc(a.id)}">폐기</button></div>`).join('')}
+function failedCardHtml(a){return `<div class="card"><div class="row"><span>${esc(a.id)} <span class="tag bad">막힘 · ${esc(a.kind||'-')}</span></span></div><div class="mut" style="white-space:pre-wrap;word-break:break-word">${esc(a.text)}</div><div class="mut" style="white-space:pre-wrap;word-break:break-word">사유: ${esc(a.reason||'기록 없음(이전 버전 실패 — 시도 '+a.attempts+'회)')}</div><input id="fx-${esc(a.id)}" placeholder="의견·추가 지시(선택)" style="width:100%"><button class="b p" data-fa="requeue" data-fid="${esc(a.id)}">큐에 다시 넣기</button> <button class="b" data-fa="drop" data-fid="${esc(a.id)}">폐기</button></div>`}
+function blockedHtml(q){return (q.blocked||[]).map(failedCardHtml).join('')}
 function ago(ts){const m=Math.max(0,Math.round((Date.now()/1000-ts)/60));return m<1?'방금':m<60?m+'분 전':Math.round(m/60)+'시간 전'}
 function renderNow(o){window.lastO=o;
  const s=o.state,f=o.flags,g=o.budget;
