@@ -207,3 +207,11 @@ def test_failed_action_verify_requeue_carries_diagnosis(tmp_path, monkeypatch):
     assert server.failed_action("F-1", "requeue", "", q)["ok"] is True
     it = queue.parse(q)[0]
     assert "tests/test_x.py" in it.scope and any(s.startswith("이전 실패(real)") for s in it.scope)
+
+
+def test_queued_action_moves_item_up(tmp_path):
+    p = tmp_path / "BACKLOG.md"
+    p.write_text("".join(f'- **[{i}]** x\n  <!-- autopilot: {{"stage":"queued","mode":"auto","attempts":0,"deps":[]}} -->\n\n' for i in "AB"), encoding="utf-8")
+    assert server.queued_action("B", "top", queue_path=p)["ok"]
+    assert [x.item_id for x in server.queue.parse(p)] == ["B", "A"]
+    assert not server.queued_action("B", "up", queue_path=p)["ok"]

@@ -143,3 +143,30 @@ class TestNextRunnableIgnoresKind:
         items = queue.parse(p)
         first = queue.next_runnable(items)
         assert first.item_id == "A"  # 먼저 나온 순서대로, kind는 선택에 영향 없음
+
+
+class TestMoveItem:
+    @staticmethod
+    def _q(tmp_path):
+        p = tmp_path / "BACKLOG.md"
+        rows = [("A", "queued"), ("B", "done"), ("C", "queued"), ("D", "queued")]
+        _write(p, "".join(f'- **[{i}]** 설명 {i}\n  <!-- autopilot: {{"stage":"{s}","mode":"auto","attempts":0,"deps":[]}} -->\n\n' for i, s in rows))
+        return p
+
+    def test_up_swaps_with_previous_queued_skipping_done(self, tmp_path):
+        p = self._q(tmp_path)
+        assert queue.move_item(p, "C", "up") == ""
+        assert [i.item_id for i in queue.parse(p)] == ["C", "A", "B", "D"]
+
+    def test_top_moves_before_first_queued_and_keeps_meta(self, tmp_path):
+        p = self._q(tmp_path)
+        assert queue.move_item(p, "D", "top") == ""
+        items = queue.parse(p)
+        assert [i.item_id for i in items] == ["D", "A", "B", "C"]
+        assert all(i.mode == "auto" for i in items)
+
+    def test_first_and_non_queued_rejected(self, tmp_path):
+        p = self._q(tmp_path)
+        assert queue.move_item(p, "A", "top") == "이미 맨 앞"
+        assert queue.move_item(p, "B", "up") == "대기 항목이 아님"
+        assert queue.move_item(p, "D", "down") == "없는 동작"

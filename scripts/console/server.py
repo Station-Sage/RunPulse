@@ -1,6 +1,6 @@
 """관제 콘솔 HTTP 서버(C2) — stdlib http.server, 127.0.0.1 전용(외부 노출은 cloudflared + Cloudflare Access 가 담당).
 
-GET  /api/overview /api/items /api/item/<id> /api/decisions /api/log /api/timers /api/roles, POST /api/control /api/tunables /api/interval /api/roles /api/decisions/<id> /api/review/<id> /api/failed/<id>.
+GET  /api/overview /api/items /api/item/<id> /api/decisions /api/log /api/timers /api/roles, POST /api/control /api/tunables /api/interval /api/roles /api/decisions/<id> /api/review/<id> /api/failed/<id> /api/queued/<id>.
 라우팅은 route() 순수 함수로 분리해 소켓 없이 테스트한다. POST 는 JSON 만, Origin 이 있으면 Host 와 같아야 한다(CSRF 방어).
 """
 from __future__ import annotations
@@ -102,6 +102,14 @@ def review_action(iid: str, action: str, queue_path: Path | None = None) -> dict
     return {"ok": True, "id": iid, "action": action}
 
 
+def queued_action(iid: str, action: str, queue_path: Path | None = None) -> dict:
+    """대기 항목 우선순위 — up(한 칸 위) | top(맨 앞). 파일 순서가 실행 순서라 BACKLOG 에서 블록을 옮긴다."""
+    with control.LOCK:
+        err = queue.move_item(queue_path or settings.QUEUE_PATH, iid, action)
+        control.audit("queued", {"id": iid, "action": action}, not err)
+    return {"ok": False, "error": err} if err else {"ok": True, "id": iid, "action": action}
+
+
 def failed_action(iid: str, action: str, text: str = "", queue_path: Path | None = None) -> dict:
     """failed 항목 처리 — requeue(verify 실패는 원인 파일·이전 실패 출력, 의견이 있으면 scope 에 지시로 추가, 시도 횟수·사유 초기화) | drop(done + dropped)."""
     qp = queue_path or settings.QUEUE_PATH
@@ -145,6 +153,8 @@ def route(method: str, path: str, body: dict | None = None) -> tuple[int, dict |
         r = control.set_interval(str(body.get("timer", "")), body.get("minutes"))
     elif path.startswith("/api/review/"):
         r = review_action(path.rsplit("/", 1)[1], str(body.get("action", "")))
+    elif path.startswith("/api/queued/"):
+        r = queued_action(path.rsplit("/", 1)[1], str(body.get("action", "")))
     elif path.startswith("/api/failed/"):
         r = failed_action(path.rsplit("/", 1)[1], str(body.get("action", "")), str(body.get("text", "")))
     elif path.startswith("/api/decisions/"):

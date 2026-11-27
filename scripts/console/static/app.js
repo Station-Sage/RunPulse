@@ -74,7 +74,7 @@ function renderItems(r){
  let cur='';const body=[];
  for(const it of r.items.filter(x=>!istage||x.stage===istage)){
   if(it.stage!==cur){cur=it.stage;body.push(`<div class="st">${ISTG[cur]||esc(cur)} (${c[cur]||0})</div>`)}
-  body.push(`<div class="card" style="padding:8px 12px"><div class="row" data-it="${esc(it.id)}" style="cursor:pointer"><span><b>${esc(it.id)}</b> <span class="tag${it.stage==='failed'?' bad':''}">${ISTG[it.stage]||esc(it.stage)}</span></span><span class="mut">▾</span></div>${pipeHtml(it)}<div class="mut">${esc(it.text)}</div><div id="dt-${esc(it.id)}"></div></div>`)}
+  body.push(`<div class="card" style="padding:8px 12px"><div class="row" data-it="${esc(it.id)}" style="cursor:pointer"><span><b>${esc(it.id)}</b> <span class="tag${it.stage==='failed'?' bad':''}">${ISTG[it.stage]||esc(it.stage)}</span></span><span class="mut">${it.stage==='queued'?`<button data-qid="${esc(it.id)}" data-qa="up" title="한 칸 위로">↑</button> <button data-qid="${esc(it.id)}" data-qa="top" title="맨 앞으로">맨 위</button> `:''}▾</span></div>${pipeHtml(it)}<div class="mut">${esc(it.text)}</div><div id="dt-${esc(it.id)}"></div></div>`)}
  $('#il').innerHTML=body.length?body.join(''):`<div class="card mut">${istage?esc(ISTG[istage]||istage)+' 상태의 항목이 없습니다.':'항목이 없습니다.'}</div>`;
  reopenIt()}
 function reopenIt(){for(const id of Object.keys(openIt)){const el=document.getElementById('dt-'+id);if(el&&!el.innerHTML){if(itHtml[id])el.innerHTML=itHtml[id];else{delete openIt[id];toggleIt(id)}}}}
@@ -113,6 +113,7 @@ document.addEventListener('click',async e=>{
  else if(t.dataset.tn){r=await api('/api/tunables',{values:{[t.dataset.tn]:Number($('#tn-'+t.dataset.tn).value)}})}
  else if(t.dataset.dc){r=await api('/api/decisions/'+t.dataset.dc,{choice:t.dataset.ch,text:(($('#tx-'+t.dataset.dc)||{}).value||'')})}
  else if(t.dataset.fid){if(t.dataset.fa==='drop'&&!confirm('폐기할까요?'))return;r=await api('/api/failed/'+t.dataset.fid,{action:t.dataset.fa,text:(($('#fx-'+t.dataset.fid)||{}).value||'')})}
+ else if(t.dataset.qid){r=await api('/api/queued/'+t.dataset.qid,{action:t.dataset.qa})}
  else if(t.dataset.rv){if(t.dataset.ra==='rework'&&!confirm('재작업 큐로 되돌릴까요?'))return;r=await api('/api/review/'+t.dataset.rv,{action:t.dataset.ra})}
  else return;
  if(r&&r.ok){toast(t.dataset.fid&&t.dataset.fa==='requeue'?'의견을 지시로 추가하고 큐에 넣었습니다':({pause:'일시중지 요청됨 — 진행 로그에 기록',resume:'재개 요청됨',start:'시작 요청됨',stop:'즉시 중지됨'})[t.dataset.a]||'적용됨');for(const k of['tx-'+t.dataset.dc,'fx-'+t.dataset.fid])delete drafts[k]}else if(r&&r.error)toast(r.error);load()});
