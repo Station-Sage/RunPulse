@@ -163,8 +163,12 @@ def _handle_verify_failure(item: queue.QueueItem, note: str) -> tuple[str, dict]
             if target and target not in item.scope:
                 extra["scope"] = list(item.scope) + [target]
         return "queued", extra
+    target = verify_doctor.missing_file(cmd, out) if kind == "missing_target" else verify_doctor.fix_target(kind, out, item.scope)
+    if target and kind != "missing_target" and f"scope+{target}" not in item.fail_reason:  # 원인 파일이 범위 밖 — 사람에게 묻기 전에 범위를 넓혀 한 번 더
+        extra["scope"] = list(item.scope) + [target]
+        extra["fail_reason"] = f"{extra['fail_reason']} [scope+{target}]"[:600]
+        return "queued", extra
     reason = f"[진단 {kind}] 자동 재시도 {done}회 후 중단({verify_doctor.STOP_NOTE.get(kind, '재시도 한도 도달')}). {note}"
-    target = verify_doctor.missing_file(cmd, out) if kind == "missing_target" else ""
     decisions.append([verify_card.build_verify_card(item.item_id, kind, reason, item.text, target)], fresh=True)
     return "needs_decision", extra
 

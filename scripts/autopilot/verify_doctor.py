@@ -102,6 +102,29 @@ def retry_hint(kind: str, body: str) -> str:
     return head + "아래 실패를 원인부터 고쳐 통과시키세요." + tail
 
 
+_HITLINE = re.compile(r"^\s*(?:\./)?([\w@./-]+\.[A-Za-z]{1,6}):\d+", re.M)
+_FAILFILE = re.compile(r"((?:[\w@.-]+/)*[\w.-]*(?:\.test\.(?:mjs|ts|js)|test_[\w]+\.py))(?::\d+|\b)")
+
+
+def fix_target(kind: str, out: str, scope: list[str]) -> str:
+    """자동으로 범위에 더할 파일 — absence_hit 은 적중 위치, real 은 실패한 테스트 파일. scope 안에 이미 있거나 못 찾으면 ''."""
+    pat = _HITLINE if kind == "absence_hit" else _FAILFILE if kind == "real" else None
+    if pat is None:
+        return ""
+    inside = [s.rstrip("/") for s in scope]
+    for m in pat.finditer(out):
+        path = re.sub(r"^.*?(?=(?:frontend|tests|src|scripts)/)", "", m.group(1))
+        if not any(path == s or path.startswith(s + "/") for s in inside):
+            return path
+    return ""
+
+
+def failed_diagnosis(reason: str, scope: list[str]) -> tuple[str, str, str]:
+    """failed 항목의 fail_reason → (진단, 실패 출력, 범위 밖 원인 파일). 진단 태그가 없으면 ('', reason, '')."""
+    kind, body = split_reason(reason)
+    return kind, body, (fix_target(kind, body, scope) if kind else "")
+
+
 def lint(verify: list[str], scope: list[str], root: Path) -> list[str]:
     """실행 불가능한 verify 의 문제 목록(빈 리스트 = 통과). scope 안 파일은 생성 예정이므로 허용."""
     problems: list[str] = []

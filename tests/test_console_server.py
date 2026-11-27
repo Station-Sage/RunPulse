@@ -6,7 +6,7 @@ import urllib.request
 from http.server import ThreadingHTTPServer
 
 from scripts.audit import decisions
-from scripts.console import control, server
+from scripts.console import control, items, server
 
 
 def _rec(status="open"):
@@ -195,3 +195,15 @@ def test_choose_promotes_item_immediately(tmp_path, monkeypatch):
     decisions.save([rec], p)
     assert server.choose("d1", "A", p, queue_path=q)["ok"] is True
     assert queue.parse(q)[0].stage == "queued" and decisions.load(p)[0]["status"] == "applied"
+
+
+def test_failed_action_verify_requeue_carries_diagnosis(tmp_path, monkeypatch):
+    from scripts.autopilot import queue
+    monkeypatch.setattr(control.settings, "STATE_DIR", tmp_path)
+    q = tmp_path / "q.md"
+    meta = '{"stage":"failed","mode":"auto","attempts":2,"deps":[],"fail_kind":"verify","fail_reason":"[real] FAILED tests/test_x.py:3 boom","scope":["a.py"]}'
+    q.write_text(f"- **[F-1]** 작업\n  <!-- autopilot: {meta} -->\n", encoding="utf-8")
+    assert items.item_detail("F-1", q, tmp_path / "d.json", tmp_path, [], [], tmp_path)["item"]["diagnosis"] == {"kind": "real", "target": "tests/test_x.py"}
+    assert server.failed_action("F-1", "requeue", "", q)["ok"] is True
+    it = queue.parse(q)[0]
+    assert "tests/test_x.py" in it.scope and any(s.startswith("이전 실패(real)") for s in it.scope)
