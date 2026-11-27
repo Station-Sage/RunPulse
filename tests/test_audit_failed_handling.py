@@ -1,4 +1,5 @@
 """failed 처리 — 분류·asked 카드·선택 반영(consume)·프롬프트 주입·콘솔 요약."""
+import json
 from scripts.audit import consume, decisions
 from scripts.autopilot import fail_handling as fh, prompts, queue
 from scripts.console import overview
@@ -100,3 +101,28 @@ def test_migrate_failed(tmp_path):
     it = queue.parse(q)[0]
     assert it.stage == "needs_decision" and it.fail_kind == "asked" and it.asks == 1
     assert decisions.load(dp)[0]["id"] == "AUD-1"
+
+
+def _vq(tmp_path, reason, scope='["a.py"]'):
+    q = tmp_path / "V.md"
+    q.write_text(f'- **[V-1]** 제목\n  <!-- autopilot: {json.dumps({"stage": "failed", "mode": "auto", "attempts": 2, "deps": [], "fail_kind": "verify", "fail_reason": reason, "scope": json.loads(scope)}, ensure_ascii=False)} -->\n')
+    return q
+
+
+def test_migrate_verify_requeues_with_target(tmp_path):
+    from scripts.autopilot import migrate_failed as mf
+    q = _vq(tmp_path, "[real] FAILED tests/test_x.py:3 boom")
+    assert mf.migrate_verify(q) == ["V-1"]  # dry-run 은 변경 없음
+    assert queue.parse(q)[0].stage == "failed"
+    mf.migrate_verify(q, apply=True)
+    it = queue.parse(q)[0]
+    assert it.stage == "queued" and it.attempts == 0 and "tests/test_x.py" in it.scope and it.fail_kind == ""
+
+
+def test_migrate_verify_in_scope_makes_card(tmp_path):
+    from scripts.autopilot import migrate_failed as mf
+    q = _vq(tmp_path, "[real] FAILED tests/test_x.py:3 boom [scope+tests/test_x.py]", '["a.py","tests/test_x.py"]')
+    dp = tmp_path / "d.json"
+    mf.migrate_verify(q, dp, apply=True)
+    assert queue.parse(q)[0].stage == "needs_decision"
+    assert decisions.load(dp)[0]["kind"] == "verify_decision"

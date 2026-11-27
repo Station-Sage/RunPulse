@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from scripts.audit import consume, decisions, loop, progress, roles, steward, versioning
-from scripts.autopilot import queue, settings
+from scripts.autopilot import queue, settings, verify_doctor
 from scripts.console import control, items, overview
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -103,7 +103,7 @@ def review_action(iid: str, action: str, queue_path: Path | None = None) -> dict
 
 
 def failed_action(iid: str, action: str, text: str = "", queue_path: Path | None = None) -> dict:
-    """failed 항목 처리 — requeue(의견이 있으면 scope 에 지시로 추가, 시도 횟수·사유 초기화) | drop(done + dropped)."""
+    """failed 항목 처리 — requeue(verify 실패는 원인 파일·이전 실패 출력, 의견이 있으면 scope 에 지시로 추가, 시도 횟수·사유 초기화) | drop(done + dropped)."""
     qp = queue_path or settings.QUEUE_PATH
     if action not in ("requeue", "drop"):
         return {"ok": False, "error": "없는 동작"}
@@ -114,7 +114,11 @@ def failed_action(iid: str, action: str, text: str = "", queue_path: Path | None
         if action == "drop":
             queue.update_item(qp, iid, stage="done", resolution="dropped")
         else:
-            scope = list(it.scope) + ([f"사용자 의견: {text.strip()[:500]}"] if text.strip() else [])
+            scope = list(it.scope)
+            if it.fail_kind == "verify":  # 진단(원인 파일·실패 출력)을 자동으로 이어 붙여 같은 실패 반복을 막는다
+                kind, body, target = verify_doctor.failed_diagnosis(it.fail_reason, it.scope)
+                scope += ([target] if target else []) + ([f"이전 실패({kind}): {body[:400]}"] if kind else [])
+            scope += [f"사용자 의견: {text.strip()[:500]}"] if text.strip() else []
             queue.update_item(qp, iid, stage="queued", attempts=0, scope=scope, fail_kind="", fail_reason="")
         control.audit("failed", {"id": iid, "action": action, "text": text[:200]}, True)
     return {"ok": True, "id": iid, "action": action}

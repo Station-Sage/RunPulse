@@ -18,6 +18,11 @@ def _item(path: Path, iid: str):
     return next((i for i in queue.parse(path) if i.item_id == iid), None)
 
 
+def _fail_note(rec: dict) -> str:
+    from scripts.autopilot import verify_doctor
+    return f"이전 verify 실패({verify_doctor.retry_hint(rec.get('diag', 'real'), rec.get('why', ''))}): {rec.get('why', '')[:500]}"
+
+
 def _promote(rec: dict, path: Path) -> str:
     opt = next((o for o in rec["options"] if o["key"] == rec["choice"]), None)
     act = (opt or {}).get("action", "")
@@ -37,10 +42,10 @@ def _promote(rec: dict, path: Path) -> str:
             fields["verify"] = [text]
         fields.update(attempts=0, fail_kind="", fail_reason="")
     elif act == "retry_scope":
-        fields["scope"] = list(item.scope if item else []) + [f"이전 verify 실패 출력: {rec.get('why', '')[:500]}"]
+        fields["scope"] = list(item.scope if item else []) + [_fail_note(rec)]
         fields.update(attempts=0, fail_kind="", fail_reason="")
     elif act == "retry_note":
-        note = f"사용자 지시: {text}" if text else f"이전 verify 실패 출력: {rec.get('why', '')[:500]}"
+        note = f"사용자 지시: {text}" if text else _fail_note(rec)
         fields["scope"] = list(item.scope if item else []) + [note]
         fields.update(attempts=0, fail_kind="", fail_reason="")
     elif act == "add_target":

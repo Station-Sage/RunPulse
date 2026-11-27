@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 
 from scripts.audit import decisions, progress
-from scripts.autopilot import ledger, queue, settings
+from scripts.autopilot import ledger, queue, settings, verify_doctor
 
 ORDER = ("in_progress", "queued", "needs_decision", "failed", "review", "done")
 REPORT_MAX = 4000
@@ -138,6 +138,14 @@ def _review(it: queue.QueueItem, run: dict, runs: list[dict]) -> dict:
             "problems": problems, "remaining": todo + ["병합은 사용자가 한다(콘솔은 확인 완료만 표시)"]}
 
 
+def _diagnosis(it) -> dict | None:
+    """failed verify 항목의 진단(종류·원인 파일) — 콘솔이 '다시 시도하면 무엇이 달라지는지'를 보여 준다."""
+    if it.stage != "failed" or it.fail_kind != "verify":
+        return None
+    kind, _, target = verify_doctor.failed_diagnosis(it.fail_reason, it.scope)
+    return {"kind": kind or "real", "target": target}
+
+
 def item_detail(iid: str, queue_path: Path | None = None, dpath: Path | None = None, log_dir: Path | None = None,
                 entries: list[dict] | None = None, events: list[dict] | None = None, state_dir: Path | None = None) -> dict | None:
     it = next((x for x in queue.parse(queue_path or settings.QUEUE_PATH) if x.item_id == iid), None)
@@ -150,6 +158,6 @@ def item_detail(iid: str, queue_path: Path | None = None, dpath: Path | None = N
     timeline = [{"ts": e["ts"], "kind": e["kind"], "round": e.get("round"), "result": e.get("result")}
                 for e in evs if e.get("unit") == iid and e.get("kind") in ("unit_start", "unit_end")][-20:]
     run = _run_report(iid, log_dir or settings.RUN_LOG_DIR)
-    return {"item": {**_brief(it), "full_text": it.text, "scope": it.scope, "verify": it.verify, "deps": it.deps, "fail_reason": it.fail_reason},
+    return {"item": {**_brief(it), "full_text": it.text, "scope": it.scope, "verify": it.verify, "deps": it.deps, "fail_reason": it.fail_reason, "diagnosis": _diagnosis(it)},
             "decision": dec, "runs": runs, "timeline": timeline, "report": run,
             "audit": _audit_trail(iid, state_dir or settings.STATE_DIR), "review": _review(it, run, runs)}
