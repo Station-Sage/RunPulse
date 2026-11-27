@@ -1,5 +1,6 @@
 # DONE — 완료된 버그
 
+- **[AUTOPILOT-VERIFY-BASELINE]** 부재 검사 사전 점검(핫픽스, 2026-11-27) — `verify_doctor.lint` 가 `! grep` verify 를 큐 진입 전에 현재 트리에서 실행해 범위 밖 파일에 이미 적중하면 거부(항목이 고칠 수 없는 과도한 패턴, AUD-e4daa1 사례). 환경 복구(`provision`)를 3회차 전까지 시도. 환경·없는 테스트 파일 실패 2건은 이미 08:22/08:46 커밋이 처리(재발 시 lint·복구가 잡음).
 - **[CONSOLE-REVIEW-NO-REDRAW]** 사후 검토 탭 상세 재그림 제거(핫픽스, 2026-11-27) — 15초 갱신마다 `#rv` 를 다시 그리고 펼친 상세를 재요청해 깜빡이며 스크롤이 초기화되던 문제. 검토 목록 마크업이 직전과 같으면 다시 그리지 않고(`lastRv`), 다시 그릴 때도 펼친 상세는 캐시(`itHtml`)로 즉시 복원(개발항목 탭 포함).
 - **[AUTOPILOT-PACING-FRESH]** 예산·페이싱 갱신 지연(핫픽스, 2026-11-27) — 관측이 에이전트 호출 종료 시에만 원장에 기록돼 긴 유닛 중 수치가 낡았음. `stream.py` 가 claude 출력을 실시간으로 읽어 `rate_limit_event` 도착 즉시 `ledger.append_observation`(직전 관측과 값이 같으면 생략)으로 기록하고, 상황판 예산 카드에 '관측 n분 전'(`budget_summary.observed_at`)을 표시. `run_unit`·`audit/agents` 가 사용.
 - **[AUTOPILOT-SWEEP-FIX-STRUCT]** 스윕 실패 구조화·관제 표시(핫픽스, 2026-11-27) — sweep.py 가 실패 조합을 `{state,viewport,error}` 로 내보내고(cycle.SweepError.failures), 수정 단위 scope 에 실패 조합을·verify 에 `--states/--viewports` 범위 재스윕을 명시. 상황판에 "스윕 수정 라운드 n/2 · 대상" 배지(flow.sweep_fix) 표시. 수정 단위 verify 가 문자열이라 글자 단위로 쪼개지던 문제 수정.

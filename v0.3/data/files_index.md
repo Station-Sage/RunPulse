@@ -2553,9 +2553,9 @@
 
 - functions: test_strip_trailers, test_scrub_range_rewrites
 
-### `test_autopilot_verify_doctor.py` (57줄) — verify 진단·lint·재시도 분기.
+### `test_autopilot_verify_doctor.py` (67줄) — verify 진단·lint·재시도 분기.
 
-- functions: test_diagnose, test_reason_tag_and_stop, test_retry_hint_contains_output, test_lint, test_handle_missing_target_extends_scope_then_stops, test_prompt_uses_hint
+- functions: test_diagnose, test_reason_tag_and_stop, test_retry_hint_contains_output, test_lint, test_handle_missing_target_extends_scope_then_stops, test_prompt_uses_hint, test_lint_absence_baseline_outside_scope
 
 ### `test_autopilot_worktree_provision.py` (76줄) — worktree.provision — 워크트리에 없는 untracked 의존성(.venv·node_modules)을 메인 체크아웃에서 링크.
 

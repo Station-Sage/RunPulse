@@ -128,7 +128,7 @@ def _handle_verify_failure(item: queue.QueueItem, note: str) -> tuple[str, dict]
     done = item.attempts + 1
     extra: dict = {"fail_kind": "env" if kind == "env" else "verify", "fail_reason": verify_doctor.tag_reason(kind, out)}
     if kind == "env":
-        fixed = worktree.provision() if done < 2 else []  # 환경 원인(링크 누락) 복구 — 못 고치면 재시도해도 같다
+        fixed = worktree.provision() if done < 3 else []  # 환경 원인(링크 누락) 복구 — 못 고치면 재시도해도 같다
         if fixed:
             extra["fail_reason"] = f"환경 자동 복구({', '.join(fixed)}) 후 재시도: {out[:200]}"
             return "queued", extra

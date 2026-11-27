@@ -55,3 +55,13 @@ def test_prompt_uses_hint(tmp_path):
     it = _item(tmp_path, 1, vd.tag_reason("absence_hit", "src/a:9"))
     it.fail_kind = "verify"
     assert "src/a:9" in prompts.build_prompt(it)
+
+
+def test_lint_absence_baseline_outside_scope(tmp_path):
+    from scripts.autopilot import verify_doctor as vd
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src/a.txt").write_text("bad\n")
+    cmd = "! grep -rn bad src"
+    assert any("범위 밖" in p for p in vd.lint([cmd], ["src/b.txt"], tmp_path))
+    assert vd.lint([cmd], ["src/a.txt"], tmp_path) == []  # 범위 안 적중은 항목이 고칠 대상
+    assert vd.lint(["! grep -rn zzz src"], [], tmp_path) == []  # 적중 없음
