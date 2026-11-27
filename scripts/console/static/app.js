@@ -21,11 +21,12 @@ function lst(a){return a&&a.length?'<ul>'+a.map(x=>`<li>${esc(x)}</li>`).join(''
 function renderDec(list){
  $('#dl').innerHTML=list.length?list.map(d=>{
   const open=d.status==='open',waiting=d.status==='redo';
-  const chg=!open&&!waiting&&!['initiative','vision'].includes(d.kind);
+  const chg=!open&&!waiting&&!['initiative','vision'].includes(d.kind)&&!(d.kind==='deploy_failed'&&d.status==='applied');
   const act=open||chg;
   const f=typeof d.finding==='object'&&d.finding?d.finding:{impact:d.finding||''};
   const rec=d.recommendation;
   return `<div class="card"><b>${esc(d.summary||d.id)}</b> <span class="tag${waiting?' warn':''}">${waiting?'재제안 대기':esc(d.status)}</span> <span class="mut">${esc(d.id)}</span>
+  ${sec('검토안',esc(d.review||''))}
   ${sec('무엇이 문제인가',(f.perspective?`<span class="tag">${esc(f.perspective)}</span> `:'')+esc(f.impact||''))}
   ${sec('제안된 수정',esc(f.fix||''))}
   ${sec('발견된 곳',lst(f.cells))}
@@ -33,13 +34,13 @@ function renderDec(list){
   ${sec('영향 범위',lst(d.scope))}
   ${sec('검증 방법',lst(d.verify))}
   <div class="st">선택지</div>
-  ${act?`<textarea class="tx" id="tx-${esc(d.id)}" placeholder="의견·새 verify 커맨드·재정의 지시 (선택)"></textarea>`:''}
+  ${act?`<textarea class="tx" id="tx-${esc(d.id)}" placeholder="${d.kind==='deploy_failed'?'의견·메모 (선택)':'의견·새 verify 커맨드·재정의 지시 (선택)'}"></textarea>`:''}
   ${!open&&d.text?`<div class="mut">내 의견: ${esc(d.text)}</div>`:''}
-  ${(d.options||[]).map(o=>`<div class="opt${o.key===rec?' rec':''}${!open&&o.key===d.choice?' sel':''}"><b>${esc(o.key)}. ${esc(o.name)}</b>${o.key===rec?' <span class="tag ok">추천</span>':''}${!open&&o.key===d.choice?' <span class="tag ok">내 선택</span>':''}<div class="pro">+ ${esc(o.pros)}</div><div class="con">- ${esc(o.cons)}</div>
+  ${(d.options||[]).map(o=>`<div class="opt${o.key===rec?' rec':''}${!open&&o.key===d.choice?' sel':''}"><b>${esc(o.key)}. ${esc(o.name)}</b>${o.key===rec?' <span class="tag ok">추천</span>':''}${!open&&o.key===d.choice?' <span class="tag ok">내 선택</span>':''}<div class="pro">+ ${esc(o.pros)}</div><div class="con">- ${esc(o.cons)}</div>${o.review?`<div class="mut">검토: ${esc(o.review)}</div>`:''}
    ${act&&!(chg&&o.key===d.choice)?`<button class="b p" data-dc="${esc(d.id)}" data-ch="${esc(o.key)}">${open?'이 안으로 진행':'이 안으로 변경'}</button>`:''}</div>`).join('')||'<div class="mut">선택지 없음 — "다른 제안 받기"로 상세 안을 요청</div>'}
-  <div class="mut">${rec?'추천: '+esc(rec):'추천 없음 (분류기가 추천을 내지 않음)'}</div>
+  <div class="mut">${rec?'추천: '+esc(rec)+(d.recommend_why?' — '+esc(d.recommend_why)+' (제안일 뿐 자동 적용되지 않습니다)':''):'추천 없음 (분류기가 추천을 내지 않음)'}</div>
   ${sec('되돌리는 방법',esc(d.revert||''))}
-  ${open?`<button class="b" data-dc="${esc(d.id)}" data-ch="redo">다른 제안 받기</button>`:waiting?'<div class="mut">다른 제안을 준비 중 — 새 안이 올라오면 다시 표시됩니다</div>':`<div class="mut">선택: ${esc(d.choice||'-')}${chg?' · 개발이 시작되기 전까지 다른 안으로 바꿀 수 있습니다':''}</div>`}</div>`}).join(''):'<div class="card mut">결정함이 비어 있음</div>'}
+  ${open&&d.kind!=='deploy_failed'?`<button class="b" data-dc="${esc(d.id)}" data-ch="redo">다른 제안 받기</button>`:open?'<div class="mut">선택지에서 고르세요 — 이 카드는 재제안이 없습니다</div>':waiting?'<div class="mut">다른 제안을 준비 중 — 새 안이 올라오면 다시 표시됩니다</div>':`<div class="mut">선택: ${esc(d.choice||'-')}${chg?' · 개발이 시작되기 전까지 다른 안으로 바꿀 수 있습니다':''}</div>`}</div>`}).join(''):'<div class="card mut">결정함이 비어 있음</div>'}
 const ISTG={in_progress:'진행중',queued:'대기',needs_decision:'결정 필요',failed:'실패',review:'사후 검토',done:'완료'};
 let openIt={},itHtml={},istage='';
 const PSTEP=[['design','설계'],['develop','개발'],['test','테스트'],['commit','커밋'],['deploy','운영반영']];

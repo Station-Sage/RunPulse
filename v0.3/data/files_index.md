@@ -2378,9 +2378,9 @@
 
 - functions: test_display_meta_formats_m10_m21, test_josa_m31, test_merge_reasons_groups_same_input_m31, test_explain_avg7d_uses_seven_days_m11, test_compare_basis_partial_month_m14, test_story_future_month_has_no_next_and_no_compare_m16, test_risk_peak_carries_grade_m15, test_headline_adds_cirs_caveat_m17, test_signed_pct_and_lagging_m19, test_second_batch_descriptions_m07, test_trend_reports_source_m08
 
-### `test_audit_consume.py` (124줄) — C1 — 결정 소비(chosen→queued, redo→재제안·상한).
+### `test_audit_consume.py` (135줄) — C1 — 결정 소비(chosen→queued, redo→재제안·상한).
 
-- functions: test_chosen_promotes_to_queued, test_chosen_when_not_needs_decision_only_closes, test_redo_requests_new_proposal_then_hits_limit, test_promote_saves_undo_and_reopen_queued, test_reopen_closed_already_done, test_reopen_refused_when_progressed_or_no_undo, test_prune_caps_applied_only, test_install_dep_success_requeues, test_install_dep_failure_marks_failed
+- functions: test_chosen_promotes_to_queued, test_chosen_when_not_needs_decision_only_closes, test_redo_requests_new_proposal_then_hits_limit, test_promote_saves_undo_and_reopen_queued, test_reopen_closed_already_done, test_reopen_refused_when_progressed_or_no_undo, test_prune_caps_applied_only, test_install_dep_success_requeues, test_install_dep_failure_marks_failed, test_apply_leaves_deploy_failed_for_deploy_hold
 
 ### `test_audit_cycle.py` (42줄) — audit.procs 레지스트리와 audit.cycle 스킵 판정.
 
@@ -2394,7 +2394,7 @@
 
 - functions: test_same_kind_open_is_duplicate, test_applied_kind_only_not_duplicate_but_near_cell_is, test_runtime_cell_match_and_queue_item, test_propose_skips_duplicate
 
-### `test_audit_deploy.py` (67줄) — audit/deploy.py — 운영 반영 가드·병합·빌드 분기 (git/npm 은 주입한 sh 로 대체).
+### `test_audit_deploy.py` (69줄) — audit/deploy.py — 운영 반영 가드·병합·빌드 분기 (git/npm 은 주입한 sh 로 대체).
 
 - functions: run, test_guards_leave_everything_untouched, test_diverged_and_merge_failure_report_failed, test_merge_builds_frontend_only_when_changed, test_full_pytest_gates_merge_with_lf_retry, test_flaky_failure_passes_on_lf_rerun
 
@@ -2422,7 +2422,7 @@
 
 - functions: test_key_stable_and_distinct, test_filter_new_skips_open_only, test_record_marks_reopened, test_reverify_resolves_and_keeps, test_current_round_reads_state, test_tunable_override, test_discover_respects_cap_and_round_reset, test_discover_drops_already_known
 
-### `test_audit_loop.py` (317줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
+### `test_audit_loop.py` (320줄) — P6 — 중첩 반복 오케스트레이터(상태 복원·승인 게이트·스윕 안쪽 루프·정지 조건).
 
 - functions: test_state_roundtrip_and_default, test_propose_blocked_and_idempotent, test_needs_decision_items_do_not_stop_loop, test_legacy_await_state_resumes_like_develop, test_develop_then_test_inside_inner_loop, test_round_ends_and_unit_cap, test_audit_failures_halt_and_pacing_block, test_audit_phase_runs_release_audit_when_version_due, test_audit_phase_falls_back_to_normal_when_release_blocked, test_round_end_deploys_when_units_done_and_reports_failure, test_run_until_stop_chains_steps_and_stops_on_skip, test_stop_flag_ends_after_round_without_new_audit, test_stop_flag_honored_when_no_new_candidates, test_only_needs_decision_left_does_not_stop, test_run_until_stop_converts_exception_and_pacinghold, test_propose_keeps_design_summary, test_no_candidate_design_goes_through_end_round, test_propose_limit_and_checkpoint, test_step_records_cursor_and_reset_clears, test_run_until_stop_saves_state_immediately_on_resume, test_item_level_failure_does_not_halt_loop, test_systemic_failure_still_halts, test_pause_flag_stops_step_cleanly_and_human_resume, test_develop_gate_block_waits_instead_of_spinning, test_halt_is_written_to_progress_log
 
@@ -2753,9 +2753,9 @@
 
 - functions: test_pause_resume_stop, test_tunables_validation, test_set_interval, test_start_clears_stopped_cycle_state, test_pause_keeps_cycle_state, test_resume_starts_loop_but_pause_does_not, test_resume_after_failed_halt_keeps_cursor
 
-### `test_console_flow.py` (132줄) — 진행 흐름(flow.build) 계산 + 루프 이벤트 기록.
+### `test_console_flow.py` (143줄) — 진행 흐름(flow.build) 계산 + 루프 이벤트 기록.
 
-- functions: test_build_from_events, test_design_batches_are_summed, test_deploy_stage_and_old_round_ignored, test_fallback_from_progress_log, test_loop_records_events, test_event_trims_large_file, test_sub_states_reset_on_new_audit_pass, test_steps_only_current_phase_with_failures, test_sweep_stream_emits_step_events, test_sweep_fix_badge_only_during_fix_round, test_open_decisions_counts_only_open
+- functions: test_build_from_events, test_design_batches_are_summed, test_deploy_stage_and_old_round_ignored, test_fallback_from_progress_log, test_loop_records_events, test_event_trims_large_file, test_sub_states_reset_on_new_audit_pass, test_steps_only_current_phase_with_failures, test_sweep_stream_emits_step_events, test_sweep_fix_badge_only_during_fix_round, test_open_decisions_counts_only_open, test_deploy_hold_marks_stage5_with_reason
 
 ### `test_console_items.py` (70줄) — 개발 항목 목록·상세(items) + 라우팅.
 
@@ -2765,9 +2765,9 @@
 
 - functions: test_queue_summary, test_overview_and_decisions, test_overview_has_release, test_redo_not_counted_and_closed_capped
 
-### `test_console_server.py` (176줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
+### `test_console_server.py` (185줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
 
-- functions: test_choose_validation, test_log_tail_and_route, test_http_origin_and_content_type, test_static_files_served, test_timers_and_tunable_values, test_notify_console_hint, test_change_choice_from_chosen_and_blocked_kinds, test_change_choice_applied_reopen_fail, test_review_action, test_failed_action, test_review_text_not_truncated, test_pause_action_writes_progress_log, test_pipeline_running_step, test_timed_verify_marks_and_clears_state
+- functions: test_choose_validation, test_log_tail_and_route, test_http_origin_and_content_type, test_static_files_served, test_timers_and_tunable_values, test_notify_console_hint, test_change_choice_from_chosen_and_blocked_kinds, test_change_choice_applied_reopen_fail, test_review_action, test_failed_action, test_review_text_not_truncated, test_pause_action_writes_progress_log, test_pipeline_running_step, test_timed_verify_marks_and_clears_state, test_deploy_failed_applied_cannot_be_reopened
 
 ### `test_constraints.py` (65줄)
 
@@ -2992,6 +2992,14 @@
 ### `test_deep_thread.py` (78줄) — deep_thread 테스트 — 'AI 분석'이 코치 스레드의 첫 답변이 된다 (INLINE 모드).
 
 - functions: db_file, test_start_ready_fills_first_message, test_start_failed_and_cancelled, test_stage_emitter_reports_tools, test_post_route_returns_thread
+
+### `test_deploy_card.py` (21줄) — 운영 반영 실패 결정 카드 — 종류별 검토안·추천안 생성.
+
+- functions: test_card_has_review_and_recommendation, test_recommendation_by_kind
+
+### `test_deploy_hold.py` (91줄) — 운영 반영 실패 보류 — 카드 생성·라운드 유지·선택 적용.
+
+- functions: test_hold_keeps_round_and_opens_card, test_release_actions, test_release_fix_unit_queues_once, test_redo_status_keeps_waiting, test_retry_success_advances_failure_reholds, test_step_waits_then_releases_and_run_until_stop_breaks
 
 ### `test_di_v2.py` (28줄) — P7-PRED-89: DI v2 — 랩 기반 후반 효율 유지율, 상한 없음.
 
@@ -4395,7 +4403,7 @@
 - functions: run
 
 ---
-총 964개 파일
+총 966개 파일
 
 ## docstring 누락
 

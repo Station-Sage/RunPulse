@@ -122,3 +122,14 @@ def test_install_dep_failure_marks_failed(tmp_path, monkeypatch):
     out = consume.apply(q, lambda f: {}, dp)
     it = queue.parse(q)[0]
     assert it.stage == "failed" and "E404" in it.fail_reason and out
+
+
+def test_apply_leaves_deploy_failed_for_deploy_hold(tmp_path):
+    from scripts.autopilot.deploy_card import build_deploy_card
+    q, dp = tmp_path / "q.md", tmp_path / "d.json"
+    q.write_text("", encoding="utf-8")
+    card = build_deploy_card(2, "merge", "x")
+    card.update(status="chosen", choice="A")
+    decisions.save([card], dp)
+    assert consume.apply(q, None, dp) == []
+    assert decisions.load(dp)[0]["status"] == "chosen"
