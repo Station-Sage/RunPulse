@@ -35,6 +35,8 @@ def test_review_success_fallback_and_pacing(tmp_path):
     assert card_review.review(ok, ask=lambda *a: GOOD)["source"] == "agent"
     assert ok["review_source"] == "agent" and ok["split_plan"] and ok["options"][0]["review"] == "경계가 명확"
     bad = json.loads(json.dumps(rec))
+    for _ in range(card_review.MAX_TRIES - 1):
+        assert card_review.review(bad, ask=lambda *a: "")["source"] == "pending" and "review_source" not in bad
     assert card_review.review(bad, ask=lambda *a: "")["source"] == "rule"
     assert bad["recommendation"] == rec["recommendation"]
 
