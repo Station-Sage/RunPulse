@@ -84,7 +84,7 @@ function renderItems(r){
  let cur='';const body=[];
  for(const it of r.items.filter(x=>!istage||x.stage===istage)){
   if(it.stage!==cur){cur=it.stage;body.push(`<div class="st">${ISTG[cur]||esc(cur)} (${c[cur]||0})</div>`)}
-  body.push(`<div class="card" style="padding:8px 12px"><div class="row" data-it="${esc(it.id)}" style="cursor:pointer"><span><b>${esc(it.id)}</b> <span class="tag${it.stage==='failed'?' bad':''}">${ISTG[it.stage]||esc(it.stage)}</span></span><span class="mut">${it.stage==='queued'?`<button data-qid="${esc(it.id)}" data-qa="up" title="한 칸 위로">↑</button> <button data-qid="${esc(it.id)}" data-qa="top" title="맨 앞으로">맨 위</button> `:''}▾</span></div>${pipeHtml(it)}<div class="mut">${esc(it.text)}</div><div id="dt-${esc(it.id)}"></div></div>`)}
+  body.push(`<div class="card" style="padding:8px 12px"><div class="row" data-it="${esc(it.id)}" style="cursor:pointer"><span><b>${esc(it.id)}</b> <span class="tag${it.stage==='failed'?' bad':''}">${ISTG[it.stage]||esc(it.stage)}</span>${it.done_at?` <span class="mut">${hhmm(it.done_at)}</span>`:''}</span><span class="mut">${it.stage==='queued'?`<button data-qid="${esc(it.id)}" data-qa="up" title="한 칸 위로">↑</button> <button data-qid="${esc(it.id)}" data-qa="top" title="맨 앞으로">맨 위</button> `:''}▾</span></div>${pipeHtml(it)}<div class="mut">${esc(it.text)}</div><div id="dt-${esc(it.id)}"></div></div>`)}
  $('#il').innerHTML=body.length?body.join(''):`<div class="card mut">${istage?esc(ISTG[istage]||istage)+' 상태의 항목이 없습니다.':'항목이 없습니다.'}</div>`;
  reopenIt()}
 function reopenIt(){for(const id of Object.keys(openIt)){const el=document.getElementById('dt-'+id);if(el&&!el.innerHTML){if(itHtml[id])el.innerHTML=itHtml[id];else{delete openIt[id];toggleIt(id)}}}}

@@ -68,3 +68,13 @@ def test_git_facts_parses_ids_and_base():
         return "h1\tfeat(autopilot): x (A-2)\nh2\tdocs: none" if args[0] == "log" else "h1 h9"
     commits, base = items.git_facts(fake)
     assert commits.get("A-2") == "h1" and "h1" in base
+
+
+def test_done_items_sorted_by_recent_completion(tmp_path):
+    q = tmp_path / "B.md"
+    done = '  <!-- autopilot: {"stage":"done","mode":"auto","attempts":1,"deps":[]} -->\n'
+    q.write_text("".join(f"- **[{i}]** x\n{done}" for i in ("D-1", "D-2", "D-3")), encoding="utf-8")
+    ents = [{"unit_id": "D-1", "ts": 300, "outcome": "success"}, {"unit_id": "D-2", "ts": 100, "outcome": "success"}]
+    r = items.item_list(q, ents, {}, ({}, set()), times={"D-3": 200})
+    assert [i["id"] for i in r["items"]] == ["D-1", "D-3", "D-2"]
+    assert r["items"][0]["done_at"] == 300
