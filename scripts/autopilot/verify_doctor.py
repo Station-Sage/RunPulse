@@ -1,6 +1,6 @@
 """verify 진단·사전 점검 — 실패 원인을 종류별로 가르고, 실행 불가능한 verify 를 큐 진입 전에 잡는다.
 
-diagnose: missing_target(대상 파일 없음)|usage(인자·모듈 오류)|absence_hit(`! grep` 부재 검사 적중)|real(실제 테스트 실패)|env.
+diagnose: missing_target(대상 파일 없음)|usage(인자·모듈 오류)|absence_hit(`! grep`·`test $(grep …|wc -l) -eq 0` 부재 검사 적중)|real(실제 테스트 실패)|env.
 lint: 큐에 넣기 전 verify 가 실행 가능한지 점검(존재하지 않는 테스트 파일·스크립트, 범위 밖 파일에 이미 적중하는 `! grep` 부재 검사).
 """
 from __future__ import annotations
@@ -25,6 +25,14 @@ def is_negative_grep(cmd: str) -> bool:
     return bool(re.search(r"(?:^|&&|;)\s*(?:cd [^&;]+&&\s*)?!\s*grep\b", cmd))
 
 
+_COUNT_ABSENCE = re.compile(r"test\s+\$\(\s*(grep\b.*?)\s*\|\s*wc\s+-l\s*\)\s*-eq\s+0")
+
+
+def is_absence_check(cmd: str) -> bool:
+    """`! grep …` 또는 `test $(grep … | wc -l) -eq 0` — 특정 패턴이 0건이어야 통과하는 부재 검사."""
+    return is_negative_grep(cmd) or bool(_COUNT_ABSENCE.search(cmd))
+
+
 def diagnose(cmd: str, rc: int | None, output: str) -> str:
     """verify 실패 → env|missing_target|usage|absence_hit|real."""
     if rc == 127 or any(m in output for m in _ENV):
@@ -33,7 +41,7 @@ def diagnose(cmd: str, rc: int | None, output: str) -> str:
         return "missing_target"
     if any(m in output for m in _USAGE):
         return "usage"
-    if is_negative_grep(cmd) and rc == 1:
+    if is_absence_check(cmd) and rc == 1:
         return "absence_hit"
     return "real"
 
@@ -119,6 +127,25 @@ def fix_target(kind: str, out: str, scope: list[str]) -> str:
     return ""
 
 
+def hit_target(cmd: str, scope: list[str], root: Path) -> str:
+    """부재 검사의 grep 부분을 다시 돌려 scope 밖 적중 파일(repo 기준)을 찾는다 — 출력에 위치가 없는 count 형 검사용. 없으면 ''."""
+    m = _COUNT_ABSENCE.search(cmd)
+    if not m or not root.exists():
+        return ""
+    base = "frontend/" if "cd frontend" in cmd else ""
+    try:
+        r = subprocess.run(["bash", "-c", m.group(1)], cwd=root / base.rstrip("/"), capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    inside = [s.rstrip("/") for s in scope]
+    for ln in r.stdout.splitlines():
+        f = ln.split(":", 1)[0].removeprefix("./")
+        full = f if f.startswith(base) else base + f
+        if f and not any(full == s or full.startswith(s + "/") for s in inside):
+            return full
+    return ""
+
+
 def failed_diagnosis(reason: str, scope: list[str]) -> tuple[str, str, str]:
     """failed 항목의 fail_reason → (진단, 실패 출력, 범위 밖 원인 파일). 진단 태그가 없으면 ('', reason, '')."""
     kind, body = split_reason(reason)
@@ -185,6 +212,6 @@ def missing_file(cmd: str, output: str) -> str:
 STOP_NOTE = {
     "missing_target": "verify 의 테스트 파일이 없다 — 범위에 추가해 재시도했으나 반복",
     "usage": "verify 명령 인자·호출 방식 오류가 반복 — 코드가 아닌 verify 수정 필요",
-    "absence_hit": "`! grep` 부재 검사가 계속 적중 — 패턴이 과도하게 넓은지 확인",
+    "absence_hit": "부재 검사(`! grep`·`test $(grep …) -eq 0`)가 계속 적중 — scope 부족이거나 패턴이 과도하게 넓은지 확인",
     "real": "테스트 실패가 해소되지 않음",
 }

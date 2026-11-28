@@ -579,3 +579,8 @@
 
 - 문제: 자동 재시도가 끝난 verify 실패가 선택지 없는 '실패' 카드로 결정함에 올라왔다. 또 verify 가 develop 단계 안에서 돌아 develop·test·done 로그가 한 시각으로 찍혔고 현황판도 두 단계를 구분하지 못했다.
 - 결정(사용자 승인): (1) 재시도 소진 시 진단(real|absence_hit|missing_target|usage)별 선택지가 있는 `verify_decision` 카드를 등록하고 항목은 needs_decision 이 된다. `real` 도 자동 재시도 후에는 콘솔 액션(지시 추가 재시도·실패 출력 첨부·verify 수정·폐기)을 준다. (2) `retry_note`/`add_target` 액션을 consume 에 추가. (3) verify 시작·종료를 실제 시각으로 `progress.mark`·`test_start` 이벤트로 남기고, 실행 중에는 `verify_state.json` 으로 콘솔 파이프라인이 test 단계를 진행중으로 표시한다. (4) `decisions.append(fresh=True)` 로 같은 id 의 적용 완료 기록을 대체한다.
+
+## ADR-072: verify 부재 검사가 가리키는 scope 밖 파일은 재시도 시 scope 에 자동 추가 (2026-11-28, AUD-0eeb77)
+
+- 문제: `test $(grep … | wc -l) -eq 0` 같은 개수형 부재 검사는 hit 위치를 출력하지 않아 absence_hit 로 진단되지 않았고, hit 파일이 scope 밖이면 모델이 고칠 수 없어 3회 실패 후 결정 카드로 올라왔다.
+- 결정(사용자 승인): (1) 개수형 부재 검사도 absence_hit. (2) `hit_target` 이 내부 grep 을 재실행해 scope 밖 hit 파일을 찾고, 재시도 전에 scope 에 자동 추가한다. (3) 추가할 대상이 없으면 조기에 결정 카드. (4) develop 완료와 verify 통과를 한 줄 로그로 합치고 test 단계 시작 로그는 남기지 않는다(flow.py 는 verify_state 로 4단계 표시 유지).

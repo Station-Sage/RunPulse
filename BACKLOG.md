@@ -14,8 +14,9 @@
 - **[AP-C]** (2026-11-25) 오토파일럿 관제 콘솔 C1~C4 구현 완료(`scripts/console/`, 브랜치 feat/autopilot-a1-state, 미머지·미배포): 현황·제어·결정·검토 4탭 PWA, systemd user 서비스(`scripts/console/systemd/`), Telegram 알림에 콘솔 링크. 남은 일: 서비스 설치, cloudflared 터널 + Access 앱 생성(사용자), 머지 여부 결정. ADR-067
 - **[AP-V]** (2026-11-25) 오토파일럿 버전 사이클 S0~S5 구현 완료(브랜치 feat/autopilot-a1-state, 미커밋·미머지·미배포): release_plan·docs_ctx·orchestrator·planner·idesign·versioning·steward·roles + 콘솔 `#rel`·역할 패널(`/api/roles`). ADR-068. 치명 결함 우선 결정(2026-11-25): 큐 메타 critical, next_runnable 우선, plan·idesign 보류, 게이트 차단.
 - **[AP-FAIL]** (2026-11-25) 감사 루프 failed 의미 재정의 구현 완료(브랜치 feat/autopilot-a1-state, 미커밋·미머지·미배포): 모델의 결정 요청은 failed 가 아니라 `needs_decision`+질문 카드(`fail_kind=asked`, 재질문 상한 2), failed 는 사유 분류(verify/env/exec/sync/asked_loop)·재시도 카드·콘솔 blocked 목록, 선택은 scope·`answered` 에 반영, 폐기는 `done`+`resolution: dropped`, 기본 verify 는 `.venv` pytest. 설계 `v0.3/data/phase-7-ui-renewal/DESIGN-AUDIT-FAILED-HANDLING.md`, ADR-069. 기존 failed 5건 이행은 `python -m scripts.autopilot.migrate_failed --apply`(사용자 지시 시 1회, 기본 dry-run).
-- **[AP-FAIL-2]** (2026-11-28) failed verify 항목에 진단 적용 구현 완료(미커밋·미머지·미배포): 콘솔 재큐잉이 원인 파일·이전 실패 출력을 scope 에 이어 붙이고(`failed_action`), 상세에 `item.diagnosis` 노출, 기존 failed verify 이행 `migrate_failed.migrate_verify`(`--apply` 는 사용자 지시 시 1회, 기본 dry-run). AUD-0eeb77·AUD-3bc2ad 는 사용자 의견과 함께 재큐잉(루프는 PAUSE 상태).
-- **[AP-PRIO-1]** (2026-11-28) 콘솔 개발 항목의 대기 행에 `↑`(한 칸 위)·`맨 위` 버튼 추가 — `queue.move_item` 이 BACKLOG 의 항목 블록 위치를 옮겨 실행 순서와 목록이 일치(`POST /api/queued/<id>`). 구현·테스트 완료(미커밋·미머지·미배포).
+- **[AP-FAIL-2]** (2026-11-28) failed verify 항목에 진단 적용 구현 완료: 콘솔 재큐잉이 원인 파일·이전 실패 출력을 scope 에 이어 붙이고(`failed_action`), 상세에 `item.diagnosis` 노출, 기존 failed verify 이행 `migrate_failed.migrate_verify`(`--apply` 는 사용자 지시 시 1회, 기본 dry-run). AUD-0eeb77·AUD-3bc2ad 는 사용자 의견과 함께 재큐잉(루프는 PAUSE 상태).
+- **[AP-PRIO-1]** (2026-11-28) 콘솔 개발 항목의 대기 행에 `↑`(한 칸 위)·`맨 위` 버튼 추가 — `queue.move_item` 이 BACKLOG 의 항목 블록 위치를 옮겨 실행 순서와 목록이 일치(`POST /api/queued/<id>`). 구현·테스트 완료.
+- **[AP-FAIL-3]** (2026-11-28) 로그 정리(개발 완료·검증 통과를 한 줄 `→ done` 으로, 의미 없는 test 단계 시작 로그 제거) + 개수형 부재 검사(`wc -l`)도 absence_hit 로 진단해 hit 파일을 scope 에 자동 추가 후 재시도, 추가 불가 시 즉시 결정 카드(ADR-072). 구현·테스트 완료(미커밋).
 
 ## BUGS
 

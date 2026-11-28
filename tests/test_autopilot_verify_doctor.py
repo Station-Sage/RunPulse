@@ -101,3 +101,28 @@ def test_handle_missing_dep_registers_install_card(tmp_path, monkeypatch):
     stage, extra = run_unit._handle_verify_failure(_item(tmp_path), note)
     assert stage == "needs_decision" and extra["fail_kind"] == "env"
     assert got[0]["dep"] == {"eco": "npm", "name": "vitest"}
+
+
+COUNT_CMD = "cd frontend && test $(grep -rn 'heroView' src | wc -l) -eq 0"
+
+
+def test_count_absence_is_absence_hit():
+    assert vd.is_absence_check(COUNT_CMD) and not vd.is_absence_check("pytest")
+    assert vd.diagnose(COUNT_CMD, 1, "") == "absence_hit"
+
+
+def test_hit_target_finds_out_of_scope_file(tmp_path):
+    (tmp_path / "frontend/src/a").mkdir(parents=True)
+    (tmp_path / "frontend/src/a/p.ts").write_text("heroView\n")
+    assert vd.hit_target(COUNT_CMD, [], tmp_path) == "frontend/src/a/p.ts"
+    assert vd.hit_target(COUNT_CMD, ["frontend/src/a"], tmp_path) == ""
+    assert vd.hit_target("pytest", [], tmp_path) == ""
+
+
+def test_handle_absence_hit_extends_scope(tmp_path, monkeypatch):
+    (tmp_path / "frontend/src").mkdir(parents=True)
+    (tmp_path / "frontend/src/p.ts").write_text("heroView\n")
+    monkeypatch.setattr(run_unit.settings, "WORKTREE_DIR", tmp_path)
+    note = f"`{COUNT_CMD}` 종료코드 1\n"
+    stage, extra = run_unit._handle_verify_failure(_item(tmp_path), note)
+    assert stage == "queued" and "frontend/src/p.ts" in extra["scope"]
