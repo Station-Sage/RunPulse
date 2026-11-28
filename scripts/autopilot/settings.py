@@ -44,7 +44,7 @@ IDLE_MINUTES_REQUIRED = 30      # 이 세션 등 최근 활동이 있으면 양�
 CIRCUIT_BREAKER_FAILS = 2       # 연속 실패 시 정지
 
 # ── 격리 실행 위치 ──
-BASE_BRANCH = "renew/data-architecture"   # 매 실행 전 이 브랜치 최신으로 rebase
+BASE_BRANCH = "renew/data-architecture"   # 매 실행 전 이 브랜치 최신으로 merge
 AUTOPILOT_BRANCH = "autopilot/phase7"
 def _main_checkout() -> Path:
     """메인 체크아웃(git common dir 의 부모) — 어느 워크트리에서 실행해도 autopilot 워크트리는 한 곳에 둔다."""

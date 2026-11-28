@@ -70,3 +70,10 @@ def test_resume_clears_stop_cause_and_describe():
     assert "원인X" in sr.describe(st)
     sr.resume(st, human=True)
     assert "stop_cause" not in st
+
+
+def test_blocked_is_human_resume_only():
+    assert sr.BLOCKED in sr.HUMAN_RESUME and sr.BLOCKED not in sr.AUTO_RESUME
+    st = {"phase": "develop"}
+    sr.stop(st, sr.BLOCKED, cause="원인")
+    assert st["stop_cause"] == "원인" and "원인" in sr.describe(st)

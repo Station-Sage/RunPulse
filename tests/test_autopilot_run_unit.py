@@ -208,7 +208,7 @@ def test_sync_block_holds_item_in_queue(monkeypatch, tmp_path):
     monkeypatch.setattr(run_unit.queue, "update_item", lambda path, iid, **kw: updates.append(kw))
     monkeypatch.setattr(run_unit.settings, "STATE_DIR", tmp_path)
     monkeypatch.setattr(run_unit.settings, "LOCK_PATH", tmp_path / "lock")
-    assert run_unit.run_once() == 1
+    assert run_unit.run_once() == 3
     assert not any(u.get("stage") == "failed" for u in updates)
 
 

@@ -90,3 +90,39 @@ def test_discard_leftovers_and_sync_recovers(tmp_path, monkeypatch):
     assert not worktree.is_clean()
     assert sorted(worktree.discard_leftovers()) == ["a.txt", "junk.txt"]
     assert worktree.is_clean() and (wt / "a.txt").read_text() == "1"
+
+
+def _git(cwd, *a):
+    subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True)
+
+
+def _merge_repo(tmp_path, monkeypatch, conflict_file):
+    wt = tmp_path / "wt"
+    (wt / "v0.3/data").mkdir(parents=True)
+    (wt / "scripts").mkdir()
+    (wt / "scripts/gen_files_index.py").write_text("open('v0.3/data/files_index.md','w').write('regen\\n')\n")
+    for c in (["init", "-q", "-b", "base"], ["config", "user.email", "a@b"], ["config", "user.name", "a"]):
+        _git(wt, *c)
+    for f in ("v0.3/data/files_index.md", "code.py"):
+        (wt / f).write_text("0\n")
+    _git(wt, "add", "."); _git(wt, "commit", "-qm", "i")
+    _git(wt, "checkout", "-qb", "auto")
+    (wt / conflict_file).write_text("auto\n"); _git(wt, "commit", "-qam", "a")
+    _git(wt, "checkout", "-q", "base")
+    (wt / conflict_file).write_text("base\n"); _git(wt, "commit", "-qam", "b")
+    _git(wt, "checkout", "-q", "auto")
+    monkeypatch.setattr(worktree.settings, "WORKTREE_DIR", wt)
+    monkeypatch.setattr(worktree.settings, "BASE_BRANCH", "base")
+    return wt
+
+
+def test_sync_merges_and_regenerates_files_index_conflict(tmp_path, monkeypatch):
+    wt = _merge_repo(tmp_path, monkeypatch, "v0.3/data/files_index.md")
+    assert worktree.sync() == "" and worktree.is_clean()
+    assert (wt / "v0.3/data/files_index.md").read_text() == "regen\n"
+
+
+def test_sync_aborts_on_other_conflict(tmp_path, monkeypatch):
+    wt = _merge_repo(tmp_path, monkeypatch, "code.py")
+    msg = worktree.sync()
+    assert "병합 충돌" in msg and "code.py" in msg and worktree.is_clean()

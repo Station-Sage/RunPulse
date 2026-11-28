@@ -28,6 +28,9 @@ from .prompts import build_cmd as _build_cmd, build_prompt as _build_prompt
 from . import fail_handling, gate, ledger, leftovers, notify, queue, settings, size_followup, stream, trailers, verify_card, verify_doctor, worktree
 
 
+ENV_BLOCK: dict = {}   # run_once 가 3(환경 차단)을 돌려줄 때의 원인 — 루프가 stop_cause 로 옮긴다
+
+
 def _parse_stream(raw: str) -> dict:
     rate_limit_info = None
     result = None
@@ -228,12 +231,12 @@ def run_once(
     try:
         worktree.ensure()
         sync_blocked = worktree.sync()
-        if sync_blocked:  # 환경 문제 — 항목 탓이 아니므로 큐에 그대로 두고 대기(rc=1)
+        if sync_blocked:  # 환경 문제 — 큐에 그대로 두고 루프를 blocked 로 세운다(rc=3, 원인은 ENV_BLOCK)
             from scripts.audit import progress
             progress.mark(f"[worktree] {item.item_id} 개발 보류 — {sync_blocked} (항목은 큐에 유지)")
             notify.send(f"[autopilot] {item.item_id} 보류(환경): {sync_blocked}")
-            print(f"[worktree] 차단: {sync_blocked}")
-            return 1
+            ENV_BLOCK["cause"] = sync_blocked
+            return 3
 
         queue.update_item(settings.QUEUE_PATH, item.item_id, stage="in_progress",
                           attempts=item.attempts + 1)
