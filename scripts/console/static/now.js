@@ -1,7 +1,7 @@
 /* 상황판 탭 렌더러 — app.js 의 공용 헬퍼($, esc, api, bar, win, dur, hhmm …)를 호출 시점에 참조한다. */
 const openPh={},openRole={};
 const QKO={queued:'대기',in_progress:'진행중',done:'완료',failed:'실패',review:'사후 검토',blocked:'막힘'};
-const TKO={audit:'감사',watch:'감시'};
+const TKO={audit:['개발·감사 사이클','100분마다 시도 — 실제 실행은 페이싱·최소 90분 간격이 결정'],watch:['루프 감시','30분마다 — 멈춤·이상 상태 점검']};
 const ROLE_KO={steward:'비전 관리',planner:'버전 계획',designer:'설계',developer:'개발',verifier:'검증',auditor:'감사',deployer:'배포'};
 const FLAG_KO={paused:'일시정지',skip:'건너뛰기',rerun:'재실행'};
 const sep='<span class="sp">·</span>';
@@ -61,7 +61,7 @@ function renderNow(o){window.lastO=o;
  document.querySelector('[data-a=resume]').disabled=!(f.pause||f.stop||s.stop_reason);
  const pw=$('#pw');
  pw.style.display=pacing?'':'none';
- if(pacing){const lifted=g.pacing_ok;pw.innerHTML=`${lifted?'페이싱 해제 — 재개 대기':'페이싱 대기 중'}<b>${g.pacing_resume_at?hhmm(g.pacing_resume_at)+' 재개':lifted?'한도 리셋됨 · 곧 재개':'재개 시각 계산 중'}</b><span ${g.pacing_resume_at?`data-until="${g.pacing_resume_at}"`:''}></span>${g.pacing_reason?`<div class="mut">${esc(g.pacing_reason)}</div>`:''}`}
+ if(pacing){const lifted=g.pacing_ok;pw.innerHTML=`<div class="pt">${lifted?'페이싱 해제 — 재개 대기':'페이싱 대기 중'}</div><div class="pm">${g.pacing_resume_at?hhmm(g.pacing_resume_at)+' 재개':lifted?'한도 리셋됨 · 곧 재개':'재개 시각 계산 중'}</div><div class="pl"><span ${g.pacing_resume_at?`data-until="${g.pacing_resume_at}"`:''}></span></div>${g.pacing_reason?`<div class="pr">${esc(g.pacing_reason)}</div>`:''}`}
  $('#rel').innerHTML=relHtml(o.release);$('#roles').innerHTML=rolesHtml(o.roles);
  $('#upd').textContent=new Date().toLocaleTimeString('ko-KR',{hour12:false});
  $('#st').innerHTML=flowHtml(o);
@@ -76,9 +76,9 @@ function renderNow(o){window.lastO=o;
  if(rvh!==window.lastRv){window.lastRv=rvh;$('#rv').innerHTML=rvh;reopenIt()}
 }
 function renderTimers(){
- $('#tm').innerHTML=Object.entries(timers).map(([k,v])=>{const n=k.replace('runpulse-','');return `<div class="row"><span>${TKO[n]||n} <span class="tag">${esc(v.active||'?')}</span></span><span data-next="${esc(v.next||0)}"></span></div>`}).join('');
+ $('#tm').innerHTML=Object.entries(timers).map(([k,v])=>{const n=k.replace('runpulse-','');const [nm,ds]=TKO[n]||[n,''],on=v.active==='active';return `<div class="tmr"><div class="row"><b>${esc(nm)}</b><span class="tag">${on?'동작 중':'멈춤'}</span></div><div class="mut">${esc(ds)}</div><div class="mut">다음 <span data-next="${esc(v.next||0)}"></span> · 마지막 ${v.last?esc(ago(v.last)):'기록 없음'}</div></div>`}).join('');
  tickTimers()}
 function tickTimers(){document.querySelectorAll('[data-next]').forEach(e=>{e.textContent=left(Number(e.dataset.next)*1e6)})}
 function buildSettings(){
- $('#tmset').innerHTML=['runpulse-audit','runpulse-watch'].map(t=>{const n=t.replace('runpulse-','');return `<label for="iv-${t}">${TKO[n]} 간격(분, 10~1440)</label><input type="number" min="10" max="1440" placeholder="분" id="iv-${t}"><button class="b" data-iv="${t}">적용</button>`}).join('');
+ $('#tgl').innerHTML=Object.entries(TOG).map(([k,[l,d]])=>`<div class="row"><span><b>${l}</b><div class="mut">${d}</div></span><button class="b" id="tg-${k}" data-tg2="${k}" data-on="0">…</button></div>`).join('');
  $('#tun').innerHTML=Object.entries(TUN).map(([k,l])=>`<label for="tn-${k}">${l}</label><input type="number" step="any" id="tn-${k}"><button class="b" data-tn="${k}">적용</button>`).join('')}

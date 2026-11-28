@@ -1,5 +1,6 @@
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const TUN={WEEKLY_PACING_ENABLED:'주간 페이싱 대기 (1=켜짐, 0=꺼짐)',AUDIT_TOOL_CALLS_PER_ROUND:'감사 라운드당 도구 호출',FALLBACK_SESSION_MAX_RUNS:'세션 최대 실행 수',FALLBACK_SESSION_MAX_USD:'세션 최대 비용($)'};
+const TOG={SESSION_PACING_ENABLED:['5시간 세션 페이싱','사용률 80% 이상이면 리셋까지 대기'],WEEKLY_PACING_ENABLED:['주간 페이싱','7일 사용률이 균등 목표선을 넘으면 대기']};
+const TUN={AUDIT_TOOL_CALLS_PER_ROUND:'감사 라운드당 도구 호출 수'};
 let timers={},tab='now',typing=false,drafts={};
 async function api(p,body){
  const o=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{};
@@ -99,6 +100,7 @@ async function load(){
  for(const[k,v]of Object.entries(drafts)){const e=document.getElementById(k);if(e&&e.value!==v)e.value=v}
  showLog(l);loadItems();
  if(t&&typeof t==='object'){timers=t;renderTimers()}
+ if(tv)for(const[k,v]of Object.entries(tv)){const g=$('#tg-'+k);if(g){g.dataset.on=v?'1':'0';g.textContent=v?'켜짐':'꺼짐';g.classList.toggle('p',!!v)}}
  if(tv&&!typing)for(const[k,v]of Object.entries(tv)){const e=$('#tn-'+k);if(e&&document.activeElement!==e&&!e.value)e.value=v}}
 document.addEventListener('click',async e=>{
  const rr=e.target.closest('[data-rr]');if(rr){openRole[rr.dataset.rr]=!openRole[rr.dataset.rr];if(window.lastO)renderNow(window.lastO);return}
@@ -109,7 +111,7 @@ document.addEventListener('click',async e=>{
  let r;
  if(t.dataset.a){if(t.dataset.a==='stop'&&!confirm('즉시 중지할까요? 실행 중 프로세스를 종료합니다.'))return;r=await api('/api/control',{action:t.dataset.a})}
  else if(t.dataset.rl){r=await api('/api/roles',{role:t.dataset.rl,flag:t.dataset.rf,value:t.dataset.rv==='1'})}
- else if(t.dataset.iv){r=await api('/api/interval',{timer:t.dataset.iv,minutes:Number($('#iv-'+t.dataset.iv).value)})}
+ else if(t.dataset.tg2){r=await api('/api/tunables',{values:{[t.dataset.tg2]:t.dataset.on==='1'?0:1}})}
  else if(t.dataset.tn){r=await api('/api/tunables',{values:{[t.dataset.tn]:Number($('#tn-'+t.dataset.tn).value)}})}
  else if(t.dataset.dc){r=await api('/api/decisions/'+t.dataset.dc,{choice:t.dataset.ch,text:(($('#tx-'+t.dataset.dc)||{}).value||'')})}
  else if(t.dataset.dn){const v=(($('#tx-'+t.dataset.dn)||{}).value||'');r=await api('/api/decisions/'+t.dataset.dn+'/note',{text:v});if(r&&r.ok){delete drafts['tx-'+t.dataset.dn];const m=$('#ns-'+t.dataset.dn);const o=$('#op-'+t.dataset.dn);if(o)o.textContent=v.trim()?'내 의견: '+v.trim():'';if(m)m.textContent=v.trim()?'저장됨: '+v.trim().slice(0,60):'의견 삭제됨';toast(v.trim()?'의견 저장됨':'의견 삭제됨');return}}

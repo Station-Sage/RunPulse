@@ -15,14 +15,11 @@ from pathlib import Path
 from scripts.autopilot import settings
 
 LOCK = threading.Lock()
-TUNABLES = {"WEEKLY_PACING_ENABLED": (int, 0, 1),   # name: (type, min, max)
+TUNABLES = {"SESSION_PACING_ENABLED": (int, 0, 1),   # name: (type, min, max)
+    "WEEKLY_PACING_ENABLED": (int, 0, 1),
     "AUDIT_TOOL_CALLS_PER_ROUND": (int, 1, 40),
-    "FALLBACK_SESSION_MAX_RUNS": (int, 1, 60),
-    "FALLBACK_SESSION_MAX_USD": (float, 1.0, 100.0),
 }
 TIMERS = ("runpulse-audit", "runpulse-watch")
-INTERVAL_RANGE = (10, 1440)  # 분
-UNIT_DIR = Path.home() / ".config" / "systemd" / "user"
 ACTIONS = ("start", "resume", "pause", "stop")
 
 
@@ -126,23 +123,3 @@ def set_tunables(values: dict, state_dir: Path | None = None) -> dict:
     if state_dir is None:
         _sync_wake()
     return {"ok": True, "tunables": cur}
-
-
-def set_interval(timer: str, minutes: int, state_dir: Path | None = None, unit_dir: Path | None = None, run=_sh) -> dict:
-    """자동 재개 타이머 간격(직전 실행 종료 후 N분)을 drop-in 으로 바꾸고 daemon-reload."""
-    lo, hi = INTERVAL_RANGE
-    if timer not in TIMERS:
-        return {"ok": False, "error": f"알 수 없는 타이머: {timer}"}
-    try:
-        m = int(minutes)
-    except (TypeError, ValueError):
-        return {"ok": False, "error": "분은 정수"}
-    if not lo <= m <= hi:
-        return {"ok": False, "error": f"{lo}~{hi}분만 허용"}
-    dd = (unit_dir or UNIT_DIR) / f"{timer}.timer.d"
-    with LOCK:
-        dd.mkdir(parents=True, exist_ok=True)
-        (dd / "interval.conf").write_text(f"[Timer]\nOnUnitInactiveSec=\nOnUnitInactiveSec={m}min\n", encoding="utf-8")
-        ok = run(["systemctl", "--user", "daemon-reload"]) and run(["systemctl", "--user", "restart", f"{timer}.timer"])
-        audit("interval", {"timer": timer, "minutes": m}, ok, state_dir)
-    return {"ok": ok, "timer": timer, "minutes": m} if ok else {"ok": False, "error": "systemctl 실패"}
