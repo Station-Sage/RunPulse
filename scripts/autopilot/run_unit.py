@@ -162,8 +162,15 @@ def _handle_verify_failure(item: queue.QueueItem, note: str) -> tuple[str, dict]
             target = verify_doctor.missing_file(cmd, out)
             if target and target not in item.scope:
                 extra["scope"] = list(item.scope) + [target]
+        elif kind == "absence_hit":  # 부재 검사가 범위 밖 파일에서 적중 — 고칠 수 있게 scope 에 넣고 재시도(scope 부족)
+            target = verify_doctor.fix_target(kind, out, item.scope) or verify_doctor.hit_target(cmd, item.scope, settings.WORKTREE_DIR)
+            if target:
+                extra["scope"] = list(item.scope) + [target]
+                extra["fail_reason"] = f"{extra['fail_reason']} [scope+{target}]"[:600]
         return "queued", extra
     target = verify_doctor.missing_file(cmd, out) if kind == "missing_target" else verify_doctor.fix_target(kind, out, item.scope)
+    if not target and kind == "absence_hit":
+        target = verify_doctor.hit_target(cmd, item.scope, settings.WORKTREE_DIR)
     if target and kind != "missing_target" and f"scope+{target}" not in item.fail_reason:  # 원인 파일이 범위 밖 — 사람에게 묻기 전에 범위를 넓혀 한 번 더
         extra["scope"] = list(item.scope) + [target]
         extra["fail_reason"] = f"{extra['fail_reason']} [scope+{target}]"[:600]

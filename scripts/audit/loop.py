@@ -3,12 +3,9 @@
 사용: .venv/bin/python -m scripts.audit.loop [--force] [--reset] [--status]
 호출 1회 = 멈춤 조건(pacing 대기·정지·감사 생략·MAX_STEPS)까지 단계를 연속 수행(--once 면 1개). 위치는 cycle_state.json + BACKLOG 항목 stage 로 복원하므로 언제 끊겨도 이어진다.
   audit  : 버전이 바뀌었으면 release.run(Opus 전 관점, 한도 내) 먼저, 아니면 cycle.run_cycle (스윕 필수 + 관점 감사 + 독립 검토) → design
-  design : 확인된 후보를 BACKLOG 에 제안(자체 승인=queued, 사용자 결정=needs_decision) → develop
-  (사용자 결정 대기 항목은 막지 않는다 — needs_decision 으로 남기고 state["pending_decisions"] 로만 노출, 나머지 단위는 계속 진행. 사람이 stage 를 queued 로 바꾸면 다음 develop 에서 집어간다)
-  develop: run_unit.run_once 1건 → review 면 test, failed 는 exec·sync·env 만 정지 사유(검증 실패·결정 반복은 카드로 노출하고 다음 항목)
-  test   : 브라우저 스윕(안쪽 루프) 통과 → done, 실패 → queued(버그수정 재개발), 상한 초과 → failed
-정지는 stopreason.py 의 사유(pacing·step_cap·failed·stop_flag)로 기록하고 타이머 발화 시 사유별로 자동 재개한다.
-정지 조건: 같은 단계 연속 실패 FAIL_LIMIT, 항목당 테스트 재시도 FIX_LIMIT, 라운드당 단위 UNIT_CAP(도달 시 운영 반영 후 develop 유지), 단계 직전 pacing.
+  design : 확인된 후보를 BACKLOG 에 제안(자체 승인=queued, 사용자 결정=needs_decision) → develop (사용자 결정 대기 항목은 막지 않는다 — needs_decision 으로 남기고 state["pending_decisions"] 로만 노출, 나머지 단위는 계속 진행. 사람이 stage 를 queued 로 바꾸면 다음 develop 에서 집어간다)
+  develop: run_unit.run_once 1건 → review(검증 통과) 면 곧바로 done, failed 는 exec·sync·env 만 정지 사유(검증 실패·결정 반복은 카드로 노출하고 다음 항목)
+정지는 stopreason.py 의 사유(pacing·step_cap·failed·stop_flag)로 기록하고 타이머 발화 시 사유별로 자동 재개한다. 정지 조건: 같은 단계 연속 실패 FAIL_LIMIT, 항목당 테스트 재시도 FIX_LIMIT, 라운드당 단위 UNIT_CAP(도달 시 운영 반영 후 develop 유지), 단계 직전 pacing.
 열린 단위가 없으면(또는 단위 상한) 라운드가 끝나며 통과 단위가 있으면 전체 스윕 1회 — 실패하면 수정 단위(SWEEP-*)를 큐에 올려 develop 로 되돌아가 고친 뒤 재스윕(SWEEP_FIX_LIMIT 회, 초과 시 반영 보류) — 통과하면 운영 반영(deploy.py) 후 다음 감사(audit)로 돌아간다 — 고정 최소 간격(90분)은 없고 라운드 종료 즉시 시작(pacing 만 게이트). 이 프로세스는 대화 세션에 쓸 수 없어 알림은 텔레그램이다.
 """
 from __future__ import annotations
@@ -107,6 +104,13 @@ def _end_round(st: dict, ship, msg: str, path: Path | None = None, next_phase: s
     return msg
 
 
+def _finish_unit(st: dict, path, iid: str, label: str) -> str:
+    queue.update_item(path, iid, stage="done")
+    progress.event("unit_end", round=st["round"], unit=iid, result="done")
+    st.update(phase="develop", unit=None, units_done=st["units_done"] + 1, fails=0)
+    return f"{iid} {label} → done"
+
+
 def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: bool = False) -> str:
     """상태를 한 칸 진행하고 한 줄 결과를 반환한다. act 로 외부 동작(감사·개발·스윕)을 주입할 수 있다."""
     path = path or settings.QUEUE_PATH
@@ -121,7 +125,8 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         st["phase"] = "develop"
     ph = st["phase"]
     st["cursor"] = {"phase": ph, "unit": st.get("unit"), "round": st["round"], "ts": int(time.time())}  # 재개 지점(콘솔 표시·재개 기준)
-    progress.mark(f"[루프] 라운드 {st['round']} · {ph} 단계 시작")
+    if ph != "test":  # test 는 구버전 상태 재개용 통과 단계 — 로그 생략
+        progress.mark(f"[루프] 라운드 {st['round']} · {ph} 단계 시작")
     progress.event("phase", round=st["round"], phase=ph)
     if settings.STOP_PATH.exists() and ph not in ("stopped", "halted"):  # 콘솔 즉시중지 — 단계를 시작하지 않고 이 지점을 resume_at 으로 남긴다
         stopreason.stop(st, stopreason.STOP_FLAG)
@@ -217,20 +222,15 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
                 return f"{nxt.item_id} 항목 실패({kind}) — 결정 카드로 넘기고 다음 항목 진행"
             notify.send(f"[루프] {nxt.item_id} 개발 차단 — 사람 확인 필요")
             return _fail(st, f"{nxt.item_id} 개발 차단({kind or 'exec'})")
-        if stage == "review":
-            st.update(phase="test", unit=nxt.item_id, fails=0)
-            return f"{nxt.item_id} 개발 완료 → 테스트"
+        if stage == "review":  # 단위 검증은 개발 단계의 verify 로 끝났으므로 test 단계를 거치지 않고 바로 done
+            return _finish_unit(st, path, nxt.item_id, "개발 완료·검증 통과")
         st["phase"] = "develop"
         if rc == 1:  # 게이트 차단(야간·유휴·예산·락) — 같은 단계를 즉시 되풀이하지 않고 다음 타이머까지 대기
             stopreason.stop(st, stopreason.PACING)
             return f"{nxt.item_id} 개발 게이트 차단 — 대기(stage={stage})"
         return f"{nxt.item_id} 개발 단계 유지(stage={stage}, rc={rc})"
     if ph == "test":  # 단위별 검증은 개발 단계의 verify(run_unit._post_verify)로 끝 — 브라우저 스윕은 라운드 종료 시 1회(_end_round)
-        iid = st["unit"]
-        queue.update_item(path, iid, stage="done")
-        progress.event("unit_end", round=st["round"], unit=iid, result="done")
-        st.update(phase="develop", unit=None, units_done=st["units_done"] + 1, fails=0)
-        return f"{iid} 검증 통과 → done"
+        return _finish_unit(st, path, st["unit"], "검증 통과")
     stopreason.stop(st, stopreason.FAILED)
     return f"알 수 없는 단계 {ph}"
 

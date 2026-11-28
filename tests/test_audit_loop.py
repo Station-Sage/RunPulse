@@ -78,13 +78,12 @@ def test_legacy_await_state_resumes_like_develop(tmp_path, monkeypatch):
     assert called
 
 
-def test_develop_then_test_inside_inner_loop(tmp_path, monkeypatch):
+def test_develop_review_goes_straight_to_done(tmp_path, monkeypatch):
     _quiet(monkeypatch)
     p = _backlog(tmp_path)
     st = _st("develop")
-    loop.step(st, path=p, act={"develop": lambda: queue.update_item(p, "U1", stage="review") or 0})
-    assert st["phase"] == "test" and st["unit"] == "U1"
-    loop.step(st, path=p, act={"sweep": lambda: (282, None)})
+    r = loop.step(st, path=p, act={"develop": lambda: queue.update_item(p, "U1", stage="review") or 0})
+    assert "개발 완료·검증 통과" in r
     assert queue.parse(p)[0].stage == "done" and st["phase"] == "develop" and st["units_done"] == 1
 
 
