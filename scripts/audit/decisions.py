@@ -9,7 +9,11 @@ import json
 import time
 from pathlib import Path
 
-DECISIONS_PATH = Path(".claude/autopilot/pending_decisions.json")
+from scripts.autopilot import settings
+
+# cwd 상대경로가 아니라 settings.STATE_DIR(오토파일럿 호스트 고정 경로) 기준 — 실행 위치에
+# 따라 다른 파일을 보는 사고를 막는다(settings.py 참고).
+DECISIONS_PATH = settings.STATE_DIR / "pending_decisions.json"
 REVERT = "git revert <커밋>; 관련 BACKLOG 항목 stage 를 needs_decision 으로 되돌림"
 
 

@@ -7,9 +7,10 @@ import re
 from pathlib import Path
 
 from scripts.audit import agents, decisions, dedupe, triage
-from scripts.autopilot import queue
+from scripts.autopilot import queue, settings
 
-PENDING_PATH = Path(".claude/autopilot/pending_decisions.md")
+# cwd 상대경로가 아니라 settings.STATE_DIR 기준(scripts/audit/decisions.py의 DECISIONS_PATH와 동일 이유).
+PENDING_PATH = settings.STATE_DIR / "pending_decisions.md"
 
 
 def propose(findings: list[dict], path: Path, decide=None, tiers: dict | None = None, limit: int | None = None) -> list[str]:

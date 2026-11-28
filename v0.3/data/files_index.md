@@ -2386,9 +2386,9 @@
 
 - functions: test_reap_kills_only_registered_matching, test_cycle_skips_below_min_interval, test_cycle_logs_skip_when_pacing_blocks
 
-### `test_audit_decision_guard.py` (53줄) — decision_guard — DECISIONS.md 결정 상태 vs BACKLOG.md stage 불일치 검출.
+### `test_audit_decision_guard.py` (84줄) — decision_guard — DECISIONS.md 결정 상태 vs BACKLOG.md stage 불일치 검출.
 
-- functions: test_latest_statuses_picks_last_occurrence, test_pending_status_but_stage_not_needs_decision_is_flagged, test_pending_status_with_needs_decision_stage_is_clean, test_no_code_done_without_pending_wording_is_flagged, test_resolved_decision_with_done_stage_is_clean, test_missing_decisions_file_is_clean
+- functions: test_latest_statuses_picks_last_occurrence, test_pending_status_but_stage_not_needs_decision_is_flagged, test_pending_status_with_needs_decision_stage_is_clean, test_no_code_done_without_pending_wording_is_flagged, test_resolved_decision_with_done_stage_is_clean, test_missing_decisions_file_is_clean, test_free_text_pending_without_status_line_is_flagged, test_repeated_retry_memos_still_pending_is_flagged, test_later_resolution_section_clears_pending
 
 ### `test_audit_decisions.py` (41줄) — A2 — 구조화 결정함(pending_decisions.json) build/append/choose.
 
@@ -2554,6 +2554,10 @@
 - class **TestVerifyFailureRequeue**: test_first_verify_failure_requeues_without_card, test_env_failure_provisions_then_requeues_without_card, test_env_failure_unfixable_fails_with_card, test_second_verify_failure_still_retries, test_third_verify_failure_fails_with_card
 - class **TestDecisionsChangedCommitAware**: test_no_change_is_false, test_committed_change_is_detected, test_uncommitted_change_is_still_detected
 - functions: test_abs_venv_rewrites_relative_venv_python, test_sync_block_holds_item_in_queue, test_verify_card_options_and_fresh_append, test_abs_venv_redirects_absolute_cd_to_worktree
+
+### `test_autopilot_settings.py` (41줄) — settings.py 경로 상수 — QUEUE_PATH/STATE_DIR는 AUTOPILOT_HOST_DIR, DECISIONS_PATH는
+
+- functions: test_queue_is_under_autopilot_host_dir, test_decisions_path_is_under_worktree_dir, test_host_dir_env_override_changes_queue_path
 
 ### `test_autopilot_size_followup.py` (42줄)
 
@@ -4417,7 +4421,7 @@
 - functions: run
 
 ---
-총 969개 파일
+총 970개 파일
 
 ## docstring 누락
 
