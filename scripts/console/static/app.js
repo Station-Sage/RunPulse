@@ -36,7 +36,7 @@ function renderDec(list){
   <div class="st">선택지</div>
   ${act?`<textarea class="tx" id="tx-${esc(d.id)}" placeholder="${d.kind==='deploy_failed'?'의견·메모 (선택)':'의견·새 verify 커맨드·재정의 지시 (선택)'}">${esc(d.text||'')}</textarea><div class="row"><button class="b" data-dn="${esc(d.id)}">의견 저장</button><span class="mut" id="ns-${esc(d.id)}">${d.text?'저장된 의견이 입력란에 표시됩니다':'저장된 의견 없음'}</span></div>`:''}
   ${!act&&d.text?`<div class="mut">내 의견: ${esc(d.text)}</div>`:''}
-  ${(d.options||[]).map(o=>`<div class="opt${o.key===rec?' rec':''}${!open&&o.key===d.choice?' sel':''}"><b>${esc(o.key)}. ${esc(o.name)}</b>${o.key===rec?' <span class="tag ok">추천</span>':''}${!open&&o.key===d.choice?' <span class="tag ok">내 선택</span>':''}<div class="pro">+ ${esc(o.pros)}</div><div class="con">- ${esc(o.cons)}</div>${o.review?`<div class="mut">검토: ${esc(o.review)}</div>`:''}
+  ${(d.options||[]).map(o=>`<div class="opt${o.key===rec?' rec':''}${!open&&o.key===d.choice?' sel':''}"><b>${esc(o.key)}. ${esc(o.name)}</b>${o.key===rec?' <span class="tag ok">추천</span>':''}${!open&&o.key===d.choice?' <span class="tag ok">내 선택</span>':''}<div class="pro">+ ${esc(o.pros)}</div><div class="con">- ${esc(o.cons)}</div>${o.review?`<div class="mut">검토: ${esc(o.review)}</div>`:''}${!open&&o.key===d.choice&&d.text?`<div class="mut" id="op-${esc(d.id)}" style="white-space:pre-wrap;word-break:break-word">내 의견: ${esc(d.text)}</div>`:''}
    ${act&&!(chg&&o.key===d.choice)?`<button class="b p" data-dc="${esc(d.id)}" data-ch="${esc(o.key)}">${open?'이 안으로 진행':'이 안으로 변경'}</button>`:''}</div>`).join('')||'<div class="mut">선택지 없음 — "다른 제안 받기"로 상세 안을 요청</div>'}
   <div class="mut">${rec?'추천: '+esc(rec)+(d.recommend_why?' — '+esc(d.recommend_why)+' (제안일 뿐 자동 적용되지 않습니다)':''):'추천 없음 (분류기가 추천을 내지 않음)'}</div>
   ${sec('되돌리는 방법',esc(d.revert||''))}
@@ -112,7 +112,7 @@ document.addEventListener('click',async e=>{
  else if(t.dataset.iv){r=await api('/api/interval',{timer:t.dataset.iv,minutes:Number($('#iv-'+t.dataset.iv).value)})}
  else if(t.dataset.tn){r=await api('/api/tunables',{values:{[t.dataset.tn]:Number($('#tn-'+t.dataset.tn).value)}})}
  else if(t.dataset.dc){r=await api('/api/decisions/'+t.dataset.dc,{choice:t.dataset.ch,text:(($('#tx-'+t.dataset.dc)||{}).value||'')})}
- else if(t.dataset.dn){const v=(($('#tx-'+t.dataset.dn)||{}).value||'');r=await api('/api/decisions/'+t.dataset.dn+'/note',{text:v});if(r&&r.ok){delete drafts['tx-'+t.dataset.dn];const m=$('#ns-'+t.dataset.dn);if(m)m.textContent=v.trim()?'저장됨: '+v.trim().slice(0,60):'의견 삭제됨';toast(v.trim()?'의견 저장됨':'의견 삭제됨');return}}
+ else if(t.dataset.dn){const v=(($('#tx-'+t.dataset.dn)||{}).value||'');r=await api('/api/decisions/'+t.dataset.dn+'/note',{text:v});if(r&&r.ok){delete drafts['tx-'+t.dataset.dn];const m=$('#ns-'+t.dataset.dn);const o=$('#op-'+t.dataset.dn);if(o)o.textContent=v.trim()?'내 의견: '+v.trim():'';if(m)m.textContent=v.trim()?'저장됨: '+v.trim().slice(0,60):'의견 삭제됨';toast(v.trim()?'의견 저장됨':'의견 삭제됨');return}}
  else if(t.dataset.fid){if(t.dataset.fa==='drop'&&!confirm('폐기할까요?'))return;r=await api('/api/failed/'+t.dataset.fid,{action:t.dataset.fa,text:(($('#fx-'+t.dataset.fid)||{}).value||'')})}
  else if(t.dataset.qid){r=await api('/api/queued/'+t.dataset.qid,{action:t.dataset.qa})}
  else if(t.dataset.rv){if(t.dataset.ra==='rework'&&!confirm('재작업 큐로 되돌릴까요?'))return;r=await api('/api/review/'+t.dataset.rv,{action:t.dataset.ra})}
