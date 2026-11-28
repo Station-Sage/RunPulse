@@ -11,7 +11,7 @@ from scripts.autopilot import queue
 
 REDO_LIMIT = 3
 _UNDO_FIELDS = ("stage", "scope", "verify", "attempts", "fail_kind", "fail_reason", "asks", "answered", "resolution")
-_REOPEN_OK_RESOLUTIONS = ("already_done", "dropped")
+_REOPEN_OK_RESOLUTIONS = ("already_done", "dropped", "deferred")
 
 
 def _item(path: Path, iid: str):
@@ -29,8 +29,10 @@ def _promote(rec: dict, path: Path) -> str:
     text = (rec.get("text") or "").strip()
     item = _item(path, rec["id"])
     fields: dict = {"stage": "queued"}
-    if act in ("already_done", "dropped"):
+    if act in ("already_done", "dropped", "deferred"):
         fields = {"stage": "done", "resolution": act}
+    elif act == "split" and rec.get("split_plan"):
+        fields["scope"] = list(item.scope if item else []) + [f"분리 계획(에이전트 검토): {rec['split_plan']}"]
     elif act == "redefine":
         fields["scope"] = [text] if text else (item.scope if item else [])
         fields["asks"] = 0
