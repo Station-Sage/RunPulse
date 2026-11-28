@@ -31,6 +31,8 @@ def _promote(rec: dict, path: Path) -> str:
     fields: dict = {"stage": "queued"}
     if act in ("already_done", "dropped", "deferred"):
         fields = {"stage": "done", "resolution": act}
+    elif act == "split" and rec.get("split_plan"):
+        fields["scope"] = list(item.scope if item else []) + [f"분리 계획(에이전트 검토): {rec['split_plan']}"]
     elif act == "redefine":
         fields["scope"] = [text] if text else (item.scope if item else [])
         fields["asks"] = 0

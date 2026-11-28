@@ -1,6 +1,6 @@
 """관제 콘솔 HTTP 서버(C2) — stdlib http.server, 127.0.0.1 전용(외부 노출은 cloudflared + Cloudflare Access 가 담당).
 
-GET  /api/overview /api/items /api/item/<id> /api/decisions /api/log /api/timers /api/roles, POST /api/control /api/timer /api/tunables /api/roles /api/decisions/<id> /api/decisions/<id>/note /api/review/<id> /api/failed/<id> /api/queued/<id>.
+GET  /api/overview /api/items /api/item/<id> /api/decisions /api/log /api/timers /api/roles, POST /api/control /api/timer /api/tunables /api/roles /api/decisions/<id> /api/decisions/<id>/note /api/decisions/<id>/review /api/review/<id> /api/failed/<id> /api/queued/<id>.
 라우팅은 route() 순수 함수로 분리해 소켓 없이 테스트한다. POST 는 JSON 만, Origin 이 있으면 Host 와 같아야 한다(CSRF 방어).
 """
 from __future__ import annotations
@@ -105,6 +105,27 @@ def save_note(iid: str, text: str, dpath: Path | None = None) -> dict:
     return {"ok": True, "id": iid, "text": rec["text"]} if rec else {"ok": False, "error": "없는 결정"}
 
 
+def review_card(iid: str, dpath: Path | None = None, ask=None) -> dict:
+    """열린 split/verify 결정 카드를 처음 볼 때 에이전트가 검토한다(호출은 락 밖 — 수 분 걸릴 수 있음). 결과는 카드에 캐시."""
+    from scripts.autopilot import card_review
+    cur = next((r for r in decisions.load(dpath) if r["id"] == iid), None)
+    if cur is None:
+        return {"ok": False, "error": "없는 결정"}
+    if cur["status"] != "open" or cur.get("kind") not in card_review.KINDS or cur.get("review_source"):
+        return {"ok": True, "id": iid, "source": cur.get("review_source", "none")}
+    work = json.loads(json.dumps(cur))
+    res = card_review.review(work, ask=ask)
+    if res["source"] in ("agent", "rule"):
+        with control.LOCK:
+            recs = decisions.load(dpath)
+            tgt = next((r for r in recs if r["id"] == iid), None)
+            if tgt is not None and tgt["status"] == "open" and not tgt.get("review_source"):
+                tgt.update({k: work[k] for k in ("review", "options", "recommendation", "recommend_why", "review_source", "split_plan") if k in work})
+                decisions.save(recs, dpath)
+                control.audit("decision_review", {"id": iid, "source": res["source"]}, True)
+    return {"ok": True, "id": iid, "source": res["source"]}
+
+
 def review_action(iid: str, action: str, queue_path: Path | None = None) -> dict:
     """사후 검토 항목 처리 — done(확인 완료) | rework(queued 복귀, 시도 횟수 초기화). 병합 자체는 사용자가 한다."""
     qp = queue_path or settings.QUEUE_PATH
@@ -177,6 +198,8 @@ def route(method: str, path: str, body: dict | None = None) -> tuple[int, dict |
         r = queued_action(path.rsplit("/", 1)[1], str(body.get("action", "")))
     elif path.startswith("/api/failed/"):
         r = failed_action(path.rsplit("/", 1)[1], str(body.get("action", "")), str(body.get("text", "")))
+    elif path.startswith("/api/decisions/") and path.endswith("/review"):
+        r = review_card(path.split("/")[3])
     elif path.startswith("/api/decisions/") and path.endswith("/note"):
         r = save_note(path.split("/")[3], str(body.get("text", "")))
     elif path.startswith("/api/decisions/"):

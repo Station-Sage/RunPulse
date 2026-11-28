@@ -2511,6 +2511,10 @@
 
 - functions: test_trigger_uses_reloaded_config, test_trigger_falls_back_on_reload_failure, test_trigger_skips_when_all_disabled, test_restart_keeps_thread_running
 
+### `test_autopilot_card_review.py` (57줄)
+
+- functions: test_parse_rejects_bad_output, test_review_success_fallback_and_pacing, test_review_card_caches_and_split_plan_reaches_scope
+
 ### `test_autopilot_dep_install.py` (38줄) — 누락 의존성 설치 — 허용 입력·명령 구성·결과 메시지, 결정 카드.
 
 - functions: test_command_npm_and_pip, test_command_rejects_bad_input, test_install_results, test_build_dep_card
@@ -4404,7 +4408,7 @@
 - functions: run
 
 ---
-총 966개 파일
+총 967개 파일
 
 ## docstring 누락
 
@@ -4419,6 +4423,7 @@
 - `tests/test_audit_roles.py`
 - `tests/test_audit_steward.py`
 - `tests/test_audit_versioning.py`
+- `tests/test_autopilot_card_review.py`
 - `tests/test_autopilot_size_followup.py`
 - `tests/test_autopilot_trailers.py`
 - `tests/test_chat_engine_cq.py`

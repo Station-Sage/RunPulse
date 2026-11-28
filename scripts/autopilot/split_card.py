@@ -31,6 +31,6 @@ def build_split_card(item_id: str, path: str, lines: int, origin: str) -> dict:
     rec_key = next(o["key"] for o in opts if o["action"] == rec_action)
     rec = decisions.build(item_id, {"kind": "split_decision", "impact": f"{path} {lines}줄", "fix": ""},
                           {"why": f"{origin} 작업 중 발견 — {path} 가 {lines}줄로 {LIMIT}줄 상한을 초과", "design": {"summary": f"{path} 분할 여부 ({lines}줄)"}})
-    rec.update(options=opts, review=f"{path} 는 {lines}줄이다. 분할은 동작을 바꾸지 않는 리팩터링이므로 필수는 아니며, 비용 대비 이득으로 정한다.",
+    rec.update(options=opts, path=path, lines=lines, review=f"{path} 는 {lines}줄이다. 분할은 동작을 바꾸지 않는 리팩터링이므로 필수는 아니며, 비용 대비 이득으로 정한다.",
                recommendation=rec_key, recommend_why=rec_why)
     return rec

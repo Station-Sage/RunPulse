@@ -19,7 +19,10 @@ function dur(sec){sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m
 function hhmm(ts){return ts?new Date(ts*1000).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}):'-'}
 function sec(t,body){return body?`<div class="sec"><div class="st">${t}</div>${body}</div>`:''}
 function lst(a){return a&&a.length?'<ul>'+a.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}
+const revAsked={};
+function askReviews(list){for(const d of list){if(d.status==='open'&&['split_decision','verify_decision'].includes(d.kind)&&!d.review_source&&!revAsked[d.id]){revAsked[d.id]=1;api('/api/decisions/'+d.id+'/review',{}).then(r=>{if(r&&r.source==='pending'){setTimeout(()=>{delete revAsked[d.id]},60000)}else load()})}}}
 function renderDec(list){
+ askReviews(list);
  $('#dl').innerHTML=list.length?list.map(d=>{
   const open=d.status==='open',waiting=d.status==='redo';
   const chg=!open&&!waiting&&!['initiative','vision'].includes(d.kind)&&!(d.kind==='deploy_failed'&&d.status==='applied');
@@ -27,7 +30,7 @@ function renderDec(list){
   const f=typeof d.finding==='object'&&d.finding?d.finding:{impact:d.finding||''};
   const rec=d.recommendation;
   return `<div class="card"><b>${esc(d.summary||d.id)}</b> <span class="tag${waiting?' warn':''}">${waiting?'재제안 대기':esc(d.status)}</span> <span class="mut">${esc(d.id)}</span>
-  ${sec('검토안',esc(d.review||''))}
+  ${sec('검토안',(['split_decision','verify_decision'].includes(d.kind)?(d.review_source==='agent'?'<span class="tag ok">에이전트 검토</span> ':d.review_source==='rule'?'<span class="tag warn">규칙 기반 추정</span> ':open?'<span class="tag">에이전트 검토 중…</span> ':''):'')+esc(d.review||''))}
   ${sec('무엇이 문제인가',(f.perspective?`<span class="tag">${esc(f.perspective)}</span> `:'')+esc(f.impact||''))}
   ${sec('제안된 수정',esc(f.fix||''))}
   ${sec('발견된 곳',lst(f.cells))}
