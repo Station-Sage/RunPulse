@@ -17,7 +17,7 @@ from pathlib import Path
 
 from scripts.audit import agents, consume, cycle, deploy, deploy_hold, idesign, inventory, orchestrator, planner, progress, release, release_plan, roles, round_sweep, steward, stopreason, triage, wake
 from scripts.audit.propose import PENDING_PATH, propose  # noqa: F401  (tests·외부 호환)
-from scripts.autopilot import notify, pacing, queue, reconcile, settings
+from scripts.autopilot import notify, pacing, queue, reconcile, run_unit, settings
 
 STATE_PATH = inventory.LEDGER_PATH.parent / "cycle_state.json"
 FAIL_LIMIT, FIX_LIMIT, UNIT_CAP, MAX_STEPS, DESIGN_CAP, SYSTEMIC_FAILS = 3, 2, 20, 40, 6, ("exec", "sync", "env")
@@ -225,7 +225,10 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
         if stage == "review":  # 단위 검증은 개발 단계의 verify 로 끝났으므로 test 단계를 거치지 않고 바로 done
             return _finish_unit(st, path, nxt.item_id, "개발 완료·검증 통과")
         st["phase"] = "develop"
-        if rc == 1:  # 게이트 차단(야간·유휴·예산·락) — 같은 단계를 즉시 되풀이하지 않고 다음 타이머까지 대기
+        if rc == 3:  # 환경 차단(worktree 동기화 실패) — blocked 로 세워 사람 확인 대기
+            stopreason.stop(st, stopreason.BLOCKED, cause=run_unit.ENV_BLOCK.get("cause", ""))
+            return f"{nxt.item_id} 환경 차단 — 정지(stage={stage})"
+        if rc == 1:  # 게이트 차단 — 즉시 되풀이하지 않고 다음 타이머까지 대기
             stopreason.stop(st, stopreason.PACING)
             return f"{nxt.item_id} 개발 게이트 차단 — 대기(stage={stage})"
         return f"{nxt.item_id} 개발 단계 유지(stage={stage}, rc={rc})"
@@ -236,13 +239,10 @@ def step(st: dict, *, path: Path | None = None, act: dict | None = None, force: 
 
 
 def agents_confirmed() -> list[dict]:
-    from scripts.audit import review
-    return review.confirmed(_load_findings())
+    from scripts.audit import review; return review.confirmed(_load_findings())
 
 
-def _develop() -> int:
-    from scripts.autopilot import run_unit
-    return run_unit.run_once(ignore_night=True, ignore_idle=True, ignore_budget=True)
+def _develop() -> int: return run_unit.run_once(ignore_night=True, ignore_idle=True, ignore_budget=True)
 
 
 def run_until_stop(st: dict, *, force: bool = False, once: bool = False, act: dict | None = None,

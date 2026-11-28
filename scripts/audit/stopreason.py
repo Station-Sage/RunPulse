@@ -7,6 +7,7 @@
   pause_flag      : 콘솔 일시중지(PAUSE) — stop_flag 와 같은 정책, 단계 경계에서 멈추고 재개하면 그 단계부터 이어감
 정지 순간의 단계·항목·라운드는 stop() 이 st["resume_at"] 에 한 번만 기록하고, 재개(타이머·콘솔 공통 resume)는 그 값만 쓴다.
 await_decision : 버전 계획·이니셔티브 승인 등 사용자 결정이 있어야 이어갈 수 있는 정지 — 자동 재개 안 함(결정 반영 시 콘솔이 해제)
+blocked : 환경 차단(worktree 동기화 실패 등) — 항목 탓이 아니므로 타이머는 재개 안 함·한 번만 알림, 원인 해소 후 사람이 재개
 role_pause : 콘솔 역할 패널의 역할 일시정지 — 자동 재개 안 함, 사람이 '재개'하면 단계(phase)를 유지한 채 이어간다
 항목 단위 needs_decision 은 정지 사유가 아니다 — 그 항목만 건너뛰고 진행하며 state["pending_decisions"] 로만 노출한다.
 """
@@ -16,23 +17,26 @@ PACING, ROUND_DONE, FAILED, STOP_FLAG, STEP_CAP = "pacing", "round_done", "faile
 PAUSE_FLAG = "pause_flag"
 AWAIT_DECISION = "await_decision"
 ROLE_PAUSE = "role_pause"
-ALL = (PACING, ROUND_DONE, FAILED, STOP_FLAG, STEP_CAP, AWAIT_DECISION, ROLE_PAUSE, PAUSE_FLAG)
+BLOCKED = "blocked"
+ALL = (BLOCKED, PACING, ROUND_DONE, FAILED, STOP_FLAG, STEP_CAP, AWAIT_DECISION, ROLE_PAUSE, PAUSE_FLAG)
 AUTO_RESUME = (PACING, ROUND_DONE, STEP_CAP)
 
 
-def stop(st: dict, reason: str) -> None:
+def stop(st: dict, reason: str, cause: str | None = None) -> None:
     if reason not in ALL:
         raise ValueError(f"알 수 없는 정지 사유: {reason}")
     if st.get("stop_reason") is None and st.get("phase") not in ("stopped", "halted"):
         st["resume_at"] = {"phase": st.get("phase"), "unit": st.get("unit"), "round": st.get("round")}
     st["stop_reason"] = reason
+    if cause:
+        st["stop_cause"] = cause
 
 
 def is_stopped(st: dict) -> bool:
     return st.get("stop_reason") is not None
 
 
-HUMAN_RESUME = AUTO_RESUME + (FAILED, STOP_FLAG, ROLE_PAUSE, PAUSE_FLAG)
+HUMAN_RESUME = AUTO_RESUME + (BLOCKED, FAILED, STOP_FLAG, ROLE_PAUSE, PAUSE_FLAG)
 
 
 def resume(st: dict, human: bool = False) -> bool:
@@ -62,7 +66,7 @@ def resume(st: dict, human: bool = False) -> bool:
 LABEL = {
     PACING: "페이싱 대기", ROUND_DONE: "라운드 완료 — 다음 감사 대기", FAILED: "연속 실패로 정지 — 사람 확인 필요(재개로 이어감)",
     STOP_FLAG: "중지됨", STEP_CAP: "단계 상한 — 자동 재개 대기", AWAIT_DECISION: "사용자 결정 대기",
-    ROLE_PAUSE: "역할 일시정지", PAUSE_FLAG: "일시중지됨",
+    BLOCKED: "환경 차단 — 사람 확인 필요(원인 해소 후 재개)", ROLE_PAUSE: "역할 일시정지", PAUSE_FLAG: "일시중지됨",
 }
 
 

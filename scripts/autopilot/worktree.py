@@ -112,14 +112,14 @@ def discard_leftovers() -> list[str]:
 
 
 def sync() -> str:
-    """base 브랜치 최신 커밋 위로 autopilot 브랜치를 rebase.
+    """base 브랜치 최신 커밋을 autopilot 브랜치로 merge(79커밋 rebase 는 커밋마다 충돌 지점이 생겨 깨지기 쉬움).
 
     ensure()는 worktree가 없을 때만 만들고 그 뒤로는 손대지 않으므로, 이걸 부르지
     않으면 worktree는 처음 만들어진 시점의 커밋에 영원히 멈춰 있는다 — base에서
     이후 추가된 문서·코드를 에이전트가 못 보게 된다(실제로 한 번 이렇게 실패함,
     2026-09-22: REVIEW-02/03·DECISIONS.md가 없는 채로 작업해 예산 초과로 실패).
 
-    Returns: "" 성공, 아니면 차단 사유(dirty | rebase_conflict).
+    Returns: "" 성공, 아니면 차단 사유(dirty | merge_conflict).
     """
     if not settings.WORKTREE_DIR.exists():
         return ""
@@ -130,11 +130,27 @@ def sync() -> str:
         if removed:
             from scripts.audit import progress
             progress.mark(f"[worktree] 이전 실행 잔재 {len(removed)}건 폐기(재시도 시 재생성): {', '.join(removed[:10])}{' 외' if len(removed) > 10 else ''}")
-    r = _run(["git", "rebase", settings.BASE_BRANCH], cwd=settings.WORKTREE_DIR)
-    if r.returncode != 0:
-        _run(["git", "rebase", "--abort"], cwd=settings.WORKTREE_DIR)
-        return f"{settings.BASE_BRANCH} 위로 rebase 충돌 — 수동 개입 필요: {r.stderr.strip()[:300]}"
-    return ""
+    return _merge_base()
+
+
+GENERATED = "v0.3/data/files_index.md"
+
+
+def _merge_base() -> str:
+    """base 를 autopilot 브랜치로 merge. 생성 파일(files_index.md)만 충돌이면 base 쪽을 취하고 재생성, 그 외 충돌은 abort 후 사유 반환."""
+    cwd = settings.WORKTREE_DIR
+    r = _run(["git", "merge", "--no-edit", settings.BASE_BRANCH], cwd=cwd)
+    if r.returncode == 0:
+        return ""
+    conflicted = _run(["git", "diff", "--name-only", "--diff-filter=U"], cwd=cwd).stdout.split()
+    if conflicted == [GENERATED]:
+        _run(["git", "checkout", "--theirs", GENERATED], cwd=cwd)
+        _run(["python3", "scripts/gen_files_index.py"], cwd=cwd)
+        _run(["git", "add", GENERATED], cwd=cwd)
+        if _run(["git", "commit", "--no-edit"], cwd=cwd).returncode == 0:
+            return ""
+    _run(["git", "merge", "--abort"], cwd=cwd)
+    return f"{settings.BASE_BRANCH} 병합 충돌 — 수동 개입 필요: {', '.join(conflicted) or r.stderr.strip()[:300]}"
 
 
 def commits_ahead_of(base_branch: str) -> int:

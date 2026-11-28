@@ -309,6 +309,17 @@ def test_develop_gate_block_waits_instead_of_spinning(tmp_path, monkeypatch):
     assert "게이트 차단" in msg and st["stop_reason"] == stopreason.PACING
 
 
+def test_develop_env_block_stops_as_blocked_with_cause(tmp_path, monkeypatch):
+    from scripts.audit import stopreason
+    from scripts.autopilot import run_unit
+    _quiet(monkeypatch)
+    monkeypatch.setitem(run_unit.ENV_BLOCK, "cause", "병합 충돌 — X")
+    st = _st("develop")
+    msg = loop.step(st, path=_backlog(tmp_path), act={"develop": lambda: 3})
+    assert "환경 차단" in msg and st["stop_reason"] == stopreason.BLOCKED and st["stop_cause"] == "병합 충돌 — X"
+    assert not stopreason.resume(st) and stopreason.resume(st, human=True)
+
+
 def test_halt_is_written_to_progress_log(tmp_path, monkeypatch):
     _quiet(monkeypatch)
     logged = []
