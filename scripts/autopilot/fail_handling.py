@@ -31,10 +31,10 @@ def classify_verify(rc: int | None, output: str) -> str:
     return "verify"
 
 
-def added_text(worktree: Path) -> str:
-    """DECISIONS.md 의 미커밋 추가분(+ 줄)만 이어 붙인다."""
-    r = subprocess.run(["git", "diff", "-U0", "--", "DECISIONS.md"], cwd=worktree / DECISIONS_DIR,
-                       capture_output=True, text=True)
+def added_text(worktree: Path, pre_head: str | None = None) -> str:
+    """DECISIONS.md 의 추가분(+ 줄)만 이어 붙인다. pre_head 를 주면 이번 실행 중 커밋된 분도 포함한다(미지정 시 미커밋분만, 레거시 호환)."""
+    args = ["git", "diff", "-U0"] + ([pre_head] if pre_head else []) + ["--", "DECISIONS.md"]
+    r = subprocess.run(args, cwd=worktree / DECISIONS_DIR, capture_output=True, text=True)
     return "\n".join(ln[1:] for ln in r.stdout.splitlines() if ln.startswith("+") and not ln.startswith("+++"))
 
 

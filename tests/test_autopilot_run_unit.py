@@ -160,7 +160,7 @@ class TestVerifyFailureRequeue:
         monkeypatch.setattr(run_unit.worktree, "sync", lambda: None)
         monkeypatch.setattr(run_unit.worktree, "_run", lambda *a, **k: type("R", (), {"stdout": ""})())
         monkeypatch.setattr(run_unit, "_run_claude", lambda it: {"outcome": "success", "duration_s": 1})
-        monkeypatch.setattr(run_unit, "_decisions_changed", lambda: False)
+        monkeypatch.setattr(run_unit, "_decisions_changed", lambda pre_head: False)
         monkeypatch.setattr(run_unit, "_post_verify", lambda it: (False, note))
         monkeypatch.setattr(run_unit, "_register_failed_card", lambda it, k, r: cards.append(k))
         monkeypatch.setattr(run_unit.decisions, "append", lambda recs, *a, **k: cards.extend(r["kind"] for r in recs))
@@ -229,3 +229,44 @@ def test_abs_venv_redirects_absolute_cd_to_worktree():
     assert out.startswith(f"cd {wt} && ") and "RunPulse-p0 &&" not in out
     assert str(run_unit.settings.PROJECT_ROOT / ".venv/bin/python") in out
     assert run_unit._abs_venv("cd /home/ubuntu/projects/RunPulse-p0/frontend && npm run check") == f"cd {wt}/frontend && npm run check"
+
+
+class TestDecisionsChangedCommitAware:
+    """AUD-dd4c72 등 — 모델이 DECISIONS.md 를 적고 '커밋까지' 해도 놓치지 않는지."""
+
+    def _repo(self, tmp_path):
+        import subprocess
+
+        def git(*a):
+            return subprocess.run(["git", *a], cwd=tmp_path, capture_output=True, text=True, check=True)
+
+        dec_dir = tmp_path / "v0.3" / "data" / "phase-7-ui-renewal"
+        dec_dir.mkdir(parents=True)
+        (dec_dir / "DECISIONS.md").write_text("# decisions\n")
+        git("init", "-q")
+        git("config", "user.email", "t@example.com")
+        git("config", "user.name", "t")
+        git("add", "-A")
+        git("commit", "-q", "-m", "base")
+        pre_head = git("rev-parse", "HEAD").stdout.strip()
+        return git, dec_dir / "DECISIONS.md", pre_head
+
+    def test_no_change_is_false(self, tmp_path, monkeypatch):
+        _, _, pre_head = self._repo(tmp_path)
+        monkeypatch.setattr(run_unit.settings, "WORKTREE_DIR", tmp_path)
+        assert run_unit._decisions_changed(pre_head) is False
+
+    def test_committed_change_is_detected(self, tmp_path, monkeypatch):
+        """핵심 회귀 테스트 — 예전엔 git status 만 봐서 커밋된 메모를 놓쳤다(AUD-dd4c72)."""
+        git, dec_path, pre_head = self._repo(tmp_path)
+        dec_path.write_text("# decisions\n\n## [AUD-x] 질문\n- **상태**: 사용자 결정 대기.\n")
+        git("add", "-A")
+        git("commit", "-q", "-m", "docs: 결정 대기 메모")
+        monkeypatch.setattr(run_unit.settings, "WORKTREE_DIR", tmp_path)
+        assert run_unit._decisions_changed(pre_head) is True
+
+    def test_uncommitted_change_is_still_detected(self, tmp_path, monkeypatch):
+        _, dec_path, pre_head = self._repo(tmp_path)
+        dec_path.write_text("# decisions\n\n## [AUD-x] 질문\n")
+        monkeypatch.setattr(run_unit.settings, "WORKTREE_DIR", tmp_path)
+        assert run_unit._decisions_changed(pre_head) is True

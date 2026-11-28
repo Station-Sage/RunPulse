@@ -2386,6 +2386,10 @@
 
 - functions: test_reap_kills_only_registered_matching, test_cycle_skips_below_min_interval, test_cycle_logs_skip_when_pacing_blocks
 
+### `test_audit_decision_guard.py` (53줄) — decision_guard — DECISIONS.md 결정 상태 vs BACKLOG.md stage 불일치 검출.
+
+- functions: test_latest_statuses_picks_last_occurrence, test_pending_status_but_stage_not_needs_decision_is_flagged, test_pending_status_with_needs_decision_stage_is_clean, test_no_code_done_without_pending_wording_is_flagged, test_resolved_decision_with_done_stage_is_clean, test_missing_decisions_file_is_clean
+
 ### `test_audit_decisions.py` (41줄) — A2 — 구조화 결정함(pending_decisions.json) build/append/choose.
 
 - functions: test_build_fields, test_append_dedup_and_load, test_choose, test_build_fallback_fills_summary_and_default_options, test_tests_do_not_touch_live_decisions_store
@@ -2406,9 +2410,9 @@
 
 - functions: test_acwr_range_comes_from_metric_definition, test_ctl_scale_uses_one_year_peak, test_finish_goal_templates_skip_achievability, test_finish_goal_summary_mentions_short_period, test_target_pace_error, app, test_templates_and_create_reject_impossible_target, test_save_empty_session_note_deletes, test_derive_title_strips_markdown_and_spaces, test_coach_service_reexports_title, test_list_threads_tie_breaks_by_id, test_list_threads_page_has_more, test_threads_route_paging_and_validation, test_unexpected_exception_is_not_network, test_run_chain_marks_unexpected
 
-### `test_audit_failed_handling.py` (128줄) — failed 처리 — 분류·asked 카드·선택 반영(consume)·프롬프트 주입·콘솔 요약.
+### `test_audit_failed_handling.py` (151줄) — failed 처리 — 분류·asked 카드·선택 반영(consume)·프롬프트 주입·콘솔 요약.
 
-- functions: test_classify_verify, test_parse_and_asked_card, test_scope_choice_appends_scope_and_answered, test_done_and_dropped, test_failed_env_retry_resets_verify, test_redefine_text_becomes_scope, test_sync_has_only_drop_option, test_console_blocked_split, test_migrate_failed, test_migrate_verify_requeues_with_target, test_migrate_verify_in_scope_makes_card
+- functions: test_classify_verify, test_added_text_sees_committed_change_with_pre_head, test_parse_and_asked_card, test_scope_choice_appends_scope_and_answered, test_done_and_dropped, test_failed_env_retry_resets_verify, test_redefine_text_becomes_scope, test_sync_has_only_drop_option, test_console_blocked_split, test_migrate_failed, test_migrate_verify_requeues_with_target, test_migrate_verify_in_scope_makes_card
 
 ### `test_audit_g_held.py` (187줄) — V2-AUDIT-INDIV 묶음 G — 보류 항목 추천안 반영(P-14 롱런 요일, D-21 확장, A-36 스트림 다운샘플, D-32 표기).
 
@@ -2511,7 +2515,7 @@
 
 - functions: test_trigger_uses_reloaded_config, test_trigger_falls_back_on_reload_failure, test_trigger_skips_when_all_disabled, test_restart_keeps_thread_running
 
-### `test_autopilot_card_review.py` (65줄)
+### `test_autopilot_card_review.py` (67줄)
 
 - functions: test_parse_rejects_bad_output, test_review_success_fallback_and_pacing, test_review_card_caches_and_split_plan_reaches_scope, test_legacy_split_card_without_path
 
@@ -2541,14 +2545,15 @@
 
 - functions: test_promote_merged, test_prune_pending
 
-### `test_autopilot_run_unit.py` (223줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
+### `test_autopilot_run_unit.py` (272줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
 
 - class **TestBuildPrompt**: test_docs_kind_uses_docs_template, test_code_kind_uses_code_template_with_scope_and_verify, test_code_kind_prompt_requires_following_embedded_spec, test_code_kind_prompt_forbids_git_dash_c, test_code_kind_missing_scope_warns_instead_of_empty
 - class **TestBuildCmd**: test_docs_kind_uses_base_allowed_tools_and_budget, test_code_kind_uses_code_allowed_tools_and_budget
 - class **TestPostVerify**: test_docs_kind_skips_verification, test_code_kind_passes_when_command_succeeds, test_code_kind_fails_when_command_fails, test_code_kind_defaults_to_full_pytest_when_verify_empty
 - class **TestCommitLeftovers**: test_clean_worktree_is_noop, test_commits_in_scope_files_only, test_directory_scope_prefix_matches
 - class **TestVerifyFailureRequeue**: test_first_verify_failure_requeues_without_card, test_env_failure_provisions_then_requeues_without_card, test_env_failure_unfixable_fails_with_card, test_second_verify_failure_still_retries, test_third_verify_failure_fails_with_card
-- functions: test_abs_venv_rewrites_relative_venv_python, test_sync_block_holds_item_in_queue, test_verify_card_options_and_fresh_append
+- class **TestDecisionsChangedCommitAware**: test_no_change_is_false, test_committed_change_is_detected, test_uncommitted_change_is_still_detected
+- functions: test_abs_venv_rewrites_relative_venv_python, test_sync_block_holds_item_in_queue, test_verify_card_options_and_fresh_append, test_abs_venv_redirects_absolute_cd_to_worktree
 
 ### `test_autopilot_size_followup.py` (42줄)
 
@@ -2766,9 +2771,9 @@
 
 - functions: test_build_from_events, test_design_batches_are_summed, test_deploy_stage_and_old_round_ignored, test_fallback_from_progress_log, test_loop_records_events, test_event_trims_large_file, test_sub_states_reset_on_new_audit_pass, test_steps_only_current_phase_with_failures, test_sweep_stream_emits_step_events, test_sweep_fix_badge_only_during_fix_round, test_open_decisions_counts_only_open, test_deploy_hold_marks_stage5_with_reason
 
-### `test_console_items.py` (70줄) — 개발 항목 목록·상세(items) + 라우팅.
+### `test_console_items.py` (80줄) — 개발 항목 목록·상세(items) + 라우팅.
 
-- functions: test_item_list_groups_and_counts, test_item_detail_review_and_report, test_routes, test_pipeline_steps_from_stage_ledger_and_git, test_git_facts_parses_ids_and_base
+- functions: test_item_list_groups_and_counts, test_item_detail_review_and_report, test_routes, test_pipeline_steps_from_stage_ledger_and_git, test_git_facts_parses_ids_and_base, test_done_items_sorted_by_recent_completion
 
 ### `test_console_overview.py` (47줄) — C1 — 관제 콘솔 overview/decision_list.
 
@@ -4347,9 +4352,9 @@
 
 - functions: parse_ddl_tables, parse_db_schema, parse_arch_categories, check_all, main
 
-### `check_docs.py` (1044줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 6 확장판).
+### `check_docs.py` (1065줄) — 문서 정합성 검증 스크립트 (v0.3 Phase 6 확장판).
 
-- functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, check_phase2_extractors, check_phase3_sync, check_phase4_metrics, check_phase5_services, check_phase6_load_validate, check_audit_inventory, main
+- functions: check, section, error, warn, ok, check_backlog, check_files_index, check_line_count, check_pytest_collect, check_metric_dictionary, check_calculator_count, check_semantic_groups, check_test_file_count, check_outdated, check_phase_summary_files, check_schema_columns, check_category_triple, check_db_helpers_functions, check_doc_numbers, check_docstrings, check_phase2_extractors, check_phase3_sync, check_phase4_metrics, check_phase5_services, check_phase6_load_validate, check_audit_inventory, check_decision_stage_consistency, main
 
 ### `check_race_invariants.py` (32줄) — 대회 캘린더 불변식 3·4 검사 (check_data_consistency 에서 호출) — 3: 활성 목표의 대회는 A·planned|done, 4: 목표 캐시 = 대회 값.
 
@@ -4412,7 +4417,7 @@
 - functions: run
 
 ---
-총 968개 파일
+총 969개 파일
 
 ## docstring 누락
 

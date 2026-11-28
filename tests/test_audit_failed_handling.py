@@ -33,6 +33,29 @@ def test_classify_verify():
     assert fh.classify_verify(1, "FAILED x") == "verify"
 
 
+def _decisions_repo(tmp_path):
+    import subprocess
+
+    def git(*a):
+        return subprocess.run(["git", *a], cwd=tmp_path, capture_output=True, text=True, check=True)
+
+    d = tmp_path / fh.DECISIONS_DIR
+    d.mkdir(parents=True)
+    (d / "DECISIONS.md").write_text("# decisions\n")
+    git("init", "-q"); git("config", "user.email", "t@x"); git("config", "user.name", "t")
+    git("add", "-A"); git("commit", "-q", "-m", "base")
+    return git, d / "DECISIONS.md", git("rev-parse", "HEAD").stdout.strip()
+
+
+def test_added_text_sees_committed_change_with_pre_head(tmp_path):
+    """AUD-dd4c72 회귀 — 모델이 DECISIONS.md 를 커밋해버려도 pre_head 를 주면 추가분을 읽는다."""
+    git, dec, pre_head = _decisions_repo(tmp_path)
+    dec.write_text("# decisions\n\n## [AUD-1] 질문\n- **질문**: 어떻게 할까\n")
+    git("add", "-A"); git("commit", "-q", "-m", "docs: 결정 메모")
+    assert "## [AUD-1] 질문" in fh.added_text(tmp_path, pre_head)
+    assert fh.added_text(tmp_path) == ""  # pre_head 없으면(레거시) 이미 커밋된 분은 안 보임
+
+
 def test_parse_and_asked_card():
     sec = fh.pick_section(fh.parse_sections(SEC), "AUD-1")
     assert sec["options"] == ["옵션하나", "옵션둘"]
