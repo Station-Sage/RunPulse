@@ -270,3 +270,36 @@ class TestDecisionsChangedCommitAware:
         dec_path.write_text("# decisions\n\n## [AUD-x] 질문\n")
         monkeypatch.setattr(run_unit.settings, "DECISIONS_PATH", tmp_path / "v0.3" / "data" / "phase-7-ui-renewal" / "DECISIONS.md")
         assert run_unit._decisions_changed(pre_head) is True
+
+
+def test_verify_card_has_review_recommendation_and_add_target():
+    from scripts.autopilot import verify_card
+    c = verify_card.build_verify_card("A-1", "real", "실패", "작업", "frontend/tests/x.test.mjs")
+    assert c["options"][0]["action"] == "add_target" and c["target"] == "frontend/tests/x.test.mjs"
+    assert c["recommendation"] == "A" and c["recommend_why"] and c["review"]
+    assert all(o["review"] for o in c["options"])
+
+
+def test_promote_add_target_and_retry_scope_note(tmp_path):
+    from scripts.audit import consume
+    rec = {"id": "A-1", "choice": "A", "target": "frontend/x.ts", "diag": "real", "why": "boom",
+           "options": [{"key": "A", "action": "add_target", "name": "n"}]}
+    p = tmp_path / "BACKLOG.md"
+    p.write_text('- **[A-1]** t\n  <!-- autopilot: {"stage":"failed","mode":"auto","attempts":3,"deps":[]} -->\n')
+    consume._promote(rec, p)
+    it = run_unit.queue.parse(p)[0]
+    assert it.stage == "queued" and "frontend/x.ts" in it.scope and it.attempts == 0
+    assert "boom" in consume._fail_note(rec)
+
+
+def test_verify_failure_widens_scope_once_then_cards(monkeypatch):
+    from scripts.autopilot import verify_failure, queue as q
+    cards = []
+    monkeypatch.setattr(verify_failure.decisions, "append", lambda recs, fresh=False: cards.extend(recs))
+    note = "`pytest tests/` 종료코드 1\nFAILED tests/test_foo.py::t - boom"
+    item = q.QueueItem(item_id="A-1", text="t", stage="verifying", scope=["src/"], attempts=2)
+    stage, extra = verify_failure.handle(item, note)
+    assert stage == "queued" and "tests/test_foo.py" in extra["scope"] and not cards
+    item2 = q.QueueItem(item_id="A-1", text="t", stage="verifying", scope=extra["scope"], attempts=2, fail_reason=extra["fail_reason"])
+    stage, _ = verify_failure.handle(item2, note)
+    assert stage == "needs_decision" and cards

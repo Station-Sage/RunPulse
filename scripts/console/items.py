@@ -95,9 +95,11 @@ def item_list(path: Path | None = None, entries: list[dict] | None = None, cycle
     rank = {s: i for i, s in enumerate(ORDER)}
     ents = ledger.read_all() if entries is None else entries
     done_at = dict(commit_times() if times is None else times)
-    for e in ents:
+    ledger_ts: dict[str, int] = {}
+    for e in ents:   # 원장이 우선 — 단위 브랜치 커밋은 리플레이로 시각이 한꺼번에 덮일 수 있다
         if e.get("outcome") == "success" and e.get("unit_id") and e.get("ts"):
-            done_at.setdefault(e["unit_id"], int(e["ts"]))
+            done_at[e["unit_id"]] = max(int(e["ts"]), ledger_ts.get(e["unit_id"], 0))
+            ledger_ts[e["unit_id"]] = done_at[e["unit_id"]]
     rows = sorted(({**_brief(it), **pipe[it.item_id], "done_at": done_at.get(it.item_id, 0) if it.stage == "done" else 0} for it in items),
                   key=lambda r: (rank.get(r["stage"], 99), -r["done_at"]))
     total = len(items)
