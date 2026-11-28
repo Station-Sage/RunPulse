@@ -78,3 +78,11 @@ def test_done_items_sorted_by_recent_completion(tmp_path):
     r = items.item_list(q, ents, {}, ({}, set()), times={"D-3": 200})
     assert [i["id"] for i in r["items"]] == ["D-1", "D-3", "D-2"]
     assert r["items"][0]["done_at"] == 300
+
+
+def test_done_at_prefers_ledger_over_commit_time(tmp_path):
+    q = tmp_path / "B.md"
+    q.write_text('- **[D-1]** x\n  <!-- autopilot: {"stage":"done","mode":"auto","attempts":1,"deps":[]} -->\n', encoding="utf-8")
+    ents = [{"unit_id": "D-1", "ts": 100, "outcome": "success"}, {"unit_id": "D-1", "ts": 150, "outcome": "success"}]
+    r = items.item_list(q, ents, {}, ({}, set()), times={"D-1": 9999})
+    assert r["items"][0]["done_at"] == 150
