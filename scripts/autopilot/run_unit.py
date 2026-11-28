@@ -261,7 +261,7 @@ def run_once(
                     verify_note = leftovers.commit_leftovers(item, settings.WORKTREE_DIR)
                     added = size_followup.append_followups(item, settings.WORKTREE_DIR, settings.QUEUE_PATH)
                     if added:
-                        verify_note += f" 300줄 초과 후속 등록: {', '.join(added)}"
+                        verify_note += f" 300줄 초과 — 분리/보류 결정 대기: {', '.join(added)}"
         elif settings.STOP_PATH.exists():  # 콘솔 즉시중지로 끊김 — 실패가 아니므로 시도 횟수를 되돌리고 재개 시 처음부터 다시
             new_stage = "queued"
             extra = {"fail_kind": "", "fail_reason": "", "attempts": item.attempts}

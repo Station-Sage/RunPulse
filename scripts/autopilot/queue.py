@@ -17,7 +17,7 @@
   커맨드를 쓴다(settings.CODE_ALLOWED_TOOLS).
 - critical: true 면 치명 결함 — next_runnable 이 먼저 집고 버전 작업(plan·idesign)·안정화 게이트보다 우선(ADR-068).
 - fail_kind/fail_reason/asks/answered/resolution: 실패·결정 대기 사유와 처리 이력(값이 있을 때만 기록).
-  fail_kind: asked(모델이 결정 요청)|verify|env|exec|sync|asked_loop. resolution: already_done|dropped.
+  fail_kind: asked(모델이 결정 요청)|verify|env|exec|sync|asked_loop. resolution: already_done|dropped|deferred.
 - scope: code 전용. 이 unit이 건드려도 되는 경로 목록 — 프롬프트에 그대로 박아 범위를
   제한한다(강제 아님, 안내). 비어있으면 프롬프트가 "위험하니 채워서 등록" 경고를 낸다.
 - verify: code 전용. 성공 판정에 쓸 셸 커맨드 목록 — claude -p가 성공을 보고해도
@@ -58,7 +58,7 @@ class QueueItem:
     fail_reason: str = ""    # 사유 한 줄(≤300자)
     asks: int = 0            # 모델이 결정을 요청한 횟수 (상한 초과 시 failed)
     answered: list[str] = field(default_factory=list)  # 답변 완료된 결정 id
-    resolution: str = ""     # done 의 성격: already_done | dropped
+    resolution: str = ""     # done 의 성격: already_done | dropped | deferred
     line_no: int = -1        # 항목 줄 번호 (0-indexed)
     meta_line_no: int = -1   # 메타 주석 줄 번호, 없으면 -1
 
