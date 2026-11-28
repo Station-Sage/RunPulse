@@ -83,3 +83,15 @@ def choose(iid: str, choice: str, path: Path | None = None, text: str = "") -> d
         rec["text"] = text.strip()[:1000]
     p.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     return rec
+
+
+def save_note(iid: str, text: str, path: Path | None = None) -> dict | None:
+    """선택·상태 변경 없이 사용자 의견만 저장한다(빈 문자열이면 지움). 대상 레코드를 돌려준다."""
+    p = path or DECISIONS_PATH
+    data = load(p)
+    rec = next((r for r in data if r["id"] == iid), None)
+    if rec is None:
+        return None
+    rec["text"] = text.strip()[:1000]
+    p.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    return rec
