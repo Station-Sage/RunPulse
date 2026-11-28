@@ -35,6 +35,18 @@ def git_facts(git=_git) -> tuple[dict[str, str], set[str]]:
     return commits, base
 
 
+def commit_times(git=_git) -> dict[str, int]:
+    """항목 ID → 단위 브랜치 최신 커밋 시각(epoch) — 개발완료 순서 정렬용."""
+    out: dict[str, int] = {}
+    for ln in git(["log", settings.AUTOPILOT_BRANCH, "-n", "1500", "--format=%ct%x09%s"]).splitlines():
+        t, _, subj = ln.partition("\t")
+        for m in _ID_IN_SUBJECT.finditer(subj):
+            for iid in re.split(r",\s*", m.group(1)):
+                if t.isdigit():
+                    out.setdefault(iid, int(t))
+    return out
+
+
 def pipeline(items: list[queue.QueueItem], entries: list[dict], cycle: dict, facts: tuple[dict[str, str], set[str]]) -> dict[str, dict]:
     """항목별 5단계(설계·개발·테스트·커밋·운영반영) 완료 여부 + 진행중 — 큐 단계·원장·git 사실에서만 도출한다."""
     commits, base = facts
@@ -74,14 +86,20 @@ def _brief(it: queue.QueueItem) -> dict:
             "critical": it.critical, "resolution": it.resolution, "fail_kind": it.fail_kind}
 
 
-def item_list(path: Path | None = None, entries: list[dict] | None = None, cycle: dict | None = None, facts=None) -> dict:
+def item_list(path: Path | None = None, entries: list[dict] | None = None, cycle: dict | None = None, facts=None, times: dict[str, int] | None = None) -> dict:
     items = [it for it in queue.parse(path or settings.QUEUE_PATH) if it.mode == "auto"]
     pipe = pipeline(items, ledger.read_all() if entries is None else entries, _cycle_state() if cycle is None else cycle, git_facts() if facts is None else facts)
     counts = {s: 0 for s in ORDER}
     for it in items:
         counts[it.stage] = counts.get(it.stage, 0) + 1
     rank = {s: i for i, s in enumerate(ORDER)}
-    rows = sorted(({**_brief(it), **pipe[it.item_id]} for it in items), key=lambda r: rank.get(r["stage"], 99))
+    ents = ledger.read_all() if entries is None else entries
+    done_at = dict(commit_times() if times is None else times)
+    for e in ents:
+        if e.get("outcome") == "success" and e.get("unit_id") and e.get("ts"):
+            done_at.setdefault(e["unit_id"], int(e["ts"]))
+    rows = sorted(({**_brief(it), **pipe[it.item_id], "done_at": done_at.get(it.item_id, 0) if it.stage == "done" else 0} for it in items),
+                  key=lambda r: (rank.get(r["stage"], 99), -r["done_at"]))
     total = len(items)
     return {"total": total, "counts": counts, "done_pct": round(100 * counts["done"] / total) if total else 0, "items": rows}
 
