@@ -126,3 +126,12 @@ def test_handle_absence_hit_extends_scope(tmp_path, monkeypatch):
     note = f"`{COUNT_CMD}` 종료코드 1\n"
     stage, extra = run_unit._handle_verify_failure(_item(tmp_path), note)
     assert stage == "queued" and "frontend/src/p.ts" in extra["scope"]
+
+
+def test_fix_target_real_and_absence_hit():
+    hit = "frontend/src/lib/a/Step3.svelte:9: '/coach/plan/new'"
+    assert vd.fix_target("absence_hit", hit, []) == "frontend/src/lib/a/Step3.svelte"
+    assert vd.fix_target("absence_hit", hit, ["frontend/src/lib"]) == ""
+    assert vd.fix_target("real", "file:///h/frontend/tests/freshness.test.mjs:31", []) == "frontend/tests/freshness.test.mjs"
+    assert vd.fix_target("real", "FAILED tests/test_foo.py::t", ["tests/"]) == ""
+    assert vd.fix_target("usage", hit, []) == ""

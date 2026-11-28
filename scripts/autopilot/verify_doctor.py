@@ -121,7 +121,8 @@ def fix_target(kind: str, out: str, scope: list[str]) -> str:
         return ""
     inside = [s.rstrip("/") for s in scope]
     for m in pat.finditer(out):
-        path = re.sub(r"^.*?(?=(?:frontend|tests|src|scripts)/)", "", m.group(1))
+        root = re.search(r"(?:^|/)((?:frontend|tests|src|scripts)/.*)$", m.group(1))
+        path = root.group(1) if root else m.group(1)
         if not any(path == s or path.startswith(s + "/") for s in inside):
             return path
     return ""
