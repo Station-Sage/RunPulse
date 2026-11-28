@@ -85,8 +85,8 @@ def _run_claude(item: queue.QueueItem) -> dict:
 def _decisions_changed(pre_head: str) -> bool:
     """DECISIONS.md 가 pre_head 이후 바뀌었나 — 커밋 여부와 무관하게 잡는다(세션이 메모를 커밋해도 놓치지 않음)."""
     r = subprocess.run(
-        ["git", "diff", "--quiet", pre_head, "--", "DECISIONS.md"],
-        cwd=settings.WORKTREE_DIR / "v0.3" / "data" / "phase-7-ui-renewal",
+        ["git", "diff", "--quiet", pre_head, "--", settings.DECISIONS_PATH.name],
+        cwd=settings.DECISIONS_PATH.parent,
     )
     return r.returncode != 0
 

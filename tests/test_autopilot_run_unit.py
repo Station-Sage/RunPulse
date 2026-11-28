@@ -253,7 +253,7 @@ class TestDecisionsChangedCommitAware:
 
     def test_no_change_is_false(self, tmp_path, monkeypatch):
         _, _, pre_head = self._repo(tmp_path)
-        monkeypatch.setattr(run_unit.settings, "WORKTREE_DIR", tmp_path)
+        monkeypatch.setattr(run_unit.settings, "DECISIONS_PATH", tmp_path / "v0.3" / "data" / "phase-7-ui-renewal" / "DECISIONS.md")
         assert run_unit._decisions_changed(pre_head) is False
 
     def test_committed_change_is_detected(self, tmp_path, monkeypatch):
@@ -262,13 +262,13 @@ class TestDecisionsChangedCommitAware:
         dec_path.write_text("# decisions\n\n## [AUD-x] 질문\n- **상태**: 사용자 결정 대기.\n")
         git("add", "-A")
         git("commit", "-q", "-m", "docs: 결정 대기 메모")
-        monkeypatch.setattr(run_unit.settings, "WORKTREE_DIR", tmp_path)
+        monkeypatch.setattr(run_unit.settings, "DECISIONS_PATH", tmp_path / "v0.3" / "data" / "phase-7-ui-renewal" / "DECISIONS.md")
         assert run_unit._decisions_changed(pre_head) is True
 
     def test_uncommitted_change_is_still_detected(self, tmp_path, monkeypatch):
         _, dec_path, pre_head = self._repo(tmp_path)
         dec_path.write_text("# decisions\n\n## [AUD-x] 질문\n")
-        monkeypatch.setattr(run_unit.settings, "WORKTREE_DIR", tmp_path)
+        monkeypatch.setattr(run_unit.settings, "DECISIONS_PATH", tmp_path / "v0.3" / "data" / "phase-7-ui-renewal" / "DECISIONS.md")
         assert run_unit._decisions_changed(pre_head) is True
 
 

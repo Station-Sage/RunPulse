@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -57,15 +58,25 @@ def _main_checkout() -> Path:
 
 
 WORKTREE_DIR = _main_checkout() / ".claude" / "worktrees" / "autopilot-phase7"
-STATE_DIR = PROJECT_ROOT / ".claude" / "autopilot"   # untracked (gitignore)
+
+# 큐(BACKLOG.md)·원장·락은 "지금 스크립트를 실행 중인 체크아웃"(PROJECT_ROOT)이 아니라
+# 이 고정 경로(오케스트레이터·관제 콘솔 전용 호스트) 기준으로 둔다 — 전에는 PROJECT_ROOT
+# 기준이라 어디서 실행하느냐에 따라 다른 BACKLOG.md를 읽고 써서, stage 전이가 쓰여도
+# 콘솔이 보는 복사본에는 반영되지 않는 사고가 실제로 있었다(AUD-dd4c72 등 18건).
+AUTOPILOT_HOST_DIR = Path(os.environ.get("RUNPULSE_AUTOPILOT_HOST", "/home/ubuntu/projects/RunPulse-p0"))
+STATE_DIR = AUTOPILOT_HOST_DIR / ".claude" / "autopilot"   # untracked (gitignore)
 LEDGER_PATH = STATE_DIR / "ledger.jsonl"
 LOCK_PATH = STATE_DIR / "run.lock"
 STOP_PATH = STATE_DIR / "STOP"
 PAUSE_PATH = STATE_DIR / "PAUSE"
 RUN_LOG_DIR = STATE_DIR / "runs"
 
-QUEUE_PATH = PROJECT_ROOT / "v0.3" / "data" / "phase-7-ui-renewal" / "BACKLOG.md"
-DECISIONS_PATH = PROJECT_ROOT / "v0.3" / "data" / "phase-7-ui-renewal" / "DECISIONS.md"
+QUEUE_PATH = AUTOPILOT_HOST_DIR / "v0.3" / "data" / "phase-7-ui-renewal" / "BACKLOG.md"
+# DECISIONS.md는 모델이 claude -p 세션 중 직접 쓰고 커밋하는 파일이라 WORKTREE_DIR 기준이
+# 맞다(run_unit.py._decisions_changed/_asked_outcome가 실제로 보는 파일과 일치시킴) —
+# 전에는 이 상수만 AUTOPILOT_HOST_DIR 기준이라 status.py 표시용이 실제 판정과 다른 파일을
+# 가리켰다.
+DECISIONS_PATH = WORKTREE_DIR / "v0.3" / "data" / "phase-7-ui-renewal" / "DECISIONS.md"
 
 MODEL = "sonnet"                # 자동 실행은 Sonnet 기본 — Opus 는 큰 설계·릴리스 감사에만 scripts/audit/budget.py 한도 안에서
 RUN_TIMEOUT_SEC = 20 * 60
