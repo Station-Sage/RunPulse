@@ -1292,3 +1292,13 @@ REVIEW-04 #S2(Coach 근거 없음, 입력창 미도킹) 해소. 근거 칩은 To
   3. 기존 POST 계약을 유지한 채 PUT 별칭만 추가(중복 API, 가치 낮음).
 - **권고**: 1번. 설계 번복·중복 구현을 피한다. 앞선 `[P7-IMPL-COACH-PLAN-ADJUSTMENT-ACCEPT]` 섹션의 §8 결정 4건 확정과 함께 답해 달라.
 - **상태**: 사용자 결정 대기. 코드 변경 없음.
+
+## [ADR] 오토파일럿 체크아웃 3개 역할 고정 — AUTOPILOT_HOST_DIR 분리 (2026-11-28)
+- **배경**: BACKLOG.md stage·DECISIONS.md·ledger 경로가 "스크립트를 실행 중인 체크아웃"(PROJECT_ROOT) 기준이라, 오케스트레이터를 어디서 실행하느냐에 따라 서로 다른 물리 파일을 읽고 썼다. 그 틈으로 AUD-dd4c72 등 18건이 "사용자 결정 대기"라고 기록해놓고도 stage가 콘솔이 읽는 복사본에 반영 안 돼 묻혔다(소급 수정도 처음엔 엉뚱한 복사본에 적용됨).
+- **결정**: 체크아웃 역할을 고정한다.
+  1. **RunPulse**(renew/data-architecture): 사람의 모든 수동 개발(런펄스 앱 + 오토파일럿/콘솔 도구 코드).
+  2. **RunPulse-p0**(`ops/autopilot-host`, 구 feat/autopilot-a1-state): 오케스트레이터 루프 + 관제 콘솔 서버 실행 전용 호스트. BACKLOG.md stage·ledger·lock·pause의 유일한 라이브 복사본(`settings.AUTOPILOT_HOST_DIR`로 고정, env `RUNPULSE_AUTOPILOT_HOST`로 오버라이드 가능). 더는 독자 커밋을 쌓지 않고 trunk를 따라간다.
+  3. **worktree(`.claude/worktrees/autopilot-phase7`, autopilot/phase7)**: claude -p 가 유닛 코드 + DECISIONS.md 메모를 실제로 쓰는 격리 샌드박스. `settings.DECISIONS_PATH`는 여기 기준(에이전트가 직접 커밋하는 파일과 일치) — BACKLOG.md stage는 여기 두면 안 된다(`worktree.sync()`가 매번 `discard_leftovers()`로 미커밋 변경을 지운다).
+- **재발 방지**: `scripts/audit/decision_guard.py` + `check_docs.py` #22가 DECISIONS.md "대기" 기록과 BACKLOG.md stage 불일치를 상시 검사.
+- **범위 밖(후속 과제)**: `finish_unit.py`의 review→done 수동 플립은 `reconcile.py.promote_merged()`와 중복이지만 지금 당장 해롭지 않아 보류. origin의 `feat/autopilot-a1-state` 원격 브랜치 rename/삭제도 보류(로컬만 정리).
+- **상태**: 확정, 적용 완료(settings.py/run_unit.py/decisions.py/propose.py 수정 + RunPulse↔RunPulse-p0 드리프트 정리 + 라이브 큐 18건 복구, 2026-11-28).
