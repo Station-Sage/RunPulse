@@ -221,3 +221,11 @@ def test_verify_card_options_and_fresh_append(tmp_path):
     decisions.append([c], p)
     decisions.append([verify_card.build_verify_card("A-1", "real", "다시", "작업")], p, fresh=True)
     assert len(decisions.load(p)) == 1
+
+
+def test_abs_venv_redirects_absolute_cd_to_worktree():
+    wt = str(run_unit.settings.WORKTREE_DIR)
+    out = run_unit._abs_venv("cd /home/ubuntu/projects/RunPulse-p0 && .venv/bin/python -m pytest tests/x.py -q")
+    assert out.startswith(f"cd {wt} && ") and "RunPulse-p0 &&" not in out
+    assert str(run_unit.settings.PROJECT_ROOT / ".venv/bin/python") in out
+    assert run_unit._abs_venv("cd /home/ubuntu/projects/RunPulse-p0/frontend && npm run check") == f"cd {wt}/frontend && npm run check"

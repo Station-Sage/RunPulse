@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import re
 import subprocess
 from pathlib import Path
 
@@ -157,3 +158,11 @@ def commits_ahead_of(base_branch: str) -> int:
     r = _run(["git", "rev-list", "--count", f"{base_branch}..{settings.AUTOPILOT_BRANCH}"],
               cwd=settings.PROJECT_ROOT)
     return int(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip().isdigit() else -1
+
+
+_ROOT_RE = re.compile(r"/home/[^/\s]+/projects/RunPulse(?:-[A-Za-z0-9_]+)?(?=/(?!\.venv)|\s|$)")
+
+
+def localize_verify(cmd: str) -> str:
+    """verify 의 `cd /…/RunPulse-p0 && …` 절대경로를 격리 워크트리로 돌린다 — 안 그러면 에이전트가 만든 파일이 없는 다른 체크아웃을 검증해 missing_target 오진이 난다."""
+    return _ROOT_RE.sub(str(settings.WORKTREE_DIR), cmd)

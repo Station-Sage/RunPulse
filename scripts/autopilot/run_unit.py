@@ -93,8 +93,10 @@ def _decisions_changed() -> bool:
 
 def _abs_venv(cmd: str) -> str:
     """verify 는 격리 워크트리(.venv 없음)에서 돈다 — 상대 `.venv/bin/python` 과 시스템 `python3 -m pytest`(ENV-1: pytest 는 .venv 에만 있음)를 프로젝트 venv 절대경로로 바꾼다."""
-    if cmd.startswith(".venv/bin/"):
-        return str(settings.PROJECT_ROOT / cmd)
+    cmd = worktree.localize_verify(cmd)
+    cmd = re.sub(r"(^|&&\s*|;\s*)\.venv/bin/", lambda m: m.group(1) + str(settings.PROJECT_ROOT) + "/.venv/bin/", cmd)
+    if cmd.startswith(str(settings.PROJECT_ROOT / ".venv")):
+        return cmd
     m = re.match(r"python3? -m (pytest|flask)\b", cmd)
     if m:
         return f"{settings.PROJECT_ROOT / '.venv/bin/python'} " + cmd.split(" ", 1)[1]
