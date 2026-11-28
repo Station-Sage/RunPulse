@@ -3,8 +3,8 @@
 원장의 rate_limit 필드(utilization, resetsAt, status)는 사람 사용량까지 포함한 실제 계정 사용률이다.
 - 5시간 세션: utilization 이 SESSION_CEILING 이상이거나 거부 상태면 resetsAt 까지 대기(무한 반복 아님).
 - 주간(목 22:00 KST 리셋): 경과 비율을 따라 균등 배분한 목표선(+PACE_SLACK)과 WEEK_CEILING 중 낮은 쪽을 넘으면 대기. 리셋 24시간 전부터는 WEEK_CEILING 까지 허용.
-콘솔에서 WEEKLY_PACING_ENABLED=0 으로 끄면 주간 게이트만 건너뛴다(5시간·수동 보류 유지). 재개 시각은 목표선이 사용률에 닿는 때.
-관측이 없거나 만료(resetsAt 경과)면 보수적 대체값(5시간 창 실행 수·USD)으로 판정한다.
+콘솔에서 SESSION_PACING_ENABLED=0 / WEEKLY_PACING_ENABLED=0 으로 각 게이트를 끌 수 있다(수동 보류는 항상 유지). 재개 시각은 목표선이 사용률에 닿는 때.
+관측이 없거나 만료(resetsAt 경과)면 해당 게이트는 통과한다(추정값으로 막지 않는다).
 """
 from __future__ import annotations
 
@@ -55,15 +55,6 @@ def latest_observation(entries: list[dict], rtype: str, now: float) -> dict | No
     return None
 
 
-def last_session_reset(entries: list[dict]) -> float:
-    """가장 최근 five_hour 관측의 resetsAt — 만료됐다면 그 시각 이후가 새 세션 창이다."""
-    for e in reversed(entries):
-        rl = e.get("rate_limit") or {}
-        if rl.get("rateLimitType") == "five_hour":
-            return float(rl.get("resetsAt", 0))
-    return 0.0
-
-
 def weekly_target(now: float, reset_at: float | None = None) -> float:
     """균등 배분 목표 사용률(0~1) — 주 시작 직후에도 최소 PACE_FLOOR 는 허용."""
     reset_at = reset_at or week_start(now) + WEEK_SEC
@@ -97,7 +88,7 @@ def check(now: float | None = None, entries: list[dict] | None = None) -> Pacing
         return Pacing(False, "수동 보류(hold_until)", held)
     entries = ledger.read_all() if entries is None else entries
     sess = latest_observation(entries, "five_hour", now)
-    if sess and (sess.get("status") == "rejected" or sess.get("utilization", 0) >= settings.SESSION_CEILING):
+    if sess and settings.tunable("SESSION_PACING_ENABLED") and (sess.get("status") == "rejected" or sess.get("utilization", 0) >= settings.SESSION_CEILING):
         return Pacing(False, f"5시간 세션 사용률 {sess.get('utilization', 1):.0%} — 리셋까지 대기", sess["resetsAt"])
     wk = latest_observation(entries, "seven_day", now)
     if wk and settings.tunable("WEEKLY_PACING_ENABLED"):
@@ -105,12 +96,7 @@ def check(now: float | None = None, entries: list[dict] | None = None) -> Pacing
         if wk.get("status") == "rejected" or wk.get("utilization", 0) >= target:
             # 목표선이 현재 사용률에 닿는 시각(또는 마지막 24시간 시작)에 재개 — 주간 리셋까지 기다리지 않는다.
             resume = weekly_resume_at(now, wk.get("utilization", 1), wk["resetsAt"], wk.get("status") == "rejected")
-            if sess:
+            if sess and settings.tunable("SESSION_PACING_ENABLED"):
                 resume = min(resume, sess["resetsAt"])
             return Pacing(False, f"주간 사용률 {wk.get('utilization', 1):.0%} ≥ 균등 목표 {target:.0%} — 페이싱 대기", resume)
-    if not sess:
-        reset = last_session_reset(entries)
-        recent = [e for e in ledger.since(SESSION_SEC / 3600, entries, now) if e["ts"] > reset and not str(e.get("unit_id", "")).startswith("audit-ask")]
-        if recent and (len(recent) >= settings.tunable("FALLBACK_SESSION_MAX_RUNS") or ledger.total_cost(recent) >= settings.tunable("FALLBACK_SESSION_MAX_USD")):
-            return Pacing(False, "5시간 관측 없음 — 대체 한도(실행 수·USD) 도달", recent[0]["ts"] + SESSION_SEC)
     return Pacing(True)
