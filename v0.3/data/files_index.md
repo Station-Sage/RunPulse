@@ -2511,9 +2511,9 @@
 
 - functions: test_trigger_uses_reloaded_config, test_trigger_falls_back_on_reload_failure, test_trigger_skips_when_all_disabled, test_restart_keeps_thread_running
 
-### `test_autopilot_card_review.py` (57줄)
+### `test_autopilot_card_review.py` (65줄)
 
-- functions: test_parse_rejects_bad_output, test_review_success_fallback_and_pacing, test_review_card_caches_and_split_plan_reaches_scope
+- functions: test_parse_rejects_bad_output, test_review_success_fallback_and_pacing, test_review_card_caches_and_split_plan_reaches_scope, test_legacy_split_card_without_path
 
 ### `test_autopilot_dep_install.py` (38줄) — 누락 의존성 설치 — 허용 입력·명령 구성·결과 메시지, 결정 카드.
 
@@ -2553,6 +2553,10 @@
 ### `test_autopilot_size_followup.py` (42줄)
 
 - functions: test_oversize_waits_for_decision, test_recommendation_by_overshoot, test_choose_split_queues_and_defer_closes
+
+### `test_autopilot_split_migrate.py` (30줄)
+
+- functions: test_migrates_queued_split, test_dry_run_changes_nothing, test_skips_started_or_decided
 
 ### `test_autopilot_stream.py` (43줄) — claude 스트림 실행기 — rate_limit_event 도착 즉시 원장 기록(값이 바뀐 경우만), 관측 시각 노출.
 
@@ -4408,7 +4412,7 @@
 - functions: run
 
 ---
-총 967개 파일
+총 968개 파일
 
 ## docstring 누락
 
@@ -4425,6 +4429,7 @@
 - `tests/test_audit_versioning.py`
 - `tests/test_autopilot_card_review.py`
 - `tests/test_autopilot_size_followup.py`
+- `tests/test_autopilot_split_migrate.py`
 - `tests/test_autopilot_trailers.py`
 - `tests/test_chat_engine_cq.py`
 - `tests/test_coach_cq_context.py`
