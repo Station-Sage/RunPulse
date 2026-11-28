@@ -51,3 +51,34 @@ def test_resolved_decision_with_done_stage_is_clean(tmp_path):
 def test_missing_decisions_file_is_clean(tmp_path):
     bl = _backlog(tmp_path, "queued")
     assert decision_guard.find_mismatches(bl, tmp_path / "DECISIONS.md") == []
+
+
+def test_free_text_pending_without_status_line_is_flagged(tmp_path):
+    """AUD-dd4c72 류 — "**상태**:" 줄 없이 자유 서술로만 결정 보류를 적은 경우도 잡아야 한다."""
+    bl = _backlog(tmp_path, "queued")
+    dec = _decisions(tmp_path, "## [AUD-x] 기준값 출처 정의\n항목이 (판단 필요) 이고 코드는 건드리지 않았다. 선택지는...\n")
+    problems = decision_guard.find_mismatches(bl, dec)
+    assert len(problems) == 1
+
+
+def test_repeated_retry_memos_still_pending_is_flagged(tmp_path):
+    """AUD-0eeb77 류 — 재시도 메모(### 서브섹션)가 여러 번 반복돼도 매번 미해결이면 전부 flag."""
+    bl = _backlog(tmp_path, "queued")
+    dec = _decisions(
+        tmp_path,
+        "## [AUD-x] 제목\n본문\n"
+        "### [AUD-x] 재시도 메모 1\n- 재확인: 코드 변경 없음, 결정 대기.\n"
+        "### [AUD-x] 재시도 메모 2\n- 재확인: 코드 변경 없음, 결정이 아직 없다.\n",
+    )
+    problems = decision_guard.find_mismatches(bl, dec)
+    assert len(problems) == 1
+
+
+def test_later_resolution_section_clears_pending(tmp_path):
+    bl = _backlog(tmp_path, "done")
+    dec = _decisions(
+        tmp_path,
+        "## [AUD-x] 제목\n항목이 (판단 필요) 이고 코드는 건드리지 않았다.\n"
+        "## [AUD-x] 재확인\n사용자 확정(2번)으로 구현했다.\n",
+    )
+    assert decision_guard.find_mismatches(bl, dec) == []
