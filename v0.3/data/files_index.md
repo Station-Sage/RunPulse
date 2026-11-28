@@ -2545,7 +2545,7 @@
 
 - functions: test_promote_merged, test_prune_pending
 
-### `test_autopilot_run_unit.py` (272줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
+### `test_autopilot_run_unit.py` (305줄) — scripts/autopilot/run_unit.py 테스트 — kind="code" 확장 부분만.
 
 - class **TestBuildPrompt**: test_docs_kind_uses_docs_template, test_code_kind_uses_code_template_with_scope_and_verify, test_code_kind_prompt_requires_following_embedded_spec, test_code_kind_prompt_forbids_git_dash_c, test_code_kind_missing_scope_warns_instead_of_empty
 - class **TestBuildCmd**: test_docs_kind_uses_base_allowed_tools_and_budget, test_code_kind_uses_code_allowed_tools_and_budget
@@ -2553,7 +2553,7 @@
 - class **TestCommitLeftovers**: test_clean_worktree_is_noop, test_commits_in_scope_files_only, test_directory_scope_prefix_matches
 - class **TestVerifyFailureRequeue**: test_first_verify_failure_requeues_without_card, test_env_failure_provisions_then_requeues_without_card, test_env_failure_unfixable_fails_with_card, test_second_verify_failure_still_retries, test_third_verify_failure_fails_with_card
 - class **TestDecisionsChangedCommitAware**: test_no_change_is_false, test_committed_change_is_detected, test_uncommitted_change_is_still_detected
-- functions: test_abs_venv_rewrites_relative_venv_python, test_sync_block_holds_item_in_queue, test_verify_card_options_and_fresh_append, test_abs_venv_redirects_absolute_cd_to_worktree
+- functions: test_abs_venv_rewrites_relative_venv_python, test_sync_block_holds_item_in_queue, test_verify_card_options_and_fresh_append, test_abs_venv_redirects_absolute_cd_to_worktree, test_verify_card_has_review_recommendation_and_add_target, test_promote_add_target_and_retry_scope_note, test_verify_failure_widens_scope_once_then_cards
 
 ### `test_autopilot_settings.py` (41줄) — settings.py 경로 상수 — QUEUE_PATH/STATE_DIR는 AUTOPILOT_HOST_DIR, DECISIONS_PATH는
 
@@ -2575,9 +2575,9 @@
 
 - functions: test_strip_trailers, test_scrub_range_rewrites
 
-### `test_autopilot_verify_doctor.py` (128줄) — verify 진단·lint·재시도 분기.
+### `test_autopilot_verify_doctor.py` (137줄) — verify 진단·lint·재시도 분기.
 
-- functions: test_diagnose, test_reason_tag_and_stop, test_retry_hint_contains_output, test_lint, test_handle_missing_target_extends_scope_then_stops, test_prompt_uses_hint, test_lint_absence_baseline_outside_scope, test_tag_reason_puts_errors_before_warnings, test_missing_package, test_lint_rejects_uninstalled_runner, test_handle_missing_dep_registers_install_card, test_count_absence_is_absence_hit, test_hit_target_finds_out_of_scope_file, test_handle_absence_hit_extends_scope
+- functions: test_diagnose, test_reason_tag_and_stop, test_retry_hint_contains_output, test_lint, test_handle_missing_target_extends_scope_then_stops, test_prompt_uses_hint, test_lint_absence_baseline_outside_scope, test_tag_reason_puts_errors_before_warnings, test_missing_package, test_lint_rejects_uninstalled_runner, test_handle_missing_dep_registers_install_card, test_count_absence_is_absence_hit, test_hit_target_finds_out_of_scope_file, test_handle_absence_hit_extends_scope, test_fix_target_real_and_absence_hit
 
 ### `test_autopilot_worktree_provision.py` (128줄) — worktree.provision — 워크트리에 없는 untracked 의존성(.venv·node_modules)을 메인 체크아웃에서 링크.
 
@@ -2775,9 +2775,9 @@
 
 - functions: test_build_from_events, test_design_batches_are_summed, test_deploy_stage_and_old_round_ignored, test_fallback_from_progress_log, test_loop_records_events, test_event_trims_large_file, test_sub_states_reset_on_new_audit_pass, test_steps_only_current_phase_with_failures, test_sweep_stream_emits_step_events, test_sweep_fix_badge_only_during_fix_round, test_open_decisions_counts_only_open, test_deploy_hold_marks_stage5_with_reason
 
-### `test_console_items.py` (80줄) — 개발 항목 목록·상세(items) + 라우팅.
+### `test_console_items.py` (88줄) — 개발 항목 목록·상세(items) + 라우팅.
 
-- functions: test_item_list_groups_and_counts, test_item_detail_review_and_report, test_routes, test_pipeline_steps_from_stage_ledger_and_git, test_git_facts_parses_ids_and_base, test_done_items_sorted_by_recent_completion
+- functions: test_item_list_groups_and_counts, test_item_detail_review_and_report, test_routes, test_pipeline_steps_from_stage_ledger_and_git, test_git_facts_parses_ids_and_base, test_done_items_sorted_by_recent_completion, test_done_at_prefers_ledger_over_commit_time
 
 ### `test_console_overview.py` (47줄) — C1 — 관제 콘솔 overview/decision_list.
 
