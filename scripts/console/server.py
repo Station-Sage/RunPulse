@@ -1,6 +1,6 @@
 """관제 콘솔 HTTP 서버(C2) — stdlib http.server, 127.0.0.1 전용(외부 노출은 cloudflared + Cloudflare Access 가 담당).
 
-GET  /api/overview /api/items /api/item/<id> /api/decisions /api/log /api/timers /api/roles, POST /api/control /api/tunables /api/interval /api/roles /api/decisions/<id> /api/review/<id> /api/failed/<id> /api/queued/<id>.
+GET  /api/overview /api/items /api/item/<id> /api/decisions /api/log /api/timers /api/roles, POST /api/control /api/tunables /api/interval /api/roles /api/decisions/<id> /api/decisions/<id>/note /api/review/<id> /api/failed/<id> /api/queued/<id>.
 라우팅은 route() 순수 함수로 분리해 소켓 없이 테스트한다. POST 는 JSON 만, Origin 이 있으면 Host 와 같아야 한다(CSRF 방어).
 """
 from __future__ import annotations
@@ -85,6 +85,14 @@ def choose(iid: str, choice: str, dpath: Path | None = None, state_path: Path | 
     return {"ok": True, "id": iid, "choice": choice, **({"note": note} if note else {})}
 
 
+def save_note(iid: str, text: str, dpath: Path | None = None) -> dict:
+    """결정 카드의 의견만 저장(선택 안 함). 이미 큐에 반영된 결정은 '이 안으로 변경'을 눌러야 지시에 반영된다."""
+    with control.LOCK:
+        rec = decisions.save_note(iid, text, dpath)
+        control.audit("decision_note", {"id": iid, "text": text[:200]}, rec is not None)
+    return {"ok": True, "id": iid, "text": rec["text"]} if rec else {"ok": False, "error": "없는 결정"}
+
+
 def review_action(iid: str, action: str, queue_path: Path | None = None) -> dict:
     """사후 검토 항목 처리 — done(확인 완료) | rework(queued 복귀, 시도 횟수 초기화). 병합 자체는 사용자가 한다."""
     qp = queue_path or settings.QUEUE_PATH
@@ -157,6 +165,8 @@ def route(method: str, path: str, body: dict | None = None) -> tuple[int, dict |
         r = queued_action(path.rsplit("/", 1)[1], str(body.get("action", "")))
     elif path.startswith("/api/failed/"):
         r = failed_action(path.rsplit("/", 1)[1], str(body.get("action", "")), str(body.get("text", "")))
+    elif path.startswith("/api/decisions/") and path.endswith("/note"):
+        r = save_note(path.split("/")[3], str(body.get("text", "")))
     elif path.startswith("/api/decisions/"):
         r = choose(path.rsplit("/", 1)[1], str(body.get("choice", "")), text=str(body.get("text", "")))
     else:

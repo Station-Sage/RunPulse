@@ -24,6 +24,17 @@ def test_choose_validation(tmp_path, monkeypatch):
     assert server.choose("d1", "A", p)["ok"] is True and decisions.load(p)[0]["status"] == "chosen"  # redo 에서도 재선택 가능
 
 
+def test_save_note_keeps_status(tmp_path, monkeypatch):
+    monkeypatch.setattr(control.settings, "STATE_DIR", tmp_path)
+    p = tmp_path / "d.json"
+    decisions.save([_rec()], p)
+    assert server.save_note("zz", "x", p)["ok"] is False
+    assert server.save_note("d1", "  scope 포함해 재시도  ", p) == {"ok": True, "id": "d1", "text": "scope 포함해 재시도"}
+    rec = decisions.load(p)[0]
+    assert rec["text"] == "scope 포함해 재시도" and rec["status"] == "open" and not rec.get("choice")
+    assert server.save_note("d1", "", p)["text"] == ""
+
+
 def test_log_tail_and_route(tmp_path):
     p = tmp_path / "progress.log"
     p.write_text("\n".join(str(i) for i in range(200)))
