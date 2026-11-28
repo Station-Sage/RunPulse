@@ -19,8 +19,9 @@ _OUT = ('JSON 한 개만 출력한다(설명·코드펜스 금지): {"review": "
 def _prompt(rec: dict) -> str:
     opts = "\n".join(f"- {o['key']}. {o['name']} (+{o.get('pros', '')} / -{o.get('cons', '')})" for o in rec.get("options", []))
     if rec["kind"] == "split_decision":
-        path = rec.get("path", "")
-        return (f"RunPulse 저장소의 {path} 파일({rec.get('lines', '?')}줄)이 300줄 상한을 넘었다. 파일을 Read 로 읽고 분리가 실제로 이득인지 판단하라.\n"
+        m = re.match(r"(\S+) (\d+)줄", str((rec.get("finding") or {}).get("impact", "")))
+        path = rec.get("path") or (m.group(1) if m else "")
+        return (f"RunPulse 저장소의 {path} 파일({rec.get('lines') or (m.group(2) if m else '?')}줄)이 300줄 상한을 넘었다. 파일을 Read 로 읽고 분리가 실제로 이득인지 판단하라.\n"
                 "기준: 책임이 섞였는가, 응집된 덩어리로 나눌 경계가 있는가, 계속 커지는 중인가, 분리 시 회귀 위험은 어떤가. 초과폭만으로 판단하지 말 것.\n"
                 f"선택지:\n{opts}\n" + _OUT % ', "split_plan": "분리를 추천할 때만: 어떤 함수·블록을 어떤 새 파일로 옮길지 구체적으로(3~6줄), 아니면 빈 문자열"')
     return ("RunPulse 자동 개발 항목의 verify 단계가 실패했다. 실패 맥락을 읽고 원인과 가장 근본적인 해결 선택지를 판단하라(필요하면 Read/Grep 으로 파일 확인).\n"

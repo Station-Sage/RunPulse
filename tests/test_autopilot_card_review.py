@@ -55,3 +55,11 @@ def test_review_card_caches_and_split_plan_reaches_scope(tmp_path):
     consume.apply(q, lambda f: {}, dp)
     it = next(i for i in queue.parse(q) if i.item_id == rec["id"])
     assert any("parse_part.py" in s for s in it.scope)
+
+
+def test_legacy_split_card_without_path(tmp_path):
+    _, _, rec = _card(tmp_path)
+    rec.pop("path"); rec.pop("lines")
+    seen = []
+    card_review.review(rec, ask=lambda p, *a: seen.append(p) or GOOD)
+    assert "frontend/src/Big.svelte 파일(310줄)" in seen[0] and rec["review_source"] == "agent"
