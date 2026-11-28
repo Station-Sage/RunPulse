@@ -22,6 +22,8 @@
 18. Phase 4 Metrics Engine 파일 존재 & 인터페이스 검증    [phase]
 19. Phase 5 서비스 레이어 파일 존재 검증                  [phase]
 20. Phase 6 초기 적재 & 검증 파일 존재 & 인터페이스 검증  [phase]
+21. 감사 커버리지 인벤토리 화면 목록 일치                 [code]
+22. 결정-상태 불변식 (DECISIONS.md 대기 vs BACKLOG.md stage) [general]
 
 사용법:
   python3 scripts/check_docs.py              # 전체 실행
@@ -993,6 +995,25 @@ def check_audit_inventory():
         ok(f"인벤토리 화면 {len(live)}개 일치")
     else:
         error(f"인벤토리 불일치: 추가 {sorted(live - committed)}, 삭제 {sorted(committed - live)}")
+
+
+# ════════════════════════════════════════
+#  22. 결정-상태 불변식 (DECISIONS.md 대기 vs BACKLOG.md stage)
+# ════════════════════════════════════════
+@check("22. 결정-상태 불변식 (DECISIONS.md 대기 vs BACKLOG.md stage)", ["general"])
+def check_decision_stage_consistency():
+    from scripts.audit import decision_guard
+    base = ROOT / "v0.3" / "data" / "phase-7-ui-renewal"
+    bl = base / "BACKLOG.md"
+    if not bl.exists():
+        warn("BACKLOG.md 없음 — 건너뜀")
+        return
+    problems = decision_guard.find_mismatches(bl, base / "DECISIONS.md")
+    if problems:
+        for p in problems:
+            error(p)
+    else:
+        ok("DECISIONS.md 대기 기록과 BACKLOG.md stage 일치")
 
 
 # ════════════════════════════════════════

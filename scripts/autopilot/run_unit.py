@@ -82,13 +82,13 @@ def _run_claude(item: queue.QueueItem) -> dict:
     }
 
 
-def _decisions_changed() -> bool:
+def _decisions_changed(pre_head: str) -> bool:
+    """DECISIONS.md 가 pre_head 이후 바뀌었나 — 커밋 여부와 무관하게 잡는다(세션이 메모를 커밋해도 놓치지 않음)."""
     r = subprocess.run(
-        ["git", "status", "--porcelain", "--", "DECISIONS.md"],
+        ["git", "diff", "--quiet", pre_head, "--", "DECISIONS.md"],
         cwd=settings.WORKTREE_DIR / "v0.3" / "data" / "phase-7-ui-renewal",
-        capture_output=True, text=True,
     )
-    return bool(r.stdout.strip())
+    return r.returncode != 0
 
 
 def _abs_venv(cmd: str) -> str:
@@ -189,10 +189,10 @@ def _register_failed_card(item: queue.QueueItem, kind: str, reason: str) -> None
     decisions.append([fail_handling.build_failed_card(item.item_id, kind, reason, item.text)])
 
 
-def _asked_outcome(item: queue.QueueItem) -> tuple[str, dict, str]:
+def _asked_outcome(item: queue.QueueItem, pre_head: str) -> tuple[str, dict, str]:
     """모델이 DECISIONS.md 에 새 질문을 씀 → 실패가 아니라 사용자 결정 요청. (stage, 추가 필드, 노트)."""
     sec = fail_handling.pick_section(
-        fail_handling.parse_sections(fail_handling.added_text(settings.WORKTREE_DIR)), item.item_id)
+        fail_handling.parse_sections(fail_handling.added_text(settings.WORKTREE_DIR, pre_head)), item.item_id)
     asks = item.asks + 1
     if asks > fail_handling.ASK_LIMIT:
         reason = "결정이 항목 범위를 못 정함 — 항목 재정의 필요"
@@ -252,8 +252,8 @@ def run_once(
         verify_note = ""
         extra: dict = {"fail_kind": "", "fail_reason": ""}
         if outcome["outcome"] == "success":
-            if _decisions_changed():
-                new_stage, extra, verify_note = _asked_outcome(item)
+            if pre_head and _decisions_changed(pre_head):
+                new_stage, extra, verify_note = _asked_outcome(item, pre_head)
             else:
                 verified, verify_note = _timed_verify(item)
                 new_stage = "review" if verified else "failed"
