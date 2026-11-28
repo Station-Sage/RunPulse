@@ -32,3 +32,5 @@ details.cfg{margin-bottom:12px}details.cfg>summary{cursor:pointer;min-height:44p
 details.cfg .card{background:#18212f}.cfg h3{font-size:14px;margin:0 0 6px}
 .rr{display:flex;justify-content:space-between;align-items:center;min-height:44px;cursor:pointer;border-bottom:1px solid #374151}.rr.open{border-bottom:0}.rb{padding:0 0 8px;border-bottom:1px solid #374151}
 .fm{display:grid;grid-template-columns:1fr 84px auto;gap:6px 8px;align-items:center}.fm label{font-size:14px}.fm input{width:100%}.fm button.b{margin:0}
+
+.rv{border:2px solid #60a5fa;background:#1e3a5f;border-radius:10px;padding:10px;margin:8px 0;font-size:14px}.rv b{display:block;font-size:15px;margin-bottom:4px}.rv.wt{border-style:dashed;animation:rvp 1.6s ease-in-out infinite}.rv.ag{border-color:#34d399;background:#064e3b}.rv.ru{border-color:#f59e0b;background:#78350f}@keyframes rvp{50%{opacity:.55}}

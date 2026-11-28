@@ -20,6 +20,10 @@ function hhmm(ts){return ts?new Date(ts*1000).toLocaleString('ko-KR',{month:'num
 function sec(t,body){return body?`<div class="sec"><div class="st">${t}</div>${body}</div>`:''}
 function lst(a){return a&&a.length?'<ul>'+a.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}
 const revAsked={};
+function revBox(d){if(!['split_decision','verify_decision'].includes(d.kind))return sec('검토안',esc(d.review||''));
+ const a=d.review_source==='agent',r=d.review_source==='rule',w=!a&&!r&&d.status==='open';
+ if(!a&&!r&&!w)return sec('검토안',esc(d.review||''));
+ return `<div class="rv ${a?'ag':r?'ru':'wt'}"><b>${a?'에이전트 검토 완료':r?'규칙 기반 추정 (에이전트 검토 실패)':'에이전트 검토 중… (한도·대기열에 따라 지연될 수 있음)'}</b>${d.review?`<div>${esc(d.review)}</div>`:''}</div>`}
 let revChain=Promise.resolve();
 function askReviews(list){for(const d of list){if(d.status==='open'&&['split_decision','verify_decision'].includes(d.kind)&&!d.review_source&&!revAsked[d.id]){revAsked[d.id]=1;revChain=revChain.then(()=>api('/api/decisions/'+d.id+'/review',{})).then(r=>{if(r&&r.source==='pending'){setTimeout(()=>{delete revAsked[d.id]},60000)}else load()}).catch(()=>{delete revAsked[d.id]})}}}
 function renderDec(list){
@@ -31,7 +35,7 @@ function renderDec(list){
   const f=typeof d.finding==='object'&&d.finding?d.finding:{impact:d.finding||''};
   const rec=d.recommendation;
   return `<div class="card"><b>${esc(d.summary||d.id)}</b> <span class="tag${waiting?' warn':''}">${waiting?'재제안 대기':esc(d.status)}</span> <span class="mut">${esc(d.id)}</span>
-  ${sec('검토안',(['split_decision','verify_decision'].includes(d.kind)?(d.review_source==='agent'?'<span class="tag ok">에이전트 검토</span> ':d.review_source==='rule'?'<span class="tag warn">규칙 기반 추정</span> ':open?'<span class="tag">에이전트 검토 중…</span> ':''):'')+esc(d.review||''))}
+  ${revBox(d)}
   ${sec('무엇이 문제인가',(f.perspective?`<span class="tag">${esc(f.perspective)}</span> `:'')+esc(f.impact||''))}
   ${sec('제안된 수정',esc(f.fix||''))}
   ${sec('발견된 곳',lst(f.cells))}
@@ -56,7 +60,7 @@ function kv(t,v){return v?`<div class="row"><span class="mut">${t}</span><span s
 function detailHtml(d){
  const i=d.item,r=d.review,dc=d.decision,rp=d.report||{};
  if(dc)askReviews([dc]);
- const dcs=dc?`<div class="mut">${esc(dc.kind||'')} · ${esc(dc.status)}${dc.choice?' · 선택 '+esc(dc.choice):''}</div>${sec('검토안',(['split_decision','verify_decision'].includes(dc.kind)?(dc.review_source==='agent'?'<span class="tag ok">에이전트 검토</span> ':dc.review_source==='rule'?'<span class="tag warn">규칙 기반 추정</span> ':dc.status==='open'?'<span class="tag">에이전트 검토 중…</span> ':''):'')+esc(dc.review||''))}${sec('요약',esc(dc.summary||''))}${sec('결정 이유',esc(dc.why||''))}${dc.status==='open'?`<textarea class="tx" id="tx-${esc(dc.id)}" placeholder="의견 (선택)">${esc(dc.text||'')}</textarea><div class="row"><button class="b" data-dn="${esc(dc.id)}">의견 저장</button><span class="mut" id="ns-${esc(dc.id)}">${dc.text?'저장된 의견이 입력란에 표시됩니다':'저장된 의견 없음'}</span></div>`:sec('내 의견',esc(dc.text||''))}${(dc.options||[]).map(o=>`<div class="opt${o.key===dc.choice?' sel':''}${o.key===dc.recommendation?' rec':''}"><b>${esc(o.key)}. ${esc(o.name)}</b>${o.key===dc.recommendation?' <span class="tag ok">추천</span>':''}${o.key===dc.choice?' <span class="tag ok">선택</span>':''}${dc.status==='open'?`<div class="pro">+ ${esc(o.pros)}</div><div class="con">- ${esc(o.cons)}</div><button class="b p" data-dc="${esc(dc.id)}" data-ch="${esc(o.key)}">이 안으로 진행</button>`:''}</div>`).join('')}${dc.status==='open'&&dc.recommendation?`<div class="mut">추천: ${esc(dc.recommendation)}${dc.recommend_why?' — '+esc(dc.recommend_why)+' (제안일 뿐 자동 적용되지 않습니다)':''}</div>`:''}`:'<div class="mut">결정 기록 없음 — 사용자 결정 없이 자동 큐에 올라온 항목</div>';
+ const dcs=dc?`<div class="mut">${esc(dc.kind||'')} · ${esc(dc.status)}${dc.choice?' · 선택 '+esc(dc.choice):''}</div>${revBox(dc)}${sec('요약',esc(dc.summary||''))}${sec('결정 이유',esc(dc.why||''))}${dc.status==='open'?`<textarea class="tx" id="tx-${esc(dc.id)}" placeholder="의견 (선택)">${esc(dc.text||'')}</textarea><div class="row"><button class="b" data-dn="${esc(dc.id)}">의견 저장</button><span class="mut" id="ns-${esc(dc.id)}">${dc.text?'저장된 의견이 입력란에 표시됩니다':'저장된 의견 없음'}</span></div>`:sec('내 의견',esc(dc.text||''))}${(dc.options||[]).map(o=>`<div class="opt${o.key===dc.choice?' sel':''}${o.key===dc.recommendation?' rec':''}"><b>${esc(o.key)}. ${esc(o.name)}</b>${o.key===dc.recommendation?' <span class="tag ok">추천</span>':''}${o.key===dc.choice?' <span class="tag ok">선택</span>':''}${dc.status==='open'?`<div class="pro">+ ${esc(o.pros)}</div><div class="con">- ${esc(o.cons)}</div><button class="b p" data-dc="${esc(dc.id)}" data-ch="${esc(o.key)}">이 안으로 진행</button>`:''}</div>`).join('')}${dc.status==='open'&&dc.recommendation?`<div class="mut">추천: ${esc(dc.recommendation)}${dc.recommend_why?' — '+esc(dc.recommend_why)+' (제안일 뿐 자동 적용되지 않습니다)':''}</div>`:''}`:'<div class="mut">결정 기록 없음 — 사용자 결정 없이 자동 큐에 올라온 항목</div>';
  const runs=(d.runs||[]).map(x=>`<div class="mut">${fmt(x.ts)} · ${esc(x.outcome)} · ${x.num_turns??'-'}턴 · ${Math.round(x.duration_s||0)}초 · $${(x.cost_usd||0).toFixed(2)}</div>`).join('')||'<div class="mut">실행 기록 없음</div>';
  const tl=(d.timeline||[]).map(x=>`<div class="mut">${fmt(x.ts)} ${esc(x.kind)}${x.round?' · 라운드 '+x.round:''}${x.result?' · '+esc(x.result):''}</div>`).join('');
  const au=(d.audit||[]).map(x=>`<div class="mut">${esc(x.ts)} ${esc(x.action)} ${esc(JSON.stringify(x.detail))}</div>`).join('');
