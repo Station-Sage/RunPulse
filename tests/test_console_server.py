@@ -79,9 +79,12 @@ def test_timers_and_tunable_values(monkeypatch):
     import subprocess as _sp
 
     rows = [{"unit": "runpulse-audit.timer", "next": 1_700_000_100_000_000, "last": 1_700_000_000_000_000}]
-    monkeypatch.setattr(server.subprocess, "run", lambda *a, **k: _sp.CompletedProcess(a, 0, stdout=_json.dumps(rows)))
+    def fake(cmd, **k):
+        out = "ActiveState=active\nUnitFileState=enabled\nResult=success\nExecMainStatus=0\n" if "show" in cmd else _json.dumps(rows)
+        return _sp.CompletedProcess(cmd, 0, stdout=out)
+    monkeypatch.setattr(server.subprocess, "run", fake)
     t = server.timers()
-    assert t["runpulse-audit"] == {"next": 1_700_000_100, "last": 1_700_000_000, "active": "active"}
+    assert t["runpulse-audit"] == {"next": 1_700_000_100, "last": 1_700_000_000, "active": "active", "enabled": "enabled", "result": "success", "exit": "0"}
     assert t["runpulse-watch"]["next"] == 0
     assert set(server.tunable_values()) == set(server.control.TUNABLES)
 

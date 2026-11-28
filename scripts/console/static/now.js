@@ -1,6 +1,8 @@
 /* 상황판 탭 렌더러 — app.js 의 공용 헬퍼($, esc, api, bar, win, dur, hhmm …)를 호출 시점에 참조한다. */
 const openPh={},openRole={};
 const QKO={queued:'대기',in_progress:'진행중',done:'완료',failed:'실패',review:'사후 검토',blocked:'막힘'};
+const openTm={};
+const TKH={audit:'끄면 사이클 시도 자체가 멈춤(일시중지는 타이머가 돌아도 단계 진행만 멈춤)',watch:'끄면 멈춤·이상 상태를 아무도 점검하지 않음'};
 const TKO={audit:['개발·감사 사이클','100분마다 시도 — 실제 실행은 페이싱·최소 90분 간격이 결정'],watch:['루프 감시','30분마다 — 멈춤·이상 상태 점검']};
 const ROLE_KO={steward:'비전 관리',planner:'버전 계획',designer:'설계',developer:'개발',verifier:'검증',auditor:'감사',deployer:'배포'};
 const FLAG_KO={paused:'일시정지',skip:'건너뛰기',rerun:'재실행'};
@@ -76,7 +78,9 @@ function renderNow(o){window.lastO=o;
  if(rvh!==window.lastRv){window.lastRv=rvh;$('#rv').innerHTML=rvh;reopenIt()}
 }
 function renderTimers(){
- $('#tm').innerHTML=Object.entries(timers).map(([k,v])=>{const n=k.replace('runpulse-','');const [nm,ds]=TKO[n]||[n,''],on=v.active==='active';return `<div class="tmr"><div class="row"><b>${esc(nm)}</b><span class="tag">${on?'동작 중':'멈춤'}</span></div><div class="mut">${esc(ds)}</div><div class="mut">다음 <span data-next="${esc(v.next||0)}"></span> · 마지막 ${v.last?esc(ago(v.last)):'기록 없음'}</div></div>`}).join('');
+ $('#tm').innerHTML=Object.entries(timers).map(([k,v])=>{const n=k.replace('runpulse-','');const [nm,ds]=TKO[n]||[n,''],on=v.enabled==='enabled'&&v.active==='active';
+  const res=v.result==='success'?'성공':(v.result||'기록 없음'),open=openTm[n]?' open':'';
+  return `<details class="tmr" data-tmd="${esc(n)}"${open}><summary><b>${esc(nm)}</b><span class="tag">${on?'켜짐':'꺼짐'}</span></summary><div class="mut">${esc(ds)}</div><div class="mut">다음 <span data-next="${esc(on?v.next||0:0)}"></span> · 마지막 ${v.last?esc(ago(v.last)):'기록 없음'}</div><div class="mut">상태 ${esc(v.active)} · 부팅 시 자동 시작 ${esc(v.enabled)} · 마지막 실행 결과 ${esc(res)}${v.exit&&v.exit!=='0'?' (종료코드 '+esc(v.exit)+')':''}</div><div class="mut">${esc(TKH[n]||'')}</div><button data-tm="${esc(n)}" data-on="${on?1:0}" class="${on?'p':''}">${on?'끄기':'켜기'}</button></details>`}).join('');
  tickTimers()}
 function tickTimers(){document.querySelectorAll('[data-next]').forEach(e=>{e.textContent=left(Number(e.dataset.next)*1e6)})}
 function buildSettings(){

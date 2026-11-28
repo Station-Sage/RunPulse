@@ -1,6 +1,6 @@
 """관제 콘솔 HTTP 서버(C2) — stdlib http.server, 127.0.0.1 전용(외부 노출은 cloudflared + Cloudflare Access 가 담당).
 
-GET  /api/overview /api/items /api/item/<id> /api/decisions /api/log /api/timers /api/roles, POST /api/control /api/tunables /api/roles /api/decisions/<id> /api/decisions/<id>/note /api/review/<id> /api/failed/<id> /api/queued/<id>.
+GET  /api/overview /api/items /api/item/<id> /api/decisions /api/log /api/timers /api/roles, POST /api/control /api/timer /api/tunables /api/roles /api/decisions/<id> /api/decisions/<id>/note /api/review/<id> /api/failed/<id> /api/queued/<id>.
 라우팅은 route() 순수 함수로 분리해 소켓 없이 테스트한다. POST 는 JSON 만, Origin 이 있으면 Host 와 같아야 한다(CSRF 방어).
 """
 from __future__ import annotations
@@ -29,18 +29,30 @@ def log_tail(n: int = 80, path: Path | None = None) -> list[str]:
         return []
 
 
+def _show(unit: str, *props: str) -> dict:
+    try:
+        out = subprocess.run(["systemctl", "--user", "show", unit, *[f"-p{p}" for p in props]], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    return dict(ln.split("=", 1) for ln in out.splitlines() if "=" in ln)
+
+
 def timers() -> dict:
-    """타이머별 다음·마지막 실행 시각(에폭 초)과 활성 상태(systemctl list-timers). 실패하면 빈 값."""
-    out = {t: {"next": 0, "last": 0, "active": "?"} for t in control.TIMERS}
+    """타이머별 다음·마지막 실행(에폭 초), 활성·enable 상태, 마지막 서비스 결과. 실패하면 빈 값."""
+    out = {t: {"next": 0, "last": 0, "active": "?", "enabled": "?", "result": "", "exit": ""} for t in control.TIMERS}
     try:
         rows = json.loads(subprocess.run(["systemctl", "--user", "list-timers", "--all", "--output=json"],
                                          capture_output=True, text=True, timeout=10).stdout or "[]")
         for r in rows:
             t = str(r.get("unit", "")).removesuffix(".timer")
             if t in out:
-                out[t].update(next=int(r.get("next") or 0) // 1_000_000, last=int(r.get("last") or 0) // 1_000_000, active="active")
+                out[t].update(next=int(r.get("next") or 0) // 1_000_000, last=int(r.get("last") or 0) // 1_000_000)
     except (OSError, subprocess.SubprocessError, ValueError):
         pass
+    for t, o in out.items():
+        tm = _show(f"{t}.timer", "ActiveState", "UnitFileState")
+        sv = _show(f"{t}.service", "Result", "ExecMainStatus")
+        o.update(active=tm.get("ActiveState", "?"), enabled=tm.get("UnitFileState", "?"), result=sv.get("Result", ""), exit=sv.get("ExecMainStatus", ""))
     return out
 
 
@@ -155,6 +167,8 @@ def route(method: str, path: str, body: dict | None = None) -> tuple[int, dict |
         with control.LOCK:
             r = roles.set_flag(str(body.get("role", "")), str(body.get("flag", "")), bool(body.get("value")))
             control.audit("roles", {k: body.get(k) for k in ("role", "flag", "value")}, bool(r.get("ok")))
+    elif path == "/api/timer":
+        r = control.set_timer(str(body.get("name", "")), bool(body.get("on")))
     elif path == "/api/tunables":
         r = control.set_tunables(body.get("values") or {})
     elif path.startswith("/api/review/"):

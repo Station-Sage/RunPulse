@@ -62,3 +62,15 @@ def test_resume_after_failed_halt_keeps_cursor(tmp_path):
     control.act("resume", tmp_path, run=lambda c: True)
     st = json.loads(p.read_text())
     assert (st["phase"], st["unit"], st["fails"], st["stop_reason"], st["round"]) == ("develop", "X-1", 0, None, 8)
+
+
+def test_set_timer_whitelist_and_commands(tmp_path):
+    calls = []
+    ok = lambda c: calls.append(c) or True
+    assert control.set_timer("evil", True, tmp_path, run=ok)["ok"] is False and not calls
+    assert control.set_timer("runpulse-watch", False, tmp_path, run=ok)["ok"]
+    assert calls[-1] == ["systemctl", "--user", "disable", "--now", "runpulse-watch.timer"]
+    assert control.set_timer("runpulse-audit", True, tmp_path, run=ok)["on"] is True
+    assert calls[-1][3:] == ["--now", "runpulse-audit.timer"] and calls[-1][2] == "enable"
+    assert control.set_timer("runpulse-audit", True, tmp_path, run=lambda c: False)["ok"] is False
+    assert (tmp_path / "console_audit.jsonl").read_text().count("timer") == 3

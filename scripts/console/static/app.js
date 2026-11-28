@@ -102,7 +102,10 @@ async function load(){
  if(t&&typeof t==='object'){timers=t;renderTimers()}
  if(tv)for(const[k,v]of Object.entries(tv)){const g=$('#tg-'+k);if(g){g.dataset.on=v?'1':'0';g.textContent=v?'켜짐':'꺼짐';g.classList.toggle('p',!!v)}}
  if(tv&&!typing)for(const[k,v]of Object.entries(tv)){const e=$('#tn-'+k);if(e&&document.activeElement!==e&&!e.value)e.value=v}}
+document.addEventListener('toggle',e=>{const d=e.target.closest&&e.target.closest('[data-tmd]');if(d)openTm[d.dataset.tmd]=d.open},true);
 document.addEventListener('click',async e=>{
+ const tm=e.target.closest('[data-tm]');if(tm){const on=tm.dataset.on!=='1';if(!on&&tm.dataset.tm==='watch'&&!confirm('감시를 끄면 멈춤·이상 상태를 점검하지 않습니다. 끌까요?'))return;
+  tm.disabled=true;const r=await api('/api/timer',{name:'runpulse-'+tm.dataset.tm,on});if(r&&r.ok===false)alert(r.error||'실패');load();return}
  const rr=e.target.closest('[data-rr]');if(rr){openRole[rr.dataset.rr]=!openRole[rr.dataset.rr];if(window.lastO)renderNow(window.lastO);return}
  const g=e.target.closest('[data-tg]');if(g){openPh[g.dataset.tg]=!openPh[g.dataset.tg];if(window.lastO)renderNow(window.lastO);return}
  const it=e.target.closest('[data-it]');if(it&&!e.target.closest('button')){toggleIt(it.dataset.it);return}
