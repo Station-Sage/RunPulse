@@ -2750,9 +2750,9 @@
 
 - functions: tmp_config, test_save_config_creates_file, test_save_config_roundtrip, test_save_config_overwrites, test_update_service_config_creates_file, test_update_service_config_partial_update, test_update_service_config_new_service, test_redact_masks_password, test_redact_masks_token, test_redact_does_not_mutate_original, test_redact_empty_value_unchanged
 
-### `test_console_control.py` (64줄) — 관제 제어 — 플래그·화이트리스트·타이머 drop-in·감사 로그.
+### `test_console_control.py` (76줄) — 관제 제어 — 플래그·화이트리스트·타이머 drop-in·감사 로그.
 
-- functions: test_pause_resume_stop, test_tunables_validation, test_start_clears_stopped_cycle_state, test_pause_keeps_cycle_state, test_resume_starts_loop_but_pause_does_not, test_resume_after_failed_halt_keeps_cursor
+- functions: test_pause_resume_stop, test_tunables_validation, test_start_clears_stopped_cycle_state, test_pause_keeps_cycle_state, test_resume_starts_loop_but_pause_does_not, test_resume_after_failed_halt_keeps_cursor, test_set_timer_whitelist_and_commands
 
 ### `test_console_flow.py` (143줄) — 진행 흐름(flow.build) 계산 + 루프 이벤트 기록.
 
@@ -2766,7 +2766,7 @@
 
 - functions: test_queue_summary, test_overview_and_decisions, test_overview_has_release, test_redo_not_counted_and_closed_capped
 
-### `test_console_server.py` (228줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
+### `test_console_server.py` (231줄) — 관제 서버 — 라우팅·결정 선택 검증·HTTP 실호출(127.0.0.1 임시 포트).
 
 - functions: test_choose_validation, test_save_note_keeps_status, test_log_tail_and_route, test_http_origin_and_content_type, test_static_files_served, test_timers_and_tunable_values, test_notify_console_hint, test_change_choice_from_chosen_and_blocked_kinds, test_change_choice_applied_reopen_fail, test_review_action, test_failed_action, test_review_text_not_truncated, test_pause_action_writes_progress_log, test_pipeline_running_step, test_timed_verify_marks_and_clears_state, test_deploy_failed_applied_cannot_be_reopened, test_choose_promotes_item_immediately, test_failed_action_verify_requeue_carries_diagnosis, test_queued_action_moves_item_up
 

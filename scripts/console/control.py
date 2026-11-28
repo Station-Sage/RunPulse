@@ -95,6 +95,16 @@ def act(action: str, state_dir: Path | None = None, run=_sh, reap=None) -> dict:
     return res
 
 
+def set_timer(name: str, on: bool, state_dir: Path | None = None, run=_sh) -> dict:
+    """타이머 on/off — 화이트리스트만 허용. 재부팅 후에도 유지되도록 enable --now / disable --now 를 쓴다."""
+    if name not in TIMERS:
+        return {"ok": False, "error": f"조정 불가 타이머: {name}"}
+    with LOCK:
+        ok = run(["systemctl", "--user", "enable" if on else "disable", "--now", f"{name}.timer"])
+        audit("timer", {"name": name, "on": on}, ok, state_dir)
+    return {"ok": True, "name": name, "on": on} if ok else {"ok": False, "error": "systemctl 실패"}
+
+
 def set_tunables(values: dict, state_dir: Path | None = None) -> dict:
     """화이트리스트·범위 검증 후 tunables.json 에 병합. 하나라도 어긋나면 전부 거부한다."""
     d = state_dir or settings.STATE_DIR
