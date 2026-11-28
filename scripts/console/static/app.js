@@ -20,7 +20,8 @@ function hhmm(ts){return ts?new Date(ts*1000).toLocaleString('ko-KR',{month:'num
 function sec(t,body){return body?`<div class="sec"><div class="st">${t}</div>${body}</div>`:''}
 function lst(a){return a&&a.length?'<ul>'+a.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}
 const revAsked={};
-function askReviews(list){for(const d of list){if(d.status==='open'&&['split_decision','verify_decision'].includes(d.kind)&&!d.review_source&&!revAsked[d.id]){revAsked[d.id]=1;api('/api/decisions/'+d.id+'/review',{}).then(r=>{if(r&&r.source==='pending'){setTimeout(()=>{delete revAsked[d.id]},60000)}else load()})}}}
+let revChain=Promise.resolve();
+function askReviews(list){for(const d of list){if(d.status==='open'&&['split_decision','verify_decision'].includes(d.kind)&&!d.review_source&&!revAsked[d.id]){revAsked[d.id]=1;revChain=revChain.then(()=>api('/api/decisions/'+d.id+'/review',{})).then(r=>{if(r&&r.source==='pending'){setTimeout(()=>{delete revAsked[d.id]},60000)}else load()}).catch(()=>{delete revAsked[d.id]})}}}
 function renderDec(list){
  askReviews(list);
  $('#dl').innerHTML=list.length?list.map(d=>{

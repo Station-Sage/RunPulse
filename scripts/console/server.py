@@ -115,12 +115,12 @@ def review_card(iid: str, dpath: Path | None = None, ask=None) -> dict:
         return {"ok": True, "id": iid, "source": cur.get("review_source", "none")}
     work = json.loads(json.dumps(cur))
     res = card_review.review(work, ask=ask)
-    if res["source"] in ("agent", "rule"):
+    if res["source"] in ("agent", "rule", "pending"):
         with control.LOCK:
             recs = decisions.load(dpath)
             tgt = next((r for r in recs if r["id"] == iid), None)
             if tgt is not None and tgt["status"] == "open" and not tgt.get("review_source"):
-                tgt.update({k: work[k] for k in ("review", "options", "recommendation", "recommend_why", "review_source", "split_plan") if k in work})
+                tgt.update({k: work[k] for k in ("review", "options", "recommendation", "recommend_why", "review_source", "split_plan", "review_tries") if k in work})
                 decisions.save(recs, dpath)
                 control.audit("decision_review", {"id": iid, "source": res["source"]}, True)
     return {"ok": True, "id": iid, "source": res["source"]}

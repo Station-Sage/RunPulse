@@ -1,6 +1,6 @@
 """결정 카드(split_decision·verify_decision) 에이전트 검토 — 카드를 처음 열 때 한 번만 읽기 전용 에이전트가 검토안·안별 검토·추천을 쓴다.
 
-실패(타임아웃·파싱 불가·키 불일치)면 규칙 기반 값을 그대로 두고 review_source=rule(규칙 기반 추정), 성공이면 agent.
+실패(타임아웃·파싱 불가·키 불일치)는 MAX_TRIES 회까지 다음 기회에 재시도하고, 계속 실패하면 규칙 기반 값을 두고 review_source=rule(규칙 기반 추정), 성공이면 agent.
 페이싱·예산 대기(PacingHold)는 표시만 남기고 다음 기회에 다시 시도한다. 추천은 제안일 뿐 자동 적용하지 않는다.
 """
 from __future__ import annotations
@@ -11,6 +11,7 @@ from pathlib import Path
 
 KINDS = ("split_decision", "verify_decision")
 MODEL = "sonnet"
+MAX_TRIES = 3
 
 _OUT = ('JSON 한 개만 출력한다(설명·코드펜스 금지): {"review": "카드 전체 검토 2~4문장", "options": {"<key>": "그 안의 근거 1~2문장"}, '
         '"recommendation": "<추천 key>", "recommend_why": "추천 이유 1~2문장"%s}')
@@ -61,6 +62,9 @@ def review(rec: dict, ask=None, root: Path | None = None) -> dict:
         out = ""
     res = parse(out, [o["key"] for o in rec.get("options", [])])
     if res is None:
+        rec["review_tries"] = int(rec.get("review_tries", 0)) + 1
+        if rec["review_tries"] < MAX_TRIES:
+            return {"source": "pending"}
         rec["review_source"] = "rule"
         return {"source": "rule"}
     rec.update(review=res["review"], recommendation=res["recommendation"], recommend_why=res["recommend_why"], review_source="agent")
